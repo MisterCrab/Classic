@@ -1,0 +1,49 @@
+## Interface: 80200
+## Title: TellMeWhen |cff00ccff The Action|r
+## Notes: (\/)O_O(\/)
+## RequiredDeps: TellMeWhen
+## DefaultState: enabled
+## LoadWith: TellMeWhen
+
+Lib\LibSharedMedia-3.0\lib.xml
+Lib\ForAllIndentsAndPurposes.lua
+Lib\LibDBIcon-1.0.lua
+Lib\StdUI.lua
+Lib\DRData-1.1.lua
+
+# First constans!
+Modules\Components\Const\Constans.lua
+
+Action.lua
+
+Modules\Components\Enum\TriggerGCD.lua
+Modules\Components\Tools.lua
+Modules\Components\Utils.lua
+
+Modules\Dependences\AzeriteTraits.lua
+Modules\Dependences\PetLibrary.lua
+
+Modules\Engines\Base.lua
+Modules\Engines\Combat.lua
+Modules\Engines\HealingEngine.lua
+Modules\Engines\HeartofAzeroth.lua
+Modules\Engines\MultiUnits.lua
+Modules\Engines\Player.lua
+Modules\Engines\Unit.lua
+
+Modules\Misc\BossMods.lua
+Modules\Misc\ElvUI.lua
+Modules\Misc\HeroLib.lua
+Modules\Misc\PMultiplier.lua
+
+Modules\Actions.lua
+Modules\Core.lua
+
+Modules\Retired\Deprecated.lua
+Modules\Retired\HeartofAzeroth.lua
+Modules\Retired\HybridProfile.lua
+Modules\Retired\MessageEvents.lua
+
+# Test
+# Modules\TestDev\StressTests.lua
+# Modules\TestDev\UpdateTriggerGCD.lua
