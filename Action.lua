@@ -125,7 +125,6 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Increases frames per second by increasing the dynamic dependency\nframes of the refresh cycle (call) of the rotation cycle\n\nYou can also manually set the interval following a simple rule:\nThe larger slider then more FPS, but worse rotation update\nToo high value can cause unpredictable behavior!\n\nRightClick: Create macro",					
 				PVPSECTION = "PvP Section",
-				REFOCUS = "Return previous saved @focus\n(arena1-3 units only)\nIt recommended against invisibility classes\n\nRightClick: Create macro",
 				RETARGET = "Return previous saved @target\n(arena1-3 units only)\nIt recommended against hunters with 'Feign Death' and any unforeseen target drops\n\nRightClick: Create macro",
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
@@ -134,8 +133,6 @@ local Localization = {
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Set percent health (HP)\n\nRightClick: Create macro",
 				PAUSECHECKS = "[All specs] Rotation doesn't work if:",
-				VEHICLE = "InVehicle",
-				VEHICLETOOLTIP = "Example: Catapult, Firing gun",
 				DEADOFGHOSTPLAYER = "You're dead",
 				DEADOFGHOSTTARGET = "Target is dead",
 				DEADOFGHOSTTARGETTOOLTIP = "Exception enemy hunter if he selected as primary target",
@@ -416,7 +413,6 @@ local Localization = {
 				FPSSEC = " (сек)",
 				FPSTOOLTIP = "AUTO: Повышение кадров в секунду за счет увеличения в динамической зависимости\nкадров интервала обновления (вызова) цикла ротации\n\nВы также можете вручную задать интервал следуя простому правилу:\nЧем больше ползунок, тем больше кадров, но хуже обновление ротации\nСлишком высокое значение может вызвать непредсказуемое поведение!\n\nПравая кнопка мышки: Создать макрос",					
 				PVPSECTION = "Секция PvP",
-				REFOCUS = "Возвращать предыдущий сохраненный @focus (arena1-3 юниты только)\nРекомендуется против классов с невидимостью\n\nПравая кнопка мышки: Создать макрос",
 				RETARGET = "Возвращать предыдущий сохраненный @target (arena1-3 юниты только)\nРекомендуется против Охотников с 'Притвориться мертвым'\nи(или) при любых непредвиденных сбросов цели\n\nПравая кнопка мышки: Создать макрос",
 				TRINKETS = "Аксессуары",
 				TRINKET = "Аксессуар",
@@ -425,8 +421,6 @@ local Localization = {
 				HEALTHSTONE = "Камень здоровья",
 				HEALTHSTONETOOLTIP = "Выставить процент своего здоровья при котором использовать\n\nПравая кнопка мышки: Создать макрос",
 				PAUSECHECKS = "[Все спеки] Ротация не работает если:",
-				VEHICLE = "В спец.транспорте",
-				VEHICLETOOLTIP = "Например: Катапульта, Обстреливающая пушка",
 				DEADOFGHOSTPLAYER = "Вы мертвы",
 				DEADOFGHOSTTARGET = "Цель мертва",
 				DEADOFGHOSTTARGETTOOLTIP = "Исключение вражеский Охотник если выбран в качестве цели",
@@ -707,7 +701,6 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Erhöht die Frames pro Sekunde durch Erhöhen der dynamischen Abhängigkeit.\nFrames des Aktualisierungszyklus (Aufruf) des Rotationszyklus\n\nSie können das Intervall auch nach einer einfachen Regel manuell einstellen:\nDer größere Schieberegler als mehr FPS, aber schlechtere Rotation Update\nZu hoher Wert kann zu unvorhersehbarem Verhalten führen!\n\nRechtsklick: Makro erstellen",					
 				PVPSECTION = "PvP Einstellungen",
-				REFOCUS = "Vorheriges gespeichertes @focus zurückgeben\n(nur Arena1-3-Einheiten)\nEs wird für Unsichtbarkeitsklassen empfohlen\n\nRechtsklick: Makro erstellen",
 				RETARGET = "Vorheriges gespeichertes @Ziel zurückgeben\n(nur Arena1-3-Einheiten)\nEs wird gegen Jäger mit 'Totstellen' und unvorhergesehenen Zielabwürfen empfohlen\n\nRechtsklick: Makro erstellen",
 				TRINKETS = "Schmuckstücke",
 				TRINKET = "Schmuck",
@@ -716,8 +709,6 @@ local Localization = {
 				HEALTHSTONE = "Gesundheitsstein",
 				HEALTHSTONETOOLTIP = "Wann der GeSu benutzt werden soll!\n\nRechtsklick: Makro erstellen",
 				PAUSECHECKS = "[Jede Klasse] Rota funktioniert nicht wenn:",
-				VEHICLE = "Im Fahrzeug",
-				VEHICLETOOLTIP = "Beispiel: Katapult, Pistole abfeuern",
 				DEADOFGHOSTPLAYER = "Wenn du Tot bist",
 				DEADOFGHOSTTARGET = "Das Ziel Tot ist",
 				DEADOFGHOSTTARGETTOOLTIP = "Ausnahme feindlicher Jäger, wenn er als Hauptziel ausgewählt ist",
@@ -998,7 +989,6 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO:  Augmente les images par seconde en augmentant la dépendance dynamique\nimage du cycle de rafraichisement (call) du cycle de rotation\n\nVous pouvez régler manuellement l'intervalle en suivant cette règle simple:\nPlus le slider est grand plus vous avez de FPS, mais pire sera la mise à jour de la rotation\nUne valeur trop élevée peut entraîner un comportement imprévisible!\n\nClique droit : Créer la macro",
 				PVPSECTION = "Section PvP",
-				REFOCUS = "Remet le @focus sauvé précédemment\n(Uniquement pour les cibles arena1-3)\nCela est recommandé pour les cible qui ont un sort d'invicibilité\n\nClique droit : Créer la macro",
 				RETARGET = "Remet le @target sauvé précédemment\n(Uniquement pour les cibles arena1-3)\nCela est recommander contre les chasseurs avec 'Feindre la mort' et les perte de cible imprévu\n\nClique droit : Créer la macro",
 				TRINKETS = "Bijoux",
 				TRINKET = "Bijou",
@@ -1007,8 +997,6 @@ local Localization = {
 				HEALTHSTONE = "Pierre de soin",
 				HEALTHSTONETOOLTIP = "Choisisez le pourcentage de vie (HP)\n\nClique droit : Créer la macro",
 				PAUSECHECKS = "[ALL specs] La rotation ne fonction pas, si:",
-				VEHICLE = "EnVéhicule",
-				VEHICLETOOLTIP = "Exemple: Catapulte, ...",
 				DEADOFGHOSTPLAYER = "Vous êtes mort!",
 				DEADOFGHOSTTARGET = "Votre cible est morte",
 				DEADOFGHOSTTARGETTOOLTIP = "Exception des chasseurs ennemi si il est en cible principale",
@@ -1289,7 +1277,6 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Aumenta i frames per second incrementando la dipendenza dinamica\ndei frames del ciclo di refresh (call) della rotazione\n\nPuoi settare manualmente l'intervallo seguendo questa semplice regola:\nPiú é altop lo slider piú é l'FPS, ma peggiore sará l'update della rotazione\nValori troppo alti possono portare a risultati imprevedibili!\n\nTastodestro: Crea macro",					
 				PVPSECTION = "Sezione PvP",
-				REFOCUS = "Identifica il focus precedente @focus\n(solo arena unitá 1-3)\nraccomandato contro le classi con capacitá di invisibilitá\n\nTastodestro: Crea macro",
 				RETARGET = "Identifica il bersaglio precedente @target\n(solo arena unitá 1-3)\nraccomandato contro cacciatori con capacitá 'Morte Fasulla' e altre abilitá che deselezionano il bersaglio\n\nTastodestro: Crea macro",
 				TRINKETS = "Ninnolo",
 				TRINKET = "Ninnoli",
@@ -1298,8 +1285,6 @@ local Localization = {
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Seta la percentuale di vita (HP)\n\nTastodestro: Crea macro",
 				PAUSECHECKS = "[All specs] Rotation doesn't work if:",
-				VEHICLE = "NelVeicolo",
-				VEHICLETOOLTIP = "Esempio: Catapulta, Cannone",
 				DEADOFGHOSTPLAYER = "Sei Morto",
 				DEADOFGHOSTTARGET = "Il bersaglio é morto",
 				DEADOFGHOSTTARGETTOOLTIP = "Eccezione il cacciatore bersaglio se é selezionato come bersaglio primario",
@@ -1580,7 +1565,6 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Incrementa los frames por segundo aumentando la dependencia dinámica\nframes del ciclo de recarga (llamada) del ciclo de rotación\n\nTambién puedes establecer manualmente el intervalo siguiendo una regla simple:\nCuanto mayor sea el desplazamiento, mayor las FPS, pero peor actualización de rotación\nUn valor demasiado alto puede causar un comportamiento impredecible!\n\nClickDerecho: Crear macro",					
 				PVPSECTION = "Sección PvP",
-				REFOCUS = "Devuelve el guardado anterior @focus\n(arena1-3 unidades solamente)\nEs recomendable contra clases con invisibilidad\n\nClickDerecho: Crear macro",
 				RETARGET = "Devuelve el guardado anterior @target\n(arena1-3 unidades solamente)\nEs recomendable contra cazadores con 'Feign Death' and cualquier objetivo imprevisto cae\n\nClickDerecho: Crear macro",
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
@@ -1589,8 +1573,6 @@ local Localization = {
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Establecer porcentaje de vida (HP)\n\nClickDerecho: Crear macro",
 				PAUSECHECKS = "[All specs] La rotación no funciona si:",
-				VEHICLE = "En Vehículo",
-				VEHICLETOOLTIP = "Ejemplo: Catapulta, arma de fuego",
 				DEADOFGHOSTPLAYER = "Estás muerto",
 				DEADOFGHOSTTARGET = "El Target está muerto",
 				DEADOFGHOSTTARGETTOOLTIP = "Excepción a enemigo hunter if seleccionó como objetivo principal",
@@ -1880,7 +1862,6 @@ local Factory = {
 	-- ISINTERRUPT will swap ID to locale Name as key and create formated table 
 	-- ISCURSOR will swap key localized Name from Localization table and create formated table 
 	[1] = {
-		CheckVehicle = true, 
 		CheckDeadOrGhost = true, 
 		CheckDeadOrGhostTarget = false,
 		CheckMount = false, 
@@ -1911,8 +1892,7 @@ local Factory = {
 				[2] = true, 
 			},
 			Burst = "Auto",
-			HealthStone = 20, 
-			ReFocus = true, 
+			HealthStone = 20,  
 			ReTarget = true, 			
 		},
 	}, 
@@ -3996,7 +3976,7 @@ function Action.ToggleHE(fixed)
 	Action.SetToggle({1, "HE_Toggle", "HealingEngine" .. ": "}, fixed or Current)	
 end 
 
--- [1] ReTarget // ReFocus
+-- [1] ReTarget
 local Re = {
 	Units = { "arena1", "arena2", "arena3" },
 	-- Textures 
@@ -4005,14 +3985,9 @@ local Re = {
 		["arena2"] = ACTION_CONST_PVP_TARGET_ARENA2,
 		["arena3"] = ACTION_CONST_PVP_TARGET_ARENA3,
 	},
-	focus = {
-		["arena1"] = ACTION_CONST_PVP_FOCUS_ARENA1,
-		["arena2"] = ACTION_CONST_PVP_FOCUS_ARENA2,
-		["arena3"] = ACTION_CONST_PVP_FOCUS_ARENA3,
-	},	
 	-- OnEvent 
 	PLAYER_TARGET_CHANGED = function(self)
-		if (Action.Zone == "arena" or Action.Zone == "pvp") then 			
+		if Action.Zone == "pvp" then 			
 			if UnitExists("target") then 
 				Action.LastTargetIsExists = true 
 				for i = 1, #self.Units do
@@ -4026,32 +4001,13 @@ local Re = {
 			end 
 		end 		
 	end,	
-	PLAYER_FOCUS_CHANGED = function(self)
-		if (Action.Zone == "arena" or Action.Zone == "pvp") then 
-			if UnitExists("focus") then 
-				Action.LastFocusIsExists = true 
-				for i = 1, #self.Units do 
-					if UnitIsUnit("focus", self.Units[i]) then 
-						Action.LastFocusUnitID = self.Units[i]
-						Action.LastFocusTexture = self.focus[Action.LastFocusUnitID]
-					end 
-				end 
-			else
-				Action.LastFocusIsExists = false 
-			end 
-		end 
-	end,
 	Wipe			= function(self)
 		Action.LastTargetIsExists	= nil
 		Action.LastTargetUnitID 	= nil 
-		Action.LastTargetTexture 	= nil 
-		Action.LastFocusIsExists 	= nil 
-		Action.LastFocusUnitID 		= nil
-		Action.LastFocusTexture 	= nil		
+		Action.LastTargetTexture 	= nil 	
 	end,
 	Reset 			= function(self)		
 		Action.Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED")
-		Action.Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_FOCUS_CHANGED")
 		self:Wipe()
 	end,
 	Initialize		= function(self)
@@ -4064,16 +4020,6 @@ local Re = {
 			Action.LastTargetUnitID 	= nil 
 			Action.LastTargetTexture 	= nil 			
 		end 
-		
-		if Action.GetToggle(1, "ReFocus") then 
-			Action.Listener:Add(   "ACTION_EVENT_RE", 	"PLAYER_FOCUS_CHANGED",  function() self:PLAYER_FOCUS_CHANGED()  end)
-			self:PLAYER_FOCUS_CHANGED()
-		else 
-			Action.Listener:Remove("ACTION_EVENT_RE", 	"PLAYER_FOCUS_CHANGED")
-			Action.LastFocusIsExists 	= nil 
-			Action.LastFocusUnitID 		= nil
-			Action.LastFocusTexture 	= nil			
-		end 	
 	end,
 }
 
@@ -4989,7 +4935,7 @@ function Action.SetToggle(arg, custom)
 		GlobalsRemap()
 	end 
 	
-	if toggle == "ReFocus" or toggle == "ReTarget" then 
+	if toggle == "ReTarget" then 
 		Re:Initialize()
 	end 
 	
@@ -5638,23 +5584,7 @@ function Action.ToggleMainUI()
 			ReTarget.Identify = { Type = "Checkbox", Toggle = "ReTarget" }
 			StdUi:FrameTooltip(ReTarget, L["TAB"][tab.name]["RETARGET"], nil, "TOPRIGHT", true)
 			ReTarget.FontStringTitle = StdUi:FontString(ReTarget, L["TAB"][tab.name]["PVPSECTION"])
-			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)			
-
-			local ReFocus = StdUi:Checkbox(anchor, "ReFocus")
-			ReFocus:SetChecked(TMW.db.profile.ActionDB[tab.name][specID].ReFocus)
-			ReFocus:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			ReFocus:SetScript('OnClick', function(self, button, down)	
-				if button == "LeftButton" then 
-					TMW.db.profile.ActionDB[tab.name][specID].ReFocus = not TMW.db.profile.ActionDB[tab.name][specID].ReFocus
-					self:SetChecked(TMW.db.profile.ActionDB[tab.name][specID].ReFocus)	
-					Action.Print("ReFocus" .. ": ", TMW.db.profile.ActionDB[tab.name][specID].ReFocus)
-					Re:Initialize()					
-				elseif button == "RightButton" then 
-					CraftMacro("ReFocus", [[/run Action.SetToggle({]] .. tab.name .. [[, "ReFocus", "]] .. "ReFocus" .. [[: "})]])	
-				end 
-			end)
-			ReFocus.Identify = { Type = "Checkbox", Toggle = "ReFocus" }
-			StdUi:FrameTooltip(ReFocus, L["TAB"][tab.name]["REFOCUS"], nil, "TOPRIGHT", true)				
+			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)						
 			
 			local LosSystem = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSYSTEM"])
 			LosSystem:SetChecked(TMW.db.profile.ActionDB[tab.name][specID].LOSCheck)
@@ -5865,16 +5795,7 @@ function Action.ToggleMainUI()
 			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 250, L["TAB"][tab.name]["PAUSECHECKS"])
 			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
 			PauseChecksPanel.titlePanel.label:SetFontSize(14)
-			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = PauseChecksPanel.titlePanel.label:GetHeight() + 10 } })	
-
-			local CheckVehicle = StdUi:Checkbox(anchor, L["TAB"][tab.name]["VEHICLE"])			
-			CheckVehicle:SetChecked(TMW.db.profile.ActionDB[tab.name].CheckVehicle)
-			function CheckVehicle:OnValueChanged(self, state, value)
-				TMW.db.profile.ActionDB[tab.name].CheckVehicle = not TMW.db.profile.ActionDB[tab.name].CheckVehicle		
-				Action.Print(L["TAB"][tab.name]["VEHICLE"] .. ": ", TMW.db.profile.ActionDB[tab.name].CheckVehicle)
-			end	
-			CheckVehicle.Identify = { Type = "Checkbox", Toggle = "CheckVehicle" }
-			StdUi:FrameTooltip(CheckVehicle, L["TAB"][tab.name]["VEHICLETOOLTIP"], nil, "BOTTOMRIGHT", true)				
+			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = PauseChecksPanel.titlePanel.label:GetHeight() + 10 } })			
 			
 			local CheckDeadOrGhost = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DEADOFGHOSTPLAYER"])	
 			CheckDeadOrGhost:SetChecked(TMW.db.profile.ActionDB[tab.name].CheckDeadOrGhost)
@@ -6006,7 +5927,7 @@ function Action.ToggleMainUI()
 			GlobalOverlay:AddElement(LayoutSpace(anchor), { column = 0.5})
 			GlobalOverlay:AddElement(anchor.InterfaceLanguage, { column = 6 })			
 			anchor:AddRow({ margin = { top = 10 } }):AddElements(ReTarget, Trinkets, { column = "even" })			
-			anchor:AddRow():AddElements(ReFocus, Burst, { column = "even" })			
+			anchor:AddRow():AddElements(LayoutSpace(anchor), Burst, { column = "even" })			
 			local SpecialRow = anchor:AddRow()
 			SpecialRow:AddElement(FPS, { column = 5.8 })
 			SpecialRow:AddElement(LayoutSpace(anchor), { column = 0.2 })
@@ -6018,9 +5939,9 @@ function Action.ToggleMainUI()
 			anchor:AddRow():AddElements(StopCast, LayoutSpace(anchor), { column = "even" })	
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckVehicle, CheckDeadOrGhost, { column = "even" })	
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckMount, CheckDeadOrGhostTarget, { column = "even" })	
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckCombat, CheckEatingOrDrinking, { column = "even" })	
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckCombat, LayoutSpace(anchor), { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -15 } }):AddElement(Misc)		
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableRotationDisplay, DisableBlackBackground, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisablePrint, DisableMinimap, { column = "even" })			
@@ -6420,7 +6341,6 @@ function Action.ToggleMainUI()
 				["ACTIVE_TALENT_GROUP_CHANGED"]		= true,
 				["BAG_UPDATE_DELAYED"]				= true,
 				["PLAYER_EQUIPMENT_CHANGED"]		= true,
-				["UI_INFO_MESSAGE"]					= true,
 			}
 			local function EVENTS_INIT() 
 				if Action.GetToggle(tab.name, "AutoHidden") then 
@@ -6441,11 +6361,6 @@ function Action.ToggleMainUI()
 					-- Update ScrollTable if pet gone or summoned or swaped
 					if event == "UNIT_PET" then 
 						if ... == "player" then 						
-							self:SetData(ScrollTableActionsData())	
-							self:SortData(self.SORTBY)
-						end 
-					elseif event == "UI_INFO_MESSAGE" then 
-						if Action.UI_INFO_MESSAGE_IS_WARMODE(...) then 
 							self:SetData(ScrollTableActionsData())	
 							self:SortData(self.SORTBY)
 						end 
@@ -8790,7 +8705,7 @@ local function OnInitialize()
 	----------------------------------	
 	-- Initialization
 	----------------------------------	
-	-- Initialization ReTarget ReFocus 
+	-- Initialization ReTarget 
 	Re:Initialize()
 	
 	-- Initialization LOS System
@@ -9037,7 +8952,7 @@ function Action:OnInitialize()
 		Action.IsInitialized = nil
 		-- SpellLevel
 		SpellLevel:Reset(true)
-		-- ReFocus // ReTarget 
+		-- ReTarget 
 		Re:Reset()
 		-- LOSInit 
 		LineOfSight:Reset()

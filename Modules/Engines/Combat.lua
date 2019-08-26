@@ -397,9 +397,6 @@ local UnitTracker 								= {
 		-- Defaults
 		["player"] 						= {},
 	},
-	isShrimmer 							= {
-		[212653] = true,
-	},
 	isBlink								= {
 		[1953] = true, 
 	},
@@ -447,25 +444,8 @@ local UnitTracker 								= {
 	end, 
 	SPELL_CAST_SUCCESS					= function(self, SourceGUID, sourceFlags, spellID)
 		if A.IsInPvP and isEnemy(sourceFlags) and isPlayer(sourceFlags) then 
-			-- Shrimmer
-			if self.isShrimmer[spellID] then 
-				local ShrimmerCD = 0
-				if not self.Data[SourceGUID] then 
-					self.Data[SourceGUID] = {}
-				end 	
-				
-				if not self.Data[SourceGUID].Shrimmer then 
-					self.Data[SourceGUID].Shrimmer = {}
-				end 		
-				
-				table.insert(self.Data[SourceGUID].Shrimmer, TMW.time + 20)
-				
-				-- Since it has only 2 charges by default need remove old ones 
-				if #self.Data[SourceGUID].Shrimmer > 2 then 
-					table.remove(self.Data[SourceGUID].Shrimmer, 1)
-				end 							 
-			-- Blink
-			elseif self.isBlink[spellID] then 
+			-- Blink 
+			if self.isBlink[spellID] then 
 				if not self.Data[SourceGUID] then 
 					self.Data[SourceGUID] = {}
 				end 
@@ -620,7 +600,7 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 		CombatTracker.OnEventDR[EVENT](EVENT, DestGUID, destFlags, spellID)
 	end 
 		
-	-- PvP players tracker (Shrimmer / Blink)
+	-- PvP players tracker (Blink)
 	if EVENT == "SPELL_CAST_SUCCESS" then  
 		UnitTracker:SPELL_CAST_SUCCESS(SourceGUID, sourceFlags, spellID)
 	end 
@@ -644,7 +624,7 @@ end
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "COMBAT_LOG_EVENT_UNFILTERED", 		COMBAT_LOG_EVENT_UNFILTERED	) 
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNIT_SPELLCAST_SUCCEEDED	)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function()
-	if A.Zone ~= "arena" and A.Zone ~= "pvp" and not A.IsInDuel then 
+	if A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)
 		wipe(CombatTracker.Data)
 	end 
@@ -652,7 +632,7 @@ end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				function()
 	-- Need leave slow delay to prevent reset Data which was recorded before combat began for flyout spells, otherwise it will cause a bug
 	local LastTimeCasted = A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastID) 
-	if (LastTimeCasted == 0 or LastTimeCasted > 0.5) and A.Zone ~= "arena" and A.Zone ~= "pvp" and not A.IsInDuel then 
+	if (LastTimeCasted == 0 or LastTimeCasted > 0.5) and A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)   	
 		wipe(CombatTracker.Data)		
 	end 
@@ -986,7 +966,7 @@ A.UnitCooldown 									= {
 		-- unit accepts "arena", "raid", "party", their number 		
 		-- isFriendlyArg, inPvPArg are optional		
 		-- CLEUbl is a table = { ['Event_CLEU'] = true, } which to skip and don't reset by them in fly
-		if UnitTracker.isBlink[spellID] or UnitTracker.isShrimmer[spellID] then 
+		if UnitTracker.isBlink[spellID] then 
 			A.Print("[Error] Can't register Blink or Shrimmer because they are already registered. Please use function Action.UnitCooldown:GetBlinkOrShrimmer(unitID)")
 			return 
 		end 		
@@ -1195,15 +1175,16 @@ A.UnitCooldown 									= {
 }
  
 -- Tracks Freezing Trap 
-A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_FREEZING_TRAP, 30, nil, nil, {
+A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_FREEZING_TRAP1, 15, nil, nil, {
 	["SPELL_CAST_SUCCESS"] = true,		
 }, true)
--- Tracks Counter Shot (hunter's range kick, it's fly able spell and can be avoided by stopcasting)
-A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_COUNTER_SHOT, 24)
--- Tracks Storm Bolt 
-A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_STORM_BOLT, 25, nil, nil, {
+A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_FREEZING_TRAP2, 15, nil, nil, {
 	["SPELL_CAST_SUCCESS"] = true,		
 }, true)
+A.UnitCooldown:Register("arena", ACTION_CONST_SPELLID_FREEZING_TRAP3, 15, nil, nil, {
+	["SPELL_CAST_SUCCESS"] = true,		
+}, true)
+
 
 -------------------------------------------------------------------------------
 -- API: LossOfControl
@@ -1273,19 +1254,6 @@ A.LossOfControl									= {
 		return result, isApplied
 	end,
 	GetExtra 									= {
-		["GladiatorMedallion"] 					= {
-			Applied = {"DISARM", "INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "ROOT", "SNARE", "STUN"},	
-			isValid = function()
-				return A.IsInPvP and 
-				(
-					A.GladiatorMedallion:IsReadyP("player", true) or 
-					(
-						A.HonorMedallion:IsExists() and 
-						A.HonorMedallion:IsReadyP("player", true)
-					)
-				)		
-			end,
-		},
 		["Human"] 								= { 
 			Applied								= {"STUN"},
 			Missed 								= {"DISARM", "INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "ROOT"},

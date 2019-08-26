@@ -309,6 +309,7 @@ end
 -------------------------------------------------------------------------------
 -- Utils
 -------------------------------------------------------------------------------
+--[[
 local Utils 					= {}
 -- Compare two values
 local CompareThisTable = {
@@ -346,6 +347,7 @@ function Utils.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Cond
 end
 
 A.Utils 						= Utils
+]]
 
 -------------------------------------------------------------------------------
 -- Misc

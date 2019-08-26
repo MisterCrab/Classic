@@ -24,38 +24,6 @@ local GetNumClasses, GetClassInfo,  GetNumSpecializationsForClassID, GetSpeciali
 
 local UnitName, UnitGUID 	=
 	  UnitName, UnitGUID
-	
--------------------------------------------------------------------------------
--- DataBase
--------------------------------------------------------------------------------
--- Clear old global snippets (always even if user accidentally installed it again)
-local function ClearTrash()
-	if TMW.db and TMW.db.global and TMW.db.global.CodeSnippets and type(TMW.db.global.CodeSnippets.n) == "number" and TMW.db.global.CodeSnippets.n > 0 then 
-		local isRemove = {
-			["Stuff"] 			= true, 
-			["TMW Monitor"] 	= true,
-			["CombatTracker"] 	= true,
-			["LibPvP"] 			= true,
-			["MultiUnits"] 		= true,
-			["Scale and Chat"] 	= true,
-			["MSGEvents"] 		= true,
-			["AzeriteTraits"] 	= true,
-			["Hybrid profile"] 	= true,
-			["PMultiplier"] 	= true,
-			["HealingEngine"] 	= true, 
-			["PetLib"] 			= true, 
-			["BossMods"] 		= true, 
-			["DEV"] 			= true,
-		}
-		for i, snippet in ipairs(TMW.db.global.CodeSnippets) do
-			if isRemove[snippet.Name] then
-				TMW.db.global.CodeSnippets[i] = nil 
-				TMW.db.global.CodeSnippets.n = TMW.db.global.CodeSnippets.n - 1
-			end
-		end		 	
-	end 	
-end 
-hooksecurefunc(TMW, "InitializeDatabase", ClearTrash)	  
 
 -------------------------------------------------------------------------------
 -- CNDT: TalentMap  
@@ -68,6 +36,7 @@ CNDT:PLAYER_TALENT_UPDATE()
 -- CNDT: UnitSpecs  
 -------------------------------------------------------------------------------
 -- Note: This code is modified for Action Core 
+--[[ TODO: Classic
 specNameToRole, Env.ModifiedUnitSpecs = {}, {}
 
 for i = 1, GetNumClasses() do
@@ -129,6 +98,7 @@ SPECS:RegisterEvent("ARENA_OPPONENT_UPDATE", 	"UpdateUnitSpecs")
 SPECS:RegisterEvent("GROUP_ROSTER_UPDATE", 		"UpdateUnitSpecs")
 SPECS:RegisterEvent("PLAYER_ENTERING_WORLD", 	"UpdateUnitSpecs")
 SPECS.PrepareUnitSpecEvents = TMW.NULLFUNC
+]]
 
 -------------------------------------------------------------------------------
 -- Env.LastPlayerCast
@@ -142,14 +112,10 @@ do
         local pGUID = UnitGUID("player")
         assert(pGUID, "pGUID was null when func string was generated!")
         
-        local blacklist = {
-            [204255] = true -- Soul Fragment (happens after casting Sheer for DH tanks)
-        }
-        
         module:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED",
             function()
                 local _, e, _, sourceGuid, _, _, _, _, _, _, _, spellID, spellName = CombatLogGetCurrentEventInfo()
-                if e == "SPELL_CAST_SUCCESS" and sourceGuid == pGUID and not blacklist[spellID] then
+                if e == "SPELL_CAST_SUCCESS" and sourceGuid == pGUID then
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     Env.LastPlayerCastID 	= spellID
 					A.LastPlayerCastName	= spellName
@@ -158,15 +124,9 @@ do
                 end
         end)    
         
-        -- Spells that don't work with CLEU and must be tracked with USS.
-        local ussSpells = {
-            [189110] = true, -- Infernal Strike (DH)
-            [189111] = true, -- Infernal Strike (DH)
-            [195072] = true, -- Fel Rush (DH)
-        }
         module:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED",
             function(_, unit, _, spellID)
-                if unit == "player" and ussSpells[spellID] and not blacklist[spellID] then
+                if unit == "player" then
 					local spellName			= A.GetSpellInfo(spellID)
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     Env.LastPlayerCastID 	= spellID
@@ -382,7 +342,23 @@ local function UpdateFrames()
             TargetColor:Show()
         end
         TargetColor:SetScale((0.71111112833023 * (1080 / myheight)) / (TargetColor:GetParent() and TargetColor:GetParent():GetEffectiveScale() or 1))
-    end              
+    end           
+
+	-- TODO: Classic 
+	-- RankSingle
+	if RankSingle then 
+		if not RankSingle:IsShown() then
+            RankSingle:Show()
+        end
+        RankSingle:SetScale((0.71111112833023 * (1080 / myheight)) / (RankSingle:GetParent() and RankSingle:GetParent():GetEffectiveScale() or 1))	
+	end 
+	
+	if RankEoE then 
+		if not RankEoE:IsShown() then
+            RankEoE:Show()
+        end
+        RankEoE:SetScale((0.71111112833023 * (1080 / myheight)) / (RankEoE:GetParent() and RankEoE:GetParent():GetEffectiveScale() or 1))	
+	end 	
 end
 
 local isCheckedOnce -- Don't display any messages at first time loading (make warnings only with interaction)

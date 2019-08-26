@@ -25,7 +25,7 @@ DataBase stores on the following path **World of Warcraft\WTF\Account\YOUR ACCOU
 About profile 
 ---
 When you login in game you can open TMW by chat command /tmw and enter in TMW interface by right click on some frame. Then go to 'General' tab then 'Main Options' (or 'Main Settings') and here is at the top you will see dropdown menu with current name of profile and below options 'Write Name' (to create new profile), 'Copy', 'Delete'. This is TMW.db
-Also there are 'LUA Snippets' (or just 'Snippets') tab which will be used for 'The Action' and you're not limited to use it only for that, you can use it for HeroLib API and any your own lua. This is optional because you can create profile without known lua skills 
+Also there are 'LUA Snippets' (or just 'Snippets') tab which will be used for 'The Action' and you're not limited to use it only for that, you can use it for HeroLib API (if it's available for Classic) and any your own lua. This is optional because you can create profile without known lua skills 
 Snippets are 'Profile Snippets' and 'Global Snippets':
 * 'Profile Snippets' is local which means what they are attached only for CURRENT profile 
 * 'Global Snippets' is super global (TMW.db.global) which means they are attached for EACH profile. If you want to use custom API then use global 

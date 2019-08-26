@@ -112,7 +112,7 @@ A.Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "PLAYER_ENTERING_WORLD",   			Mul
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "UPDATE_INSTANCE_INFO", 	  			MultiUnits.OnResetAll) 
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_ADDED",	  	MultiUnits.AddNameplate)
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_REMOVED", 	MultiUnits.RemoveNameplate)
-TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					MultiUnits.OnInitCLEU)
+TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					MultiUnits.OnInitCLEU) -- TODO: Classic 
 
 -------------------------------------------------------------------------------
 -- API

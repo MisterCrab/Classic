@@ -10,7 +10,7 @@ A.IsInDuel			(@boolean)
 A.IsInWarMode		(@boolean)
 
 Global tables:
-A.InstanceInfo 		(@table: Name, Type, difficultyID, ID, GroupSize, isRated)
+A.InstanceInfo 		(@table: Name, Type, difficultyID, ID, GroupSize)
 A.TeamCache			(@table) - return cached units + info about friendly and enemy group
 ]]
 -------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ local _G, pairs, type, wipe =
 	  _G, pairs, type, wipe
 
 local huge 				= math.huge 
-local PvP 				= _G.C_PvP
+local PvP 				= _G.C_PvP -- TODO: Classic 
 
 local IsInRaid, IsInGroup, IsInInstance, IsActiveBattlefieldArena, RequestBattlefieldScoreData = 
 	  IsInRaid, IsInGroup, IsInInstance, IsActiveBattlefieldArena, RequestBattlefieldScoreData
@@ -50,8 +50,8 @@ local IsInRaid, IsInGroup, IsInInstance, IsActiveBattlefieldArena, RequestBattle
 local UnitIsUnit, UnitInBattleground = 
 	  UnitIsUnit, UnitInBattleground
 
-local GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers =
-	  GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers
+local GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers =  -- TODO: Classic 
+	  GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers    -- TODO: Classic 
 
 -------------------------------------------------------------------------------
 -- Instance, Zone, Mode, Duel, TeamCache
@@ -73,15 +73,8 @@ function A:CheckInPvP()
     self.Zone == "pvp" or 
     UnitInBattleground("player") or 
     IsActiveBattlefieldArena() or
-    PvP.IsWarModeDesired() or
     ( A.Unit("target"):IsPlayer() and A.Unit("target"):IsEnemy() )
 end
-
-function A.UI_INFO_MESSAGE_IS_WARMODE(...)
-	-- @return boolean
-	local ID, MSG = ...		
-    return (type(MSG) == "string" and (MSG == ACTION_CONST_ERR_PVP_WARMODE_TOGGLE_OFF or MSG == ACTION_CONST_ERR_PVP_WARMODE_TOGGLE_ON)) or false
-end 
 
 local LastEvent
 local function OnEvent(event, ...)    
@@ -101,21 +94,12 @@ local function OnEvent(event, ...)
 			A.InstanceInfo.difficultyID = difficultyID
 			A.InstanceInfo.ID 			= instanceID
 			A.InstanceInfo.GroupSize	= instanceGroupSize
-			A.InstanceInfo.isRated		= PvP.IsRatedMap()
 			A.TimeStampZone 			= TMW.time
 		end 
 	end 
 	
 	-- Update Mode, Duel
-    if not A.IsLockedMode then
-		if event == "UI_INFO_MESSAGE" and A.UI_INFO_MESSAGE_IS_WARMODE(...) then     
-			A.IsInPvP = PvP.IsWarModeDesired()
-			A.IsInWarMode = A.IsInPvP or nil
-			TMW:Fire("TMW_ACTION_MODE_CHANGED") 
-			TMW:Fire("TMW_ACTION_DEPRECATED")			
-			return 
-		end            
-		
+    if not A.IsLockedMode then          		
 		if event == "DUEL_REQUESTED" then
 			A.IsInPvP, A.IsInDuel, A.TimeStampDuel = true, true, TMW.time
 			TMW:Fire("TMW_ACTION_MODE_CHANGED")
@@ -123,7 +107,6 @@ local function OnEvent(event, ...)
 		elseif event == "DUEL_FINISHED" then
 			A.IsInPvP, A.IsInDuel, A.TimeStampDuel = A:CheckInPvP(), nil, nil
 			TMW:Fire("TMW_ACTION_MODE_CHANGED")
-			TMW:Fire("TMW_ACTION_DEPRECATED")
 			return
 		end            
 		
@@ -134,7 +117,7 @@ local function OnEvent(event, ...)
 	end
 	
 	-- Update Units 
-	if event == "UPDATE_INSTANCE_INFO" or event == "GROUP_ROSTER_UPDATE" or event == "ARENA_OPPONENT_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then 
+	if event == "UPDATE_INSTANCE_INFO" or event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then 
 		-- Wipe Friendly 
 		for _, v in pairs(A.TeamCache.Friendly) do
 			if type(v) == "table" then 
@@ -142,14 +125,14 @@ local function OnEvent(event, ...)
 			end 
 		end 
 		
-		-- Wipe Enemy
+		-- Wipe Enemy TODO: Classic	
 		for _, v in pairs(A.TeamCache.Enemy) do
 			if type(v) == "table" then 
 				wipe(v)
 			end 
 		end 		                             
-		
-		-- Enemy  		
+				
+		-- Enemy  TODO: Classic	
 		if A.Zone == "arena" then 
 			A.TeamCache.Enemy.Size = GetNumArenaOpponents() -- GetNumArenaOpponentSpecs()    
 			A.TeamCache.Enemy.Type = "arena"
@@ -210,8 +193,6 @@ local function OnEvent(event, ...)
 			end 
 		end		
 	end 
-	
-	TMW:Fire("TMW_ACTION_DEPRECATED")
 end 
 
 A.Listener:Add("ACTION_EVENT_BASE", "DUEL_FINISHED", 					OnEvent)
@@ -219,10 +200,8 @@ A.Listener:Add("ACTION_EVENT_BASE", "DUEL_REQUESTED", 					OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "ZONE_CHANGED", 					OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "ZONE_CHANGED_INDOORS", 			OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "ZONE_CHANGED_NEW_AREA", 			OnEvent)
-A.Listener:Add("ACTION_EVENT_BASE", "UI_INFO_MESSAGE", 					OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "UPDATE_INSTANCE_INFO", 			OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "GROUP_ROSTER_UPDATE", 				OnEvent)
-A.Listener:Add("ACTION_EVENT_BASE", "ARENA_OPPONENT_UPDATE", 			OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "PLAYER_ENTERING_WORLD", 			OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "PLAYER_ENTERING_BATTLEGROUND", 	OnEvent)
 A.Listener:Add("ACTION_EVENT_BASE", "PLAYER_TARGET_CHANGED", 			OnEvent)

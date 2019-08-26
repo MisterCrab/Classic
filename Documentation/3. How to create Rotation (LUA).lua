@@ -273,7 +273,7 @@ end
 
 --[[
 You're not limited to use snippets, their fixed names and any lua codes inside them (limit if they are more than 6k+ lines :D) 
-So you can even use HeroLib API actually, that will be described in another documentation guide
+So you can even use HeroLib API actually (if it's available for Classic), that will be described in another documentation guide
 ]]
 
 -------------------------------------------------------------------------------

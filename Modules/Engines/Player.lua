@@ -33,13 +33,12 @@ local InsanityPowerType 		= PowerType.Insanity
 local ArcaneChargesPowerType 	= PowerType.ArcaneCharges
 local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
-local WarlockPowerBar_UnitPower = _G.WarlockPowerBar_UnitPower
 
 local UnitPower, UnitPowerMax, UnitStagger =
 	  UnitPower, UnitPowerMax, UnitStagger
 
-local GetPowerRegen, GetRuneCooldown, GetShapeshiftForm, GetCritChance, GetHaste, GetMasteryEffect, GetVersatilityBonus, GetCombatRatingBonus =
-	  GetPowerRegen, GetRuneCooldown, GetShapeshiftForm, GetCritChance, GetHaste, GetMasteryEffect, GetVersatilityBonus, GetCombatRatingBonus
+local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste =
+	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste
 	  
 local IsEquippedItem, IsStealthed, IsMounted, IsFalling = 	  
 	  IsEquippedItem, IsStealthed, IsMounted, IsFalling 
@@ -54,41 +53,27 @@ local Data = {
 	TimeStampFalling = 0,
 	AuraStealthed = {
 		["ROGUE"] = {
-			11327, 					-- Vanish 
-			115193, 				-- Vanish w/ Subterfuge Talent
-			115192,					-- Subterfuge Buff
-			185422,					-- Stealth from Shadow Dance
+			1856, 					-- Vanish 
+			1784,					-- Stealth Rank1
+			1785,					-- Stealth Rank2 
+			1786,					-- Stealth Rank3 
+			1787,					-- Stealth Rank4 
 		},
 		["DRUID"] = {
-			--102543, 				-- Incarnation: King of the Jungle
-			5215,					-- Prowl 			
+			5215,					-- Prowl Rank1 
+			6783,					-- Prowl Rank2 
+			9913,					-- Prowl Rank3
 		},
-		Shadowmeld = 58984,
-		MassInvisible = {
-			32612, 
-			110959, 
-			198158,  
+		["MAGE"] = {
+			16380,					-- Greater Invisibility
 		},
+		Shadowmeld = 20580,
 	},
 	AuraOnCombatMounted = {
-		["PALADIN"] = {
-			220509,					-- Divine Steed 
-			221883, 
-			221885,
-			221886,
-			221887,
-			254471,
-			254472,
-			254473,
-			254474,
-			220504,					-- Silver Hand Charger
-			220507,
-		},
 		["DRUID"] = {
 			783,		 			-- Travel form 
-			165962,					-- Druid Flight Form
+			1066,					-- Aquatic Form
 		},
-		["DEMONHUNTER"] = 131347,	-- Demon Hunter Glide
 	},
 	-- Items 
 	CheckItems 	= {},	
@@ -216,7 +201,7 @@ end
 
 function A.Player:IsStealthed()
 	-- @return boolean 
-	return IsStealthed() or (A.PlayerRace == "NightElf" and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed.Shadowmeld, true, true) > 0) or (Data.AuraStealthed[A.PlayerClass] and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed[A.PlayerClass], true, true) > 0) or A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed.MassInvisible) > 0
+	return IsStealthed() or (A.PlayerRace == "NightElf" and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed.Shadowmeld, true, true) > 0) or (Data.AuraStealthed[A.PlayerClass] and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed[A.PlayerClass], true, true) > 0) 
 end 
 
 function A.Player:IsCasting()
@@ -254,16 +239,6 @@ end
 
 function A.Player:SpellHaste()
 	return 1 / (1 + (self:HastePct() / 100))
-end
-
--- mastery
-function A.Player:MasteryPct()
-	return GetMasteryEffect()
-end
-
--- versatility
-function A.Player:VersatilityDmgPct()
-	return GetCombatRatingBonus(CR_VERSATILITY_DAMAGE_DONE) + GetVersatilityBonus(CR_VERSATILITY_DAMAGE_DONE)
 end
 
 -- execute_time
@@ -638,78 +613,6 @@ function A.Player:ComboPointsDeficit()
 	return self:ComboPointsMax() - self:ComboPoints()
 end
 
----------------------------------
---- 5 | Runic Power Functions ---
----------------------------------
--- runicpower.max
-function A.Player:RunicPowerMax()
-	return UnitPowerMax(self.UnitID, RunicPowerPowerType)
-end
-
--- runicpower
-function A.Player:RunicPower()
-	return UnitPower(self.UnitID, RunicPowerPowerType)
-end
-
--- runicpower.pct
-function A.Player:RunicPowerPercentage()
-	return (self:RunicPower() / self:RunicPowerMax()) * 100
-end
-
--- runicpower.deficit
-function A.Player:RunicPowerDeficit()
-	return self:RunicPowerMax() - self:RunicPower()
-end
-
--- "runicpower.deficit.pct"
-function A.Player:RunicPowerDeficitPercentage()
-	return (self:RunicPowerDeficit() / self:RunicPowerMax()) * 100
-end
-
----------------------------
---- 6 | Runes Functions ---
----------------------------
--- Computes any rune cooldown.
-local function ComputeRuneCooldown(Slot, BypassRecovery)
-	-- Get rune cooldown infos
-	local CDTime, CDValue = GetRuneCooldown(Slot)
-	-- Return 0 if the rune isn't in CD.
-	if CDTime == 0 then return 0 end
-	-- Compute the CD.
-	local CD = CDTime + CDValue - TMW.time - (BypassRecovery and 0 or RecoveryOffset())
-	-- Return the Rune CD
-	return CD > 0 and CD or 0
-end
-
--- rune
-function A.Player:Rune()
-	local Count = 0
-	for i = 1, 6 do
-		if ComputeRuneCooldown(i) == 0 then
-			Count = Count + 1
-		end
-	end
-	return Count
-end
-
--- rune.time_to_x
-function A.Player:RuneTimeToX(Value)
-	if type(Value) ~= "number" then error("Value must be a number.") end
-	if Value < 1 or Value > 6 then error("Value must be a number between 1 and 6.") end
-	local Runes = {}
-	for i = 1, 6 do
-		Runes[i] = ComputeRuneCooldown(i)
-	end
-	table.sort(Runes, function(a, b) return a < b end)
-	local Count = 1
-	for _, CD in pairs(Runes) do
-		if Count == Value then
-			return CD
-		end
-		Count = Count + 1
-	end
-end
-
 ------------------------
 --- 7 | Soul Shards  ---
 ------------------------
@@ -720,12 +623,12 @@ end
 
 -- soul_shard
 function A.Player:SoulShards()
-	return WarlockPowerBar_UnitPower(self.UnitID)
+	return UnitPower(self.UnitID, SoulShardsPowerType)
 end
 
 -- soul shards predicted, customize in spec overrides
 function A.Player:SoulShardsP()
-	return WarlockPowerBar_UnitPower(self.UnitID)
+	return self:SoulShards() * 100 / self:SoulShardsMax()
 end
 
 -- soul_shard.deficit
@@ -993,10 +896,6 @@ A.Player.PredictedResourceMap = {
 	[3] = function() return A.Player:EnergyPredicted() end,
 	-- ComboPoints
 	[4] = function() return A.Player:ComboPoints() end,
-	-- Runes
-	[5] = function() return A.Player:Runes() end,
-	-- Runic Power
-	[6] = function() return A.Player:RunicPower() end,
 	-- Soul Shards
 	[7] = function() return A.Player:SoulShardsP() end,
 	-- Astral Power

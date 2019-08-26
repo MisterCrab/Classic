@@ -1,6 +1,6 @@
-## Interface: 80200
+## Interface: 11302
 ## Title: TellMeWhen |cff00ccff The Action|r
-## Notes: (\/)O_O(\/)
+## Notes: TellMeWhen What To Show
 ## RequiredDeps: TellMeWhen
 ## DefaultState: enabled
 ## LoadWith: TellMeWhen
@@ -20,7 +20,6 @@ Modules\Components\Enum\TriggerGCD.lua
 Modules\Components\Tools.lua
 Modules\Components\Utils.lua
 
-Modules\Dependences\AzeriteTraits.lua
 Modules\Dependences\PetLibrary.lua
 
 Modules\Engines\Base.lua

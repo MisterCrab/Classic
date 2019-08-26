@@ -55,21 +55,28 @@ local GetKeyByRace = {
 -------------------------------------------------------------------------------
 -- Conditions
 -------------------------------------------------------------------------------
-local FoodAndDrink = {
-	43180, 	-- Food 
-	27089, 	-- Drink
-	257427, -- FoodDrink
-	167152, -- Mage's eat
+local FoodAndDrink = {	
+	587, 	-- Conjure Food 
+	18233,	-- Food
+	22734, 	-- Drink
+	29029,	-- Fizzy Energy Drink
+	18140,	-- Blessed Sunfruit Juice
+	23698,	-- Alterac Spring Water
+	23692,	-- Alterac Manna Biscuit
+	24410,	-- Arathi Basin Iron Ration
+	24411,	-- Arathi Basin Enriched Ration 
+	25990, 	-- Graccu's Mince Meat Fruitcake	
+	18124,  -- Blessed Sunfruit
+	24384,	-- Essence Mango
+	26263,	-- Dim Sum (doesn't triggers Food and Drink)
+	26030,	-- Windblossom Berries (doesn't triggers Food and Drink)
+	25691, 	-- Brain Food (unknown what does it exactly trigger)
 }
 function A.PauseChecks()  	
 	-- Chat, BindPad, TellMeWhen
 	if ACTIVE_CHAT_EDIT_BOX or (BindPadFrame and BindPadFrame:IsVisible()) or not TMW.Locked then 
 		return ACTION_CONST_PAUSECHECKS_DISABLED
 	end 
-	
-    if A.GetToggle(1, "CheckVehicle") and Unit("player"):InVehicle() then
-        return ACTION_CONST_PAUSECHECKS_DISABLED
-    end	
 	
 	if (A.GetToggle(1, "CheckDeadOrGhost") and Unit("player"):IsDead()) or (A.GetToggle(1, "CheckDeadOrGhostTarget") and Unit("target"):IsDead() and (not A.IsInPvP or Unit("target"):Class() ~= "HUNTER")) then 						-- exception in PvP Hunter 
 		return ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST
@@ -103,8 +110,6 @@ A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, Hidden = true, Desc = "Upper" })
 A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, Hidden = true, Desc = "Lower" })
 A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
-A.GladiatorMedallion		= A.Create({ Type = "Spell", 			ID = ACTION_CONST_SPELLID_GLADIATORS_MEDALLION, QueueForbidden = true, Hidden = true, IsTalent = true, Desc = "[5] Trinket" })
-A.HonorMedallion			= A.Create({ Type = "Spell", 			ID = ACTION_CONST_SPELLID_HONOR_MEDALLION, 		QueueForbidden = true, Hidden = true, Desc = "[5] Trinket" })
 
 function A.Rotation(icon)
 	if not A.IsInitialized or not A[A.PlayerSpec] then 
@@ -139,12 +144,6 @@ function A.Rotation(icon)
 		-- Use specialization spell trinkets
 		if A[A.PlayerSpec][meta] and A[A.PlayerSpec][meta](icon) then  
 			return true 			
-		end 	
-
-		-- Use (H)G.Medallion
-		local Medallion = LoC.GetExtra["GladiatorMedallion"]
-		if Medallion and Medallion.isValid() and LoC:IsValid(Medallion.Applied) then 			
-			return A.GladiatorMedallion:Show(icon)
 		end 		
 		
 		-- Use racial if nothing is not available 
@@ -193,15 +192,9 @@ function A.Rotation(icon)
 			end 
 		end 
 		
-		-- ReTarget ReFocus 
-		if (A.Zone == "arena" or A.Zone == "pvp") and A:GetTimeSinceJoinInstance() >= 30 then 
-			if A.LastTarget and not A.LastTargetIsExists then 
-				return A:Show(icon, A.LastTargetTexture)
-			end 
-			
-			if A.LastFocus and not A.LastFocusIsExists then 
-				return A:Show(icon, A.LastFocusTexture)
-			end 
+		-- ReTarget 
+		if A.Zone == "pvp") and A:GetTimeSinceJoinInstance() >= 30 and A.LastTarget and not A.LastTargetIsExists then  
+			return A:Show(icon, A.LastTargetTexture)
 		end 
 		
 		-- Healthstone 
@@ -223,7 +216,7 @@ function A.Rotation(icon)
 			-- No existed or switch in PvE if we accidentally selected out of combat unit  
 			and (not Unit("target"):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit("target"):IsExists() == 0)) 
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
-			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(40, 1) >= 1) or A.Zone == "pvp")
+			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, 1) >= 1) or A.Zone == "pvp")
 		then 
 			return A:Show(icon, ACTION_CONST_AUTOTARGET)			 
 		end 
