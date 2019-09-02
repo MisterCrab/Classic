@@ -636,6 +636,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
 		
 		if 	self.Type == "Trinket" and 
 			-- This also checks equipment (in idea because slot return ID which we compare)
+			self.ID ~= nil and 
 			( A.Trinket1.ID == self.ID and A.GetToggle(1, "Trinkets")[1] or A.Trinket2.ID == self.ID and A.GetToggle(1, "Trinkets")[2] ) and 
 			self:IsUsable() and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )

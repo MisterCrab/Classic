@@ -3452,7 +3452,7 @@ local AuraDuration = {
 		maxRowWidth = (haveTargetofTarget and self.CONST.TOT_AURA_ROW_WIDTH) or self.CONST.AURA_ROW_WIDTH
 		TargetFrame_UpdateAuraPositions(_G["TargetFrame"], selfName .. "Buff", numBuffs, numDebuffs, self.largeBuffList, TargetFrame_UpdateBuffAnchor, maxRowWidth, 3, mirrorAurasVertically)
 		-- update debuff positions
-		maxRowWidth = (haveTargetofTarget and self.auraRows < self.CONST.NUM_TOT_AURA_ROWS and self.CONST.TOT_AURA_ROW_WIDTH) or self.CONST.AURA_ROW_WIDTH
+		maxRowWidth = (haveTargetofTarget and _G["TargetFrame"].auraRows < self.CONST.NUM_TOT_AURA_ROWS and self.CONST.TOT_AURA_ROW_WIDTH) or self.CONST.AURA_ROW_WIDTH
 		TargetFrame_UpdateAuraPositions(_G["TargetFrame"], selfName .. "Debuff", numDebuffs, numBuffs, self.largeDebuffList, TargetFrame_UpdateDebuffAnchor, maxRowWidth, 3, mirrorAurasVertically)
 		-- update the spell bar position
 		if _G["TargetFrame"].spellbar then
