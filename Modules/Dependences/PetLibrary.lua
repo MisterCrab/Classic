@@ -48,10 +48,13 @@ local Pet 								= {
 		if display_error and TMW.time - self.LastEvent > 0.1 then 
 			A.Print("The following Pet spells are missed on your action bar:")
 			-- A.Print("Note: Don't use PetActionBar, you need place following Pet spells on default (Player) action bar")
-			for k, v in pairs(self.Data[A.PlayerSpec]) do
-				if v == 0 and type(k) == "string" then
-					A.Print(A.GetSpellLink(k) .. " is not found on Player action bar!")
-				end                
+			for k, v in pairs(self.Data[A.PlayerSpec]) do          
+				if v == 0 and type(k) ~= "string" then
+					local Name = A.GetSpellLink(k) or A.GetSpellInfo(k) or k
+					if Name then 
+						A.Print(Name .. " is not found on Player action bar!")
+					end 
+				end  				
 			end 
 		end 
 		self.LastEvent = TMW.time 	
@@ -91,8 +94,11 @@ local Pet 								= {
 		
 		A.Listener:Add("ACTION_EVENT_PET_LIBRARY", "PLAYER_ENTERING_WORLD", 		self.OnEvent)
 		A.Listener:Add("ACTION_EVENT_PET_LIBRARY", "UPDATE_INSTANCE_INFO", 			self.OnEvent)
-		A.Listener:Add("ACTION_EVENT_PET_LIBRARY", "PLAYER_SPECIALIZATION_CHANGED", self.OnEvent)
-		self:UpdateSlots()
+		if not self.CallbackIsInitialized then 
+			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 		self.OnEvent) 
+			TMW:RegisterCallback("TMW_ACTION_RANK_SPELLS_UPGRADED", 				function() Pet:UpdateSlots() end) 
+			self.CallbackIsInitialized = true 
+		end 
 	end,
 }
 
@@ -100,7 +106,7 @@ local Pet 								= {
 -- Events
 -------------------------------------------------------------------------------
 Pet.UNIT_PET							= function(...)
-    if Pet.Data[A.PlayerSpec] and ... == "player" and Lib:IsActive() and TMW.time ~= Pet.LastEvent then     
+    if Pet.Data[A.PlayerSpec] and (... == "player" or ... == "pet") and Lib:IsActive() and TMW.time ~= Pet.LastEvent then     
         for k, v in pairs(Pet.Data[A.PlayerSpec]) do
             if v == 0 then 
                 Pet:UpdateSlots()
@@ -132,7 +138,7 @@ Pet.OnEvent 							= function(...)
 		A.Listener:Add("ACTION_EVENT_PET_LIBRARY", "UNIT_PET", 						Pet.UNIT_PET)
 		A.Listener:Add("ACTION_EVENT_PET_LIBRARY", "ACTIONBAR_SLOT_CHANGED", 		Pet.ACTIONBAR_SLOT_CHANGED)
 		-- ACTIONBAR_PAGE_CHANGED
-		Pet:UpdateSlots()
+		--Pet:UpdateSlots()
 	else 
 		A.Listener:Remove("ACTION_EVENT_PET_LIBRARY", "UNIT_PET")
 		A.Listener:Remove("ACTION_EVENT_PET_LIBRARY", "ACTIONBAR_SLOT_CHANGED")
@@ -151,6 +157,16 @@ end
 function Lib:Remove(specID, petSpells)
 	-- Removes from tracking specified spells or full spec with all spells 
 	Pet:RemoveFromData(specID, petSpells)
+end 
+
+function Lib:GetSlotHolder(spell)
+	-- @return number (slot, 0 if not found)
+	return Pet.Data[A.PlayerSpec] and Pet.Data[A.PlayerSpec][spell]
+end 
+
+function Lib:GetData()
+	-- @return table or nil 
+	return Pet.Data[A.PlayerSpec]
 end 
 
 function Lib:IsInRange(spell, unitID)

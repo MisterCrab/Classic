@@ -12,18 +12,15 @@ Make sure what you have enabled HeroLib and HeroCache addons
 -------------------------------------------------------------------------------
 --[[
 Write in chat /tmw > 'LUA Snippets' > Find to edit your specizalition snippet for profile 
-Make sure what Action[PLAYERSPEC] has same KEY names as it has HeroRotation code for Spell and Item 
-You have to put them with same name and same case sensitive in Action[PLAYERSPEC]
+Make sure what Action[Action.PlayerClass] has same KEY names as it has HeroRotation code for Spell and Item 
+You have to put them with same name and same case sensitive in Action[Action.PlayerClass]
 ]]
-Action[PLAYERSPEC] = {
+Action[Action.PlayerClass] = {
 	-- your actions to create same as it has HeroRotation but with Action structure 
 }
 
--- Below as you remember we push essences
-Action:CreateEssencesFor(PLAYERSPEC)
-
 -- And we make it shorter for access
-local A = setmetatable(Action[PLAYERSPEC], { __index = Action })
+local A = setmetatable(Action[Action.PlayerClass], { __index = Action })
 
 -- Now we have to set Hero API defaults 
 -- HeroLib
@@ -97,7 +94,7 @@ local CNDT = TMW.CNDT
 local Env = CNDT.Env
 local Action = Action
 
-Action[ACTION_CONST_MONK_BREWMASTER] = {
+Action[Action.PlayerClass] = {
 	-- Racial
 	ArcaneTorrent                         	= Action.Create({ Type = "Spell", ID = 50613 	}),
 	BloodFury                             	= Action.Create({ Type = "Spell", ID = 20572  	}),
@@ -171,9 +168,7 @@ Action[ACTION_CONST_MONK_BREWMASTER] = {
 	SuperiorBattlePotionOfAgility			= Action.Create({ Type = "Potion", ID = 168489 }),	
 }
 
-Action:CreateEssencesFor(ACTION_CONST_MONK_BREWMASTER)
-
-local A = setmetatable(Action[ACTION_CONST_MONK_BREWMASTER], { __index = Action })
+local A = setmetatable(Action[Action.PlayerClass], { __index = Action })
 
 -- Simcraft Imported
 -- HeroLib

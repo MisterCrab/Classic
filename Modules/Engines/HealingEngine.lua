@@ -10,11 +10,7 @@ local A 							= Action
 --local toNum 						= A.toNum
 local InstanceInfo					= A.InstanceInfo
 local TeamCache						= A.TeamCache
-local Azerite 						= LibStub("AzeriteTraits")
---local Pet							= LibStub("PetLibrary")
---local LibRangeCheck  				= LibStub("LibRangeCheck-2.0")
---local SpellRange					= LibStub("SpellRange-1.0")
---local DRData 						= LibStub("DRData-1.1")
+
 
 -- Toggle valid: "TANK", "DAMAGER", "HEALER", "RAID", nil (means "ALL")
 _G.HE_Toggle 						= nil 
@@ -741,7 +737,7 @@ local function HealingEngineInit()
 end 
 A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_ENTERING_WORLD", 			HealingEngineInit)
 A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "UPDATE_INSTANCE_INFO", 			HealingEngineInit)
-A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_SPECIALIZATION_CHANGED", 	HealingEngineInit)
+TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 				HealingEngineInit) 
 
 --- ============================= API ==============================
 --- API valid only for healer specializations  
@@ -1000,13 +996,7 @@ function A.HealingEngine.HealingByRange(range, predictName, spell, isMelee)
 		for i = 1, #m do 
 			if 	(not isMelee or A.Unit(m[i].Unit):IsMelee()) and 
 				A.Unit(m[i].Unit):CanInterract(range) and
-				(
-					-- Old profiles 
-					-- TODO: Remove after rewrite old profiles 
-					(not A.IsInitialized and Env.PredictHeal(predictName, m[i].Unit)) or 
-					-- New profiles 
-					(A.IsInitialized and spell:PredictHeal(predictName, m[i].Unit))
-				)
+				spell:PredictHeal(predictName, m[i].Unit)
 			then
                 total = total + 1
             end
@@ -1027,13 +1017,7 @@ function A.HealingEngine.HealingBySpell(predictName, spell, isMelee)
 					(not A.IsInitialized and Env.SpellInRange(m[i].Unit, spell)) or
 					(A.IsInitialized and spell:IsInRange(m[i].Unit))
 				) and 
-				(
-					-- Old profiles 
-					-- TODO: Remove after rewrite old profiles 
-					(not A.IsInitialized and Env.PredictHeal(predictName, m[i].Unit)) or 
-					-- New profiles 
-					(A.IsInitialized and spell:PredictHeal(predictName, m[i].Unit))
-				)
+				spell:PredictHeal(predictName, m[i].Unit)
 			then
                 total = total + 1
             end

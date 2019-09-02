@@ -21,82 +21,43 @@ local Action = Action
 
 -- Create actions (spells, items, potions, auras, azerites, talents and etc)
 -- Structure:
-Action[PLAYERSPEC] = {			-- PLAYERSPEC is Constance (example: ACTION_CONST_MONK_BREWMASTER) which we created in ProfileUI
+Action[Action.PlayerClass] = {	-- Action.PlayerClass is character class, msut be in upper case on english same as it does return /run select(2, UnitClass("player"))
 	Key = Action.Create({ 		-- Key is name of the action which will be used in APL (Action Priority List)
 	--[[@usage: attributes (table)
 		Required: 
-			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|HeartOfAzeroth (TrinketBySlot is only in CORE!)
+			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot (TrinketBySlot is only in CORE!)
 			ID (@number) 	- spellID | itemID
 			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor, this will set color which stored in A.Data.C[Color] or here can be own hex 
 	 	Optional: 
 			Desc (@string) uses in UI near Icon tab (usually to describe relative action like Penance can be for heal and for dps and it's different actions but with same name)
 			QueueForbidden (@boolean) uses to preset for action fixed queue valid 
-			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket|HeartOfAzeroth
+			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
-			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor|HeartOfAzeroth
+			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
 	]]
 	}),
 }
 
 -- For racials use following values as Key from racial key:
 local RacialKeys = {
-	Worgen = "Darkflight",
-	VoidElf = "SpatialRift",
 	NightElf = "Shadowmeld",
-	LightforgedDraenei = "LightsJudgment",
-	KulTiran = "Haymaker",
-	Human = "EveryManforHimself",
+	Human = "Perception",
 	Gnome = "EscapeArtist",
 	Dwarf = "Stoneform",
-	Draenei = "GiftoftheNaaru",
-	DarkIronDwarf = "Fireblood",
-	Pandaren = "QuakingPalm",
-	ZandalariTroll = "Regeneratin",
 	Scourge = "WilloftheForsaken",
 	Troll = "Berserking",
 	Tauren = "WarStomp",
 	Orc = "BloodFury",
-	Nightborne = "ArcanePulse",
-	MagharOrc = "AncestralCall",
-	HighmountainTauren = "BullRush",
-	BloodElf = "ArcaneTorrent",
-	Goblin = "RocketJump",
 }
 
--- To create essences use next code:
-Action:CreateEssencesFor(PLAYERSPEC)		-- where PLAYERSPEC is Constance (example: ACTION_CONST_MONK_BREWMASTER)
--- It will push to Action[PLAYERSPEC] already preconfigured keys from HeartOfAzeroth.lua in the next format sorted by specialization role:
--- Note: Does nothing if game hasn't 8.2 API for essences
-local AzeriteEssences = {
-	ConcentratedFlame 						= { Type = "HeartOfAzeroth", ID = 295373 	}, -- filler (40y, low priority) HPS / DPS 
-	WorldveinResonance						= { Type = "HeartOfAzeroth", ID = 295186 	}, -- filler (small stat burst, cd1min, high priority)
-	RippleinSpace							= { Type = "HeartOfAzeroth", ID = 302731 	}, -- movement / -10% deffensive (x3 rank)
-	MemoryofLucidDreams						= { Type = "HeartOfAzeroth", ID = 298357 	}, -- burst (100% power regeneration)
-	AzerothsUndyingGift						= { Type = "HeartOfAzeroth", ID = 293019 	}, -- -20% 4sec cd1min / -40% 2sec and then -20% 2sec cd45sec
-	AnimaofDeath							= { Type = "HeartOfAzeroth", ID = 294926 	}, -- aoe self heal cd2.5-2min
-	AegisoftheDeep							= { Type = "HeartOfAzeroth", ID = 298168 	}, -- physical attack protection cd2-1.5min
-	EmpoweredNullBarrier					= { Type = "HeartOfAzeroth", ID = 295746 	}, -- magic attack protection cd3-2.3min
-	SuppressingPulse						= { Type = "HeartOfAzeroth", ID = 293031 	}, -- aoe -70% slow and -25% attack speed cd60-45sec
-	Refreshment								= { Type = "HeartOfAzeroth", ID = 296197 	}, -- filler cd15sec
-	Standstill								= { Type = "HeartOfAzeroth", ID = 296094 	}, -- burst (big absorb incoming dmg and hps) cd3min
-	LifeBindersInvocation					= { Type = "HeartOfAzeroth", ID = 293032 	}, -- burst aoe (big heal) cd3min
-	OverchargeMana							= { Type = "HeartOfAzeroth", ID = 296072 	}, -- filler (my hps < incoming unit dps) cd30sec
-	VitalityConduit							= { Type = "HeartOfAzeroth", ID = 296230 	}, -- aoe cd60-45sec 
-	FocusedAzeriteBeam						= { Type = "HeartOfAzeroth", ID = 295258 	}, -- aoe 
-	GuardianofAzeroth						= { Type = "HeartOfAzeroth", ID = 295840 	}, -- burst 
-	BloodoftheEnemy							= { Type = "HeartOfAzeroth", ID = 297108 	}, -- aoe 
-	PurifyingBlast							= { Type = "HeartOfAzeroth", ID = 295337 	}, -- filler (aoe, high priority)
-	TheUnboundForce							= { Type = "HeartOfAzeroth", ID = 298452 	}, -- filler (high priority)
-}
-
--- This code making shorter access to both tables Action[PLAYERSPEC] and Action
--- However if you prefer long access it still can be used like Action[PLAYERSPEC].Guard:IsReady(), it doesn't make any conflict if you will skip shorter access
--- So with shorter access you can just do A.Guard:IsReady() instead of Action[PLAYERSPEC].Guard:IsReady()
-local A = setmetatable(Action[PLAYERSPEC], { __index = Action })
+-- This code making shorter access to both tables Action[Action.PlayerClass] and Action
+-- However if you prefer long access it still can be used like Action[Action.PlayerClass].Guard:IsReady(), it doesn't make any conflict if you will skip shorter access
+-- So with shorter access you can just do A.Guard:IsReady() instead of Action[Action.PlayerClass].Guard:IsReady()
+local A = setmetatable(Action[Action.PlayerClass], { __index = Action })
 
 -- Example:
-Action[ACTION_CONST_MONK_BREWMASTER] = {
+Action["WARRIOR"] = {
 	POWS 									= Action.Create({ Type = "Spell", ID = 17}),
 	PetKick 								= Action.Create({ Type = "Spell", ID = 47482, Color = "RED", Desc = "RED" }),  
 	POWS_Rank2 								= Action.Create({ Type = "SpellSingleColor", ID = 17, Color = "BLUE", Desc = "Rank2" }), 
@@ -134,8 +95,8 @@ Action[ACTION_CONST_MONK_BREWMASTER] = {
 	EscapeArtist						  	= Action.Create({ Type = "Spell", ID = 20589	}), 
 	EveryManforHimself				  		= Action.Create({ Type = "Spell", ID = 59752	}), 
 }
-Action:CreateEssencesFor(ACTION_CONST_MONK_BREWMASTER)
-local A = setmetatable(Action[ACTION_CONST_MONK_BREWMASTER], { __index = Action })
+
+local A = setmetatable(Action["WARRIOR"], { __index = Action })
 
 -------------------------------------------------------------------------------
 -- №3: Create rotations
@@ -149,7 +110,7 @@ A['@number'] = function(icon)		-- @number is from 1 to 8, where for example 1 is
 	-- icon is refference for that "Meta Icon" e.g. for that frame 
 	
 	-- your code:
-	-- Key is what you used in Action[PLAYERSPEC] table 
+	-- Key is what you used in Action[Action.PlayerClass] table 
 	if A.Key:IsReady('@string', '@boolean') and "next rotation conditions which you want to use" then 																			                                           	
         return A.Key:Show(icon)    -- :Show(icon) method will make 'icon' frame display texture taken from 'Key'    		
     end 	
@@ -169,7 +130,7 @@ end
 
 -- Example:
 local function IsSchoolFree()
-	return A.LossOfControlIsMissed("SILENCE") and LossOfControlGet("SCHOOL_INTERRUPT", "NATURE") == 0
+	return A.LossOfControlIsMissed("SILENCE") and A.LossOfControl:Get("SCHOOL_INTERRUPT", "NATURE") == 0
 end 
 
 local function SelfDefensives()

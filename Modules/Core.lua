@@ -13,43 +13,27 @@ local SpellIsTargeting		= SpellIsTargeting
 local IsMouseButtonDown		= IsMouseButtonDown
 
 local ClassPortaits = {
-	["WARRIOR"] 			= 626008,
-	["PALADIN"] 			= 626003,
-	["HUNTER"] 				= 626000,
-	["ROGUE"] 				= 626005,
-	["PRIEST"] 				= 626004,
-	["DEATHKNIGHT"] 		= 135771,
-	["SHAMAN"]	 			= 454482, -- Custom because it making conflict with Bloodlust
-	["MAGE"] 				= 626001,
-	["WARLOCK"] 			= 626007,
-	["MONK"] 				= 626002,
-	["DRUID"] 				= 625999,
-	["DEMONHUNTER"] 		= 236415,
+	["WARRIOR"] 			= ACTION_CONST_PORTRAIT_WARRIOR,
+	["PALADIN"] 			= ACTION_CONST_PORTRAIT_PALADIN,
+	["HUNTER"] 				= ACTION_CONST_PORTRAIT_HUNTER,
+	["ROGUE"] 				= ACTION_CONST_PORTRAIT_ROGUE,
+	["PRIEST"] 				= ACTION_CONST_PORTRAIT_PRIEST,
+	["SHAMAN"]	 			= ACTION_CONST_PORTRAIT_SHAMAN, -- Custom because it making conflict with Bloodlust
+	["MAGE"] 				= ACTION_CONST_PORTRAIT_MAGE,
+	["WARLOCK"] 			= ACTION_CONST_PORTRAIT_WARLOCK,
+	["DRUID"] 				= ACTION_CONST_PORTRAIT_DRUID,
 }
 
 local GetKeyByRace = {
 	-- I use this to check if we have created for spec needed spell 
-	Worgen 					= "Darkflight",
-	VoidElf 				= "SpatialRift",
 	NightElf 				= "Shadowmeld",
-	LightforgedDraenei 		= "LightsJudgment",
-	KulTiran 				= "Haymaker",
-	Human 					= "EveryManforHimself",
+	Human 					= "Perception",
 	Gnome 					= "EscapeArtist",
 	Dwarf 					= "Stoneform",
-	Draenei 				= "GiftoftheNaaru",
-	DarkIronDwarf 			= "Fireblood",
-	Pandaren 				= "QuakingPalm",
-	ZandalariTroll 			= "Regeneratin",
 	Scourge 				= "WilloftheForsaken",
 	Troll 					= "Berserking",
 	Tauren 					= "WarStomp",
 	Orc 					= "BloodFury",
-	Nightborne 				= "ArcanePulse",
-	MagharOrc 				= "AncestralCall",
-	HighmountainTauren 		= "BullRush",
-	BloodElf 				= "ArcaneTorrent",
-	Goblin 					= "RocketJump",
 }
 
 -------------------------------------------------------------------------------
@@ -112,7 +96,7 @@ A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_
 A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
 
 function A.Rotation(icon)
-	if not A.IsInitialized or not A[A.PlayerSpec] then 
+	if not A.IsInitialized or not A[A.PlayerClass] then 
 		return A.Hide(icon)		
 	end 	
 	
@@ -120,7 +104,7 @@ function A.Rotation(icon)
 	
 	-- [1] CC / [2] Kick 
 	if meta <= 2 then 
-		if A[A.PlayerSpec][meta] and A[A.PlayerSpec][meta](icon) then 
+		if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
 			return true
 		end 
 		return A.Hide(icon)
@@ -131,7 +115,7 @@ function A.Rotation(icon)
 		-- Use racial available trinkets if we don't have additional RACIAL_LOC
 		-- Note: Additional RACIAL_LOC is the main reason why I avoid here :AutoRacial (see below 'if isApplied then ')
 		if A.GetToggle(1, "Racial") then 
-			local RacialAction 	= A[A.PlayerSpec][GetKeyByRace[A.PlayerRace]]			
+			local RacialAction 	= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
 			local RACIAL_LOC 	= LoC.GetExtra[A.PlayerRace]							-- Loss Of Control 
 			if RACIAL_LOC and RacialAction and RacialAction:IsReady("player", true) and RacialAction:IsExists() then 
 				local result, isApplied = LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, A.PlayerRace == "Dwarf" or A.PlayerRace == "Gnome")
@@ -142,7 +126,7 @@ function A.Rotation(icon)
 		end	
 		
 		-- Use specialization spell trinkets
-		if A[A.PlayerSpec][meta] and A[A.PlayerSpec][meta](icon) then  
+		if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then  
 			return true 			
 		end 		
 		
@@ -165,22 +149,8 @@ function A.Rotation(icon)
 	-- [6] Passive: @player, @raid1, @arena1 
 	if meta == 6 then 
 		-- Shadowmeld
-		if A[A.PlayerSpec].Shadowmeld and A[A.PlayerSpec].Shadowmeld:AutoRacial("player") then 
-			return A[A.PlayerSpec].Shadowmeld:Show(icon)
-		end 
-		
-		-- Stopcasting
-		if A.GetToggle(1, "StopCast") then 
-			local castName, _, _, notInterruptable = Unit("player"):IsCasting() 
-			if castName then 
-				-- Catch Counter Shot 
-				if A.IsInPvP and not notInterruptable and UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_COUNTER_SHOT) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_COUNTER_SHOT) - 1 and UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_COUNTER_SHOT) then 
-					local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_COUNTER_SHOT)
-					if Caster and Unit(Caster):GetRange() <= 40 and Unit("player"):HasBuffs("TotalImun") == 0 and Unit("player"):HasBuffs("KickImun") == 0 then 
-						return A:Show(icon, ACTION_CONST_STOPCAST)
-					end 
-				end 
-			end 
+		if A[A.PlayerClass].Shadowmeld and A[A.PlayerClass].Shadowmeld:AutoRacial("player") then 
+			return A[A.PlayerClass].Shadowmeld:Show(icon)
 		end 
 		
 		-- Cursor 
@@ -193,7 +163,7 @@ function A.Rotation(icon)
 		end 
 		
 		-- ReTarget 
-		if A.Zone == "pvp") and A:GetTimeSinceJoinInstance() >= 30 and A.LastTarget and not A.LastTargetIsExists then  
+		if A.Zone == "pvp" and A:GetTimeSinceJoinInstance() >= 30 and A.LastTarget and not A.LastTargetIsExists then  
 			return A:Show(icon, A.LastTargetTexture)
 		end 
 		
@@ -212,9 +182,9 @@ function A.Rotation(icon)
 		end 
 		
 		-- AutoTarget 
-		if A.GetToggle(1, "AutoTarget") and not A.IamHealer and Unit("player"):CombatTime() > 0 
+		if A.GetToggle(1, "AutoTarget") and Unit("player"):CombatTime() > 0 -- and not A.IamHealer
 			-- No existed or switch in PvE if we accidentally selected out of combat unit  
-			and (not Unit("target"):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit("target"):IsExists() == 0)) 
+			and (not Unit("target"):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit("target"):CombatTime() == 0)) 
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
 			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, 1) >= 1) or A.Zone == "pvp")
 		then 
@@ -228,7 +198,7 @@ function A.Rotation(icon)
     end 
 	
 	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
-	if A[A.PlayerSpec][meta] and A[A.PlayerSpec][meta](icon) then 
+	if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
 		return true 
 	end 
 	

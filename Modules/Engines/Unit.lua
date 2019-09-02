@@ -16,22 +16,23 @@ local TeamCache						= A.TeamCache
 local UnitCooldown					= A.UnitCooldown
 local CombatTracker					= A.CombatTracker
 local MultiUnits					= A.MultiUnits
---local Azerite 					= LibStub("AzeriteTraits")
 --local Pet							= LibStub("PetLibrary")
 local LibRangeCheck  				= LibStub("LibRangeCheck-2.0")
+local LibClassicCasterino 			= LibStub("LibClassicCasterino")
+-- To activate it
+LibClassicCasterino.callbacks.OnUsed() 
 
 local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall =
 	  _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall
 	  
 local CombatLogGetCurrentEventInfo	= _G.CombatLogGetCurrentEventInfo	  
 local GetUnitSpeed					= _G.GetUnitSpeed
+local GetPartyAssignment 			= _G.GetPartyAssignment	  
 local UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID =
 	  UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID
 	  
-local GetPartyAssignment = GetPartyAssignment	  
-
 -------------------------------------------------------------------------------
 -- Cache
 -------------------------------------------------------------------------------
@@ -88,8 +89,7 @@ local Cache = {
 
 local AuraList = {
     -- CC SCHOOL TYPE 
-    Magic = { 
-        
+    Magic = {         
 		853, 				-- Hammer of Justice 		(Paladin)
 		20066, 				-- Repentance				(Paladin)
 		17390,				-- Faerie Fire (Feral)		(Druid)		
@@ -269,7 +269,7 @@ local AuraList = {
         23132, 				-- Shadow Reflector			(Item)
         23097, 				-- Fire Reflector			(Item)
     }, 
-    --KickImun = {},
+    KickImun = {},
     -- Purje 
     ImportantPurje = {
         1022, 				-- Blessing of Protection	(Paladin)
@@ -321,8 +321,8 @@ local AuraList = {
 	},
     -- Damage buffs / debuffs
     Rage = {
-        18499, 					-- Berserker Rage (Warrior)
-        12880, 					-- Enrage (Warrior)
+        18499, 				-- Berserker Rage (Warrior)
+        12880, 				-- Enrage (Warrior)
     }, 
     DamageBuffs = {        
 		13750,				-- Adrenaline Rush			(Rogue)
@@ -627,25 +627,31 @@ A.Unit = PseudoClass({
 	IsHealer 								= Cache:Pass(function(self)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
+		return false 
+		--[[ TODO: Classic 
 	    if A.Unit(unitID):IsEnemy() then
 			return TeamCache.Enemy.HEALER[unitID] or A.Unit(unitID):HasSpec(Info.SpecIs["HEALER"])  
 		else 
 			return TeamCache.Friendly.HEALER[unitID] or A.Unit(unitID):Role() == "HEALER"
-		end 
+		end ]]
 	end, "UnitID"),
 	IsTank 									= Cache:Pass(function(self)    
 		-- @return boolean 
 		local unitID 						= self.UnitID
+		return false 
+		--[[ TODO: Classic 
 	    if A.Unit(unitID):IsEnemy() then
 			return TeamCache.Enemy.TANK[unitID] -- TODO: Classic 
 		else 
 			return TeamCache.Friendly.TANK[unitID] or A.Unit(unitID):Role() == "TANK" -- TODO: Classic 
-			-- return GetPartyAssignment("maintank")
-		end 
+			-- return GetPartyAssignment("maintank", unitID)
+		end ]]	
 	end, "UnitID"),	
 	IsMelee 								= Cache:Pass(function(self) 
 		-- @return boolean 
 		local unitID 						= self.UnitID
+		return false 
+		--[[ TODO: Classic 
 	    if A.Unit(unitID):IsEnemy() then
 			return TeamCache.Enemy.DAMAGER_MELEE[unitID] or A.Unit(unitID):HasSpec(Info.SpecIs["MELEE"])  
 		elseif UnitIsUnit(unitID, "player") then 
@@ -673,7 +679,7 @@ A.Unit = PseudoClass({
 			else 
 				return Info.ClassIsMelee[unitClass]
 			end 
-		end 
+		end ]]
 	end, "UnitID"),
 	IsDead 									= Cache:Pass(function(self)  
 		-- @return boolean
@@ -877,18 +883,29 @@ A.Unit = PseudoClass({
 		-- [5] spellID (@number or @nil)
 		-- [6] isChannel (@boolean)
 		local unitID 						= self.UnitID
+		-- This need for LibClassCasterino, otherwise it will bring false info in case if player is target and you fakecasting
+		if UnitIsUnit("player", unitID) then 
+			unitID = "player"
+		end 
 		local isChannel
-		-- TODO: Classic 
-		--[[
-		local castName, _, _, castStartTime, castEndTime, _, _, notInterruptable, spellID = 
+		local castName, _, _, castStartTime, castEndTime, _, _, notInterruptable, spellID = LibClassicCasterino:UnitCastingInfo(unitID)
 		if not castName then 
-			castName, _, _, castStartTime, castEndTime, _, notInterruptable, spellID = 
+			castName, _, _, castStartTime, castEndTime, _, notInterruptable, spellID = LibClassicCasterino:UnitChannelInfo(unitID)			
 			if castName then 
 				isChannel = true
 			end 
 		end  
+		
+		-- Check interrupt able 
+		if castName then 
+			if next(AuraList.KickImun) then 
+				notInterruptable = A.Unit(unitID):HasBuffs("KickImun") ~= 0 
+			else
+				notInterruptable = false 
+			end 
+		end 
+		
 		return castName, castStartTime, castEndTime, notInterruptable, spellID, isChannel
-		]]
 	end, "UnitGUID"),
 	IsCastingRemains						= Cache:Pass(function(self, argSpellID)
 		-- @return:
@@ -904,8 +921,8 @@ A.Unit = PseudoClass({
 	CastTime								= Cache:Pass(function(self, argSpellID)
 		-- @return:
 		-- [1] Total Casting Time (@number)
-		-- [2] Currect Casting Left Time (seconds) (@number)
-		-- [3] Current Casting Left Time (percent) (@number)
+		-- [2] Currect Casting Left (X -> 0) Time (seconds) (@number)
+		-- [3] Current Casting Done (0 -> 100) Time (percent) (@number)
 		-- [4] spellID (@number)
 		-- [5] spellName (@string)
 		-- [6] notInterruptable (@boolean, false is able to be interrupted)
@@ -953,17 +970,24 @@ A.Unit = PseudoClass({
 	IsControlAble 							= Cache:Pass(function(self, drCat, drDiminishing)
 		-- drDiminishing is Tick (number: 100 -> 50 -> 25 -> 0) where 0 is fully imun, 100% no imun - can be fully duration CC'ed 
 		-- "taunt" has unique Tick (number: 100 -> 65 -> 42 -> 27 -> 0)
-		--[[ Taken from Combat Tracker
-			drCat accepts:
-				"root"           
-				"stun"   	-- PvE unlocked       
-				"disorient"      
-				"disarm" 	-- added in 1.1	DRData	   
-				"silence"        
-				"taunt"     -- PvE unlocked   
-				"incapacitate"   
-				"knockback" 
-		]]	
+		--[[ drCat accepts:
+			"root"         
+			"random_root"
+			"stun"      		-- PvE unlocked     
+			"opener_stun"
+			"random_stun"		-- PvE unlocked
+			"disorient"      
+			"disarm" 			-- added in original DRList		   
+			"silence"        
+			"fear"   
+			"incapacitate"   
+			"knockback" 
+			"death_coil"
+			"mind_control"
+			"frost_shock"
+			"entrapment"
+			"charge"	
+		]]
 		local unitID 						= self.UnitID 
 		if not A.IsInPvP then 
 			return not A.Unit(unitID):IsBoss() and Info.ControlAbleClassification[A.Unit(unitID):Classification()] and A.Unit(unitID):GetDR(drCat) > (drDiminishing or 25)
@@ -1011,10 +1035,20 @@ A.Unit = PseudoClass({
 			end 
 		end 
 	end, "UnitID"),
+	ThreatSituation							= Cache:Pass(function(self, otherunit)  
+		-- @return number  
+		local unitID 						= self.UnitID
+		if unitID then 
+			local GUID 						= UnitGUID(unitID)			
+			return TeamCache.threatData[GUID] and TeamCache.threatData[GUID].status or 0	       
+		end 
+		return 0
+	end, "UnitID"),
 	IsTanking 								= Cache:Pass(function(self, otherunit, range)  
 		-- @return boolean 
-		local unitID 						= self.UnitID		
-		return UnitIsUnit(unitID, (otherunit or "target") .. "target") or A.Unit(unitID):IsTankingAoE(range)	       
+		local unitID 						= self.UnitID	
+		local ThreatSituation 				= A.Unit(unitID):ThreatSituation(otherunit or "target")
+		return ((A.IsInPvP and UnitIsUnit(unitID, (otherunit or "target") .. "target")) or (not A.IsInPvP and ThreatSituation >= 3)) or A.Unit(unitID):IsTankingAoE(range)	       
 	end, "UnitID"),
 	IsTankingAoE 							= Cache:Pass(function(self, range) 
 		-- @return boolean 
@@ -1022,11 +1056,12 @@ A.Unit = PseudoClass({
 		local activeUnitPlates 				= MultiUnits:GetActiveUnitPlates()
 		if activeUnitPlates then
 			for unit in pairs(activeUnitPlates) do
-				if UnitIsUnit(unitID, unit .. "target") and (not range or A.Unit(unitID):CanInteract(range)) then 
+				local ThreatSituation 		= A.Unit(unitID):ThreatSituation(unit)
+				if ((A.IsInPvP and UnitIsUnit(unitID, unit .. "target")) or (not A.IsInPvP and ThreatSituation >= 3)) and (not range or A.Unit(unitID):CanInterract(range)) then 
 					return true  
 				end
 			end   
-		end    		
+		end    
 	end, "UnitID"),
 	GetLevel 								= Cache:Pass(function(self) 
 		-- @return number 
@@ -1048,17 +1083,24 @@ A.Unit = PseudoClass({
 		-- @return: DR_Tick (@number), DR_Remain (@number), DR_Application (@number), DR_ApplicationMax (@number)
 		-- drDiminishing is Tick (number: 100 -> 50 -> 25 -> 0) where 0 is fully imun, 100% no imun - can be fully duration CC'ed 
 		-- "taunt" has unique Tick (number: 100 -> 65 -> 42 -> 27 -> 0)
-		--[[ Taken from Combat Tracker
-			drCat accepts:
-				"root"           
-				"stun"   	-- PvE unlocked       
-				"disorient"      
-				"disarm" 	-- added in 1.1	DRData	   
-				"silence"        
-				"taunt"     -- PvE unlocked   
-				"incapacitate"   
-				"knockback" 
-		]]			
+		--[[ drCat accepts:
+			"root"         
+			"random_root"
+			"stun"      		-- PvE unlocked     
+			"opener_stun"
+			"random_stun"		-- PvE unlocked
+			"disorient"      
+			"disarm" 			-- added in original DRList		   
+			"silence"        
+			"fear"   
+			"incapacitate"   
+			"knockback" 
+			"death_coil"
+			"mind_control"
+			"frost_shock"
+			"entrapment"
+			"charge"	
+		]]		
 		local unitID 						= self.UnitID
 		return CombatTracker:GetDR(unitID, drCat)
 	end, "UnitID"),
@@ -1203,7 +1245,18 @@ A.Unit = PseudoClass({
 	-- Combat: End
 	GetIncomingHeals						= Cache:Pass(function(self)
 		-- @return number 
-		-- TODO: Classic
+		--[[ TODO: Classic (Idea is:
+		0. Create in Combat.lua local 2 special tables to log incoming heals for each GUID and Caster with destGUID + descript
+		1. Register callbacks from LibClassCasterino
+		2. Then on each caster check their target, if found then get GUID of that 
+		3. Get spellName of cast and compare it with own table of all healing spells 
+		4. Get through Actions.lua description for highest possible heal by highest spell rank
+		5. Add this descript as incoming value to dest GUID / Add to Caster table destGUID and descript 
+		6. If cast stopped or interrupted by caster then get his GUID and decrease from destGUID descript from total incoming value 
+		7. Clear Caster table 
+		8. If our level lower than max possible per expansion level then return 0 to prevent issues with different ranks 
+		Also make it working only on max level because CLEU provide only spellName which can't be reversed to receive spellID by which could be possible get exactly rank, it's limtied so we will assume what all spells will be highest rank 
+		Again, this is TODO and will be added later with time, just leaved this manual for own needs here ]]
 		local unitID 						= self.UnitID
 		return 0
 	end, "UnitID"),
@@ -1255,15 +1308,10 @@ A.Unit = PseudoClass({
 			
 			local GUID 						= UnitGUID(unitID)
 			if not Info.CacheInterrupt[GUID] or Info.CacheInterrupt[GUID].LastCast ~= castName then 
-				-- Soothing Mist
-				if castName ~= A.GetSpellInfo(209525) then
-					Info.CacheInterrupt[GUID] = { LastCast = castName, Timer = math.random(minX or 34, maxX or 68) }
-				else 
-					Info.CacheInterrupt[GUID] = { LastCast = castName, Timer = math.random(minX or 7, maxX or 13) }
-				end 
+				Info.CacheInterrupt[GUID] = { LastCast = castName, Timer = math.random(minX or 34, maxX or 68) }
 			end 
 			
-			local castPercent = (TMW.time - castStartTime) * 100 / (castEndTime - castStartTime)
+			local castPercent = ((TMW.time * 1000) - castStartTime) * 100 / (castEndTime - castStartTime)
 			return castPercent >= Info.CacheInterrupt[GUID].Timer 
 		end 	
 	end, "UnitID"),
@@ -1310,12 +1358,12 @@ A.Unit = PseudoClass({
 	Health									= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-	    return UnitHealth(unitID)
+	    return CombatTracker:UnitHealth(unitID)
 	end, "UnitID"),
 	HealthMax								= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-	    return UnitHealthMax(unitID)
+	    return CombatTracker:UnitHealthMax(unitID)
 	end, "UnitID"),
 	HealthDeficit							= Cache:Pass(function(self)
 		-- @return number 
@@ -1325,12 +1373,15 @@ A.Unit = PseudoClass({
 	HealthDeficitPercent					= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-	    return A.Unit(unitID):HealthDeficit() * 100 / A.Unit(unitID):HealthMax()
+	    return 100 - A.Unit(unitID):HealthPercent()
 	end, "UnitID"),
 	HealthPercent							= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-	    return A.Unit(unitID):Health() * 100 / A.Unit(unitID):HealthMax()
+		if UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
+			return UnitHealth(unitID) * 100 / UnitHealthMax(unitID)
+		end 
+	    return UnitHealth(unitID)
 	end, "UnitID"),
 	Power									= Cache:Pass(function(self)
 		-- @return number 
@@ -1366,8 +1417,8 @@ A.Unit = PseudoClass({
 	DeBuffCyclone 							= Cache:Wrap(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-		local cycloneName					= strlowerCache[A.GetSpellInfo(33786)]
-		return Env.AuraDur(unitID, cycloneName, "HARMFUL")
+		local banishName					= strlowerCache[A.GetSpellInfo(710)] -- Banish 
+		return Env.AuraDur(unitID, banishName, "HARMFUL")
 	end, "UnitGUID"),
 	HasDeBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
@@ -1385,7 +1436,7 @@ A.Unit = PseudoClass({
 		
         return value, duration   
     end, "UnitID"),
-	SortDeBuffs								= Cache:Wrap(function(self, spell, caster, byID)
+	SortDeBuffs								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return sorted number, number 
 		local unitID 						= self.UnitID		
 		local filter
@@ -1424,7 +1475,7 @@ A.Unit = PseudoClass({
 		
 		return dur, duration   
     end, "UnitGUID"),
-	HasDeBuffsStacks						= Cache:Wrap(function(self, spell, caster, byID)
+	HasDeBuffsStacks						= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number
 		local unitID 						= self.UnitID
 		local filter
@@ -1449,7 +1500,7 @@ A.Unit = PseudoClass({
 		end 
     end, "UnitGUID"),
 	-- Pandemic Threshold
-	PT										= Cache:Wrap(function(self, spell, debuff, byID)    
+	PT										= Cache:Pass(function(self, spell, debuff, byID)    
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		local filter
@@ -1470,7 +1521,7 @@ A.Unit = PseudoClass({
 			return Env.AuraPercent(unitID, (not byID and not Info.IsExceptionID[spell] and strlowerCache[A.GetSpellInfo(spell)]) or spell, filter) <= 0.3 
 		end 
     end, "UnitGUID"),
-	HasBuffs 								= Cache:Wrap(function(self, spell, caster, byID)
+	HasBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
 		-- current remain, total applied duration	
 		-- Normal method 
@@ -1484,9 +1535,9 @@ A.Unit = PseudoClass({
 		end 
 		local spell 						= type(spell) == "string" and AuraList[spell] or spell
 		
-	    if not A.IsInitialized and A.Unit(unitID):DeBuffCyclone() > 0 then 
+		if not A.IsInitialized and A.Unit(unitID):DeBuffCyclone() > 0 then 
 			value, duration = -1, -1
-	    else
+		else
 			if type(spell) == "table" then         
 				for i = 1, #spell do            
 					value, duration = Env.AuraDur(unitID, (not byID and strlowerCache[A.GetSpellInfo(spell[i])]) or spell[i], filter)                       
@@ -1497,11 +1548,11 @@ A.Unit = PseudoClass({
 			else
 				value, duration = Env.AuraDur(unitID, (not byID and strlowerCache[A.GetSpellInfo(spell)]) or spell, filter)
 			end   
-	    end         
+		end		
 		
 	    return value, duration		
 	end, "UnitGUID"),
-	SortBuffs 								= Cache:Wrap(function(self, spell, caster, byID)
+	SortBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
 		-- current remain, total applied duration	
 		local unitID 						= self.UnitID
@@ -1513,7 +1564,7 @@ A.Unit = PseudoClass({
 		end 
 		local spell 						= type(spell) == "string" and AuraList[spell] or spell
 		local dur, duration	
-    
+    	
 		if type(spell) == "table" then
 			local SortTable = {} 
 			
@@ -1541,7 +1592,7 @@ A.Unit = PseudoClass({
     
 		return dur, duration 		
 	end, "UnitGUID"),
-	HasBuffsStacks 							= Cache:Wrap(function(self, spell, caster, byID)
+	HasBuffsStacks 							= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number 
 	    local unitID 						= self.UnitID
 		local filter
@@ -1565,37 +1616,6 @@ A.Unit = PseudoClass({
 			return Env.AuraStacks(unitID, (not byID and strlowerCache[A.GetSpellInfo(spell)]) or spell, filter)
 		end 		         
 	end, "UnitGUID"),
-	WithOutKarmed 							= Cache:Wrap(function(self)
-		-- @return boolean 
-		local unitID 						= self.UnitID
-		local value 						= true 		
-		if A.Unit(unitID):IsEnemy() then
-			if TeamCache.Friendly.Size > 0 and A.Unit(unitID):HasBuffs(122470) > 0 then 
-				value = false
-				for i = 1, TeamCache.Friendly.Size do
-					local member = TeamCache.Friendly.Type .. i
-					-- Forbearance
-					if A.Unit(member):HasDeBuffs(25771) >= 20 then 
-						value = true 
-						break 
-					end                     
-				end        
-			end
-		else
-			if TeamCache.Enemy.Size > 0 and A.Unit(unitID):HasBuffs(122470) > 0 then 
-				value = false
-				for i = 1, TeamCache.Enemy.Size do
-					local arena = TeamCache.Enemy.Type .. i
-					-- Forbearance
-					if A.Unit(arena):HasDeBuffs(25771) >= 20 then 
-						value = true 
-						break 
-					end                     
-				end        
-			end
-		end  
-		return value
-	end, "UnitID"),
 	IsFocused 								= Cache:Wrap(function(self, specs, burst, deffensive, range)
 		-- @return boolean
 		local unitID 						= self.UnitID
@@ -1984,28 +2004,6 @@ A.FriendlyTeam = PseudoClass({
 			if A.Unit(member):InRange() and A.Unit(member):IsFocused(nil, burst, deffensive, range) then
 				return true, member
 			end 
-		end 
-		
-		return value, member 
-	end, "ROLE"),
-	ArcaneTorrentMindControl 				= Cache:Pass(function(self)
-		-- @return boolean, unitID 
-		local ROLE 							= self.ROLE
-		local value, member 				= false, "none"
-		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly.HEALER) do
-				if A.Unit(member):HasBuffs(605) > 0 and A.Unit(member):GetRange() <= 8 then
-					return true, member 
-				end 
-			end 
-		else
-			for i = 1, TeamCache.Friendly.Size do
-				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):HasBuffs(605) > 0 and A.Unit(member):GetRange() <= 8 then
-					return true, member 
-				end                        
-			end  
 		end 
 		
 		return value, member 

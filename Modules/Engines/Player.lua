@@ -1,4 +1,6 @@
 local TMW 						= TMW
+local CNDT						= TMW.CNDT 
+local Env 						= CNDT.Env
 --local strlowerCache  			= TMW.strlowerCache
 
 local A   						= Action	
@@ -8,10 +10,6 @@ local A   						= Action
 --local toNum 					= A.toNum
 local InstanceInfo				= A.InstanceInfo
 --local TeamCache				= A.TeamCache
---local Azerite 				= LibStub("AzeriteTraits")
---local Pet						= LibStub("PetLibrary")
---local LibRangeCheck  			= LibStub("LibRangeCheck-2.0")
---local SpellRange				= LibStub("SpellRange-1.0")
 
 local _G, error, type, pairs, table, next =
 	  _G, error, type, pairs, table, next 
@@ -37,8 +35,8 @@ local PainPowerType				= PowerType.Pain
 local UnitPower, UnitPowerMax, UnitStagger =
 	  UnitPower, UnitPowerMax, UnitStagger
 
-local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste =
-	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste
+local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
+	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
 	  
 local IsEquippedItem, IsStealthed, IsMounted, IsFalling = 	  
 	  IsEquippedItem, IsStealthed, IsMounted, IsFalling 
@@ -196,7 +194,7 @@ end
 
 function A.Player:IsMounted()
 	-- @return boolean
-	return IsMounted() and (not Data.AuraOnCombatMounted[A.PlayerClass] or A.Unit(self.UnitID):HasBuffs(Data.AuraOnCombatMounted[A.PlayerClass], true, true) == 0)
+	return IsMounted() and (not Data.AuraOnCombatMounted[A.PlayerClass] or A.Unit(self.UnitID):HasBuffs(Data.AuraOnCombatMounted[A.PlayerClass], true) == 0)
 end 
 
 function A.Player:IsStealthed()
@@ -291,6 +289,26 @@ function A.Player:HasTier(tier, count)
 	-- @return boolean 
 	-- Set Bonuses are disabled in Challenge Mode (Diff = 8) and in Proving Grounds (Map = 1148)
 	return self:GetTier(tier) >= count and InstanceInfo.difficultyID ~= 8 and InstanceInfo.ID ~= 1148 
+end 
+
+function A.Player:GetSwing(inv)
+	-- @return number (time in seconds of the swing for each slot)
+	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
+	if inv == 1 then 
+		inv = ACTION_CONST_INVSLOT_MAINHAND
+	elseif inv == 2 then 
+		inv = ACTION_CONST_INVSLOT_OFFHAND
+	elseif inv == 3 then
+		inv = ACTION_CONST_INVSLOT_RANGED
+	elseif inv == 4 then 
+		local inv1, inv2 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND)
+		return math.max(inv1, inv2)
+	elseif inv == 5 then 
+		local inv1, inv2, inv3 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_RANGED)
+		return math.max(inv1, inv2, inv3)
+	end 
+	
+	return Env.SwingDuration(inv)
 end 
 
 --------------------------
@@ -599,18 +617,18 @@ end
 --- 4 | Combo Points Functions ---
 ----------------------------------
 -- combo_points.max
-function A.Player:ComboPointsMax()
+function A.Player:ComboPointsMax(unitID)
 	return UnitPowerMax(self.UnitID, ComboPointsPowerType)
 end
 
 -- combo_points
-function A.Player:ComboPoints()
-	return UnitPower(self.UnitID, ComboPointsPowerType) or 0
+function A.Player:ComboPoints(unitID)
+	return GetComboPoints(self.UnitID, unitID) -- UnitPower(self.UnitID, ComboPointsPowerType) or 0
 end
 
 -- combo_points.deficit
-function A.Player:ComboPointsDeficit()
-	return self:ComboPointsMax() - self:ComboPoints()
+function A.Player:ComboPointsDeficit(unitID)
+	return self:ComboPointsMax(unitID) - self:ComboPoints(unitID)
 end
 
 ------------------------

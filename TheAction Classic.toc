@@ -9,7 +9,15 @@ Lib\LibSharedMedia-3.0\lib.xml
 Lib\ForAllIndentsAndPurposes.lua
 Lib\LibDBIcon-1.0.lua
 Lib\StdUI.lua
-Lib\DRData-1.1.lua
+
+# Classic Libs 
+Lib\DRList-1.1\DRList-1.1.xml
+# Need for ThreatClassic 
+Lib\AceBucket-3.0\AceBucket-3.0.xml
+Lib\ThreatClassic-1.0\lib.xml
+Lib\LibClassicCasterino.lua
+Lib\LibSpellLock.lua
+Lib\LibAuraTypes.lua
 
 # First constans!
 Modules\Components\Const\Constans.lua
@@ -25,7 +33,6 @@ Modules\Dependences\PetLibrary.lua
 Modules\Engines\Base.lua
 Modules\Engines\Combat.lua
 Modules\Engines\HealingEngine.lua
-Modules\Engines\HeartofAzeroth.lua
 Modules\Engines\MultiUnits.lua
 Modules\Engines\Player.lua
 Modules\Engines\Unit.lua
@@ -33,16 +40,14 @@ Modules\Engines\Unit.lua
 Modules\Misc\BossMods.lua
 Modules\Misc\ElvUI.lua
 Modules\Misc\HeroLib.lua
-Modules\Misc\PMultiplier.lua
+# Modules\Misc\PMultiplier.lua
+Modules\Misc\LibClassicCasterino Tweaks.lua
 
 Modules\Actions.lua
 Modules\Core.lua
 
-Modules\Retired\Deprecated.lua
-Modules\Retired\HeartofAzeroth.lua
-Modules\Retired\HybridProfile.lua
-Modules\Retired\MessageEvents.lua
-
 # Test
+# Modules\TestDev\FindG.lua
 # Modules\TestDev\StressTests.lua
+# Modules\TestDev\UnitAuras.lua
 # Modules\TestDev\UpdateTriggerGCD.lua

@@ -10,95 +10,24 @@ local A   					= Action
 local toStr 				= A.toStr
 local toNum 				= A.toNum
 
-local assert, select, type, next, ipairs, wipe, hooksecurefunc, message	= 
-	  assert, select, type, next, ipairs, wipe, hooksecurefunc, message
+local _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message	= 
+	  _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message
 	  
-local GetCVar, SetCVar 		=
-	  GetCVar, SetCVar
+local CreateFrame, GetCVar, SetCVar =
+	  CreateFrame, GetCVar, SetCVar
 
 local GetScreenResolutions, GetPhysicalScreenSize, GetScreenDPIScale =
 	  GetScreenResolutions, GetPhysicalScreenSize, GetScreenDPIScale
 	  
-local GetNumClasses, GetClassInfo,  GetNumSpecializationsForClassID, GetSpecializationInfoForClassID, GetArenaOpponentSpec, GetBattlefieldScore, 	 GetSpellTexture =
-	  GetNumClasses, GetClassInfo,  GetNumSpecializationsForClassID, GetSpecializationInfoForClassID, GetArenaOpponentSpec, GetBattlefieldScore, TMW.GetSpellTexture
+local GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo =	
+  TMW.GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo	  
 
-local UnitName, UnitGUID 	=
-	  UnitName, UnitGUID
-
--------------------------------------------------------------------------------
--- CNDT: TalentMap  
--------------------------------------------------------------------------------
-CNDT:RegisterEvent("PLAYER_TALENT_UPDATE")
-CNDT:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_TALENT_UPDATE")
-CNDT:PLAYER_TALENT_UPDATE()
-
--------------------------------------------------------------------------------
--- CNDT: UnitSpecs  
--------------------------------------------------------------------------------
--- Note: This code is modified for Action Core 
---[[ TODO: Classic
-specNameToRole, Env.ModifiedUnitSpecs = {}, {}
-
-for i = 1, GetNumClasses() do
-	local _, class, classID = GetClassInfo(i)
-	specNameToRole[class] = {}
-
-	for j = 1, GetNumSpecializationsForClassID(classID) do
-		local specID, spec, desc, icon = GetSpecializationInfoForClassID(classID, j)
-		specNameToRole[class][spec] = specID
-	end
-end
-
-local SPECS = CNDT:GetModule("Specs")
-function SPECS:UpdateUnitSpecs()
-	if Env.UnitSpecs and next(Env.UnitSpecs) then
-		wipe(Env.UnitSpecs)	
-		TMW:Fire("TMW_UNITSPEC_UPDATE")
-	end
-	
-	if next(Env.ModifiedUnitSpecs) then 
-		wipe(Env.ModifiedUnitSpecs)
-		TMW:Fire("TMW_UNITSPEC_UPDATE")
-	end
-
-	if A.Zone == "arena" then
-		for i = 1, A.TeamCache.Enemy.Size do 
-			local unit = "arena" .. i
-
-			local name, server = UnitName(unit)
-			if name and name ~= ACTION_CONST_UNKNOWN then
-				local specID = GetArenaOpponentSpec(i)
-				name = name .. (server and "-" .. server or "")
-				if Env.UnitSpecs then 
-					Env.UnitSpecs[name] = specID
-				end 
-				Env.ModifiedUnitSpecs[name] = specID				
-			end
-		end
-
-		TMW:Fire("TMW_UNITSPEC_UPDATE")
-	elseif A.Zone == "pvp" then
-		for i = 1, A.TeamCache.Enemy.Size do 
-			local name, _, _, _, _, _, _, _, classToken, _, _, _, _, _, _, talentSpec = GetBattlefieldScore(i)
-			if name then
-				local specID = specNameToRole[classToken][talentSpec]
-				if Env.UnitSpecs then 
-					Env.UnitSpecs[name] = specID
-				end 
-				Env.ModifiedUnitSpecs[name] = specID
-			end
-		end
-		
-		TMW:Fire("TMW_UNITSPEC_UPDATE")
-	end
-end
-
-SPECS:RegisterEvent("UNIT_NAME_UPDATE",   		"UpdateUnitSpecs")
-SPECS:RegisterEvent("ARENA_OPPONENT_UPDATE", 	"UpdateUnitSpecs")
-SPECS:RegisterEvent("GROUP_ROSTER_UPDATE", 		"UpdateUnitSpecs")
-SPECS:RegisterEvent("PLAYER_ENTERING_WORLD", 	"UpdateUnitSpecs")
-SPECS.PrepareUnitSpecEvents = TMW.NULLFUNC
-]]
+local UnitName, UnitGUID, UnitIsUnit =
+	  UnitName, UnitGUID, UnitIsUnit
+	  
+local RANKCOLOR 			= A.Data.RANKCOLOR	
+-- IconType: TheAction - UnitCasting  
+local LibClassicCasterino 	= LibStub("LibClassicCasterino")
 
 -------------------------------------------------------------------------------
 -- Env.LastPlayerCast
@@ -127,7 +56,7 @@ do
         module:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED",
             function(_, unit, _, spellID)
                 if unit == "player" then
-					local spellName			= A.GetSpellInfo(spellID)
+					local spellName			= A.GetSpellInfo and A.GetSpellInfo(spellID) or GetSpellInfo(spellID)
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     Env.LastPlayerCastID 	= spellID
 					A.LastPlayerCastName	= spellName
@@ -142,12 +71,12 @@ end
 -- DogTags
 -------------------------------------------------------------------------------
 local DogTag = LibStub("LibDogTag-3.0", true)
-TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED",  DogTag.FireEvent, DogTag)
-TMW:RegisterCallback("TMW_ACTION_BURST_CHANGED", DogTag.FireEvent, DogTag)
-TMW:RegisterCallback("TMW_ACTION_AOE_CHANGED", 	 DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 		DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_BURST_CHANGED",		DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_AOE_CHANGED", 			DogTag.FireEvent, DogTag)
 -- Taste's 
-TMW:RegisterCallback("TMW_ACTION_CD_MODE_CHANGED", DogTag.FireEvent, DogTag)
-TMW:RegisterCallback("TMW_ACTION_AOE_MODE_CHANGED", 	 DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_CD_MODE_CHANGED", 		DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_AOE_MODE_CHANGED", 	DogTag.FireEvent, DogTag)
 
 local function removeLastChar(text)
 	return text:sub(1, -2)
@@ -201,7 +130,7 @@ if DogTag then
 	-- Taste's 
     DogTag:AddTag("TMW", "ActionModeCD", {
         code = function()            
-			if A.UseCDs == true then
+			if A.IsInitialized and A.GetToggle(1, "Burst") ~= "Off" then
 			    return "|cff00ff00CD|r"
 			else 
 				return "|cFFFF0000CD|r"
@@ -215,7 +144,7 @@ if DogTag then
     })
 	DogTag:AddTag("TMW", "ActionModeAoE", {
         code = function()            
-			if A.UseAoE == true then
+			if A.IsInitialized and A.GetToggle(1, "AoE") then
 			    return "|cff00ff00AoE|r"
 			else 
 				return "|cFFFF0000AoE|r"
@@ -262,9 +191,256 @@ function Env.IsIconEnabled(icon)
 end
 
 -------------------------------------------------------------------------------
+-- IconType: TheAction - UnitCasting
+-------------------------------------------------------------------------------
+local L = TMW.L
+
+local Type = TMW.Classes.IconType:New("TheAction - UnitCasting")
+LibStub("AceEvent-3.0"):Embed(Type)
+Type.name = "TheAction - " .. L["ICONMENU_CAST"]
+Type.desc = "TheAction addon handles this icon type for own API\nto provide for TMW functional to check any unit"
+Type.menuIcon = "Interface\\Icons\\Temp"
+Type.AllowNoName = true
+Type.usePocketWatch = 1
+Type.unitType = "unitid"
+Type.hasNoGCD = true
+Type.canControlGroup = true
+
+local STATE_PRESENT = TMW.CONST.STATE.DEFAULT_SHOW
+local STATE_ABSENT = TMW.CONST.STATE.DEFAULT_HIDE
+local STATE_ABSENTEACH = 10
+
+-- AUTOMATICALLY GENERATED: UsesAttributes
+Type:UsesAttributes("state")
+Type:UsesAttributes("spell")
+Type:UsesAttributes("reverse")
+Type:UsesAttributes("start, duration")
+Type:UsesAttributes("unit, GUID")
+Type:UsesAttributes("texture")
+-- END AUTOMATICALLY GENERATED: UsesAttributes
+
+Type:SetModuleAllowance("IconModule_PowerBar_Overlay", true)
+
+Type:RegisterIconDefaults{
+	-- The unit(s) to check for casts
+	Unit					= "player", 
+
+	-- True if the icon should only check interruptible casts.
+	Interruptible			= false,
+
+	-- True if the icon should display blanks instead of the pocketwatch texture.
+	NoPocketwatch			= false,
+}
+
+
+Type:RegisterConfigPanel_XMLTemplate(100, "TellMeWhen_ChooseName", {
+	title = L["ICONMENU_CHOOSENAME3"] .. " " .. L["ICONMENU_CHOOSENAME_ORBLANK"],
+	SUGType = "cast",
+})
+
+Type:RegisterConfigPanel_XMLTemplate(105, "TellMeWhen_Unit", {
+	implementsConditions = true,
+})
+
+Type:RegisterConfigPanel_XMLTemplate(165, "TellMeWhen_IconStates", {
+	[STATE_PRESENT]     = { order = 1, text = "|cFF00FF00" .. L["ICONMENU_PRESENT"], },
+	[STATE_ABSENTEACH]  = { order = 2, text = "|cFFFF0000" .. L["ICONMENU_ABSENTEACH"], tooltipText = L["ICONMENU_ABSENTEACH_DESC"]:format(L["ICONMENU_ABSENTONALL"]) },
+	[STATE_ABSENT]      = { order = 3, text = "|cFFFF0000" .. L["ICONMENU_ABSENTONALL"],  },
+})
+
+Type:RegisterConfigPanel_ConstructorFunc(150, "TellMeWhen_CastSettings", function(self)
+	self:SetTitle(Type.name)
+	self:BuildSimpleCheckSettingFrame({
+		function(check)
+			check:SetTexts(L["ICONMENU_ONLYINTERRUPTIBLE"], L["ICONMENU_ONLYINTERRUPTIBLE_DESC"])
+			check:SetSetting("Interruptible")
+		end,
+		function(check)
+			check:SetTexts(L["ICONMENU_NOPOCKETWATCH"], L["ICONMENU_NOPOCKETWATCH_DESC"])
+			check:SetSetting("NoPocketwatch")
+		end,
+	})
+end)
+
+-- The unit spellcast events that the icon will register.
+-- We keep them in a table because there's a fuckload of them.
+local callbacks = {
+	UNIT_SPELLCAST_CHANNEL_STOP = true, 
+	UNIT_SPELLCAST_CHANNEL_UPDATE = true,
+	UNIT_SPELLCAST_CHANNEL_START = true, 
+	UNIT_SPELLCAST_INTERRUPTED = true,
+	UNIT_SPELLCAST_FAILED = true, 
+	UNIT_SPELLCAST_STOP = true, 
+	UNIT_SPELLCAST_DELAYED = true, 
+	UNIT_SPELLCAST_START = true,
+}
+
+local events = {
+	UNIT_SPELLCAST_CHANNEL_STOP = true,
+	UNIT_SPELLCAST_INTERRUPTED = true,
+	UNIT_SPELLCAST_FAILED = true, 
+	UNIT_SPELLCAST_DELAYED = true, 
+	UNIT_SPELLCAST_STOP = true, 
+}
+
+local function Cast_OnEvent(icon, event, arg1)
+	if callbacks[event] and icon.UnitSet.UnitsLookup[arg1] then
+		-- A UNIT_SPELLCAST_ event
+		-- If the icon is checking the unit, schedule an update for the icon.
+		icon.NextUpdateTime = 0
+	elseif event == "TMW_UNITSET_UPDATED" and arg1 == icon.UnitSet then
+		-- A unit was just added or removed from icon.Units, so schedule an update.
+		icon.NextUpdateTime = 0
+	end
+end
+
+local function Cast_OnUpdate(icon, time)
+	-- Upvalue things that will be referenced a lot in our loops.
+	local NameFirst, NameStringHash, Units, Interruptible =
+	icon.Spells.First, icon.Spells.StringHash, icon.Units, icon.Interruptible
+
+	for u = 1, #Units do
+		local unit = Units[u]
+		local GUID = UnitGUID(unit)
+
+		if GUID then
+			-- This need to set fixed for "player" for LibClassicCasterino
+			if UnitIsUnit("player", unit) then 
+				unit = "player"
+			end 
+			
+			local name, _, iconTexture, start, endTime, _, _, notInterruptible = LibClassicCasterino:UnitCastingInfo(unit)
+			-- Reverse is used to reverse the timer sweep masking behavior. Regular casts should have it be false.
+			local reverse = false
+
+			-- There is no regular spellcast. Check for a channel.
+			if not name then
+				name, _, iconTexture, start, endTime, _, notInterruptible = LibClassicCasterino:UnitChannelInfo(unit)
+				-- Channeled casts should reverse the timer sweep behavior.
+				reverse = true
+			end
+			
+			if name then 
+				local KickImun = A.GetAuraList("KickImun")
+				if next(KickImun) then 
+					notInterruptible = A.Unit(unit):HasBuffs("KickImun") ~= 0 
+				else
+					notInterruptible = false 
+				end 
+			end 
+
+			if name and not (notInterruptible and Interruptible) and (NameFirst == "" or NameStringHash[strlowerCache[name]]) then				
+				-- Times reported by the cast APIs are in milliseconds for some reason.
+				start, endTime = start/1000, endTime/1000
+				local duration = endTime - start
+				icon.LastTextures[GUID] = iconTexture
+
+				if not icon:YieldInfo(true, name, unit, GUID, iconTexture, start, duration, reverse) then
+					-- If icon:YieldInfo() returns false, it means we don't need to keep harvesting data.
+					return
+				end
+			elseif icon.States[STATE_ABSENTEACH].Alpha > 0 then
+				if not icon:YieldInfo(true, nil, unit, GUID, icon.LastTextures[GUID], 0, 0, false) then
+					-- If icon:YieldInfo() returns false, it means we don't need to keep harvesting data.
+					return
+				end
+			end
+		end
+	end
+
+	-- Signal the group controller that we are at the end of our data harvesting.
+	icon:YieldInfo(false)
+end
+
+function Type:HandleYieldedInfo(icon, iconToSet, spell, unit, GUID, texture, start, duration, reverse)
+	if spell then
+		-- There was a spellcast or channel present on one of the icon's units.
+		iconToSet:SetInfo(
+			"state; texture; start, duration; reverse; spell; unit, GUID",
+			STATE_PRESENT,
+			texture,
+			start, duration,
+			reverse,
+			spell,
+			unit, GUID
+		)
+	elseif unit then
+		-- There were no casts detected on this unit.
+		iconToSet:SetInfo(
+			"state; texture; start, duration; spell; unit, GUID",
+			STATE_ABSENTEACH,
+			texture or (icon.NoPocketwatch and "" or "Interface\\Icons\\INV_Misc_PocketWatch_01"),
+			0, 0,
+			icon.Spells.First,
+			unit or icon.Units[1], GUID or nil
+		)
+	else
+		-- There were no casts detected at all.
+		unit = icon.Units[1]
+		GUID = unit and UnitGUID(unit)
+		iconToSet:SetInfo(
+			"state; texture; start, duration; spell; unit, GUID",
+			STATE_ABSENT,
+			GUID and icon.LastTextures[GUID] or (icon.NoPocketwatch and "" or "Interface\\Icons\\INV_Misc_PocketWatch_01"),
+			0, 0,
+			icon.Spells.First,
+			unit, GUID
+		)
+	end
+end
+
+function Type:Setup(icon)
+	icon.Spells = TMW:GetSpells(icon.Name, false)
+	
+	icon.Units, icon.UnitSet = TMW:GetUnits(icon, icon.Unit, icon:GetSettings().UnitConditions)
+
+	icon.LastTextures = icon.LastTextures or {}
+
+	local texture, known = Type:GetConfigIconTexture(icon)
+	if not known and icon.NoPocketwatch then
+		texture = ""
+	end
+	icon:SetInfo("texture", texture)
+
+	-- Setup events and update functions.
+	if icon.UnitSet.allUnitsChangeOnEvent then
+		icon:SetUpdateMethod("manual")
+	
+		-- Register the UNIT_SPELLCAST_ callbacks
+		for callback in pairs(callbacks) do
+			LibClassicCasterino.RegisterCallback(icon, callback, Cast_OnEvent, icon)
+		end
+		
+		-- Register the UNIT_SPELLCAST_ self events (to fix issue with /stopcasting)
+		-- Enemies still can exploit it but timer will remain until their next cast, usually everyone fake casting without this dirt through stopcast
+		for event in pairs(events) do			
+			icon:RegisterEvent(event)
+		end		
+		
+		TMW:RegisterCallback("TMW_UNITSET_UPDATED", Cast_OnEvent, icon)
+		icon:SetScript("OnEvent", Cast_OnEvent)
+	end
+
+	icon:SetUpdateFunction(Cast_OnUpdate)
+	icon:Update()
+end
+
+function Type:GuessIconTexture(ics)
+	if ics.Name and ics.Name ~= "" then
+		local name = TMW:GetSpells(ics.Name).First
+		if name then
+			return TMW.GetSpellTexture(name)
+		end
+	end
+	return "Interface\\Icons\\Temp"
+end
+
+Type:Register(151)
+
+-------------------------------------------------------------------------------
 -- Scales
 -------------------------------------------------------------------------------
-local BlackBackground = CreateFrame("Frame", nil, UIParent)
+local BlackBackground 	= CreateFrame("Frame", nil, UIParent)
 BlackBackground:SetBackdrop(nil)
 BlackBackground:SetFrameStrata("HIGH")
 BlackBackground:SetSize(736, 30)
@@ -274,6 +450,23 @@ BlackBackground.IsEnable = true
 BlackBackground.texture = BlackBackground:CreateTexture(nil, "TOOLTIP")
 BlackBackground.texture:SetAllPoints(true)
 BlackBackground.texture:SetColorTexture(0, 0, 0, 1)
+
+local function CreateRankFrame(anchor, x, y)
+	local frame 		= CreateFrame("Frame", "RankSingle", UIParent)
+	frame:SetBackdrop(nil)
+	frame:SetFrameStrata("TOOLTIP")
+	frame:SetToplevel(true)
+	frame:SetSize(1, 1)
+	frame:SetScale(1)
+	frame:SetPoint(anchor, x, y)
+	frame.texture = frame:CreateTexture(nil, "TOOLTIP")
+	frame.texture:SetAllPoints(true)
+	frame.texture:SetColorTexture(0, 0, 0, 1.0)
+	return frame
+end 
+
+local RankSingle 		 = CreateRankFrame("TOPLEFT", 442, 1)
+local RankAoE	 		 = CreateRankFrame("TOPLEFT", 442, 2)
 
 local isShownOnce
 local function UpdateFrames()
@@ -286,27 +479,18 @@ local function UpdateFrames()
             TargetColor:Hide()
         end  
 		
+		if RankSingle:IsShown() then
+            RankSingle:Hide()
+        end				
+		
+		if RankAoE:IsShown() then
+            RankAoE:Hide()
+        end		
+		
         return 
     end
 	
-	local myheight
-	
-	if GetCVar("gxMaximize") == "1" then 
-		-- Fullscreen
-		myheight = toNum[strmatch(GetScreenResolutions(), "%dx(%d+)")] 		-- toNum[string.match(GetCVar("gxFullscreenResolution"), "%d+x(%d+)")]		
-	else 
-		-- Windowed 														-- toNum[strmatch(GetScreenResolutions(), "%dx(%d+)")]
-		myheight = select(2, GetPhysicalScreenSize())						-- toNum[string.match(GetCVar("gxWindowedResolution"), "%d+x(%d+)")]
-		
-		-- Regarding Windows DPI
-		-- Note: Full HD 1920x1080 offsets (100% X8 Y31 / 125% X9 Y38)
-		-- You might need specific thing to get truth relative graphic area, so just contact me if you see this and can't find fix for DPI > 1 e.g. 100%
-		if not isShownOnce and GetScreenDPIScale() ~= 1 then 
-			message("100% Windows DPI isn't supported by routines in Windowed mode. Make game in Fullscreen or set X and Y offsets in source.")
-			isShownOnce = true
-		end 
-	end 
-	
+	local myheight = select(2, GetPhysicalScreenSize())
     local myscale1 = 0.42666670680046 * (1080 / myheight)
     local myscale2 = 0.17777778208256 * (1080 / myheight)    
     local group1, group2 = TellMeWhen_Group1:GetEffectiveScale()
@@ -344,8 +528,7 @@ local function UpdateFrames()
         TargetColor:SetScale((0.71111112833023 * (1080 / myheight)) / (TargetColor:GetParent() and TargetColor:GetParent():GetEffectiveScale() or 1))
     end           
 
-	-- TODO: Classic 
-	-- RankSingle
+	-- Rank Spells 
 	if RankSingle then 
 		if not RankSingle:IsShown() then
             RankSingle:Show()
@@ -353,11 +536,11 @@ local function UpdateFrames()
         RankSingle:SetScale((0.71111112833023 * (1080 / myheight)) / (RankSingle:GetParent() and RankSingle:GetParent():GetEffectiveScale() or 1))	
 	end 
 	
-	if RankEoE then 
-		if not RankEoE:IsShown() then
-            RankEoE:Show()
+	if RankAoE then 
+		if not RankAoE:IsShown() then
+            RankAoE:Show()
         end
-        RankEoE:SetScale((0.71111112833023 * (1080 / myheight)) / (RankEoE:GetParent() and RankEoE:GetParent():GetEffectiveScale() or 1))	
+        RankAoE:SetScale((0.71111112833023 * (1080 / myheight)) / (RankAoE:GetParent() and RankAoE:GetParent():GetEffectiveScale() or 1))	
 	end 	
 end
 
@@ -410,6 +593,24 @@ local function UpdateCVAR()
 		SetCVar("doNotFlashLowHealthWarning", 1) 
 	end
 	
+	local nameplatesMaxDistance = GetCVar("nameplatesMaxDistance")
+    if nameplatesMaxDistance and nameplatesMaxDistance ~= toStr[ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE] then 
+		SetCVar("nameplatesMaxDistance", ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE) 
+		if isCheckedOnce then 
+			A.Print("nameplatesMaxDistance " .. nameplatesMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
+		end 
+	end	
+	
+	if A.GetToggle(1, "cameraDistanceMaxZoomFactor") then 
+		local cameraDistanceMaxZoomFactor = GetCVar("cameraDistanceMaxZoomFactor")
+		if cameraDistanceMaxZoomFactor ~= "4" then 
+			SetCVar("cameraDistanceMaxZoomFactor", 4) 
+			if isCheckedOnce then 
+				A.Print("cameraDistanceMaxZoomFactor " .. cameraDistanceMaxZoomFactor .. " => " .. 4)	
+			end 
+		end		
+	end 
+	
     -- WM removal
     if GetCVar("screenshotQuality") ~= "10" then 
 		SetCVar("screenshotQuality", 10)  
@@ -420,7 +621,7 @@ local function UpdateCVAR()
 		if isCheckedOnce then 
 			A.Print("Enemy nameplates should be enabled")
 		end 
-    end
+    end		
 	
 	if GetCVar("autoSelfCast") ~= "1" then 
 		SetCVar("autoSelfCast", 1)
@@ -429,6 +630,11 @@ local function UpdateCVAR()
 	isCheckedOnce = true
 end
 
+local function ConsoleUpdate()
+	UpdateCVAR()
+    UpdateFrames()      
+end 
+
 local function TrueScaleInit()
     TMW:RegisterCallback("TMW_GROUP_SETUP_POST", function(_, frame)
             local str_group = toStr[frame]
@@ -436,19 +642,14 @@ local function TrueScaleInit()
                 UpdateFrames()  
             end
     end)
-    UpdateFrames()
+    ConsoleUpdate()
     TMW:UnregisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETUP_COMPLETE")
 end
 TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETUP_COMPLETE")    
 
-local function ConsoleUpdate()
-	UpdateCVAR()
-    UpdateFrames()      
-end 
-
 A.Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 	ConsoleUpdate	)
 A.Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 		ConsoleUpdate	)
-A.Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
+--A.Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
 --A.Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",			UpdateCVAR		)
 VideoOptionsFrame:HookScript("OnHide", 							ConsoleUpdate	)
 InterfaceOptionsFrame:HookScript("OnHide", 						UpdateCVAR		)
@@ -522,18 +723,50 @@ end
   
 function A.Hide(icon)
 	-- @usage A.Hide(icon)
+	local meta = icon.ID
 	if icon.attributes.state ~= ACTION_CONST_TMW_DEFAULT_STATE_HIDE then 
 		icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
+	end 
+		
+	if meta == 3 then 
+		RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
+	end 
+	
+	if meta == 4 then 
+		RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
 	end 
 end 
 
 function A:Show(icon, texture) 
 	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)
+	local meta = icon.ID
 	if texture then 
 		TMWAPI(icon, "texture", texture)
 	else 
 		TMWAPI(icon, self:Texture())
 	end 
+	
+	
+	if meta == 3 then 
+		if self.isRank and self.isRank ~= RankSingle.isColored then 
+			RankSingle.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+			RankSingle.isColored = self.isRank 
+		elseif RankSingle.isColored then 
+			RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
+			RankSingle.isColored = nil 
+		end 
+	end 
+	
+	if meta == 4 then 
+		if self.isRank and self.isRank ~= RankAoE.isColored then 
+			RankAoE.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+			RankAoE.isColored = self.isRank 
+		elseif RankAoE.isColored then 
+			RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
+			RankAoE.isColored = nil 
+		end 	
+	end 
+	
 	return true 
 end 
 

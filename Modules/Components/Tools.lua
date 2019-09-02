@@ -17,15 +17,22 @@ local onEvent 					= _G.onEvent
 local CreateFrame 				= _G.CreateFrame
 local UnitGUID 					= _G.UnitGUID
 
+local GetNumTalentTabs, GetNumTalents, GetTalentInfo =
+	  GetNumTalentTabs, GetNumTalents, GetTalentInfo
+
 -------------------------------------------------------------------------------
 -- Listener
 -------------------------------------------------------------------------------
 local listeners 				= {}
 local frame 					= CreateFrame("Frame", "ACTION_EVENT_LISTENER")
+local PassEventOn 				= {
+	ACTION_EVENT_BASE			= true,
+	ACTION_EVENT_THREAT_LIB 	= true,
+}	
 frame:SetScript("OnEvent", function(_, event, ...)
 	if listeners[event] then 
 		for k in pairs(listeners[event]) do		
-			if k == "ACTION_EVENT_BASE" then 
+			if PassEventOn[k] then 
 				listeners[event][k](event, ...)
 			else 
 				listeners[event][k](...)
@@ -245,6 +252,26 @@ end
 function A.MakeFunctionCachedDynamic(func, interval)
 	return Cache:WrapDynamic(func, interval)
 end 
+
+-------------------------------------------------------------------------------
+-- TalentMap  
+-------------------------------------------------------------------------------
+A.TalentMap = {}
+local function TalentMap()
+	wipe(A.TalentMap)
+	for tab = 1, GetNumTalentTabs() do
+		for talent = 1, GetNumTalents(tab) do
+			local name, _, _, _, rank = GetTalentInfo(tab, talent)
+			if name then
+				A.TalentMap[name] = rank or 0
+			end
+		end
+	end
+end
+
+A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_ENTERING_WORLD", 		TalentMap)
+A.Listener:Add("ACTION_EVENT_TOOLS", "CONFIRM_TALENT_WIPE", 		TalentMap)
+A.Listener:Add("ACTION_EVENT_TOOLS", "CHARACTER_POINTS_CHANGED", 	TalentMap)
 
 -------------------------------------------------------------------------------
 -- Timers 

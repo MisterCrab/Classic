@@ -17,11 +17,14 @@ A.TeamCache			(@table) - return cached units + info about friendly and enemy gro
 
 local TMW 				= TMW
 local A   				= Action
+local ThreatLib			= LibStub:GetLibrary("ThreatClassic-1.0")
 
 A.InstanceInfo			= {}
 A.TeamCache				= { 
+	threatData			= {},
 	Friendly 			= {
 		Size			= 1,
+		GUIDs			= {},
 		HEALER			= {},
 		TANK			= {},
 		DAMAGER			= {},
@@ -30,6 +33,7 @@ A.TeamCache				= {
 	},
 	Enemy 				= {
 		Size 			= 0,
+		GUIDs 			= {},
 		HEALER			= {},
 		TANK			= {},
 		DAMAGER			= {},
@@ -38,20 +42,101 @@ A.TeamCache				= {
 	},
 }
 
-local _G, pairs, type, wipe = 
-	  _G, pairs, type, wipe
+local _G, table, pairs, type, wipe = 
+	  _G, table, pairs, type, wipe
 
 local huge 				= math.huge 
-local PvP 				= _G.C_PvP -- TODO: Classic 
 
-local IsInRaid, IsInGroup, IsInInstance, IsActiveBattlefieldArena, RequestBattlefieldScoreData = 
-	  IsInRaid, IsInGroup, IsInInstance, IsActiveBattlefieldArena, RequestBattlefieldScoreData
+local IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData = 
+	  IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData
 
-local UnitIsUnit, UnitInBattleground = 
-	  UnitIsUnit, UnitInBattleground
+local UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID = 
+	  UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID
 
-local GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers =  -- TODO: Classic 
-	  GetInstanceInfo, GetNumArenaOpponents, GetNumBattlefieldScores, GetNumGroupMembers    -- TODO: Classic 
+local GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers =  
+	  GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers    
+
+-------------------------------------------------------------------------------
+-- Threat Library 
+-------------------------------------------------------------------------------
+local loaded 						= false 
+local oldTime 						= 0
+local UnitThreatSituation			= function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
+local UnitDetailedThreatSituation	= function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
+
+local function UpdateThreatData(unit)
+	if not UnitExists(unit) then 
+		return 
+	end 
+	-- check target of target if currently targeting a friend
+	local target = UnitIsFriend("player", "target") and "targettarget" or "target"
+	local isTanking, status, scaledPercent, rawThreatPercent, threatValue, GUID = UnitDetailedThreatSituation(unit, target) -- Lib modified to return by last argument unitGUID !
+	if threatValue and threatValue < 0 then
+		threatValue = threatValue + 410065408
+	end
+	
+	-- In case if new lib version overwrite this version 
+	if not GUID then 
+		GUID = UnitGUID(unit)
+	end 
+	
+	A.TeamCache.threatData[GUID] = {
+		unit			= unit,
+		isTanking		= isTanking,
+		status			= status,
+		scaledPercent	= scaledPercent or 0,
+		threatValue		= threatValue or 0,
+	}
+end
+
+local function CheckStatus(event)
+	if not loaded then 
+		return
+	end
+	
+	local target = UnitIsFriend("player", "target") and "targettarget" or "target"
+
+	if UnitExists(target) then 
+		if TMW.time - oldTime > 0.25 then
+			-- wipe
+			wipe(A.TeamCache.threatData)
+			-- group
+			if A.TeamCache.Friendly.Size > 0 then
+				local unit = A.TeamCache.Friendly.Type
+				for i = 1, A.TeamCache.Friendly.Size do
+					UpdateThreatData(unit .. i)
+					UpdateThreatData(unit .. "pet" .. i)
+				end
+				-- party excludes player/pet
+				if not A.TeamCache.Friendly.Type ~= "raid" then
+					UpdateThreatData("player")
+					UpdateThreatData("pet")
+				end
+			-- solo
+			else
+				UpdateThreatData("player")
+				UpdateThreatData("pet")
+			end
+			oldTime = TMW.time
+		end
+	end
+end
+
+local function OnLoginThreatLib()
+	A.Listener:Add("ACTION_EVENT_THREAT_LIB", "PLAYER_ENTERING_WORLD", 	CheckStatus)
+	A.Listener:Add("ACTION_EVENT_THREAT_LIB", "GROUP_ROSTER_UPDATE", 	CheckStatus)
+	A.Listener:Add("ACTION_EVENT_THREAT_LIB", "PLAYER_TARGET_CHANGED", 	CheckStatus)
+	A.Listener:Add("ACTION_EVENT_THREAT_LIB", "PLAYER_REGEN_DISABLED", 	CheckStatus)
+	A.Listener:Add("ACTION_EVENT_THREAT_LIB", "PLAYER_REGEN_ENABLED", 	CheckStatus)
+	ThreatLib:RegisterCallback("Activate", 		CheckStatus)
+	ThreatLib:RegisterCallback("Deactivate", 	CheckStatus)
+	ThreatLib:RegisterCallback("ThreatUpdated", CheckStatus)
+	ThreatLib:RequestActiveOnSolo(true)  	  	
+	loaded = true 
+	A.Listener:Remove("ACTION_EVENT_THREAT_LIB", "PLAYER_LOGIN")
+end 
+
+A.Listener:Add("ACTION_EVENT_THREAT_LIB", "PLAYER_LOGIN", 				OnLoginThreatLib)
 
 -------------------------------------------------------------------------------
 -- Instance, Zone, Mode, Duel, TeamCache
@@ -69,10 +154,8 @@ end
 function A:CheckInPvP()
 	-- @return boolean
     return 
-    self.Zone == "arena" or 
     self.Zone == "pvp" or 
     UnitInBattleground("player") or 
-    IsActiveBattlefieldArena() or
     ( A.Unit("target"):IsPlayer() and A.Unit("target"):IsEnemy() )
 end
 
@@ -132,11 +215,8 @@ local function OnEvent(event, ...)
 			end 
 		end 		                             
 				
-		-- Enemy  TODO: Classic	
-		if A.Zone == "arena" then 
-			A.TeamCache.Enemy.Size = GetNumArenaOpponents() -- GetNumArenaOpponentSpecs()    
-			A.TeamCache.Enemy.Type = "arena"
-		elseif A.Zone == "pvp" then
+		-- Enemy
+		if A.Zone == "pvp" then
 			RequestBattlefieldScoreData()                
 			A.TeamCache.Enemy.Size = GetNumBattlefieldScores()         
 			A.TeamCache.Enemy.Type = "arena"
@@ -145,21 +225,26 @@ local function OnEvent(event, ...)
 			A.TeamCache.Enemy.Type = nil 
 		end
 		
+		-- TODO: Classic 
 		if A.TeamCache.Enemy.Size > 0 then                
 			for i = 1, A.TeamCache.Enemy.Size do 
 				local arena = "arena" .. i
-				if A.Unit(arena):IsHealer() then 
-					A.TeamCache.Enemy.HEALER[arena] = arena
-				elseif A.Unit(arena):IsTank() then 
-					A.TeamCache.Enemy.TANK[arena] = arena
-				else
-					A.TeamCache.Enemy.DAMAGER[arena] = arena
-					if A.Unit(arena):IsMelee() then 
-						A.TeamCache.Enemy.DAMAGER_MELEE[arena] = arena
-					else 
-						A.TeamCache.Enemy.DAMAGER_RANGE[arena] = arena
-					end                        
-				end
+				local guid 	= UnitGUID(arena)
+				if guid then 
+					A.TeamCache.Enemy.GUIDs[guid] = arena 
+					if A.Unit(arena):IsHealer() then 
+						A.TeamCache.Enemy.HEALER[arena] = arena
+					elseif A.Unit(arena):IsTank() then 
+						A.TeamCache.Enemy.TANK[arena] = arena
+					else
+						A.TeamCache.Enemy.DAMAGER[arena] = arena
+						if A.Unit(arena):IsMelee() then 
+							A.TeamCache.Enemy.DAMAGER_MELEE[arena] = arena
+						else 
+							A.TeamCache.Enemy.DAMAGER_RANGE[arena] = arena
+						end                        
+					end
+				end 
 			end   
 		end          
 		
@@ -175,23 +260,31 @@ local function OnEvent(event, ...)
 		
 		if A.TeamCache.Friendly.Size > 1 and A.TeamCache.Friendly.Type then 
 			for i = 1, A.TeamCache.Friendly.Size do 
-				local member = A.TeamCache.Friendly.Type .. i            
-				if not UnitIsUnit(member, "player") then 
-					if A.Unit(member):IsHealer() then 
-						A.TeamCache.Friendly.HEALER[member] = member
-					elseif A.Unit(member):IsTank() then  
-						A.TeamCache.Friendly.TANK[member] = member
-					else 
-						A.TeamCache.Friendly.DAMAGER[member] = member
-						if A.Unit(member):IsMelee() then 
-							A.TeamCache.Friendly.DAMAGER_MELEE[member] = member
+				local member = A.TeamCache.Friendly.Type .. i    
+				local guid 	= UnitGUID(member)
+				if guid then 
+					A.TeamCache.Friendly.GUIDs[guid] = member 
+					if not UnitIsUnit(member, "player") then 
+						if A.Unit(member):IsHealer() then 
+							A.TeamCache.Friendly.HEALER[member] = member
+						elseif A.Unit(member):IsTank() then  
+							A.TeamCache.Friendly.TANK[member] = member
 						else 
-							A.TeamCache.Friendly.DAMAGER_RANGE[member] = member
-						end 
+							A.TeamCache.Friendly.DAMAGER[member] = member
+							if A.Unit(member):IsMelee() then 
+								A.TeamCache.Friendly.DAMAGER_MELEE[member] = member
+							else 
+								A.TeamCache.Friendly.DAMAGER_RANGE[member] = member
+							end 
+						end
 					end
-				end
+				end 
 			end 
 		end		
+	end 
+	
+	if event ~= "PLAYER_TARGET_CHANGED" and event ~= "DUEL_FINISHED" and event ~= "DUEL_REQUESTED" then 
+		TMW:Fire("TMW_ACTION_GROUP_UPDATE") -- callback is used in Combat.lua to refresh and prepare unitGUID for deprecated official API on UnitHealth and UnitHealthMax
 	end 
 end 
 

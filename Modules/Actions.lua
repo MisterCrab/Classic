@@ -17,21 +17,12 @@ local FriendlyTeam			= A.FriendlyTeam
 local TriggerGCD			= A.Enum.TriggerGCD
 
 local huge 					= math.huge  	  
-local Azerite 				= LibStub("AzeriteTraits")
 local Pet					= LibStub("PetLibrary")
 --local LibRangeCheck  		= LibStub("LibRangeCheck-2.0")
 local SpellRange			= LibStub("SpellRange-1.0")
 local IsSpellInRange 		= SpellRange.IsSpellInRange	  
 local SpellHasRange			= SpellRange.SpellHasRange
 local isSpellRangeException = {
-	-- Chi Burst 
-	[123986] 	= true,
-	-- Eye Beam
-	[198013] 	= true,
-	-- Darkflight
-	[68992] 	= true,
-	-- SpatialRift
-	[256948]	= true,
 	-- Shadowmeld
 	[58984]		= true,
 	-- LightsJudgment
@@ -56,42 +47,13 @@ local isSpellRangeException = {
 	[33697]		= true,
 	[20572]		= true,
 	[33702]		= true,	
-	-- ArcanePulse
-	[260364]	= true,
-	-- AncestralCall
-	[274738]	= true,
-	-- BullRush
-	[255654]	= true,
-	-- ArcaneTorrent
-	[28730]		= true, 
-	[155145]	= true,
-	[80483]		= true,
-	[25046]		= true, 
-	[232633]	= true,
-	[50613]		= true,
-	[69179]		= true,
-	[202719]	= true,
-	[129597]	= true,
-	-- RocketBarrage 
-	[69041]		= true,
-	-- RocketJump
-	[69070]		= true,
 }
 local ItemHasRange 			= ItemHasRange
 local isItemRangeException 	= {}
-local isItemUseException	= {
-	-- Crest of Pa'ku
-	[165581] = true, 
-	-- Mr. Munchykins
-	[155567] = true, 
-	-- Ingenious Mana Battery
-	[169344] = true, 
-}
+local isItemUseException	= {}
 local itemCategory 			= {
-    [165806] = "DPS", 	-- Sinister Gladiator's Maledict
-	[165056] = "DEFF", 	-- Sinister Gladiator's Emblem
-	[161675] = "DEFF", 	-- Dread Gladiator's Emblem
-	[159618] = "DEFF", 	-- Mchimba's Ritual Bandages (Tank Item)
+    [02] = "DPS", 	-- TODO: Classic 
+	[01] = "DEFF", 	-- TODO: Classic 
 }
 
 local GetNetStats 			= GetNetStats	
@@ -116,21 +78,20 @@ local GetItemInfo, GetItemIcon, GetItemInfoInstant =
 	  GetItemInfo, GetItemIcon, GetItemInfoInstant	  
 
 -- Talent	  
-local     TalentMap,     PvpTalentMap =
-	  Env.TalentMap, Env.PvpTalentMap
+local TalentMap 			= A.TalentMap 
 
 -- Unit 	  
 local UnitIsUnit 			= UnitIsUnit  	  	 
 
 -- Player 
+--[[
 local GCD_OneSecond 		= {
 	[103] = true, 			-- Feral
 	[259] = true, 			-- Assassination
 	[260] = true, 			-- Outlaw
 	[261] = true, 			-- Subtlety
-	[268] = true, 			-- Brewmaster
-	[269] = true 			-- Windwalker
 }
+]]
 
 -------------------------------------------------------------------------------
 -- Global Cooldown
@@ -149,12 +110,12 @@ function A.GetGCD()
 		-- Depended by last used spell 
 		return TMW.GCD
 	else 
-		if GCD_OneSecond[A.PlayerSpec] then 
-			return 1
-		else 
+		--if GCD_OneSecond[A.PlayerSpec] then 
+			--return 1
+		--else 
 			-- Depended on current haste
-			return 1.5 / (1 + GetHaste() / 100) -- 1.5 / (1 + UnitSpellHaste("player") * 0.01)
-		end 
+			return 1.5 / (1 + Player:HastePct() / 100) 
+		--end 
 	end    
 end 
 
@@ -356,7 +317,7 @@ end
 
 function A:IsSpellLearned()
 	-- @usage A:IsSpellLearned() or A.IsSpellLearned(spellID)
-	-- @return boolean about selected or not (talent or pvptalent)	
+	-- @return boolean 
 	local ID, Name
 	if type(self) == "table" then 
 		ID = self.ID 
@@ -365,16 +326,24 @@ function A:IsSpellLearned()
 		ID = self 
 		Name = A.GetSpellInfo(ID)
 	end	
-	local lowerName = strlowerCache[Name]
-	return TalentMap[lowerName] or (A.IsInPvP and (not A.IsInDuel or A.IsInWarMode) and PvpTalentMap[lowerName]) or Azerite:IsLearnedByConflictandStrife(Name) or false 
+	return TalentMap[Name] and TalentMap[Name] > 0 or false 
 end
 
 -------------------------------------------------------------------------------
--- Azerite 
+-- Talent 
 -------------------------------------------------------------------------------
-function A:GetAzeriteRank()
-	-- @return number (0 - is not exists)
-	return Azerite:GetRank(self.ID)
+function A:GetTalentRank()
+	-- @usage A:GetTalentRank() or A.GetTalentRank(spellID)
+	-- @return number 
+	local ID, Name
+	if type(self) == "table" then 
+		ID = self.ID 
+		Name = self:Info()
+	else 
+		ID = self 
+		Name = A.GetSpellInfo(ID)
+	end	
+	return TalentMap[Name] or 0 
 end 
 
 -------------------------------------------------------------------------------
@@ -382,135 +351,34 @@ end
 -------------------------------------------------------------------------------	 
 local Racial = {
 	GetRaceBySpellName 										= {
-		-- Darkflight
-		[Spell:CreateFromSpellID(68992):GetSpellName()] 	= "Worgen",
-		-- SpatialRift
-		[Spell:CreateFromSpellID(256948):GetSpellName()] 	= "VoidElf", 				-- NO API 
+		-- Perception 
+		[Spell:CreateFromSpellID(20600):GetSpellName()] 	= "Human",
 		-- Shadowmeld
-		[Spell:CreateFromSpellID(58984):GetSpellName()] 	= "NightElf",
-		-- LightsJudgment
-		[Spell:CreateFromSpellID(255647):GetSpellName()] 	= "LightforgedDraenei",
-		-- Haymaker
-		[Spell:CreateFromSpellID(287712):GetSpellName()] 	= "KulTiran",
-		-- EveryManforHimself
-		[Spell:CreateFromSpellID(59752):GetSpellName()] 	= "Human", 					-- ThinHuman (? wut)
+		[Spell:CreateFromSpellID(20580):GetSpellName()] 	= "NightElf",
 		-- EscapeArtist
 		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
 		-- Stoneform
 		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
-		-- GiftoftheNaaru
-		[Spell:CreateFromSpellID(121093):GetSpellName()] 	= "Draenei",
-		-- Fireblood
-		[Spell:CreateFromSpellID(265221):GetSpellName()] 	= "DarkIronDwarf", 
-		-- QuakingPalm
-		[Spell:CreateFromSpellID(107079):GetSpellName()] 	= "Pandaren",
-		-- Regeneratin
-		[Spell:CreateFromSpellID(291944):GetSpellName()] 	= "ZandalariTroll",
 		-- WilloftheForsaken
 		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
 		-- Berserking
-		[Spell:CreateFromSpellID(26297):GetSpellName()] 	= "Troll",
+		[Spell:CreateFromSpellID(20554):GetSpellName()] 	= "Troll",
 		-- WarStomp
 		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
 		-- BloodFury
-		[Spell:CreateFromSpellID(33697):GetSpellName()] 	= "Orc",
-		-- ArcanePulse
-		[Spell:CreateFromSpellID(260364):GetSpellName()] 	= "Nightborne",
-		-- AncestralCall
-		[Spell:CreateFromSpellID(274738):GetSpellName()] 	= "MagharOrc",
-		-- BullRush
-		[Spell:CreateFromSpellID(255654):GetSpellName()] 	= "HighmountainTauren",
-		-- ArcaneTorrent
-		[Spell:CreateFromSpellID(28730):GetSpellName()] 	= "BloodElf",	
-		-- RocketJump
-		[Spell:CreateFromSpellID(69070):GetSpellName()] 	= "Goblin",					-- NO API - Should we add RocketBarrage (?) or it's crap damaged spell	
-		-- RocketBarrage
-		-- NO API
+		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
+	},
+	Temp													= {
+		TotalAndMagic 										= {"TotalImun", "DamageMagicImun"},
+		TotalAndPhysAndCC									= {"TotalImun", "DamagePhysImun", "CCTotalImun"},
+		TotalAndPhysAndCCAndStun							= {"TotalImun", "DamagePhysImun", "CCTotalImun", "StunImun"},
 	},
 	-- Functions	
 	CanUse 													= function(this, self, unitID)
 		-- @return boolean 
 		A.PlayerRace = this.GetRaceBySpellName[self:Info()]
 		
-		-- Damage  
-		if A.PlayerRace == "LightforgedDraenei" then 
-			return 	LoC:Get("SCHOOL_INTERRUPT", "HOLY") == 0 and 
-					LoC:IsMissed("SILENCE") and 
-					(
-						(
-							unitID and 	
-							Unit(unitID):IsEnemy() and 
-							Unit(unitID):GetRange() <= 5  and 
-							self:AbsentImun(unitID, {"TotalImun", "DamageMagicImun"}) 
-						) or 						
-						MultiUnits:GetByRange(5, 1) >= 1						
-					) and 
-					(
-						not A.IsInPvP or 
-						not EnemyTeam("HEALER"):IsBreakAble(5)
-					)	
-		end 
-		
-		if A.PlayerRace == "Nightborne" then
-			return	LoC:Get("SCHOOL_INTERRUPT", "ARCANE") == 0 and 
-					LoC:IsMissed("SILENCE") and		
-					(
-						(
-							unitID and 	
-							Unit(unitID):IsEnemy() and 
-							Unit(unitID):GetRange() <= 5 and 
-							self:AbsentImun(unitID, {"TotalImun", "DamageMagicImun"})
-						) or 
-						(
-							(
-								not unitID or 
-								not Unit(unitID):IsEnemy() 
-							) and 
-							MultiUnits:GetByRange(5, 3) >= 3
-						)
-					) and 
-					(
-						not A.IsInPvP or 
-						not EnemyTeam("HEALER"):IsBreakAble(5)
-					)	
-		end 
-		
-		-- Purge 
-		if A.PlayerRace == "BloodElf" then 
-			return 	LoC:Get("SCHOOL_INTERRUPT", "ARCANE") == 0 and 
-					LoC:IsMissed("SILENCE") 
-		end 
-		
-		-- Healing 
-		if A.PlayerRace == "Draenei" then 
-			if not unitID or Unit(unitID):IsEnemy() then 
-				unitID = "player" 
-			end 
-			
-			return  LoC:Get("SCHOOL_INTERRUPT", "HOLY") == 0 and 
-					LoC:IsMissed("SILENCE") and 
-					self:AbsentImun(unitID)
-		end 
-		
-		if A.PlayerRace == "ZandalariTroll" then 
-			return 	LoC:Get("SCHOOL_INTERRUPT", "NATURE") == 0 and 
-					LoC:IsMissed("SILENCE") and 
-					Unit("player"):GetStayTime() > 0 
-		end 
-		
 		-- Iterrupts 
-		if A.PlayerRace == "Pandaren" then 
-			return 	unitID and 		
-					Unit(unitID):IsControlAble("incapacitate") and 
-					self:AbsentImun(unitID, {"TotalImun", "DamagePhysImun", "CCTotalImun"}, true)
-		end 
-		
-		if A.PlayerRace == "KulTiran" then 
-			return 	unitID and 
-					Unit(unitID):IsControlAble("stun") and 
-					self:AbsentImun(unitID, {"TotalImun", "DamagePhysImun", "CCTotalImun"}, true)
-		end 
-		
 		if A.PlayerRace == "Tauren" then 
 			return 	(
 						(
@@ -518,7 +386,7 @@ local Racial = {
 							Unit(unitID):IsEnemy() and 
 							Unit(unitID):GetRange() <= 8 and 					
 							Unit(unitID):IsControlAble("stun") and 
-							self:AbsentImun(unitID, {"StunImun", "TotalImun", "DamagePhysImun", "CCTotalImun"}, true)
+							self:AbsentImun(unitID, this.Temp.TotalAndPhysAndCCAndStun)
 						) or 
 						(
 							(
@@ -529,13 +397,7 @@ local Racial = {
 						)
 					)	
 		end 
-		
-		if A.PlayerRace == "HighmountainTauren" then 
-			return	unitID and 
-					Unit(unitID):GetRange() <= 6 and 
-					self:AbsentImun(unitID, {"StunImun", "TotalImun", "DamagePhysImun", "CCTotalImun"}, true)
-		end 
-		
+
 		-- [NO LOGIC - ALWAYS TRUE] 
 		return true 		 			
 	end,
@@ -545,66 +407,14 @@ local Racial = {
 		if LOC and LoC:IsValid(LOC.Applied, LOC.Missed) then 
 			return true 
 		end 	
-	
-		-- Damaging   
-		if A.PlayerRace == "LightforgedDraenei" then 
-			return true 
-		end 
 		
-		if A.PlayerRace == "Nightborne" then 
-			return unitID and Unit(unitID):GetCurrentSpeed() >= 100 
-		end 	
+		-- TODO: Classic - Perception (PvP)
 		
-		-- Purge 
-		if A.PlayerRace == "BloodElf" then
-			return  (
-						A.IsInPvP and 
-						FriendlyTeam():ArcaneTorrentMindControl()
-					) or 				 
-					(
-						unitID and 
-						(not Unit(unitID):IsEnemy() or Unit(unitID):InGroup()) and 
-						Unit(unitID):GetRange() <= 8 and 
-						A.AuraIsValid(unitID, "UsePurge", "PurgeFriendly")					
-					) or 
-					(
-						unitID and 
-						Unit(unitID):IsEnemy() and 
-						Unit(unitID):GetRange() <= 8 and 
-						A.AuraIsValid(unitID, "UsePurge", "PurgeHigh")
-					)
-		end 
-		
-		-- Healing 
-		if A.PlayerRace == "Draenei"  then 
-			return A.BurstIsON(unitID) and Unit(unitID):Health() >= Unit("player"):HealthMax() * 0.2 + (Unit(unitID):GetHEAL() * 5) + Unit(unitID):GetIncomingHeals() - (Unit(unitID):GetDMG() * 5) 
-		end 
-
-		if A.PlayerRace == "ZandalariTroll" then 
-			return  Unit("player"):GetDMG() == 0 or 
-					(
-						A.PlayerClass == "PALADIN" and 
-						Unit("player"):HasBuffs(642, true) >= (100 - Unit("player"):HealthPercent()) * 6 / 100
-					) or 
-					(
-						A.PlayerClass == "HUNTER" and 
-						Unit("player"):HasBuffs(186265, true) >= (100 - Unit("player"):HealthPercent()) * 6 / 100
-					)			
-		end 
-				
 		-- Iterrupts 
-		if A.PlayerRace == "Pandaren" then 
-			return Unit(unitID):CastInfo() > A.GetCurrentGCD() + 0.1		  
-		end 
-
-		if A.PlayerRace == "KulTiran" then  	
-			return Unit(unitID):CastInfo() > A.GetCurrentGCD() + 1.1			  
-		end 	
-		
 		if A.PlayerRace == "Tauren" then 
 			return  (
 						unitID and 					
-						Unit(unitID):CastInfo() > A.GetCurrentGCD() + 0.7
+						Unit(unitID):IsCastingRemains() > A.GetCurrentGCD() + 0.7
 					) or 
 					(
 						(
@@ -615,50 +425,32 @@ local Racial = {
 					)			  
 		end 		
 
-		-- Custom GCD
-		if A.PlayerRace == "HighmountainTauren" then 
-			return Unit(unitID):CastInfo() > A.GetCurrentGCD() + 0.3			  
-		end 	
-	
 		-- Control Avoid 
 		if A.PlayerRace == "NightElf" then 
-			-- Check Freezing Trap 
-			if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) - 2 and 
-				UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) and 
-				Unit("player"):GetDR("incapacitate") > 0 
-			then 
-				local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_FREEZING_TRAP)
-				if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 40 and (Unit("player"):GetDMG() == 0 or not Unit("player"):IsFocused("DAMAGER")) then 
-					return true 
-				end 
-			end 
-				
-			-- Check Storm Bolt 
-			if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_STORM_BOLT) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_STORM_BOLT) - 2 and 
-				UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_STORM_BOLT) and 
-				Unit("player"):GetDR("stun") > 25 -- don't waste on short durations by diminishing
-			then 
-				local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_STORM_BOLT)
-				if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 20 then 
-					return true 
+			if A.Zone == "pvp" then 
+				-- Check Freezing Trap 
+				for i = 1, 3 do 
+					local ACTION_CONST_SPELLID_FREEZING_TRAP = _G["ACTION_CONST_SPELLID_FREEZING_TRAP" .. i]
+					if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) - 2 and 
+						UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) and 
+						Unit("player"):GetDR("incapacitate") > 0 
+					then 
+						local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_FREEZING_TRAP)
+						if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 40 and (Unit("player"):GetDMG() == 0 or not Unit("player"):IsFocused("DAMAGER")) then 
+							return true 
+						end 
+					end 
 				end 
 			end 
 		end 			
 		
-		-- Sprint
-		if A.PlayerRace == "Worgen" then  
-			return Unit(unitID):IsMovingOut()
-		end 
-		
 		-- Bursting 
-		if ( A.PlayerRace == "DarkIronDwarf" or A.PlayerRace == "Troll" or A.PlayerRace == "Orc" or A.PlayerRace == "MagharOrc" ) then 
+		if ( A.PlayerRace == "Troll" or A.PlayerRace == "Orc" ) then 
 			return A.BurstIsON(unitID)
 		end 	
 		
 		-- [NO LOGIC - ALWAYS FALSE] 
-		--if A.PlayerRace == "VoidElf" or A.PlayerRace == "Goblin" then 
-			return false 
-		--end 		
+		return false 		
 	end, 
 }
 
@@ -790,7 +582,7 @@ function A:GetCount()
 	return self.Item:GetCount() or 0
 end 
 
-function A:AbsentImun(unitID, imunBuffs, skipKarma)
+function A:AbsentImun(unitID, imunBuffs)
 	-- @return boolean 
 	-- Note: Checks for friendly / enemy Imun auras and compares it with remain duration 
 	if not unitID or not A.IsInPvP or UnitIsUnit(unitID, "player") or not UnitIsPlayer(unitID) then 
@@ -820,10 +612,6 @@ function A:AbsentImun(unitID, imunBuffs, skipKarma)
 			elseif Unit(unitID):HasBuffs(imunBuffs) > MinDur then
 				return false 
 			end 
-		end 
-		
-		if not skipKarma and Unit(unitID):IsEnemy() and not Unit(unitID):WithOutKarmed() then 
-			return false 
 		end 
 
 		return true
@@ -934,9 +722,6 @@ function A:GetSpellIcon()
 end
 
 function A:GetSpellTexture(custom)
-	if self.SubType == "HeartOfAzeroth" then 
-		return "texture", ACTION_CONST_HEARTOFAZEROTH
-	end
     return "texture", GetSpellTexture(custom or self.ID)
 end 
 
@@ -1003,16 +788,18 @@ end
 function A.Create(attributes)
 	--[[@usage: attributes (table)
 		Required: 
-			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|HeartOfAzeroth (TrinketBySlot is only in CORE!)
+			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot (TrinketBySlot is only in CORE!)
 			ID (@number) 	- spellID | itemID
 			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor, this will set color which stored in A.Data.C[Color] or here can be own hex 
 	 	Optional: 
 			Desc (@string) uses in UI near Icon tab (usually to describe relative action like Penance can be for heal and for dps and it's different actions but with same name)
 			QueueForbidden (@boolean) uses to preset for action fixed queue valid 
-			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket|HeartOfAzeroth
+			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket
+			FixedTexture (@number or @file) valid only if Type is Spell|Item|Potion|Trinket
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
-			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor|HeartOfAzeroth
+			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
+			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor)
 	]]
 	if not attributes then 
 		local attributes = {}
@@ -1025,7 +812,7 @@ function A.Create(attributes)
 		MetaSlot = attributes.MetaSlot,
 		Hidden = attributes.Hidden,
 	}
-	if attributes.Type == "Spell" or attributes.Type == "HeartOfAzeroth" then 
+	if attributes.Type == "Spell" then 
 		s = setmetatable(s, {__index = A})	
 		s.Type = "Spell"		
 		-- Methods (metakey:Link())			
@@ -1038,6 +825,10 @@ function A.Create(attributes)
 				s.Texture = function()
 					return A.GetColoredSpellTexture(s, attributes.Texture)
 				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 				
 			else 
 				s.Texture = A.GetColoredSpellTexture
 			end 		
@@ -1046,14 +837,20 @@ function A.Create(attributes)
 				s.Texture = function()
 					return A.GetSpellTexture(s, attributes.Texture)
 				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 
 			else 
 				s.Texture = A.GetSpellTexture	
-			end
+			end						
 		end 
 		-- Power 
 		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()
 		-- Talent 
 		s.isTalent = attributes.isTalent
+		-- Rank 
+		s.isRank = attributes.isRank
 	elseif attributes.Type == "SpellSingleColor" then 
 		s = setmetatable(s, {__index = A})	
 		s.Type = "Spell"
@@ -1068,6 +865,8 @@ function A.Create(attributes)
 		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()	
 		-- Talent 
 		s.isTalent = attributes.isTalent
+		-- Rank 
+		s.isRank = attributes.isRank
 	elseif attributes.Type == "Trinket" or attributes.Type == "Potion" or attributes.Type == "Item" then 
 		s = setmetatable(s, {
 				__index = function(self, key)
@@ -1089,6 +888,10 @@ function A.Create(attributes)
 				s.Texture = function()
 					return A.GetColoredItemTexture(s, attributes.Texture)
 				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 				
 			else 
 				s.Texture = A.GetColoredItemTexture
 			end 		
@@ -1097,6 +900,10 @@ function A.Create(attributes)
 				s.Texture = function()
 					return A.GetItemTexture(s, attributes.Texture)
 				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 				
 			else 
 				s.Texture = A.GetItemTexture
 			end 
@@ -1128,7 +935,7 @@ function A.Create(attributes)
 			if attributes.Texture then 
 				s.Texture = function()
 					return A.GetColoredItemTexture(s, attributes.Texture)
-				end 
+				end 				
 			else 
 				s.Texture = A.GetColoredItemTexture
 			end 		
@@ -1136,7 +943,7 @@ function A.Create(attributes)
 			if attributes.Texture then 
 				s.Texture = function()
 					return A.GetItemTexture(s, attributes.Texture)
-				end 
+				end 				
 			else 
 				s.Texture = A.GetItemTexture
 			end 

@@ -8,10 +8,6 @@ local isEnemy										= A.Bit.isEnemy
 --local toNum 										= A.toNum
 --local InstanceInfo								= A.InstanceInfo
 --local TeamCache									= A.TeamCache
---local Azerite 									= LibStub("AzeriteTraits")
---local Pet											= LibStub("PetLibrary")
---local LibRangeCheck  								= LibStub("LibRangeCheck-2.0")
---local SpellRange									= LibStub("SpellRange-1.0")
 
 local _G, pairs, next, setmetatable, table, wipe, abs	= 
 	  _G, pairs, next, setmetatable, table, wipe, math.abs
@@ -22,6 +18,7 @@ local UnitCanAttack, UnitGUID  					    = UnitCanAttack, UnitGUID -- no need cac
 -------------------------------------------------------------------------------	  
 local MultiUnits 								= {
 	activeUnitPlates 							= {},
+	activeUnitPlatesGUID 						= {},
 	activeUnitCLEU 								= {},
 	tempEnemies									= {},
 	LastCallInitCLEU							= 0,
@@ -32,15 +29,24 @@ local MultiUnits 								= {
 MultiUnits.AddNameplate							= function(unitID)
 	if UnitCanAttack("player", unitID) then 
 		MultiUnits.activeUnitPlates[unitID] = unitID
+		local GUID 							= UnitGUID(unitID)
+		if GUID then 
+			MultiUnits.activeUnitPlatesGUID[GUID] = unitID
+		end 		
 	end
 end
 
 MultiUnits.RemoveNameplate						= function(unitID)
     MultiUnits.activeUnitPlates[unitID] = nil 
+	local GUID 							= UnitGUID(unitID)
+	if GUID then 
+		MultiUnits.activeUnitPlatesGUID[GUID] = nil
+	end 	
 end
 
 MultiUnits.OnResetNameplates					= function()
 	wipe(MultiUnits.activeUnitPlates)
+	wipe(MultiUnits.activeUnitPlatesGUID)
 end 
 
 -- CLEU 
@@ -112,7 +118,7 @@ A.Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "PLAYER_ENTERING_WORLD",   			Mul
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "UPDATE_INSTANCE_INFO", 	  			MultiUnits.OnResetAll) 
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_ADDED",	  	MultiUnits.AddNameplate)
 A.Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_REMOVED", 	MultiUnits.RemoveNameplate)
-TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					MultiUnits.OnInitCLEU) -- TODO: Classic 
+TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					MultiUnits.OnInitCLEU) 
 
 -------------------------------------------------------------------------------
 -- API
@@ -124,6 +130,12 @@ function A.MultiUnits.GetActiveUnitPlates(self)
 	-- @return table (enemy nameplates) or nil
 	-- @usage A.MultiUnits:GetActiveUnitPlates()
 	return MultiUnits.activeUnitPlates
+end 
+
+function A.MultiUnits.GetActiveUnitPlatesGUID(self)
+	-- @return table (enemy nameplates GUID) or nil
+	-- @usage A.MultiUnits:GetActiveUnitPlates()
+	return MultiUnits.activeUnitPlatesGUID
 end 
 
 function A.MultiUnits.GetBySpell(self, spell, count)
