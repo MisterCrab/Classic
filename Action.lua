@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "02.09.2019"
+local DateTime 						= "03.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -20,8 +20,8 @@ local UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, 	UnitAur
 	  UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, TMW.UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit	  
 	  
 -- LetMeCast 	  
-local DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff =
-	  DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff
+local DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName =
+	  DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName
 	    
 -- AuraDuration 
 local SetPortraitToTexture, CooldownFrame_Set, TargetFrame_ShouldShowDebuffs, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition,    DebuffTypeColor =
@@ -460,7 +460,7 @@ local Localization = {
 				CAMERAMAXFACTOR = "Макс. отдаление камеры", 
 				ROLETOOLTIP = "В зависимости от этого режима будет работать ротация\nAUTO - Определяет вашу роль в зависимости от большинства вложенных талантов в нужное дерево",
 				TOOLS = "Утилиты:",
-				LETMECASTTOOLTIP = "Авто-спешивание and Авто-встать\nЕсли произнесение или взаимодействие невозможно из-за транспорта, то вы будете спешены. Если это невозможно пока вы сидите, то вы встанете\nLet me cast - Позволь мне произнести!",
+				LETMECASTTOOLTIP = "Авто-спешивание и Авто-встать\nЕсли произнесение или взаимодействие невозможно из-за транспорта, то вы будете спешены\nЕсли это невозможно пока вы сидите, то вы встанете\nLet me cast - Позволь мне произнести!",
 				TARGETCASTBAR = "Бар произнесения цели",
 				TARGETCASTBARTOOLTIP = "Отображает правдивый ползунок произнесения заклинания под фреймом цели",
 				TARGETREALHEALTH = "Реальное здоровье цели",
@@ -3144,6 +3144,9 @@ local LETMECAST = {
 					local Name = UnitAura("player", i, "HELPFUL PLAYER")
 					if Name and Name == buffName then	
 						CancelUnitBuff("player", i, "HELPFUL PLAYER")
+						if Action.Unit("player"):CombatTime() == 0 then 
+							CancelSpellByName(buffName)
+						end 
 					else 
 						break 
 					end 
@@ -3256,12 +3259,21 @@ local AuraDuration = {
 			maxPrioIndex 		= -1
 		end
 
-		if maxPrio >= PRIO_SILENCE then
+		if maxPrioFilter and maxPrio >= PRIO_SILENCE then
 			local name, icon, _, _, duration, expirationTime, caster, _,_, spellId
 			if maxPrioIndex == -1 then
 				spellId, name, icon, duration, expirationTime = self.LibSpellLocks:GetSpellLockInfo(unit)
 			else
-				name, icon, _, _, duration, expirationTime, caster, _,_, spellId = UnitAura(unit, maxPrioIndex, maxPrioFilter)
+				if maxPrioIndex then 
+					name, icon, _, _, duration, expirationTime, caster, _,_, spellId = UnitAura(unit, maxPrioIndex, maxPrioFilter)
+				else 
+					for i = 1, huge do 
+						name, icon, _, _, duration, expirationTime, caster, _,_, spellId = UnitAura(unit, i, maxPrioFilter)
+						if not name then 
+							break 
+						end 
+					end 
+				end 
 			end
 			SetPortraitToTexture(auraCD.texture, icon)
 			originalPortrait:Hide()
@@ -3402,7 +3414,7 @@ local AuraDuration = {
 							local rootSpellID, spellType, prio = self.LibAuraTypes.GetDebuffInfo(spellId)
 							if prio and prio > maxPrio then
 								maxPrio 		= prio
-								maxPrioIndex 	= index
+								maxPrioIndex 	= i
 								maxPrioFilter 	= "HARMFUL"
 							end
 						end
@@ -4171,7 +4183,7 @@ function Action.CursorInit()
 	if not Action.IsGameTooltipInitializated then
 		GameTooltip:RegisterEvent("CURSOR_UPDATE")
 		GameTooltip:HookScript("OnEvent", function(self, event) 
-			if event == "CURSOR_UPDATE" and Action.IsInitialized and Action[Action.PlayerClass] and self:IsShown() and Action.GetToggle(6, "UseRight") then
+			if event == "CURSOR_UPDATE" and Action.IsInitialized and Action[Action.PlayerClass] and self:IsShown() and Action.GetToggle(6, "UseRight") and next(TMW.db.profile.ActionDB[6][Action.IsInPvP and "PvP" or "PvE"]["GameToolTip"][GameLocale]) then
 				self:Hide()				
 			end
 		end)

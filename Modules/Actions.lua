@@ -429,16 +429,13 @@ local Racial = {
 		if A.PlayerRace == "NightElf" then 
 			if A.Zone == "pvp" then 
 				-- Check Freezing Trap 
-				for i = 1, 3 do 
-					local ACTION_CONST_SPELLID_FREEZING_TRAP = _G["ACTION_CONST_SPELLID_FREEZING_TRAP" .. i]
-					if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) - 2 and 
-						UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) and 
-						Unit("player"):GetDR("incapacitate") > 0 
-					then 
-						local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_FREEZING_TRAP)
-						if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 40 and (Unit("player"):GetDMG() == 0 or not Unit("player"):IsFocused("DAMAGER")) then 
-							return true 
-						end 
+				if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) - 2 and 
+					UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) and 
+					Unit("player"):GetDR("incapacitate") > 0 
+				then 
+					local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_FREEZING_TRAP)
+					if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 40 and (Unit("player"):GetDMG() == 0 or not Unit("player"):IsFocused("DAMAGER")) then 
+						return true 
 					end 
 				end 
 			end 

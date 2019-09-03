@@ -4,10 +4,9 @@ Author: d87
 --]================]
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 12
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 12
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
-
 
 lib.callbacks = lib.callbacks or LibStub("CallbackHandler-1.0"):New(lib)
 
