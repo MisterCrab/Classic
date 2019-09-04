@@ -12,6 +12,7 @@ local isEnemy									= A.Bit.isEnemy
 local isPlayer									= A.Bit.isPlayer
 --local toStr 									= A.toStr
 --local toNum 									= A.toNum
+local strElemBuilder							= A.strElemBuilder
 --local InstanceInfo							= A.InstanceInfo
 local TeamCache									= A.TeamCache
 local DRData 									= LibStub("DRList-1.1")
@@ -31,6 +32,8 @@ local GetEventInfo 								= cLossOfControl.GetEventInfo
 local GetNumEvents 								= cLossOfControl.GetNumEvents	  
 
 local GetSpellInfo								= _G.GetSpellInfo
+
+local skipedFirstEnter 							= false 
 
 -------------------------------------------------------------------------------
 -- Locals: CombatTracker
@@ -121,12 +124,15 @@ local CombatTracker 							= {
 local isHealthWasMaxOnGUID = {}
 
 local function logDefaultGUIDatMaxHealth()
-	--wipe(isHealthWasMaxOnGUID)
 	if TeamCache.Friendly.Size > 0 then
 		local unit = TeamCache.Friendly.Type
 		for i = 1, TeamCache.Friendly.Size do		
-			CombatTracker.logHealthMax(unit .. i)
-			CombatTracker.logHealthMax(unit .. "pet" .. i)			
+			-- unit 
+			CombatTracker.logHealthMax(strElemBuilder(nil, unit, i))
+			CombatTracker.logHealthMax(strElemBuilder(nil, unit, "pet", i))			
+			-- unittarget
+			CombatTracker.logHealthMax(strElemBuilder(nil, unit, i, "target"))
+			CombatTracker.logHealthMax(strElemBuilder(nil, unit, "pet", i, "target"))
 		end
 	end	
 end 
@@ -186,11 +192,7 @@ CombatTracker.logDamage 						= function(...)
 	local Data = CombatTracker.Data	
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, spellID, spellName, school, Amount = CombatLogGetCurrentEventInfo()	
 	-- Classic: RealUnitHealth log taken
-	--if isHealthWasMaxOnGUID[DestGUID] then 
-		Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
-	--else 
-		--Data[DestGUID].RealUnitHealth.DamageTaken = 0
-	--end 
+	Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
 	-- Update last hit time
 	-- Taken 
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
@@ -280,11 +282,7 @@ CombatTracker.logSwing 							= function(...)
 	local Data 							= CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, Amount = CombatLogGetCurrentEventInfo()
 	-- Classic: RealUnitHealth log taken
-	--if isHealthWasMaxOnGUID[DestGUID] then 
-		Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
-	--else 
-		--Data[DestGUID].RealUnitHealth.DamageTaken = 0
-	--end 
+	Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
 	-- Update last  hit time
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
@@ -379,7 +377,7 @@ CombatTracker.logAbsorb 						= function(...)
 	end    
 end
 
-CombatTracker.logUpdateAbsorb 						= function(...) 
+CombatTracker.logUpdateAbsorb 					= function(...) 
 	local Data = CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _,_,_, spellID, spellName, _, Amount = CombatLogGetCurrentEventInfo()    
 
@@ -754,6 +752,15 @@ local UNIT_SPELLCAST_SUCCEEDED					= function(...)
 	end 
 end
 
+TMW:RegisterCallback("TMW_ACTION_ENTERING",											function()
+	if skipedFirstEnter then 
+		wipe(UnitTracker.Data)
+		wipe(CombatTracker.Data)
+		wipe(isHealthWasMaxOnGUID)
+	else 
+		skipedFirstEnter = true 
+	end 
+end)
 TMW:RegisterCallback("TMW_ACTION_GROUP_UPDATE",										logDefaultGUIDatMaxHealth			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_TARGET_CHANGED",				logDefaultGUIDatMaxHealthTarget		)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UPDATE_MOUSEOVER_UNIT",				logDefaultGUIDatMaxHealthMouseover	)
@@ -807,7 +814,10 @@ A.CombatTracker									= {
 			-- Otherwise get real math which can be not really accurate
 			elseif CombatTracker.Data[GUID].RealUnitHealth.DamageTaken > 0 then 
 				local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-				return CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp) --  / (curr_hp / max_hp) * 100 / curr_hp
+				local curr_value = CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp)
+				if curr_value > 0 then 
+					return curr_value
+				end 
 			end 
 		end 
 		return 0 
@@ -829,7 +839,10 @@ A.CombatTracker									= {
 			-- Otherwise get real math which can be not really accurate
 			elseif CombatTracker.Data[GUID].RealUnitHealth.DamageTaken > 0 then 
 				local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-				return (CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp)) - CombatTracker.Data[GUID].RealUnitHealth.DamageTaken + 1
+				local curr_value = (CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp)) - CombatTracker.Data[GUID].RealUnitHealth.DamageTaken + 1
+				if curr_value > 0 then 
+					return curr_value
+				end 
 			end 
 		end 
 		return 0 
@@ -1002,6 +1015,9 @@ A.CombatTracker									= {
 		local total 							= 0
 		local GUID 								= UnitGUID(unitID)   
 		local Data 								= CombatTracker.Data
+		if type(spell) == "number" then 
+			spell = A.GetSpellInfo(spell)
+		end 
 		if Data[GUID] and Data[GUID].spell_value[spell] then
 			if TMW.time - Data[GUID].spell_value[spell].TIME <= timer then 
 				total = Data[GUID].spell_value[spell].Amount
@@ -1015,6 +1031,9 @@ A.CombatTracker									= {
 	GetSpellAmount								= function(self, unitID, spell)
 		local GUID 								= UnitGUID(unitID) 
 		local Data 								= CombatTracker.Data
+		if type(spell) == "number" then 
+			spell = A.GetSpellInfo(spell)
+		end 		
 		return (Data[GUID] and Data[GUID].spell_value[spell] and Data[GUID].spell_value[spell].Amount) or 0
 	end,	
 	--[[ This is tracks CLEU spells only if they was applied/missed/reflected e.g. received in any form by end unit to feedback that info ]]
@@ -1024,6 +1043,9 @@ A.CombatTracker									= {
 		-- time in seconds since last cast, timestamp of start 
 		local GUID 								= UnitGUID(unitID) 
 		local Data 								= CombatTracker.Data
+		if type(spell) == "number" then 
+			spell = A.GetSpellInfo(spell)
+		end 		
 		if Data[GUID] and Data[GUID].spell_lastcast_time[spell] then 
 			local start = Data[GUID].spell_lastcast_time[spell] or 0
 			return TMW.time - start, start 
@@ -1035,6 +1057,9 @@ A.CombatTracker									= {
 		local counter 							= 0
 		local GUID 								= UnitGUID(unitID)
 		local Data 								= CombatTracker.Data
+		if type(spell) == "number" then 
+			spell = A.GetSpellInfo(spell)
+		end 		
 		if Data[GUID] then
 			counter = Data[GUID].spell_counter[spell] or 0
 		end 
@@ -1044,6 +1069,9 @@ A.CombatTracker									= {
 	GetAbsorb									= function(self, unitID, spell)
 		local GUID	 							= UnitGUID(unitID)
 		local Data 								= CombatTracker.Data
+		if type(spell) == "number" then 
+			spell = A.GetSpellInfo(spell)
+		end 		
 		if GUID and Data[GUID] then 
 			if spell and Data[GUID].absorb_spells[spell] then 		
 				return Data[GUID].absorb_spells[spell]
@@ -1169,7 +1197,7 @@ A.CombatTracker									= {
 		return ttd or 500
 	end,
 	--[[ Debug ]]
-	Debug 										= function(self, command)
+	--[[Debug 										= function(self, command)
 		local cmd = command:lower()
 		if cmd == "wipe" then 
 			wipe(CombatTracker.Data)
@@ -1179,7 +1207,7 @@ A.CombatTracker									= {
 			local GUID = UnitGUID("target")
 			CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax = 0 
 		end 
-	end, 
+	end, ]]
 }
 
 -------------------------------------------------------------------------------

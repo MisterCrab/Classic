@@ -283,8 +283,12 @@ local function OnEvent(event, ...)
 		end		
 	end 
 	
+	if event == "PLAYER_ENTERING_WORLD" or "PLAYER_ENTERING_BATTLEGROUND" then 
+		TMW:Fire("TMW_ACTION_ENTERING") 		-- callback is used in Combat.lua to refresh and prepare unitGUID for deprecated official API on UnitHealth and UnitHealthMax
+	end 
+	
 	if event ~= "PLAYER_TARGET_CHANGED" and event ~= "DUEL_FINISHED" and event ~= "DUEL_REQUESTED" then 
-		TMW:Fire("TMW_ACTION_GROUP_UPDATE") -- callback is used in Combat.lua to refresh and prepare unitGUID for deprecated official API on UnitHealth and UnitHealthMax
+		TMW:Fire("TMW_ACTION_GROUP_UPDATE") 	-- callback is used in Combat.lua to refresh and prepare unitGUID for deprecated official API on UnitHealth and UnitHealthMax
 	end 
 end 
 
