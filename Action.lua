@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "04.09.2019"
+local DateTime 						= "05.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -4652,7 +4652,7 @@ function Action.ToggleMainUI()
 			Action.MainUI.PDateTime:SetText(TMW.db:GetCurrentProfile() .. "\n" .. (Action.Data.ProfileUI.DateTime or ""))			
 		end 
 	else 
-		Action.MainUI = StdUi:Window(UIParent, "The Action Classic", 540, 640)	
+		Action.MainUI = StdUi:Window(UIParent, "The Action", 540, 640)	
 		Action.MainUI.titlePanel.label:SetFontSize(20)
 		Action.MainUI.default_w = Action.MainUI:GetWidth()
 		Action.MainUI.default_h = Action.MainUI:GetHeight()
