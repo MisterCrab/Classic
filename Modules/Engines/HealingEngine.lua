@@ -717,7 +717,7 @@ local function HealingEngineInit()
 		A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_REGEN_DISABLED", 	function() wipe(A.HealingEngine.Frequency.Actual) end)
 		Frame:SetScript("OnUpdate", function(self, elapsed)
 			self.elapsed = (self.elapsed or 0) + elapsed   
-			local INTV = TMW.UPD_INTV > 0.3 and TMW.UPD_INTV or 0.3
+			local INTV = TMW.UPD_INTV and TMW.UPD_INTV > 0.3 and TMW.UPD_INTV or 0.3
 			if A.IamHealer and self.elapsed > INTV then 
 				HealingEngine(_G.HE_Toggle) 
 				setHealingTarget(_G.HE_Toggle) 

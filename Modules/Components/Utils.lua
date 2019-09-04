@@ -605,12 +605,10 @@ local function UpdateCVAR()
 		SetCVar("doNotFlashLowHealthWarning", 1) 
 	end
 	
-	local nameplatesMaxDistance = GetCVar("nameplatesMaxDistance")
-    if nameplatesMaxDistance and nameplatesMaxDistance ~= toStr[ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE] then 
-		SetCVar("nameplatesMaxDistance", ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE) 
-		if isCheckedOnce then 
-			A.Print("nameplatesMaxDistance " .. nameplatesMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
-		end 
+	local nameplateMaxDistance = GetCVar("nameplateMaxDistance")
+    if nameplateMaxDistance and nameplateMaxDistance ~= ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE_VALIDANCE then 
+		SetCVar("nameplateMaxDistance", ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE_VALIDANCE) 
+		A.Print("nameplateMaxDistance " .. nameplateMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
 	end	
 	
 	if A.GetToggle(1, "cameraDistanceMaxZoomFactor") then 
