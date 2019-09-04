@@ -936,7 +936,7 @@ end
 function A.Create(attributes)
 	--[[@usage: attributes (table)
 		Required: 
-			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot (TrinketBySlot is only in CORE!)
+			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|ItemBySlot (TrinketBySlot, ItemBySlot is only in CORE!)
 			ID (@number) 	- spellID | itemID
 			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor, this will set color which stored in A.Data.C[Color] or here can be own hex 
 	 	Optional: 
@@ -1080,7 +1080,7 @@ function A.Create(attributes)
 		-- Misc
 		s.Item = TMW.Classes.ItemByID:New(attributes.ID)
 		GetItemInfoInstant(attributes.ID) -- must be here as request limited data from server 	
-	elseif attributes.Type == "TrinketBySlot" then 
+	elseif attributes.Type == "TrinketBySlot" or attributes.Type == "ItemBySlot" then 
 		s = setmetatable(s, {
 				__index = function(self, key)
 					if key == "ID" then 
@@ -1094,7 +1094,7 @@ function A.Create(attributes)
 					end
 				end
 		})
-		s.Type = "Trinket"		
+		s.Type = (attributes.Type == "TrinketBySlot" and "Trinket") or "Item"
 		-- Methods (metakey:Link())	
 		s.Info = A.GetItemInfo
 		s.Link = A.GetItemLink		

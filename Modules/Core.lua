@@ -4,10 +4,13 @@ local A   					= Action
 local UnitCooldown			= A.UnitCooldown
 local Unit					= A.Unit 
 local Player				= A.Player 
+local Pet					= LibStub("PetLibrary")
 local LoC 					= A.LossOfControl
 local MultiUnits			= A.MultiUnits
 
 local _G 					= _G
+
+local UnitIsUnit  			= UnitIsUnit
 
 local SpellIsTargeting		= SpellIsTargeting
 local IsMouseButtonDown		= IsMouseButtonDown
@@ -93,6 +96,8 @@ A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 -------------------------------------------------------------------------------
 A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, Hidden = true, Desc = "Upper" })
 A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, Hidden = true, Desc = "Lower" })
+A.RangeSlot					= A.Create({ Type = "ItemBySlot", 		ID = ACTION_CONST_INVSLOT_RANGED, 				QueueForbidden = true, Hidden = true, Desc = "Slot" })
+A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, Hidden = true, Desc = "Slot" })
 A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
 
 function A.Rotation(icon)
@@ -200,6 +205,33 @@ function A.Rotation(icon)
 	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
 	if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
 		return true 
+	end 
+	
+	-- [3] Single / [4] AoE: AutoShoot, AutoAttack
+	if meta == 3 or meta == 4 then 
+		local unit 
+		if A.IsUnitEnemy("mouseover") then 
+			unit = "mouseover"
+		elseif A.IsUnitEnemy("target") then 
+			unit = "target"
+		elseif A.IsUnitEnemy("targettarget") then 
+			unit = "targettarget"
+		end 
+		
+		if unit then 
+			if A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and A.RangeSlot:GetEquipped() and A.Shoot:IsReady(unit) then 
+				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
+			elseif A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
+				return A:Show(icon, ACTION_CONST_AUTOATTACK)
+				-- Let's save keybind slot by using any attack category spell 
+				--[[
+				local SpellSavedByCooldownDown
+				for _, spell in pairs(A[A.PlayerClass]) do 
+					if type(spell) == "table" and spell.Type == "Spell" 
+				end 
+				]]
+			end 
+		end 
 	end 
 	
 	-- [3] Set Class Portrait

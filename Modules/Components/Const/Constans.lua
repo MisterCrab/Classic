@@ -31,6 +31,9 @@ ACTION_CONST_RIGHT 												= dir .. [[INV_BannerPVP_03]]
 ACTION_CONST_STOPCAST 											= dir .. [[Spell_Magic_PolymorphRabbit]]
 ACTION_CONST_AUTOTARGET 										= dir .. [[INV_Gizmo_GoblingTonkController]]
 
+ACTION_CONST_AUTOSHOOT											= dir .. [[ABILITY_SHOOTWAND]] -- 132317 -- spellID: 5019
+ACTION_CONST_AUTOATTACK											= dir .. [[INV_Sword_04]] -- spellID: 7038
+
 ACTION_CONST_HUMAN 												= dir .. [[Spell_Shadow_Charm]]
 
 -- Class portraits
