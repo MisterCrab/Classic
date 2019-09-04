@@ -32,8 +32,8 @@ local ArcaneChargesPowerType 	= PowerType.ArcaneCharges
 local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
 
-local UnitPower, UnitPowerMax, UnitStagger =
-	  UnitPower, UnitPowerMax, UnitStagger
+local UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage =
+	  UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage
 
 local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
 	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
@@ -73,6 +73,12 @@ local Data = {
 			1066,					-- Aquatic Form
 		},
 	},
+	-- Shoot 
+	AutoShootActive = false, 
+	AutoShootNextTick = 0,
+	IsShoot = GetSpellInfo(5019),
+	-- Attack
+	AttackActive = false,	
 	-- Items 
 	CheckItems 	= {},	
 	CountItems 	= {},		
@@ -94,6 +100,30 @@ function Data.UpdateStance()
 	Data.Stance = GetShapeshiftForm()
 end 
 
+function Data.logAutoShootON()
+	Data.AutoShootActive = true 
+end 
+
+function Data.logAutoShootOFF()
+	Data.AutoShootActive = false 
+	Data.AutoShootNextTick = 0 
+end 
+
+function Data.updateAutoShoot(...)
+	local unitID, _, spellID = ... 
+	if unitID == "player" and A.IamRanger and A.GetSpellInfo(spellID) == Data.IsShoot then 
+		Data.AutoShootNextTick = TMW.time + UnitRangedDamage("player")
+	end 
+end 
+
+function Data.logAttackON()
+	Data.AttackActive = true 
+end 
+
+function Data.logAttackOFF()
+	Data.AttackActive = false 
+end 
+
 A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STARTED_MOVING", function()
 	if Data.TimeStampMoving ~= TMW.time then 
 		Data.TimeStampMoving = TMW.time 
@@ -107,6 +137,15 @@ A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STOPPED_MOVING", function()
 		Data.TimeStampStaying = TMW.time 
 	end 
 end)
+
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "START_AUTOREPEAT_SPELL", 	Data.logAutoShootON)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "STOP_AUTOREPEAT_SPELL", 	Data.logAutoShootOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "PLAYER_ENTERING_WORLD", 	Data.logAutoShootOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "UNIT_SPELLCAST_SUCCEEDED",	Data.updateAutoShoot)
+
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTER_COMBAT", 	Data.logAttackON)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_LEAVE_COMBAT", 	Data.logAttackOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTERING_WORLD", 	Data.logAttackOFF)
 
 A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 	Data.UpdateStance)
 A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 	Data.UpdateStance)
@@ -190,6 +229,24 @@ end
 function A.Player:IsStayingTime()
 	-- @return number (seconds) 
 	return Data.TimeStampStaying == 0 and 0 or TMW.time - Data.TimeStampStaying
+end 
+
+function A.Player:IsShooting()
+	-- @return boolean 
+	return Data.AutoShootActive
+end 
+
+function A.Player:GetSwingShoot()
+	-- @return number
+	if TMW.time <= Data.AutoShootNextTick then 
+		return Data.AutoShootNextTick - TMW.time 
+	end 
+	return 0 
+end 
+
+function A.Player:IsAttacking()
+	-- @return boolean 
+	return Data.AttackActive
 end 
 
 function A.Player:IsMounted()
