@@ -14,6 +14,7 @@ local UnitIsUnit  			= UnitIsUnit
 
 local SpellIsTargeting		= SpellIsTargeting
 local IsMouseButtonDown		= IsMouseButtonDown
+local HasWandEquipped		= HasWandEquipped
 
 local ClassPortaits = {
 	["WARRIOR"] 			= ACTION_CONST_PORTRAIT_WARRIOR,
@@ -96,8 +97,7 @@ A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 -------------------------------------------------------------------------------
 A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, Hidden = true, Desc = "Upper" })
 A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, Hidden = true, Desc = "Lower" })
-A.RangeSlot					= A.Create({ Type = "ItemBySlot", 		ID = ACTION_CONST_INVSLOT_RANGED, 				QueueForbidden = true, Hidden = true, Desc = "Slot" })
-A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, Hidden = true, Desc = "Slot" })
+A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, Hidden = true, Desc = "Wand" })
 A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
 
 function A.Rotation(icon)
@@ -218,18 +218,18 @@ function A.Rotation(icon)
 			unit = "targettarget"
 		end 
 		
-		if unit then 
-			if A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and A.RangeSlot:GetEquipped() and A.Shoot:IsReady(unit) then 
-				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
-			elseif A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
-				return A:Show(icon, ACTION_CONST_AUTOATTACK)
-				-- Let's save keybind slot by using any attack category spell 
-				--[[
-				local SpellSavedByCooldownDown
-				for _, spell in pairs(A[A.PlayerClass]) do 
-					if type(spell) == "table" and spell.Type == "Spell" 
+		if unit then 		
+			if A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) and (not Player:IsShooting() or Unit(unit):GetRange() <= 6) then 
+				-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
+				if Player:IsShooting() then 
+					return A:Show(icon, ACTION_CONST_AUTOSHOOT)
 				end 
-				]]
+				
+				return A:Show(icon, ACTION_CONST_AUTOATTACK)
+			end 
+			
+			if A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not Player:IsAttacking() or Unit(unit):GetRange() > 6) then 
+				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
 			end 
 		end 
 	end 

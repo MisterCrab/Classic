@@ -19,6 +19,9 @@ local GetRealmName, GetExpansionLevel, GetSpecialization, GetFramerate, GetMouse
 local UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, 	UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit = 
 	  UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, TMW.UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit	  
 	  
+-- AutoShoot 
+local HasWandEquipped 				= HasWandEquipped	  
+	  
 -- LetMeCast 	  
 local DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName =
 	  DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName
@@ -29,7 +32,7 @@ local SetPortraitToTexture, CooldownFrame_Set, TargetFrame_ShouldShowDebuffs, Ta
 	  
 -- UnitHealthTool
 local TextStatusBar_UpdateTextStringWithValues =
-	  TextStatusBar_UpdateTextStringWithValues
+	  TextStatusBar_UpdateTextStringWithValues	 	 
 		
 local GameLocale 							= GetLocale()	
 local C_UI									= _G.C_UI
@@ -140,6 +143,8 @@ local Localization = {
 				BURSTTOOLTIP = "Everything - On cooldown\nAuto - Boss or Players\nOff - Disabled\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Set percent health (HP)\n\nRightClick: Create macro",
+				AUTOATTACK = "Auto Attack",
+				AUTOSHOOT = "Auto Shoot",				
 				PAUSECHECKS = "Rotation doesn't work if:",
 				DEADOFGHOSTPLAYER = "You're dead",
 				DEADOFGHOSTTARGET = "Target is dead",
@@ -434,6 +439,8 @@ local Localization = {
 				BURSTTOOLTIP = "Everything - По доступности способности\nAuto - Босс или Игрок\nOff - Выключено\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то\nиспользуйте аргумент (АРГУМЕНТ): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Камень здоровья",
 				HEALTHSTONETOOLTIP = "Выставить процент своего здоровья при котором использовать\n\nПравая кнопка мышки: Создать макрос",
+				AUTOATTACK = "Авто Атака",
+				AUTOSHOOT = "Авто Выстрел",	
 				PAUSECHECKS = "Ротация не работает если:",
 				DEADOFGHOSTPLAYER = "Вы мертвы",
 				DEADOFGHOSTTARGET = "Цель мертва",
@@ -728,6 +735,8 @@ local Localization = {
 				BURSTTOOLTIP = "Alles - Auf Abklingzeit\nAuto - Boss oder Spieler\nAus - Deaktiviert\nRechtsklick: Makro erstellen\nWenn Sie einen festen Umschaltstatus festlegen möchten, verwenden Sie das Argument in (ARG): 'Alles', 'Auto', 'Aus'",					
 				HEALTHSTONE = "Gesundheitsstein",
 				HEALTHSTONETOOLTIP = "Wann der GeSu benutzt werden soll!\n\nRechtsklick: Makro erstellen",
+				AUTOATTACK = "Automatischer Angriff",
+				AUTOSHOOT = "Automatisches Schießen",	
 				PAUSECHECKS = "Rota funktioniert nicht wenn:",
 				DEADOFGHOSTPLAYER = "Wenn du Tot bist",
 				DEADOFGHOSTTARGET = "Das Ziel Tot ist",
@@ -1023,6 +1032,8 @@ local Localization = {
 				HEALTHSTONE = "Pierre de soin",
 				HEALTHSTONETOOLTIP = "Choisisez le pourcentage de vie (HP)\n\nClique droit : Créer la macro",
 				PAUSECHECKS = "La rotation ne fonction pas, si:",
+				AUTOATTACK = "Attaque automatique",
+				AUTOSHOOT = "Tir automatique",	
 				DEADOFGHOSTPLAYER = "Vous êtes mort!",
 				DEADOFGHOSTTARGET = "Votre cible est morte",
 				DEADOFGHOSTTARGETTOOLTIP = "Exception des chasseurs ennemi si il est en cible principale",
@@ -1316,6 +1327,8 @@ local Localization = {
 				BURSTTOOLTIP = "Utilizza Tutto - appena esce dal coll down\nAuto - Boss o Giocatore\nOff - Disabilitata\n\nTastodestro: Crea macro\nSe desidere utilizzare specifici attributi utilizza in (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Seta la percentuale di vita (HP)\n\nTastodestro: Crea macro",
+				AUTOATTACK = "Attacco automatico",
+				AUTOSHOOT = "Scatto automatico",	
 				PAUSECHECKS = "Rotation doesn't work if:",
 				DEADOFGHOSTPLAYER = "Sei Morto",
 				DEADOFGHOSTTARGET = "Il bersaglio é morto",
@@ -1610,6 +1623,8 @@ local Localization = {
 				BURSTTOOLTIP = "Todo - En cooldown\nAuto - Boss o Jugadores\nOff - Deshabilitado\n\nClickDerechohabilitado\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone",
 				HEALTHSTONETOOLTIP = "Establecer porcentaje de vida (HP)\n\nClickDerecho: Crear macro",
+				AUTOATTACK = "Auto ataque",
+				AUTOSHOOT = "Disparo automático",	
 				PAUSECHECKS = "La rotación no funciona si:",
 				DEADOFGHOSTPLAYER = "Estás muerto",
 				DEADOFGHOSTTARGET = "El Target está muerto",
@@ -1954,6 +1969,8 @@ local Factory = {
 		Potion = true, 
 		Racial = true,	
 		StopCast = true,
+		AutoShoot = true,
+		AutoAttack = true, 
 		DBM = true,
 		LOSCheck = false, 
 		HE_Toggle = "ALL",
@@ -5067,16 +5084,31 @@ function Action.ToggleMainUI()
 			Potion:SetChecked(TMW.db.profile.ActionDB[tab.name].Potion)
 			Potion:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			Potion:SetScript('OnClick', function(self, button, down)	
-				if button == "LeftButton" then 
-					TMW.db.profile.ActionDB[tab.name].Potion = not TMW.db.profile.ActionDB[tab.name].Potion
-					self:SetChecked(TMW.db.profile.ActionDB[tab.name].Potion)	
-					Action.Print(L["TAB"][tab.name]["POTION"] .. ": ", TMW.db.profile.ActionDB[tab.name].Potion)	
-				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["POTION"], [[/run Action.SetToggle({]] .. tab.name .. [[, "Potion", "]] .. L["TAB"][tab.name]["POTION"] .. [[: "})]])	
+				if not self.isDisabled then 
+					if button == "LeftButton" then 
+						TMW.db.profile.ActionDB[tab.name].Potion = not TMW.db.profile.ActionDB[tab.name].Potion
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].Potion)	
+						Action.Print(L["TAB"][tab.name]["POTION"] .. ": ", TMW.db.profile.ActionDB[tab.name].Potion)	
+					elseif button == "RightButton" then 
+						CraftMacro(L["TAB"][tab.name]["POTION"], [[/run Action.SetToggle({]] .. tab.name .. [[, "Potion", "]] .. L["TAB"][tab.name]["POTION"] .. [[: "})]])	
+					end 
 				end 
 			end)
 			Potion.Identify = { Type = "Checkbox", Toggle = "Potion" }	
 			StdUi:FrameTooltip(Potion, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
+			local function PotionCheckboxUpdate()
+				if Action.IsBasicProfile then 
+					if not Potion.isDisabled then 
+						Potion:Disable()
+						Potion:SetChecked(false)
+					end 
+				elseif Potion.isDisabled then  					
+					Potion:SetChecked(TMW.db.profile.ActionDB[tab.name].Potion)
+					Potion:Enable()
+				end 			
+			end 
+			Potion:SetScript("OnShow", PotionCheckboxUpdate)
+			PotionCheckboxUpdate()
 
 			local Racial = StdUi:Checkbox(anchor, L["TAB"][tab.name]["RACIAL"])			
 			Racial:SetChecked(TMW.db.profile.ActionDB[tab.name].Racial)
@@ -5379,6 +5411,56 @@ function Action.ToggleMainUI()
 			StdUi:FrameTooltip(HealthStone, L["TAB"][tab.name]["HEALTHSTONETOOLTIP"], nil, "TOPLEFT", true)	
 			HealthStone.FontStringTitle = StdUi:FontString(anchor, L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (TMW.db.profile.ActionDB[tab.name].HealthStone < 0 and "|cffff0000OFF|r" or TMW.db.profile.ActionDB[tab.name].HealthStone >= 100 and "|cff00ff00AUTO|r" or TMW.db.profile.ActionDB[tab.name].HealthStone))
 			StdUi:GlueAbove(HealthStone.FontStringTitle, HealthStone)
+			
+			local AutoAttack = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOATTACK"])			
+			AutoAttack:SetChecked(TMW.db.profile.ActionDB[tab.name].AutoAttack)
+			AutoAttack:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			AutoAttack:SetScript("OnClick", function(self, button, down)	
+				if button == "LeftButton" then 
+					TMW.db.profile.ActionDB[tab.name].AutoAttack = not TMW.db.profile.ActionDB[tab.name].AutoAttack
+					self:SetChecked(TMW.db.profile.ActionDB[tab.name].AutoAttack)	
+					Action.Print(L["TAB"][tab.name]["AUTOATTACK"] .. ": ", TMW.db.profile.ActionDB[tab.name].AutoAttack)	
+				elseif button == "RightButton" then 
+					CraftMacro(L["TAB"][tab.name]["AUTOATTACK"], [[/run Action.SetToggle({]] .. tab.name .. [[, "AutoAttack", "]] .. L["TAB"][tab.name]["AUTOATTACK"] .. [[: "})]])	
+				end 
+			end)
+			AutoAttack.Identify = { Type = "Checkbox", Toggle = "AutoAttack" }
+			StdUi:FrameTooltip(AutoAttack, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
+			
+			local AutoShoot = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOSHOOT"])			
+			AutoShoot:SetChecked(TMW.db.profile.ActionDB[tab.name].AutoShoot)
+			AutoShoot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			AutoShoot:SetScript("OnClick", function(self, button, down)	
+				if not self.isDisabled then 
+					if button == "LeftButton" then 
+						TMW.db.profile.ActionDB[tab.name].AutoShoot = not TMW.db.profile.ActionDB[tab.name].AutoShoot
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].AutoShoot)	
+						Action.Print(L["TAB"][tab.name]["AUTOSHOOT"] .. ": ", TMW.db.profile.ActionDB[tab.name].AutoShoot)	
+					elseif button == "RightButton" then 
+						CraftMacro(L["TAB"][tab.name]["AUTOSHOOT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "AutoShoot", "]] .. L["TAB"][tab.name]["AUTOSHOOT"] .. [[: "})]])	
+					end 
+				end
+			end)
+			AutoShoot.Identify = { Type = "Checkbox", Toggle = "AutoShoot" }
+			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)
+			local function AutoShootCheckBoxUpdate()
+				if not HasWandEquipped() then 
+					if not AutoShoot.isDisabled then 
+						AutoShoot:Disable()
+					end 
+				elseif AutoShoot.isDisabled then  
+					AutoShoot:Enable()
+				end 				
+			end 
+			AutoShoot:SetScript("OnShow", AutoShootCheckBoxUpdate) 
+			AutoShoot:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
+			AutoShoot:SetScript("OnEvent", function(self, event)
+				if event == "PLAYER_EQUIPMENT_CHANGED" then 
+					AutoShootCheckBoxUpdate()
+				end 
+			end)
+			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					AutoShootCheckBoxUpdate) 
+			AutoShootCheckBoxUpdate()
 
 			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 360, L["TAB"][tab.name]["PAUSECHECKS"])
 			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
@@ -5623,7 +5705,8 @@ function Action.ToggleMainUI()
 			anchor:AddRow({ margin = { top = 10 } }):AddElements(AutoTarget, LosSystem, { column = "even" })
 			anchor:AddRow({ margin = { top = -5 } }):AddElements(Potion, DBMFrame, { column = "even" })			
 			anchor:AddRow({ margin = { top = -5 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
-			anchor:AddRow():AddElements(StopCast, HE_ToggleFrame, { column = "even" })				
+			anchor:AddRow():AddElements(StopCast, HE_ToggleFrame, { column = "even" })	
+			anchor:AddRow():AddElements(AutoAttack, AutoShoot, { column = "even" })				
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	
@@ -5655,7 +5738,7 @@ function Action.ToggleMainUI()
 				end
 			end			
 		
-			anchor:DoLayout()				
+			anchor:DoLayout()
 		end 
 		
 		if tab.name == 2 then 	
@@ -8338,6 +8421,7 @@ local function OnInitialize()
 	
 	Action.IsInitialized = nil	
 	Action.IsGGLprofile = profile:match("GGL") and true or false  	-- Don't remove it because this is validance for HealingEngine   	
+	Action.IsBasicProfile = profile == "[GGL] Basic"
 	
 	----------------------------------
 	-- TMW CORE SNIPPETS FIX
@@ -8491,6 +8575,11 @@ local function OnInitialize()
 	----------------------------------	
 	-- Initialization
 	----------------------------------	
+	-- Disable on Basic non available elements 
+	if Action.IsBasicProfile then 
+		TMW.db.profile.ActionDB[1].Potion = false 
+	end 
+	
 	-- Initialization ReTarget 
 	Re:Initialize()
 	
