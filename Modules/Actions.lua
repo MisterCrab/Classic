@@ -58,8 +58,10 @@ local itemCategory 			= {
 
 local GetNetStats 			= GetNetStats	
 
-local _G, type, select, unpack, table, setmetatable = 	
-	  _G, type, select, unpack, table, setmetatable
+local _G, type, next, pairs, select, unpack, table, setmetatable = 	
+	  _G, type, next, pairs, select, unpack, table, setmetatable
+	  
+local maxn					= table.maxn	  
 
 -- Spell 
 local Spell					= _G.Spell
@@ -71,17 +73,21 @@ local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSp
 	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste
 
 -- Item 	  
-local IsUsableItem, IsHelpfulItem, IsHarmfulItem =
+local IsUsableItem, IsHelpfulItem, IsHarmfulItem 	=
 	  IsUsableItem, IsHelpfulItem, IsHarmfulItem
   
-local GetItemInfo, GetItemIcon, GetItemInfoInstant = 
+local GetItemInfo, GetItemIcon, GetItemInfoInstant 	= 
 	  GetItemInfo, GetItemIcon, GetItemInfoInstant	  
 
 -- Talent	  
-local TalentMap 			= A.TalentMap 
+local TalentMap 					= A.TalentMap 
+
+-- Rank 
+local GetSpellBookItemName			= GetSpellBookItemName
+local FindSpellBookSlotBySpellID 	= FindSpellBookSlotBySpellID
 
 -- Unit 	  
-local UnitIsUnit 			= UnitIsUnit  	  	 
+local UnitIsUnit 					= UnitIsUnit  	  	 
 
 -- Player 
 --[[
@@ -344,6 +350,149 @@ function A:GetTalentRank()
 		Name = A.GetSpellInfo(ID)
 	end	
 	return TalentMap[Name] or 0 
+end 
+
+-------------------------------------------------------------------------------
+-- Spell Rank 
+-------------------------------------------------------------------------------
+local DataSpellRanks = {}
+local DataIsSpellBlockedByRanks = {}
+function A.UpdateSpellRanks()
+	wipe(DataSpellRanks)
+	wipe(DataIsSpellBlockedByRanks)
+	-- Search by player book 
+	for i = 1, huge do 
+		local spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+		if spellName then 
+			if spellRank and spellRank ~= "" and spellID then 
+				spellRank = spellRank:match("%d+")
+				if spellRank then 
+					spellRank = toNum[spellRank]
+					
+					if not DataSpellRanks[spellName] then 
+						DataSpellRanks[spellName] = {}
+					end 
+					
+					DataSpellRanks[spellName][spellRank] = spellID
+				end 
+			end 
+		else 
+			break 
+		end 
+	end 
+	
+	-- Search by pet book
+	for i = 1, huge do 
+		local spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_PET)
+		if spellName then 
+			if spellRank and spellRank ~= "" and spellID then 
+				spellRank = spellRank:match("%d+")
+				if spellRank then 
+					spellRank = toNum[spellRank]
+					
+					if not DataSpellRanks[spellName] then 
+						DataSpellRanks[spellName] = {}
+					end 
+					
+					DataSpellRanks[spellName][spellRank] = spellID
+				end 
+			end 
+		else 
+			break 
+		end 
+	end 	
+
+	-- Overwrite ID of spells with update isRank and block unavailable ranks 
+	if A[A.PlayerClass] then 				
+		for k, v in pairs(A[A.PlayerClass]) do 
+			if type(v) == "table" and v.Type == "Spell" then 
+				local spellName = v:Info()
+				-- Overwrite ID and isRank 
+				if DataSpellRanks[spellName] then 
+					-- By max 
+					if type(v.useMaxRank) == "boolean" then 					
+						local maxRank = maxn(DataSpellRanks[spellName])
+						v.ID = DataSpellRanks[spellName][maxRank]
+						v.isRank = maxRank 		
+					elseif type(v.useMaxRank) == "table" then 
+						for i = #v.useMaxRank, 1, -1 do 
+							if DataSpellRanks[spellName][v.useMaxRank[i]] then 
+								v.isRank = v.useMaxRank[i]
+								v.ID = DataSpellRanks[spellName][v.isRank]		
+								break 
+							end 							 
+						end 					
+					end 
+					
+					-- By min 
+					if type(v.useMinRank) == "boolean" then 					
+						local minRank = DataSpellRanks[spellName][1] ~= nil and 1 or next(DataSpellRanks[spellName])
+						v.ID = DataSpellRanks[spellName][minRank]
+						v.isRank = minRank 		
+					elseif type(v.useMinRank) == "table" then 
+						for i = 1, #v.useMinRank do 
+							if DataSpellRanks[spellName][v.useMinRank[i]] then 
+								v.isRank = v.useMinRank[i]
+								v.ID = DataSpellRanks[spellName][v.isRank]		
+								break 
+							end 								
+						end 
+					end 
+				end 
+				
+				-- Block spell by rank 
+				if not v.useMaxRank and not v.useMinRank then  
+					-- Search by player book
+					local slot = FindSpellBookSlotBySpellID(v.ID, false)  
+					
+					-- Search by pet book 
+					if not slot then 
+						slot = FindSpellBookSlotBySpellID(v.ID, true)
+					end
+					
+					-- Add to block 
+					if not slot then 
+						DataIsSpellBlockedByRanks[v.ID] = true 
+					end 				
+				end 									
+			end 
+		end 
+	end 
+
+	TMW:Fire("TMW_ACTION_SPELL_RANK_CHANGED")	  -- for [3] tab refresh 
+	--TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") -- no need here since :Show method will be triggered 
+end 
+
+--A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_ENTERING_WORLD", 	A.UpdateSpellRanks)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellRanks)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellRanks)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellRanks)
+
+function A:IsBlockedBySpellRank()
+	-- @return boolean 
+	return self.isRank and DataIsSpellBlockedByRanks[self.ID]
+	--[[
+	if self.isRank then 
+		local spellName = self:Info()
+		return not DataSpellRanks[spellName] or not DataSpellRanks[spellName][self.isRank] 
+	end 
+	]]
+end 
+
+function A:GetSpellRank()
+	-- @return number 
+	return self.isRank or 1
+end 
+
+function A:GetSpellMaxRank()
+	-- @return number 
+	if self.isRank then 
+		local spellName = self:Info()
+		if DataSpellRanks[spellName] then 
+			return maxn(DataSpellRanks[spellName])
+		end 
+	end 
+	return 1
 end 
 
 -------------------------------------------------------------------------------
@@ -621,7 +770,8 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
 	
 	if isMsg or ((skipShouldStop or not A.ShouldStop()) and not self:ShouldStopByGCD()) then 
 		if 	self.Type == "Spell" and 
-			not self:IsBlockedBySpellLevel() and 	
+			not self:IsBlockedBySpellLevel() and 
+			not self:IsBlockedBySpellRank() and 
 			( not self.isTalent or self:IsSpellLearned() ) and 
 			self:IsUsable() and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) ) and 
@@ -797,7 +947,12 @@ function A.Create(attributes)
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
 			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
-			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor)
+			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor)			
+			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 
+			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 	
+			
+		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
+		Otherwise it will interract with additional frame  
 	]]
 	if not attributes then 
 		local attributes = {}
@@ -849,6 +1004,14 @@ function A.Create(attributes)
 		s.isTalent = attributes.isTalent
 		-- Rank 
 		s.isRank = attributes.isRank
+		if type(attributes.useMaxRank) == "table" then 
+			table.sort(attributes.useMaxRank)
+		end 
+		s.useMaxRank = attributes.useMaxRank		 
+		if type(attributes.useMinRank) == "table" then 
+			table.sort(attributes.useMinRank)
+		end 
+		s.useMinRank = attributes.useMinRank
 	elseif attributes.Type == "SpellSingleColor" then 
 		s = setmetatable(s, {__index = A})	
 		s.Type = "Spell"
@@ -865,6 +1028,14 @@ function A.Create(attributes)
 		s.isTalent = attributes.isTalent
 		-- Rank 
 		s.isRank = attributes.isRank
+		if type(attributes.useMaxRank) == "table" then 
+			table.sort(attributes.useMaxRank)
+		end 
+		s.useMaxRank = attributes.useMaxRank		 
+		if type(attributes.useMinRank) == "table" then 
+			table.sort(attributes.useMinRank)
+		end 
+		s.useMinRank = attributes.useMinRank		 
 	elseif attributes.Type == "Trinket" or attributes.Type == "Potion" or attributes.Type == "Item" then 
 		s = setmetatable(s, {
 				__index = function(self, key)

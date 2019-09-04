@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "03.09.2019"
+local DateTime 						= "04.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -3685,6 +3685,7 @@ local SpellLevel = {
 	Blocked 		= {},
 	Wipe			= function(self)
 		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"PLAYER_LEVEL_UP")
+		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"LEARNED_SPELL_IN_TAB")
 		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"CHARACTER_POINTS_CHANGED")
 		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"CONFIRM_TALENT_WIPE")
 		wipe(self.Blocked)
@@ -3740,6 +3741,7 @@ local SpellLevel = {
 				if not self.Initialized then 		
 					self.Initialized = true
 					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "PLAYER_LEVEL_UP", 				function(...) 	self:Update(...) 	end)
+					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "LEARNED_SPELL_IN_TAB",			function() 		self:Update() 		end)
 					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "CHARACTER_POINTS_CHANGED",	 	function() 		self:Update() 		end)
 					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "CONFIRM_TALENT_WIPE",	 		function() 		self:Update() 		end)
 					if isLaunch then 
@@ -3929,7 +3931,7 @@ function Action:SetQueue(args)
 			MetaSlot (number) usage for MSG system to set queue on fixed position 
 	]]
 	-- Check validance 
-	if not self.Queued and not self:IsExists() then  
+	if not self.Queued and (not self:IsExists() or self:IsBlockedBySpellRank()) then  
 		Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"]) 
 		return 
 	end 
@@ -4642,7 +4644,14 @@ function Action.ToggleMainUI()
 		Action.MainUI:SetPoint("CENTER")
 		Action.MainUI:SetShown(true) 
 		Action.MainUI:RegisterEvent("UI_SCALE_CHANGED")
+		Action.MainUI:RegisterEvent("CRAFT_SHOW")
 		Action.MainUI:SetScript("OnEvent", function(self, event, ...)
+			if event == "CRAFT_SHOW" then 
+				if self:IsShown() then 
+					self:Hide()
+				end 
+			end 
+			
 			if event == "UI_SCALE_CHANGED" then 
 				Action.TimerSetRefreshAble("ACTION_UI_SCALE_SET", 0.001, SetProperlyScale)
 			end 
@@ -5880,7 +5889,7 @@ function Action.ToggleMainUI()
 							-- AutoHidden unavailable 
 							if ToggleAutoHidden and v.ID ~= ACTION_CONST_PICKPOCKET then 								
 								if v.Type == "Spell" then 															
-									if not v:IsExists() then 
+									if not v:IsExists() or v:IsBlockedBySpellLevel() or v:IsBlockedBySpellRank() then 
 										isShown = false 
 									end 
 								else 
@@ -6016,6 +6025,13 @@ function Action.ToggleMainUI()
 				self:SetData(ScrollTableActionsData())	
 				self:SortData(self.SORTBY)
 			end)
+			-- Register callback to refresh table by earned ranks 
+			TMW:RegisterCallback("TMW_ACTION_SPELL_RANK_CHANGED", function()
+				if tab.childs[spec].ScrollTable:IsVisible() and (Action.GetToggle(tab.name, "AutoHidden") or Action.GetToggle(tab.name, "CheckSpellLevel")) then 
+					tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
+					tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)					
+				end 
+			end)
 			-- AutoHidden update ScrollTable events 
 			local EVENTS = {
 				["UNIT_PET"] 						= true,
@@ -6024,6 +6040,7 @@ function Action.ToggleMainUI()
 				["CONFIRM_TALENT_WIPE"]				= true,
 				["BAG_UPDATE_DELAYED"]				= true,
 				["PLAYER_EQUIPMENT_CHANGED"]		= true,
+				["LEARNED_SPELL_IN_TAB"]			= true, 
 			}
 			local function EVENTS_INIT() 
 				if Action.GetToggle(tab.name, "AutoHidden") then 
@@ -6105,6 +6122,8 @@ function Action.ToggleMainUI()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 	
 						SpellLevel:Initialize()
+						tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
+						tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)
 					end 
 				end 
 			end)
@@ -8390,6 +8409,9 @@ local function OnInitialize()
 		Queue:OnEventToReset()
 		wipe(Action.Data.ProfileUI)
 		wipe(Action.Data.ProfileDB)	
+		if Action[Action.PlayerClass] then
+			wipe(Action[Action.PlayerClass])
+		end 
 		Action:PLAYER_SPECIALIZATION_CHANGED()
 		return 
 	end 	 
@@ -8677,6 +8699,9 @@ local function OnInitialize()
 		Action.IsInitializedModifiedTMW = true 
 	end 
 			
+	-- Update ranks	and overwrite ID 
+	Action.UpdateSpellRanks()
+	
 	-- Make frames work able 
 	Action.IsInitialized = true 	
 	Action:PLAYER_SPECIALIZATION_CHANGED()

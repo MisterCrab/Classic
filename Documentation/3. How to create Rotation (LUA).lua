@@ -35,6 +35,12 @@ Action[Action.PlayerClass] = {	-- Action.PlayerClass is character class, msut be
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
 			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
+			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor)			
+			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 
+			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 
+			
+		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
+		Otherwise it will interract with additional frame  
 	]]
 	}),
 }

@@ -16,8 +16,7 @@ local _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message	=
 local CreateFrame, GetCVar, SetCVar =
 	  CreateFrame, GetCVar, SetCVar
 
-local GetScreenResolutions, GetPhysicalScreenSize, GetScreenDPIScale =
-	  GetScreenResolutions, GetPhysicalScreenSize, GetScreenDPIScale
+local GetPhysicalScreenSize = GetPhysicalScreenSize
 	  
 local GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo =	
   TMW.GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo	  
@@ -74,6 +73,7 @@ local DogTag = LibStub("LibDogTag-3.0", true)
 TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 		DogTag.FireEvent, DogTag)
 TMW:RegisterCallback("TMW_ACTION_BURST_CHANGED",		DogTag.FireEvent, DogTag)
 TMW:RegisterCallback("TMW_ACTION_AOE_CHANGED", 			DogTag.FireEvent, DogTag)
+TMW:RegisterCallback("TMW_ACTION_RANK_DISPLAY_CHANGED", DogTag.FireEvent, DogTag)
 -- Taste's 
 TMW:RegisterCallback("TMW_ACTION_CD_MODE_CHANGED", 		DogTag.FireEvent, DogTag)
 TMW:RegisterCallback("TMW_ACTION_AOE_MODE_CHANGED", 	DogTag.FireEvent, DogTag)
@@ -126,6 +126,17 @@ if DogTag then
         events = "TMW_ACTION_AOE_CHANGED",
         category = "Action",
     })
+	-- Changes displayed rank of spell on rotation frame 
+	DogTag:AddTag("TMW", "ActionRank", {
+        code = function()
+			return A.IsInitialized and RankSingle.isColored or "" 
+        end,
+        ret = "string",
+        doc = "Displays Rotation SpellRank in use on the frame",
+		example = '[ActionRank] => "1"',
+        events = "TMW_ACTION_RANK_DISPLAY_CHANGED",
+        category = "Action",
+    })
 	
 	-- Taste's 
     DogTag:AddTag("TMW", "ActionModeCD", {
@@ -162,6 +173,7 @@ if DogTag then
 		TMW:Fire("TMW_ACTION_MODE_CHANGED")
 		TMW:Fire("TMW_ACTION_BURST_CHANGED")
 		TMW:Fire("TMW_ACTION_AOE_CHANGED")
+		TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
 		-- Taste's 
 		TMW:Fire("TMW_ACTION_CD_MODE_CHANGED")		
 		TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED")
@@ -198,7 +210,7 @@ local L = TMW.L
 local Type = TMW.Classes.IconType:New("TheAction - UnitCasting")
 LibStub("AceEvent-3.0"):Embed(Type)
 Type.name = "TheAction - " .. L["ICONMENU_CAST"]
-Type.desc = "TheAction addon handles this icon type for own API\nto provide for TMW functional to check any unit"
+Type.desc = "TheAction addon handles this icon type for own API to provide functional for check any unit\nThis is more accurate than anything else, you should use that instead of another options"
 Type.menuIcon = "Interface\\Icons\\Temp"
 Type.AllowNoName = true
 Type.usePocketWatch = 1
@@ -451,8 +463,8 @@ BlackBackground.texture = BlackBackground:CreateTexture(nil, "TOOLTIP")
 BlackBackground.texture:SetAllPoints(true)
 BlackBackground.texture:SetColorTexture(0, 0, 0, 1)
 
-local function CreateRankFrame(anchor, x, y)
-	local frame 		= CreateFrame("Frame", "RankSingle", UIParent)
+local function CreateRankFrame(name, anchor, x, y)
+	local frame 		= CreateFrame("Frame", name, UIParent)
 	frame:SetBackdrop(nil)
 	frame:SetFrameStrata("TOOLTIP")
 	frame:SetToplevel(true)
@@ -465,8 +477,8 @@ local function CreateRankFrame(anchor, x, y)
 	return frame
 end 
 
-local RankSingle 		 = CreateRankFrame("TOPLEFT", 442, 1)
-local RankAoE	 		 = CreateRankFrame("TOPLEFT", 442, 2)
+local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 442, 1)
+local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 442, 2)
 
 local isShownOnce
 local function UpdateFrames()
@@ -649,7 +661,7 @@ TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETU
 
 A.Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 	ConsoleUpdate	)
 A.Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 		ConsoleUpdate	)
---A.Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
+--A.Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", ConsoleUpdate	)
 --A.Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",			UpdateCVAR		)
 VideoOptionsFrame:HookScript("OnHide", 							ConsoleUpdate	)
 InterfaceOptionsFrame:HookScript("OnHide", 						UpdateCVAR		)
@@ -689,6 +701,7 @@ end
 local function TMWAPI(icon, ...)
     local attributesString, param = ...
     
+	-- Sets texture 
     if attributesString == "state" then 
         -- Color if not colored (Alpha will show it)
         if type(param) == "table" and param["Color"] then 
@@ -728,44 +741,53 @@ function A.Hide(icon)
 		icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
 	end 
 		
-	if meta == 3 then 
+	if meta == 3 and RankSingle.isColored then 
 		RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
+		RankSingle.isColored = nil 
+		TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
 	end 
 	
-	if meta == 4 then 
+	if meta == 4 and RankAoE.isColored then 
 		RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
+		RankAoE.isColored = nil 
 	end 
 end 
 
 function A:Show(icon, texture) 
-	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)
-	local meta = icon.ID
+	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)	
 	if texture then 
 		TMWAPI(icon, "texture", texture)
 	else 
 		TMWAPI(icon, self:Texture())
 	end 
 	
-	
+	-- Sets ranks 
+	local meta = icon.ID
 	if meta == 3 then 
-		if self.isRank and self.isRank ~= RankSingle.isColored then 
-			RankSingle.texture:SetColorTexture(RANKCOLOR[self.isRank]())
-			RankSingle.isColored = self.isRank 
+		if not self.useMaxRank and self.isRank then 
+			if self.isRank ~= RankSingle.isColored then 
+				RankSingle.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+				RankSingle.isColored = self.isRank 
+				TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
+			end 
 		elseif RankSingle.isColored then 
 			RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
 			RankSingle.isColored = nil 
+			TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
 		end 
 	end 
 	
 	if meta == 4 then 
-		if self.isRank and self.isRank ~= RankAoE.isColored then 
-			RankAoE.texture:SetColorTexture(RANKCOLOR[self.isRank]())
-			RankAoE.isColored = self.isRank 
+		if not self.useMaxRank and self.isRank then 
+			if self.isRank ~= RankAoE.isColored then 
+				RankAoE.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+				RankAoE.isColored = self.isRank 
+			end 
 		elseif RankAoE.isColored then 
 			RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
 			RankAoE.isColored = nil 
 		end 	
-	end 
+	end 		
 	
 	return true 
 end 
