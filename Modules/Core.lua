@@ -202,36 +202,37 @@ function A.Rotation(icon)
 		return A.Data.Q[1]:Show(icon)				 
     end 
 	
+	-- Save unit for AutoAttack, AutoShoot
+	local unit, useShoot
+	if A.IsUnitEnemy("mouseover") then 
+		unit = "mouseover"
+	elseif A.IsUnitEnemy("target") then 
+		unit = "target"
+	elseif A.IsUnitEnemy("targettarget") then 
+		unit = "targettarget"
+	end 	
+	
+	-- [3] Single / [4] AoE: AutoAttack
+	if unit and (meta == 3 or meta == 4) then 
+		useShoot = A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6)
+		if not useShoot and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
+			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
+			if Player:IsShooting() and HasWandEquipped() then 
+				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
+			end 
+			
+			return A:Show(icon, ACTION_CONST_AUTOATTACK)
+		end 
+	end 
+	
 	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
 	if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
 		return true 
 	end 
 	
-	-- [3] Single / [4] AoE: AutoShoot, AutoAttack
-	if meta == 3 or meta == 4 then 
-		local unit 
-		if A.IsUnitEnemy("mouseover") then 
-			unit = "mouseover"
-		elseif A.IsUnitEnemy("target") then 
-			unit = "target"
-		elseif A.IsUnitEnemy("targettarget") then 
-			unit = "targettarget"
-		end 
-		
-		if unit then 		
-			if A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) and (not Player:IsShooting() or Unit(unit):GetRange() <= 6) then 
-				-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
-				if Player:IsShooting() then 
-					return A:Show(icon, ACTION_CONST_AUTOSHOOT)
-				end 
-				
-				return A:Show(icon, ACTION_CONST_AUTOATTACK)
-			end 
-			
-			if A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6) then 
-				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
-			end 
-		end 
+	-- [3] Single / [4] AoE: AutoShoot
+	if useShoot and (meta == 3 or meta == 4) then 
+		return A:Show(icon, ACTION_CONST_AUTOSHOOT)
 	end 
 	
 	-- [3] Set Class Portrait
