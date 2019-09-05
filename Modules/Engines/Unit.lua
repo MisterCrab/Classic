@@ -124,9 +124,11 @@ local AuraList = {
 		3408, 				-- Crippling Poison 		(Rogue)
     },
     Physical = {
-		100, 				-- Charge 					(Warrior)
+		7922, 				-- Charge Stun				(Warrior)
 		676, 				-- Disarm 					(Warrior)
 		5246, 				-- Intimidating Shout		(Warrior)
+		12809,				-- Concussion Blow			(Warrior)
+		20253,				-- Intercept Stun 			(Warrior)
 		19503, 				-- Scatter Shot 			(Hunter)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
 		408, 				-- Kidney Shot 				(Rogue)	
@@ -172,16 +174,20 @@ local AuraList = {
 		19386, 				-- Wyvern Sting 			(Hunter)
 	},
     Stuned = {
-		100, 				-- Charge 					(Warrior)
+		7922, 				-- Charge Stun				(Warrior)
+		12809,				-- Concussion Blow			(Warrior)
+		20253,				-- Intercept Stun 			(Warrior)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
 		853, 				-- Hammer of Justice 		(Paladin)
 		1833, 				-- Cheap Shot 				(Rogue)
         408, 				-- Kidney Shot 				(Rogue)	
 		20549, 				-- War Stomp 				(Tauren)
-		20685				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?		
+		20685,				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?	
     },
     PhysStuned = {
-		100, 				-- Charge 					(Warrior)
+		7922, 				-- Charge Stun				(Warrior)
+		12809,				-- Concussion Blow			(Warrior)
+		20253,				-- Intercept Stun 			(Warrior)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
 		1833, 				-- Cheap Shot 				(Rogue)
         408, 				-- Kidney Shot 				(Rogue)		
