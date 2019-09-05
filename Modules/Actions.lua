@@ -440,21 +440,19 @@ function A.UpdateSpellRanks()
 					end 
 				end 
 				
-				-- Block spell by rank 
-				if not v.useMaxRank and not v.useMinRank then  
-					-- Search by player book
-					local slot = FindSpellBookSlotBySpellID(v.ID, false)  
-					
-					-- Search by pet book 
-					if not slot then 
-						slot = FindSpellBookSlotBySpellID(v.ID, true)
-					end
-					
-					-- Add to block 
-					if not slot then 
-						DataIsSpellBlockedByRanks[v.ID] = true 
-					end 				
-				end 									
+				-- Block spell (unlearned)				
+				-- Search by player book
+				local slot = FindSpellBookSlotBySpellID(v.ID, false)  
+				
+				-- Search by pet book 
+				if not slot then 
+					slot = FindSpellBookSlotBySpellID(v.ID, true)
+				end
+				
+				-- Add to block 
+				if not slot then 
+					DataIsSpellBlockedByRanks[v.ID] = true 
+				end 								 								
 			end 
 		end 
 	end 
@@ -470,7 +468,7 @@ A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.Update
 
 function A:IsBlockedBySpellRank()
 	-- @return boolean 
-	return self.isRank and DataIsSpellBlockedByRanks[self.ID]
+	return DataIsSpellBlockedByRanks[self.ID]
 	--[[
 	if self.isRank then 
 		local spellName = self:Info()
