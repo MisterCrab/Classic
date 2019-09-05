@@ -4,7 +4,7 @@ Author: d87
 --]================]
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 12
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 13
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -199,7 +199,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
     then
         if isSrcPlayer then
             if crowdControlAuras[spellName] then
-                CastStop(dstGUID, nil, "FAILED")
+                CastStop(dstGUID, nil, "INTERRUPTED")
                 return
             end
 

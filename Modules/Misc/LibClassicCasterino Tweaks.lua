@@ -7,35 +7,34 @@
 -- Cost around zero in performance even on 0 update interval
 -------------------------------------------------------------------------------------
 
-local LibClassicCasterino 	= LibStub("LibClassicCasterino")
-local f 					= LibClassicCasterino.frame
-local callbacks 			= LibClassicCasterino.callbacks
-local casters 				= LibClassicCasterino.casters
+local LibClassicCasterino 		= LibStub("LibClassicCasterino")
+local f 						= LibClassicCasterino.frame
+local callbacks 				= LibClassicCasterino.callbacks
+local casters 					= LibClassicCasterino.casters
 
-local TMW 					= TMW 
-local A						= Action
-local Unit 					= A.Unit 
-local MultiUnits			= A.MultiUnits
-local TeamCache 			= A.TeamCache
-local FriendlyGUIDs			= TeamCache.Friendly.GUIDs
-local EnemyGUIDs			= TeamCache.Enemy.GUIDs
+local TMW 						= TMW 
+local A							= Action
+local Unit 						= A.Unit 
+local MultiUnits				= A.MultiUnits
+local NameplatesGUID 			= MultiUnits:GetActiveUnitPlatesGUID()
+local TeamCache 				= A.TeamCache
+local FriendlyGUIDs				= TeamCache.Friendly.GUIDs
+local EnemyGUIDs				= TeamCache.Enemy.GUIDs
 
-local UnitGUID 				= UnitGUID
-local GetUnitSpeed			= GetUnitSpeed
-local next, pairs, ipairs	= next, pairs, ipairs
+local UnitGUID, UnitIsVisible	= UnitGUID, UnitIsVisible
+local GetUnitSpeed				= GetUnitSpeed
+local next, pairs				= next, pairs
 
-local commonUnits 			= {
-    -- "player",
+local commonUnits 				= {
     "target",
     "targettarget",
 	"mouseover",
-    "pet",
 }
 
 local function FireToUnits(event, guid, ...)
-    for _, unit in ipairs(commonUnits) do
-        if UnitGUID(unit) == guid then
-            callbacks:Fire(event, unit, ...)
+	for i = 1, #commonUnits do
+        if UnitGUID(commonUnits[i]) == guid then
+            callbacks:Fire(event, commonUnits[i], ...)
         end
     end
 
@@ -48,8 +47,7 @@ local function FireToUnits(event, guid, ...)
     if eUnit then
         callbacks:Fire(event, eUnit, ...)
     end	
-
-	local NameplatesGUID 	= MultiUnits:GetActiveUnitPlatesGUID()
+	
     local nameplateUnit 	= NameplatesGUID[guid]
     if nameplateUnit then
         callbacks:Fire(event, nameplateUnit, ...)
@@ -59,16 +57,9 @@ end
 local function CastStop(srcGUID, castType, suffix)
     local currentCast = casters[srcGUID]
     if currentCast then
-        castType = castType or currentCast[1]
-
         casters[srcGUID] = nil
-
-        if castType == "CAST" then
-            local event = "UNIT_SPELLCAST_"..suffix
-            FireToUnits(event, srcGUID)
-        else
-            FireToUnits("UNIT_SPELLCAST_CHANNEL_STOP", srcGUID)
-        end
+        local event = "UNIT_SPELLCAST_" .. suffix
+        FireToUnits(event, srcGUID)
     end
 end
 
@@ -80,19 +71,18 @@ f:SetScript("OnUpdate", function(self, elapsed)
     for i = 1, #commonUnits do
 		local GUID = UnitGUID(commonUnits[i])
         if GUID and casters[GUID] and GetUnitSpeed(commonUnits[i]) ~= 0 then
-            CastStop(GUID, nil, "FAILED")
+            CastStop(GUID, "CAST", "FAILED")
 			return 
         end
     end
 	
 	-- If we're outside pvp BG then use nameplates instead of unitID "arena" since it's not exist
-	-- If existd then better to use their GUIDs since they are not limited to distance 20yards
+	-- If existd then better to use their GUIDs since they are not limited to distance
 	if not next(EnemyGUIDs) then 
-		local NameplatesGUID 	= MultiUnits:GetActiveUnitPlatesGUID()
 		if nameplateUnit and next(NameplatesGUID) then
 			for guid, unit in pairs(NameplatesGUID) do 
 				if casters[guid] and GetUnitSpeed(unit) ~= 0 then
-					CastStop(guid, nil, "FAILED")
+					CastStop(guid, "CAST", "FAILED")
 					return
 				end 
 			end 
@@ -100,15 +90,15 @@ f:SetScript("OnUpdate", function(self, elapsed)
 	end 
 
 	for guid, unit in pairs(FriendlyGUIDs) do 
-		if casters[guid] and GetUnitSpeed(unit) ~= 0 then
-            CastStop(guid, nil, "FAILED")
+		if casters[guid] and UnitIsVisible(unit) and GetUnitSpeed(unit) ~= 0 then
+            CastStop(guid, "CAST", "FAILED")
 			return 
         end
 	end 
 
 	for guid, unit in pairs(EnemyGUIDs) do 
-		if casters[guid] and GetUnitSpeed(unit) ~= 0 then
-            CastStop(guid, nil, "FAILED")
+		if casters[guid] and UnitIsVisible(unit) and GetUnitSpeed(unit) ~= 0 then
+            CastStop(guid, "CAST", "FAILED")
 			return
         end
 	end 

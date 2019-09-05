@@ -28,20 +28,24 @@ local MultiUnits 								= {
 -- Nameplates
 MultiUnits.AddNameplate							= function(unitID)
 	if UnitCanAttack("player", unitID) then 
-		MultiUnits.activeUnitPlates[unitID] = unitID
-		local GUID 							= UnitGUID(unitID)
-		if GUID then 
-			MultiUnits.activeUnitPlatesGUID[GUID] = unitID
-		end 		
+		MultiUnits.activeUnitPlates[unitID] 	= unitID
+		if A.Zone ~= "pvp" then 
+			local GUID 							= UnitGUID(unitID)
+			if GUID then 
+				MultiUnits.activeUnitPlatesGUID[GUID] = unitID
+			end
+		end 
 	end
 end
 
 MultiUnits.RemoveNameplate						= function(unitID)
-    MultiUnits.activeUnitPlates[unitID] = nil 
-	local GUID 							= UnitGUID(unitID)
-	if GUID then 
-		MultiUnits.activeUnitPlatesGUID[GUID] = nil
-	end 	
+    MultiUnits.activeUnitPlates[unitID] 		= nil 
+	if A.Zone ~= "pvp" then 
+		local GUID 								= UnitGUID(unitID)
+		if GUID then 
+			MultiUnits.activeUnitPlatesGUID[GUID] = nil
+		end 	
+	end 
 end
 
 MultiUnits.OnResetNameplates					= function()
