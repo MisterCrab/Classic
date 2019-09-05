@@ -2207,6 +2207,8 @@ local GlobalFactory = {
 			Curse = {
 				-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
 				[8277] = {}, 			
+				-- Hex of Weakness			(Priest - Troll)
+				[9035] = {},
 				-- Warlock: Curse of Tongues
 				[1714] = { dur = 3 },
 				-- Warlock: Curse of Weakness
@@ -6021,6 +6023,11 @@ function Action.ToggleMainUI()
 					
 					Key:SetText(rowData.TableKeyName)
 					Key:ClearFocus()
+					
+					if columnData.index == "Enabled" then
+						rowData:SetBlocker()
+						tab.childs[spec].ScrollTable:ClearSelection()
+					end 
 				end 				
 			end 
 						
