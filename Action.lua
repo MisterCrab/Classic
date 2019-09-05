@@ -124,6 +124,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ATTENTION: This option causes delay of 0.3s + current spinning gcd\nif unit being checked it is located in a lose (for example, behind a box at arena)\nYou must also enable the same setting in Advanced Settings\nThis option blacklists unit which in a lose and\nstops providing actions to it for N seconds\n\nRightClick: Create macro",
 				HEALINGENGINEPETS = "HealingEngine pets",
 				HEALINGENGINEPETSTOOLTIP = "Include in target select player's pets and calculate for heal them\n\nRightClick: Create macro",
+				HEALINGENGINEANYROLE = "HealingEngine any role",
+				HEALINGENGINEANYROLETOOLTIP = "Enable to use member targeting on any your role",
 				ALL = "All",
 				RAID = "Raid",
 				TANK = "Only Tanks",
@@ -420,6 +422,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ВНИМАНИЕ: Эта опция вызывает задержку 0.3сек + тек. крутящийся гкд\nесли проверяемый юнит находится в лосе (например за столбом на арене)\nВы также должны включить такую же настройку в Advanced Settings\nДанная опция заносит в черный список проверяемого юнита\nи перестает на N секунд предоставлять к нему действия если юнит в лосе\n\nПравая кнопка мышки: Создать макрос",
 				HEALINGENGINEPETS = "HealingEngine питомцы",
 				HEALINGENGINEPETSTOOLTIP = "Включить в выбор цели питомцев игроков и калькулировать исцеление на них\n\nПравая кнопка мышки: Создать макрос",
+				HEALINGENGINEANYROLE = "HealingEngine любая роль",
+				HEALINGENGINEANYROLETOOLTIP = "Позволяет использовать выбор цели на любую вашу роль",
 				ALL = "Все",
 				RAID = "Рейд",
 				TANK = "Только Танки",
@@ -716,6 +720,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ACHTUNG: Diese Option führt zu einer Verzögerung von 0,3 s + der aktuellen Spinning-GCD.\nwenn überprüft wird, ob sich die Einheit in Sichtweite befindet (z. B. hinter einer Box in der Arena).\nDiese Option muss auch in den erweiterten Einstellungen aktiviert werden a lose und\nunterbricht die Bereitstellung von Aktionen für N Sekunden\n\nRechtsklick: Makro erstellen",
 				HEALINGENGINEPETS = "Heileinstellung für Begleiter",
 				HEALINGENGINEPETSTOOLTIP = "Füge die Begleiter des ausgewählten Spielers zum Ziel hinzu und berechne sie, um sie zu heilen.\n\nRechtsklick: Makro erstellen",
+				HEALINGENGINEANYROLE = "HealingEngine irgendeine Rolle",
+				HEALINGENGINEANYROLETOOLTIP = "Aktivieren Sie diese Option, um das Mitglieder-Targeting für jede Ihrer Rollen zu verwenden",
 				ALL = "Alle",
 				RAID = "Raid",
 				TANK = "Nur Tanks",
@@ -1012,6 +1018,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ATTENTION: Cette option cause un delai de 0.3s + votre gcd en cours\nSi la cible verifié n'est pas dans la ligne de vue (par exemple, derrière une boite en arène) \nVous devez aussi activer ce paramètre dans les paramètres avancés\nCette option blacklistes l'unité qui n'est pas à vue et\narrête d'effectuer des actions sur elle pendant N secondes\n\nClique droit : Créer la macro",
 				HEALINGENGINEPETS = "HealingEngine familiers",
 				HEALINGENGINEPETSTOOLTIP = "Inclut les familier des joueurs et calcule les soins pour eux\n\nClique droit : Créer la macro",
+				HEALINGENGINEANYROLE = "HealingEngine n'importe quel rôle",
+				HEALINGENGINEANYROLETOOLTIP = "Activer l'utilisation du ciblage des membres sur n'importe quel rôle",
 				ALL = "Tout",
 				RAID = "Raid",
 				TANK = "Tanks seulement",
@@ -1308,6 +1316,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ATTENZIONE: Questa opzione causa un ritardo di 0.3s + piu tempo del sistema di recupero globale [srg]\nse il bersaglio é in los (per esempio dietro una cassa in arena)\nDevi anche abilitare lo stesso settaggio in Settaggi Avanzati\nQuesta opzione mette in blacklists bersagli fuori los e\nferma le azioni verso il bersaglio per N secondio\n\nTastodestro: Crea macro",
 				HEALINGENGINEPETS = "Logica di cure per pet",
 				HEALINGENGINEPETSTOOLTIP = "include nella selezione dei bersagli  i pets dei giocatori e considera la loro cura \n\nTastodestro: Crea macro",
+				HEALINGENGINEANYROLE = "HealingEngine qualsiasi ruolo",
+				HEALINGENGINEANYROLETOOLTIP = "Abilita l'utilizzo del targeting per membro su qualsiasi tuo ruolo",
 				ALL = "Tutti",
 				RAID = "Raid",
 				TANK = "Solo Tank",
@@ -1604,6 +1614,8 @@ local Localization = {
 				LOSSYSTEMTOOLTIP = "ATENCIÓN: Esta opción causa un delay de 0.3s + un giro actual de gcd\nsi la unidad está siendo comprobada esta se localizará como pérdida (por ejemplo, detrás de una caja en la arena)\nDebes también habilitar las mismas opciones en Opciones Avanzadas\nEsta opción pone en una lista negra la unidad con perdida y\n deja de producir acciones a esta durante N segundos\n\nClickDerecho: Crear macro",
 				HEALINGENGINEPETS = "Motor de Curación para Pets",
 				HEALINGENGINEPETSTOOLTIP = "Incluída en el target de las pets del jugador y calcula para curarles\n\nClickDerecho: Crear macro",
+				HEALINGENGINEANYROLE = "HealingEngine cualquier papel",
+				HEALINGENGINEANYROLETOOLTIP = "Habilite el uso de la orientación a miembros en cualquier rol",
 				ALL = "Todo",
 				RAID = "Raid",
 				TANK = "Solo Tanques",
@@ -1974,7 +1986,8 @@ local Factory = {
 		DBM = true,
 		LOSCheck = false, 
 		HE_Toggle = "ALL",
-		HE_Pets = true,			
+		HE_Pets = true,		
+		HE_AnyRole = false,
 		FPS = -0.01, 			
 		Trinkets = {
 			[1] = true, 
@@ -4499,6 +4512,10 @@ function Action.SetToggle(arg, custom)
 		LineOfSight:Initialize()
 	end 
 	
+	if toggle == "HE_AnyRole" then 
+		TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
+	end 
+	
 	if text and type(bool) ~= "table" then 
 		local boolprint = bool
 		if type(bool) == "number" and bool < 0 then 			
@@ -4595,6 +4612,14 @@ local function failedReturn(n, toggle)
 		
 		if toggle == "Role" then 
 			return "AUTO"
+		end 
+		
+		if toggle == "HE_Toggle" then 
+			return "ALL"
+		end 
+		
+		if toggle == "HE_Pets" or "HE_AnyRole" then 
+			return false 
 		end 
 	end 
 	
@@ -5205,6 +5230,46 @@ function Action.ToggleMainUI()
 			end 
 			StdUi:FrameTooltip(DBMFrame, "Deadly Boss Mods\n" .. L["TAB"][tab.name]["DBMTOOLTIP"], nil, "TOPLEFT", true)
 			
+			local HE_AnyRole = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HEALINGENGINEANYROLE"])		
+			HE_AnyRole:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_AnyRole)
+			HE_AnyRole:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			HE_AnyRole:SetScript('OnClick', function(self, button, down)	
+				if not self.isDisabled then 				
+					if button == "LeftButton" then 
+						TMW.db.profile.ActionDB[tab.name].HE_AnyRole = not TMW.db.profile.ActionDB[tab.name].HE_AnyRole
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_AnyRole)							
+						Action.Print(L["TAB"][tab.name]["HEALINGENGINEANYROLE"] .. ": ", TMW.db.profile.ActionDB[tab.name].HE_AnyRole)	
+						TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
+					elseif button == "RightButton" then 
+						CraftMacro(L["TAB"][tab.name]["HEALINGENGINEANYROLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HE_AnyRole", "]] .. L["TAB"][tab.name]["HEALINGENGINEANYROLE"] .. [[: "})]])	
+					end 
+				end 
+			end)
+			HE_AnyRole.Identify = { Type = "Checkbox", Toggle = "HE_AnyRole" }
+			StdUi:FrameTooltip(HE_AnyRole, L["TAB"][tab.name]["HEALINGENGINEANYROLETOOLTIP"], nil, "TOPLEFT", true)
+			local isUnavailableByClass = {
+				WARRIOR = true, 
+				HUNTER = true,
+				ROGUE = true,
+				MAGE = true,
+				WARLOCK = true,				
+			}
+			local function HE_AnyRoleCheckboxUpdate()
+				if Action.IsBasicProfile or isUnavailableByClass[Action.PlayerClass] then 
+					if not HE_AnyRole.isDisabled then 
+						HE_AnyRole:Disable()
+						TMW.db.profile.ActionDB[tab.name].HE_AnyRole = false
+						HE_AnyRole:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_AnyRole)
+					end 
+				elseif HE_AnyRole.isDisabled then  					
+					HE_AnyRole:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_AnyRole)
+					HE_AnyRole:Enable()
+				end 			
+				TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
+			end 
+			HE_AnyRole:SetScript("OnShow", HE_AnyRoleCheckboxUpdate)
+			HE_AnyRoleCheckboxUpdate()			
+			
 			local HE_PetsFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HEALINGENGINEPETS"])		
 			HE_PetsFrame:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_Pets)
 			HE_PetsFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -5212,8 +5277,7 @@ function Action.ToggleMainUI()
 				if not self.isDisabled then 				
 					if button == "LeftButton" then 
 						TMW.db.profile.ActionDB[tab.name].HE_Pets = not TMW.db.profile.ActionDB[tab.name].HE_Pets
-						self:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_Pets)	
-						HE_Pets = TMW.db.profile.ActionDB[tab.name].HE_Pets
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].HE_Pets)							
 						Action.Print(L["TAB"][tab.name]["HEALINGENGINEPETS"] .. ": ", TMW.db.profile.ActionDB[tab.name].HE_Pets)	
 					elseif button == "RightButton" then 
 						CraftMacro(L["TAB"][tab.name]["HEALINGENGINEPETS"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HE_Pets", "]] .. L["TAB"][tab.name]["HEALINGENGINEPETS"] .. [[: "})]])	
@@ -5222,18 +5286,19 @@ function Action.ToggleMainUI()
 			end)
 			HE_PetsFrame.Identify = { Type = "Checkbox", Toggle = "HE_Pets" }			
 			local function UpdateHealingEngineCheckbox()
-				if not Action.IamHealer then 
+				if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then 
 					HE_PetsFrame:Disable()
 				else 
 					HE_PetsFrame:Enable()
 				end 			
 			end 
 			HE_PetsFrame:SetScript("OnShow", UpdateHealingEngineCheckbox)
-			if not Action.IamHealer then
+			if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then
 				HE_PetsFrame:Disable()
 			end 
 			StdUi:FrameTooltip(HE_PetsFrame, L["TAB"][tab.name]["HEALINGENGINEPETSTOOLTIP"], nil, "TOPLEFT", true)
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineCheckbox) 
+			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineCheckbox) 
 			
 			local HE_ToggleFrame = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), 20, {
 				{ text = L["TAB"][tab.name]["ALL"], value = "ALL" },
@@ -5248,7 +5313,7 @@ function Action.ToggleMainUI()
 				Action.Print("HealingEngine" .. ": ", L["TAB"][tab.name][TMW.db.profile.ActionDB[tab.name].HE_Toggle])
 			end
 			local function UpdateHealingEngineDropDown()
-				if not Action.IamHealer then 
+				if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then 
 					HE_ToggleFrame:Disable()
 				else 
 					HE_ToggleFrame:Enable()
@@ -5265,15 +5330,16 @@ function Action.ToggleMainUI()
 				end 
 			end)	
 			HE_ToggleFrame:SetScript("OnShow", UpdateHealingEngineDropDown)				
-			if not Action.IamHealer then
+			if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then
 				HE_ToggleFrame:Disable()
 			end 
 			HE_ToggleFrame.Identify = { Type = "Dropdown", Toggle = "HE_Toggle" }
 			StdUi:FrameTooltip(HE_ToggleFrame, L["TAB"][tab.name]["HEALINGENGINETOOLTIP"], nil, "TOPLEFT", true)
 			HE_ToggleFrame.FontStringTitle = StdUi:FontString(HE_ToggleFrame, "HealingEngine")
-			StdUi:GlueAbove(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
+			StdUi:GlueBelow(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
 			HE_ToggleFrame.text:SetJustifyH("CENTER")			
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
+			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineDropDown) 
 			
 			local FPS = StdUi:Slider(anchor, GetWidthByColumn(anchor, 5.8), Action.Data.theme.dd.height, TMW.db.profile.ActionDB[tab.name].FPS, false, -0.01, 1.5)
 			FPS:SetPrecision(2)
@@ -5444,7 +5510,7 @@ function Action.ToggleMainUI()
 				end
 			end)
 			AutoShoot.Identify = { Type = "Checkbox", Toggle = "AutoShoot" }
-			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
 			local function AutoShootCheckBoxUpdate()
 				if not HasWandEquipped() then 
 					if not AutoShoot.isDisabled then 
@@ -5705,10 +5771,11 @@ function Action.ToggleMainUI()
 			SpecialRow:AddElement(LayoutSpace(anchor), { column = 0.2 })
 			SpecialRow:AddElement(HealthStone, { column = 6 })
 			anchor:AddRow({ margin = { top = 10 } }):AddElements(AutoTarget, LosSystem, { column = "even" })
-			anchor:AddRow({ margin = { top = -5 } }):AddElements(Potion, DBMFrame, { column = "even" })			
-			anchor:AddRow({ margin = { top = -5 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
-			anchor:AddRow():AddElements(StopCast, HE_ToggleFrame, { column = "even" })	
-			anchor:AddRow():AddElements(AutoAttack, AutoShoot, { column = "even" })				
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(Potion, DBMFrame, { column = "even" })			
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(StopCast, HE_AnyRole, { column = "even" })	
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, LayoutSpace(anchor), { column = "even" })
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	

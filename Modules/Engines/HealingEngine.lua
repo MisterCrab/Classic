@@ -11,11 +11,6 @@ local A 							= Action
 local InstanceInfo					= A.InstanceInfo
 local TeamCache						= A.TeamCache
 
-
--- Toggle valid: "TANK", "DAMAGER", "HEALER", "RAID", nil (means "ALL")
-_G.HE_Toggle 						= nil 
-_G.HE_Pets   						= true
-
 local type, pairs, table, wipe, huge = 
 	  type, pairs, table, wipe, math.huge
 	  
@@ -141,6 +136,7 @@ local function HealingEngine(MODE, useActualHP)
 			-- Enable specific instructions by profile 
 			if A.IsGGLprofile then 
 				-- TODO: Classic
+				-- Use by class (for priest need additional spec check - probably)
 			end 
 			
             -- Misc: Sort by Roles 			
@@ -180,7 +176,7 @@ local function HealingEngine(MODE, useActualHP)
         end        
         
         -- Pets 
-        if _G.HE_Pets then
+        if A.GetToggle(1, "HE_Pets") then
             local memberpet 									= group .. "pet" .. i
 			local memberpetGUID 								= UnitGUID(memberpet)
 			local memberpethp, memberpetahp, _, memberpetmhp 	= CalculateHP(memberpet) 
@@ -711,37 +707,40 @@ local function UpdateLOS()
 end
 
 local function HealingEngineInit()
-	if A.IamHealer then 
+	if A.IamHealer or A.GetToggle(1, "HE_AnyRole") then 
 		A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_TARGET_CHANGED", 	UpdateLOS)
 		A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_REGEN_ENABLED", 	function() wipe(A.HealingEngine.Frequency.Actual) end)
 		A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_REGEN_DISABLED", 	function() wipe(A.HealingEngine.Frequency.Actual) end)
 		Frame:SetScript("OnUpdate", function(self, elapsed)
 			self.elapsed = (self.elapsed or 0) + elapsed   
 			local INTV = TMW.UPD_INTV and TMW.UPD_INTV > 0.3 and TMW.UPD_INTV or 0.3
-			if A.IamHealer and self.elapsed > INTV then 
-				HealingEngine(_G.HE_Toggle) 
-				setHealingTarget(_G.HE_Toggle) 
+			if self.elapsed > INTV then 
+				local ROLE = A.GetToggle(1, "HE_Toggle")
+				HealingEngine(ROLE) 
+				setHealingTarget(ROLE) 
 				setColorTarget()   
 				UpdateLOS() 
 				self.elapsed = 0
 			end			
 		end)
-	elseif #A.HealingEngine.Members.ALL > 0 then
+	else
 		A.HealingEngine.Members:Wipe()
 		A.HealingEngine.Frequency:Wipe()
 		A.Listener:Remove("ACTION_EVENT_HEALINGENGINE", "PLAYER_TARGET_CHANGED")
 		A.Listener:Remove("ACTION_EVENT_HEALINGENGINE", "PLAYER_REGEN_ENABLED")
 		A.Listener:Remove("ACTION_EVENT_HEALINGENGINE", "PLAYER_REGEN_DISABLED")
 		Frame:SetScript("OnUpdate", nil)
+		Frame.texture:SetColorTexture(0, 0, 0, 1.0)   
 	end 
 end 
 A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "PLAYER_ENTERING_WORLD", 			HealingEngineInit)
 A.Listener:Add("ACTION_EVENT_HEALINGENGINE", "UPDATE_INSTANCE_INFO", 			HealingEngineInit)
 TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 				HealingEngineInit) 
+TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 						HealingEngineInit) 
 
 --- ============================= API ==============================
 --- API valid only for healer specializations  
---- Members are depend on _G.HE_Pets variable 
+--- Members are depend on A.GetToggle(1, "HE_Pets") variable 
 
 --- SetTarget Controller 
 function A.HealingEngine.SetTargetMostlyIncDMG()
@@ -770,7 +769,7 @@ end
 
 function A.HealingEngine.GetMembersByMode()
 	-- @return table 
-	local mode = _G.HE_Toggle or "ALL"
+	local mode = A.GetToggle(1, "HE_Toggle") or "ALL"
 	return A.HealingEngine.Members[mode] 
 end 
 
