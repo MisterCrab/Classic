@@ -889,10 +889,6 @@ A.Unit = PseudoClass({
 		-- [5] spellID (@number or @nil)
 		-- [6] isChannel (@boolean)
 		local unitID 						= self.UnitID
-		-- This need for LibClassCasterino, otherwise it will bring false info in case if player is target and you fakecasting
-		if UnitIsUnit("player", unitID) then 
-			unitID = "player"
-		end 
 		local isChannel
 		local castName, _, _, castStartTime, castEndTime, _, _, notInterruptable, spellID = LibClassicCasterino:UnitCastingInfo(unitID)
 		if not castName then 

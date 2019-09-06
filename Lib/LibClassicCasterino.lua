@@ -4,7 +4,7 @@ Author: d87
 --]================]
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 13
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 14
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -28,6 +28,7 @@ local GetTime = GetTime
 local CastingInfo = CastingInfo
 local ChannelInfo = ChannelInfo
 local GetUnitSpeed = GetUnitSpeed
+local UnitIsUnit = UnitIsUnit
 
 local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER
 local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
@@ -235,7 +236,7 @@ local function IsSlowedDown(unit)
 end
 
 function lib:UnitCastingInfo(unit)
-    if unit == "player" then return CastingInfo() end
+    if UnitIsUnit(unit, "player") then return CastingInfo() end
     local guid = UnitGUID(unit)
     local cast = casters[guid]
     if cast then
@@ -252,7 +253,7 @@ function lib:UnitCastingInfo(unit)
 end
 
 function lib:UnitChannelInfo(unit)
-    if unit == "player" then return ChannelInfo() end
+    if UnitIsUnit(unit, "player") then return ChannelInfo() end
     local guid = UnitGUID(unit)
     local cast = casters[guid]
     if cast then
