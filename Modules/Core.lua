@@ -95,10 +95,19 @@ A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 -------------------------------------------------------------------------------
 -- API
 -------------------------------------------------------------------------------
-A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, Hidden = true, Desc = "Upper" })
-A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, Hidden = true, Desc = "Lower" })
-A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, Hidden = true, Desc = "Wand" })
-A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Upper" })
+A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Lower" })
+A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Wand" })
+A.AutoShot					= A.Create({ Type = "Spell", 			ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Hunter's shoot" })
+A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+
+local function IsShoot(unit)
+	return 	A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
+			(
+				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 
+				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
+			)
+end 
 
 function A.Rotation(icon)
 	if not A.IsInitialized or not A[A.PlayerClass] then 
@@ -214,14 +223,17 @@ function A.Rotation(icon)
 	
 	-- [3] Single / [4] AoE: AutoAttack
 	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() then 
-		useShoot = A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6)
+		useShoot = IsShoot(unit)
 		if not useShoot and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
-			if Player:IsShooting() and HasWandEquipped() then 
+			if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
 				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
 			end 
 			
-			return A:Show(icon, ACTION_CONST_AUTOATTACK)
+			-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
+			if A.PlayerClass ~= "HUNTER" or not A.GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit) then 
+				return A:Show(icon, ACTION_CONST_AUTOATTACK)
+			end 
 		end 
 	end 
 	

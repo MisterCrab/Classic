@@ -654,15 +654,15 @@ function A:IsExists()
 	return self:GetEquipped() or self:GetCount() > 0	
 end
 
-function A:IsUsable(extraCD)
+function A:IsUsable(extraCD, skipUsable)
 	-- @return boolean 
 	
 	if self.Type == "Spell" then 
 		-- Works for pet spells 01/04/2019
-		return IsUsableSpell(self:Info()) and self:GetCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
+		return (skipUsable or IsUsableSpell(self:Info())) and self:GetCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
 	end 
 	
-	return not isItemUseException[self.ID] and IsUsableItem(self:Info()) and self:GetItemCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
+	return not isItemUseException[self.ID] and (skipUsable or IsUsableItem(self:Info())) and self:GetItemCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
 end
 
 function A:IsHarmful()
@@ -761,7 +761,7 @@ function A:AbsentImun(unitID, imunBuffs)
 	end 
 end 
 
-function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
+function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 	-- @return boolean
 	-- Checks toggle, cooldown and range 
 	
@@ -770,7 +770,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
 			not self:IsBlockedBySpellLevel() and 
 			not self:IsBlockedBySpellRank() and 
 			( not self.isTalent or self:IsSpellLearned() ) and 
-			self:IsUsable() and 
+			self:IsUsable(nil, skipUsable) and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) ) and 
 			-- 8.2 Queen Court - Repeat Performance (DeBuff) // 2164 is The Eternal Palace   
 			( A.InstanceInfo.ID ~= 2164 or Unit("player"):HasDeBuffs(301244) == 0 or (A.LastPlayerCastName ~= self:Info() and Player:CastRemains(self.ID) == 0) )
@@ -782,7 +782,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
 			-- This also checks equipment (in idea because slot return ID which we compare)
 			self.ID ~= nil and 
 			( A.Trinket1.ID == self.ID and A.GetToggle(1, "Trinkets")[1] or A.Trinket2.ID == self.ID and A.GetToggle(1, "Trinkets")[2] ) and 
-			self:IsUsable() and 
+			self:IsUsable(nil, skipUsable) and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
 		then
 			return true 
@@ -810,19 +810,19 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg)
 	return false 
 end
 
-function A:IsReady(unitID, skipRange, skipLua, skipShouldStop)
+function A:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable)
 	-- @return boolean
 	-- For [3-4, 6-8]
     return 	not self:IsBlocked() and 
 			not self:IsBlockedByQueue() and 
-			self:IsCastable(unitID, skipRange, skipShouldStop) and 
+			self:IsCastable(unitID, skipRange, skipShouldStop, nil, skipUsable) and 
 			( skipLua or self:RunLua(unitID) )
 end 
 
-function A:IsReadyP(unitID, skipRange, skipLua, skipShouldStop)
+function A:IsReadyP(unitID, skipRange, skipLua, skipShouldStop, skipUsable)
 	-- @return boolean
 	-- For [1-2, 5]
-    return 	self:IsCastable(unitID, skipRange, skipShouldStop) and (skipLua or self:RunLua(unitID))
+    return 	self:IsCastable(unitID, skipRange, skipShouldStop, nil, skipUsable) and (skipLua or self:RunLua(unitID))
 end 
 
 function A:IsReadyM(unitID, skipRange)
@@ -938,6 +938,7 @@ function A.Create(attributes)
 			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor, this will set color which stored in A.Data.C[Color] or here can be own hex 
 	 	Optional: 
 			Desc (@string) uses in UI near Icon tab (usually to describe relative action like Penance can be for heal and for dps and it's different actions but with same name)
+			BlockForbidden (@boolean) uses to preset for action fixed block valid 
 			QueueForbidden (@boolean) uses to preset for action fixed queue valid 
 			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket
 			FixedTexture (@number or @file) valid only if Type is Spell|Item|Potion|Trinket
@@ -958,6 +959,7 @@ function A.Create(attributes)
 		ID = attributes.ID,
 		SubType = attributes.Type,
 		Desc = attributes.Desc or "",
+		BlockForbidden = attributes.BlockForbidden,
 		QueueForbidden = attributes.QueueForbidden, 
 		MetaSlot = attributes.MetaSlot,
 		Hidden = attributes.Hidden,
