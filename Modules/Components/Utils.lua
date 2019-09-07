@@ -477,8 +477,8 @@ local function CreateRankFrame(name, anchor, x, y)
 	return frame
 end 
 
-local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 442, 1)
-local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 442, 2)
+local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 442, -1)
+local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 442, -2)
 
 local isShownOnce
 local function UpdateFrames()
@@ -734,11 +734,7 @@ end
   
 function A.Hide(icon)
 	-- @usage A.Hide(icon)
-	local meta = icon.ID
-	if icon.attributes.state ~= ACTION_CONST_TMW_DEFAULT_STATE_HIDE then 
-		icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
-	end 
-		
+	local meta = icon.ID		
 	if meta == 3 and RankSingle.isColored then 
 		RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
 		RankSingle.isColored = nil 
@@ -749,16 +745,14 @@ function A.Hide(icon)
 		RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
 		RankAoE.isColored = nil 
 	end 
+	
+	if icon.attributes.state ~= ACTION_CONST_TMW_DEFAULT_STATE_HIDE then 
+		icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
+	end 	
 end 
 
 function A:Show(icon, texture) 
 	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)	
-	if texture then 
-		TMWAPI(icon, "texture", texture)
-	else 
-		TMWAPI(icon, self:Texture())
-	end 
-	
 	-- Sets ranks 
 	local meta = icon.ID
 	if meta == 3 then 
@@ -785,6 +779,12 @@ function A:Show(icon, texture)
 			RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
 			RankAoE.isColored = nil 
 		end 	
+	end 
+	
+	if texture then 
+		TMWAPI(icon, "texture", texture)
+	else 
+		TMWAPI(icon, self:Texture())
 	end 		
 	
 	return true 
