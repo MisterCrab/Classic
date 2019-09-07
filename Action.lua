@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "06.09.2019"
+local DateTime 						= "07.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -2510,6 +2510,20 @@ local function DispelPurgeEnrageRemap()
 				--Magic = Action.Data.Auras.PvP.Magic,
 				Disease = Action.Data.Auras.PvP.Disease,
 				--Enrage = Action.Data.Auras.PvP.Enrage,
+				PurgeFriendly = Action.Data.Auras.PvP.PurgeFriendly,
+				PurgeHigh = Action.Data.Auras.PvP.PurgeHigh,
+				PurgeLow = Action.Data.Auras.PvP.PurgeLow,
+			},
+		},
+		["WARLOCK"] = {
+			PvE = {
+				BlackList = Action.Data.Auras.PvE.BlackList,
+				PurgeFriendly = Action.Data.Auras.PvE.PurgeFriendly,
+				PurgeHigh = Action.Data.Auras.PvE.PurgeHigh,
+				PurgeLow = Action.Data.Auras.PvE.PurgeLow,				
+			},
+			PvP = {
+				BlackList = Action.Data.Auras.PvP.BlackList,
 				PurgeFriendly = Action.Data.Auras.PvP.PurgeFriendly,
 				PurgeHigh = Action.Data.Auras.PvP.PurgeHigh,
 				PurgeLow = Action.Data.Auras.PvP.PurgeLow,
