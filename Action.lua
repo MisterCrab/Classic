@@ -3858,9 +3858,14 @@ end
 
 -- [3] SetQueue (Queue System)
 local Queue = {
+	Temp 						= {
+		SilenceON				= { Silence = true },
+		SilenceOFF				= { Silence = false },
+	},
 	Reset 						= function(self)
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED")
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN")
+		Action.Listener:Remove("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB")
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED")		
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE")
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED")	
@@ -3875,20 +3880,20 @@ local Queue = {
 	-- Events
 	UNIT_SPELLCAST_SUCCEEDED 	= function(self, ...)
 		local source, _, spellID = ...
-		if (source == "player" or source == "pet") and Action.Data.Q[1] and Action.Data.Q[1].Type == "Spell" and Action.GetSpellInfo(spellID) == Action.Data.Q[1]:Info() then 			
-			getmetatable(Action.Data.Q[1]).__index:SetQueue({ Silence = true })
+		if (source == "player" or source == "pet") and Action.Data.Q[1] and Action.Data.Q[1].Type == "Spell" and ((Action.Data.Q[1].isRank and Action.Data.Q[1].ID == spellID) or (not Action.Data.Q[1].isRank and Action.Data.Q[1]:Info() == Action.GetSpellInfo(spellID))) then 			
+			getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 		end 	
 	end,
 	BAG_UPDATE_COOLDOWN			= function(self)
 		if Action.Data.Q[1] and Action.Data.Q[1].Type ~= "Spell" then 
 			local start, duration, enable = Action.Data.Q[1].Item:GetCooldown()
 			if duration and math.abs(TMW.time - start) <= 2 then 
-				getmetatable(Action.Data.Q[1]).__index:SetQueue({ Silence = true })
+				getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 				return 
 			end 
 			-- For things like a potion that was used in combat and the cooldown hasn't yet started counting down
 			if enable == 0 and Action.Data.Q[1].Type ~= "Trinket" then 
-				getmetatable(Action.Data.Q[1]).__index:SetQueue({ Silence = true })
+				getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 			end 
 		end 	
 	end, 
@@ -3896,7 +3901,7 @@ local Queue = {
 		if #Action.Data.Q > 0 then 
 			for i = 1, #Action.Data.Q do 
 				if Action.Data.Q[i].Queued then 
-					getmetatable(Action.Data.Q[i]).__index:SetQueue({ Silence = false })
+					getmetatable(Action.Data.Q[i]).__index:SetQueue(self.Temp.SilenceOFF)
 				end 
 			end 		
 		end 
@@ -4058,6 +4063,7 @@ function Action:SetQueue(args)
 		
     Action.Listener:Add("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED", 		function(...) Queue:UNIT_SPELLCAST_SUCCEEDED(...) 	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			function() 	  Queue:BAG_UPDATE_COOLDOWN() 		  	end)
+	Action.Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			function() 	  Queue:OnEventToReset() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		function() 	  Queue:OnEventToReset() 			  	end)	
     Action.Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			function() 	  Queue:OnEventToReset() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED", 			function() 	  Queue:OnEventToReset() 			  	end)

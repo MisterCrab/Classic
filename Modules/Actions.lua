@@ -461,7 +461,6 @@ function A.UpdateSpellRanks()
 	--TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") -- no need here since :Show method will be triggered 
 end 
 
---A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_ENTERING_WORLD", 	A.UpdateSpellRanks)
 A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellRanks)
 A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellRanks)
 A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellRanks)
