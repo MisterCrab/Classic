@@ -211,7 +211,7 @@ CombatTracker.logDamage 						= function(...)
 		Data[DestGUID].RealDMG.dmgTaken_M = Data[DestGUID].RealDMG.dmgTaken_M + Amount
 		Data[SourceGUID].DMG.dmgDone_P = Data[SourceGUID].DMG.dmgDone_P + Amount
 		Data[SourceGUID].DMG.dmgDone_M = Data[SourceGUID].DMG.dmgDone_M + Amount        
-	elseif school == 1  then
+	elseif school == 1 then
 		-- Pysichal
 		-- Taken 
 		Data[DestGUID].DMG.dmgTaken_P = Data[DestGUID].DMG.dmgTaken_P + Amount
@@ -853,7 +853,7 @@ A.CombatTracker									= {
 		local unit = unitID or "player"
 		local GUID = UnitGUID(unit)
 		if CombatTracker.Data[GUID] and ((UnitIsUnit(unit, "player") and InCombatLockdown()) or UnitAffectingCombat(unit)) then     
-			return TMW.time - CombatTracker.Data[GUID].combat_time               
+			return TMW.time - CombatTracker.Data[GUID].combat_time, GUID	               
 		end		
 		return 0, GUID		
 	end, 
