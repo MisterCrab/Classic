@@ -35,8 +35,8 @@ A.Data.ProfileUI is a table where you have to set UI elements with DB (DataBase)
 -- Structure:
 A.Data.ProfileUI = {	
 	DateTime = "v0 (00.00.0000)", 	-- 'v' is version (Day, Month, Year)
-	[tab.name] = {					-- supports [2] (spec tab), [7] (MSG tab) in /action
-		-- Configure if [tab.name] is [2] (spec tab)			
+	[tab.name] = {					-- supports [2] (class tab), [7] (MSG tab) in /action
+		-- Configure if [tab.name] is [2] (class tab)			
 		LayoutOptions = {},		-- (optional) is table which can be used to configure layout position
 		{						-- {} brackets on this level will create one row 
 			RowOptions = {},	-- (optional) is table which can be used to configure this (current) row position on your layout 
@@ -145,7 +145,7 @@ A.Data.ProfileUI = {
 				-- Optional:
 				Custom = "/run Action.ToggleTest()", -- using custom macro text to create by right click, all below is not valid if Custom key noted
 				-- Otherwise it will structure like 
-				-- /run Action.SetToggle({[tab.name], Action.Data.ProfileUI[tab.name][spec].DB, Action.Data.ProfileUI[tab.name][spec].L[CL] .. ": "}, Action.Data.ProfileUI[tab.name][spec].M.Value or nil)
+				-- /run Action.SetToggle({[tab.name], Action.Data.ProfileUI[tab.name].DB, Action.Data.ProfileUI[tab.name].L[CL] .. ": "}, Action.Data.ProfileUI[tab.name].M.Value or nil)
 				-- It does call func CraftMacro(L[CL], macro above, 1) -- 1 means perCharacter tab in MacroUI, if nil then will be used allCharacters tab in MacroUI
 				Value = value or nil, 
 				-- Very Very Optional, no idea why it will be need however.. 
@@ -425,10 +425,10 @@ A.Data.ProfileUI = {
 			-- Confused? huh yeah but that's how it works, to make it easier you can simply set "target" right into this code as example if you want only "target", then SpellInRange("target", Action[Action.PlayerClass].POWS.ID) 
 			-- More info in Action.lua 
 			-- You have to keep in mind what once written in DataBase this code can't be changed if you made changes in ProfileUI, you have to use 'Reset Settings' and other people too if you failed here with code, so take attention on it. That's probably one lack of 'The Action' 
-			return 	SpellInRange(thisunit, Action[PlayerClass].POWS.ID) and -- we don't use TMW.CNDT.Env.SpellInRange because of embedded environment, same for PlayerClass, but Action hasn't so we use it												
+			return 	Action[PlayerClass].POWS:IsInRange(thisunit) and 											
 					Action[PlayerClass].POWS:AbsentImun(thisunit) and 
-					Action.LossOfControlIsMissed("SILENCE") and 
-					LossOfControlGet("SCHOOL_INTERRUPT", "HOLY") == 0
+					Action.LossOfControl:IsMissed("SILENCE") and 
+					Action.LossOfControl:Get("SCHOOL_INTERRUPT", "HOLY") == 0
 		]] },
 	},
 }

@@ -8,7 +8,7 @@ If you plan to build profile without use lua then you can skip this guide
 -------------------------------------------------------------------------------
 -- №1: Create snippet 
 -------------------------------------------------------------------------------
--- Write in chat /tmw > LUA Snippets > Profile (left side) > "+" > Write name of specialization in title of the snippet
+-- Write in chat /tmw > LUA Snippets > Profile (left side) > "+" > Write name of class in title of the snippet
 
 -------------------------------------------------------------------------------
 -- №2: Set profile defaults 
@@ -127,8 +127,6 @@ A['@number'] = function(icon)		-- @number is from 1 to 8, where for example 1 is
 	:IsReadyP(unit, skiprange, skiplua)			-- does same but it skip block check 
 	:AutoRacial(unit, isReadyCheck)				-- is already preconfigured template with logic conditions. isReadyCheck if true then will use method :IsReady 
 	:AutoRacialP(unit, isReadyCheck)			-- same but without logic conditions, means will check only available (range, imun, school lock, cooldown and etc)
-	:AutoHeartOfAzeroth(unit, skipAuto)			-- is already preconfigured template with logic conditions. skipAuto will skip logic and check only available (range, imun, school lock, cooldown and etc)
-	:AutoHeartOfAzerothP(unit)					-- same but without logic conditions, means will check only available 
 	]]
 end
 
@@ -182,10 +180,6 @@ A[3] = function(icon)
 		if A.ArcaneTorrent:AutoRacial(unit, true) then 
 			return A.ArcaneTorrent:Show(icon)
 		end 	
-		
-		if A.ConcentratedFlame:AutoHeartOfAzeroth(unit) then 
-			return A.ConcentratedFlame:Show(icon)
-		end 
 		
 		-- blackout_strike
 		if not ShouldStop and A.BlackoutStrike:IsReady(unit) and A.BlackoutStrike:AbsentImun(unit, {"DamagePhysImun", "TotalImun"}) and A.LossOfControlIsMissed("DISARM") then 
@@ -248,7 +242,7 @@ So you can even use HeroLib API actually (if it's available for Classic), that w
 -- №4: Apply rotations on TellMeWhen
 -------------------------------------------------------------------------------
 --[[
-If you use "[GGL] Template" then you can skip it because it has already preconfigured it 
+If you use "[GGL] Basic" then you can skip it because it has already preconfigured it 
 
 For "Shown Main":
 1. You have to create in /tmw new profile group with 8 icons with type "Condition Icon"
