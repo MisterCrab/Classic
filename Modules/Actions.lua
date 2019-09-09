@@ -297,6 +297,10 @@ function A:GetSpellAbsorb(unitID)
 	return CombatTracker:GetAbsorb(unitID or "player", self:Info())
 end 
 
+function A:IsSpellLastGCD()
+	return self:Info() == A.LastPlayerCastName
+end 
+
 function A:IsSpellInFlight()
 	-- @return boolean
 	return UnitCooldown:IsSpellInFly("player", self:Info())
