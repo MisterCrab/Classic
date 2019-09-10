@@ -355,7 +355,7 @@ function Utils.CompareThis(Operator, A, B)
 end
 
 function Utils.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Condition)
-	local TargetCondition = (not Condition or (Condition and Condition(Target)))
+	local TargetCondition = (not Condition or (Condition and Condition("target")))
 	if not A.GetToggle(2, "AoE") then
 		return TargetCondition
 	else 
@@ -367,7 +367,7 @@ function Utils.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Cond
 					BestUnit, BestConditionValue = CycleUnit, TargetIfCondition(CycleUnit)
 				end 
 			end 
-			if BestUnit and UnitGUID(BestUnit) == UnitGUID("target") or (TargetCondition and (BestConditionValue == TargetIfCondition(Target))) then 
+			if BestUnit and UnitGUID(BestUnit) == UnitGUID("target") or (TargetCondition and (BestConditionValue == TargetIfCondition("target"))) then 
 				return true 
 			end 
 		end 
