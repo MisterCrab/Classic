@@ -829,13 +829,13 @@ function A:IsReadyP(unitID, skipRange, skipLua, skipShouldStop, skipUsable)
     return 	self:IsCastable(unitID, skipRange, skipShouldStop, nil, skipUsable) and (skipLua or self:RunLua(unitID))
 end 
 
-function A:IsReadyM(unitID, skipRange)
+function A:IsReadyM(unitID, skipRange, skipUsable)
 	-- @return boolean
 	-- For MSG System 
 	if unitID == "" then 
 		unitID = nil 
 	end 
-    return 	self:IsCastable(unitID, skipRange, nil, true)
+    return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable)
 end 
 
 -------------------------------------------------------------------------------
