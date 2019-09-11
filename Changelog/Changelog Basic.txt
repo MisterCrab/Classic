@@ -1,3 +1,7 @@
+[Basic v3]
+Added Pet kicks for arena1-3
+Added condition to check interrupt able cast for antifake kick 
+ 
 [Basic v2] 
 Cleared things, little bit better performance
 
