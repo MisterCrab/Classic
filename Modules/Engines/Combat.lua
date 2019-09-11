@@ -511,7 +511,7 @@ CombatTracker.OnEventCLEU 						= {
 	["SPELL_PERIODIC_HEAL"] 				= CombatTracker.logHealing,
 	["SPELL_AURA_APPLIED"] 					= CombatTracker.logAbsorb,   
 	["SPELL_AURA_REFRESH"] 					= CombatTracker.logAbsorb, 
-	["SPELL_ABSORBED"] 						= CombatTracker.logUpdateAbsorb,  
+	--["SPELL_ABSORBED"] 						= CombatTracker.logUpdateAbsorb,  -- TODO: Is broken wowpedia tip for args? Why 15th arg amount is a string type??
 	["SPELL_AURA_REMOVED"] 					= CombatTracker.remove_logAbsorb,  
 	["SPELL_CAST_SUCCESS"] 					= CombatTracker.logLastCast,
 	["UNIT_DIED"] 							= CombatTracker.logDied,
@@ -773,7 +773,10 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNI
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function()
 	if A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)
-		wipe(CombatTracker.Data)
+		-- Reset only when solo because if it make reset while grouped it will wipe real health which wil lcause trouble to predict healing 
+		if not TeamCache.Friendly.Type then 
+			wipe(CombatTracker.Data)
+		end 
 	end 
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				function()
@@ -782,10 +785,6 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				funct
 	if (LastTimeCasted == 0 or LastTimeCasted > 1.5) and A.Zone ~= "pvp" and not A.IsInDuel then 
 		local Data = CombatTracker.Data
 		local GUID = UnitGUID("player")
-		-- Preventing issue with real damage 
-		if Data[GUID] and Data[GUID].RealDMG.LastHit_Done and TMW.time - Data[GUID].RealDMG.LastHit_Done < 1.5 then 
-			return 
-		end 
 		wipe(UnitTracker.Data)   		
 		--wipe(Data) -- this bring wrong real health 		
 	end 
