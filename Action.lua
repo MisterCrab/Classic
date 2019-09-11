@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "10.09.2019"
+local DateTime 						= "11.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -261,6 +261,7 @@ local Localization = {
 				USEDISPEL = "Use Dispel",
 				USEPURGE = "Use Purge",
 				USEEXPELENRAGE = "Expel Enrage",
+				USEEXPELFRENZY = "Expel Frenzy",
 				HEADTITLE = "[Global] Dispel | Purge | Enrage",
 				MODE = "Mode:",
 				CATEGORY = "Category:",
@@ -272,7 +273,7 @@ local Localization = {
 				PURGEFRIENDLY = "Purge friendly",
 				PURGEHIGH = "Purge enemy (high priority)",
 				PURGELOW = "Purge enemy (low priority)",
-				ENRAGE = "Expel Enrage",	
+				ENRAGE = "Expel Enrage",
 				ROLE = "Role",
 				ID = "ID",
 				NAME = "Name",
@@ -560,6 +561,7 @@ local Localization = {
 				USEDISPEL = "Использовать Диспел",
 				USEPURGE = "Использовать Пурж",
 				USEEXPELENRAGE = "Снимать Исступления",
+				USEEXPELFRENZY = "Снимать Бешенство",
 				HEADTITLE = "[Глобально] Диспел | Пурж | Исступление",	
 				MODE = "Режим:",
 				CATEGORY = "Категория:",
@@ -859,6 +861,7 @@ local Localization = {
 				USEDISPEL = "Benutze Dispel",
 				USEPURGE = "Benutze Purge",
 				USEEXPELENRAGE = "Entferne Enrage",
+				USEEXPELFRENZY = "Entferne Frenzy",
 				HEADTITLE = "[Global] Dispel | Purge | Enrage",
 				MODE = "Mode:",
 				CATEGORY = "Kategorie:",
@@ -1158,6 +1161,7 @@ local Localization = {
 				USEDISPEL = "Utiliser Dispel",
 				USEPURGE = "Utiliser Purge",
 				USEEXPELENRAGE = "Supprimer Enrage",
+				USEEXPELFRENZY = "Supprimer Frenzy",
 				HEADTITLE = "[Global] Dispel | Purge | Enrage",
 				MODE = "Mode:",
 				CATEGORY = "Catégorie:",
@@ -1457,6 +1461,7 @@ local Localization = {
 				USEDISPEL = "Usa Dissoluzione",
 				USEPURGE = "Usa Epurazione",
 				USEEXPELENRAGE = "Usa Enrage",
+				USEEXPELFRENZY = "Usa Frenzy",
 				HEADTITLE = "[Globale] Dissoluzione | Epurazione | Enrage",
 				MODE = "Modo:",
 				CATEGORY = "Categoria:",
@@ -1756,6 +1761,7 @@ local Localization = {
 				USEDISPEL = "Usar Dispel",
 				USEPURGE = "Usar Purga",
 				USEEXPELENRAGE = "Expel Enrague",
+				USEEXPELFRENZY = "Expel Frenzy",
 				HEADTITLE = "[Global] Dispel | Purga | Enrague",
 				MODE = "Modo:",
 				CATEGORY = "Categoría:",
@@ -2100,6 +2106,7 @@ local Factory = {
 		UseDispel = true,			
 		UsePurge = true,
 		UseExpelEnrage = true,
+		UseExpelFrenzy = true,
 		-- DispelPurgeEnrageRemap func will push needed keys here 
 	},
 	[6] = {
@@ -2167,17 +2174,223 @@ local GlobalFactory = {
 			},
 			PurgeLow = {
 			},
-			Poison = {     
+			Poison = {    
+				-- Aspect of Venoxis
+				[24688] = { dur = 1.5 },
+				-- Atal'ai Poison
+				[18949] = { dur = 1.5 },
+				-- Baneful Poison
+				[15475] = {},
+				-- Barbed Sting
+				[14534] = {},
+				-- Bloodpetal Poison
+				[14110] = {},
+				-- Bottle of Poison
+				[22335] = {},
+				-- Brood Affliction: Green
+				[23169] = {},
+				-- Copy of Poison Bolt Volley
+				[29169] = { enabled = false }, 
+				-- Corrosive Poison 
+				[13526] = {},
+				-- Corrosive Venom Spit
+				[20629] = { dur = 1.5 },
+				-- Creeper Venom
+				[14532] = {},
+				-- Deadly Leech Poison
+				[3388] = {},
+				-- Deadly Poison
+				[13582] = {},
+				-- Enervate
+				[22661] = {},
+				-- Entropic Sting
+				[23260] = {},
+				-- Festering Bites
+				[16460] = {},
+				-- Larva Goo
+				[21069] = {},
+				-- Lethal Toxin
+				[8256] = {},
+				-- Maggot Goo
+				[17197] = {},
+				-- Abomination Spit
+				[25262] = {},
+				-- Minor Scorpion Venom Effect
+				[5105] = {},
+				-- Poisonous Spit
+				[4286] = {},
+				-- Slow Poison
+				[3332] = {},
+				-- Slime Bolt
+				[28311] = {},
+				-- Seeping Willow
+				[17196] = {},
 			},
 			Disease = {
+				-- Rabies
+				[3150] = {},
+				-- Fevered Fatigue
+				[8139] = {},
+				-- Silithid Pox
+				[8137] = {},
+				-- Wandering Plague
+				[3439] = {},
+				-- Spirit Decay
+				[8016] = {},
+				-- Tetanus
+				[8014] = {},
+				-- Contagion of Rot
+				[7102] = {},
+				-- Volatile Infection
+				[3584] = {},
+				-- Mirkfallon Fungus
+				[8138] = {},
+				-- Infected Wound
+				[3427] = {},
+				-- Noxious Catalyst
+				[5413] = {},
+				-- Corrupted Agility
+				[6817] = {},
+				-- Irradiated
+				[9775] = {},
+				-- Infected Spine
+				[12245] = {},
+				-- Corrupted Stamina
+				[6819] = {},
+				-- Decayed Strength
+				[6951] = {},
+				-- Decayed Agility
+				[7901] = {},
+				-- Infected Bite
+				[16128] = {},
+				-- Plague Cloud
+				[3256] = {},
+				-- Plague Mind
+				[3429] = {},
+				-- Magenta Cap Sickness
+				[10136] = {},
+				-- Gift of Arthas
+				[11374] = {},
+				-- Festering Rash
+				[15848] = {},
+				-- Dark Plague
+				[18270] = {},
+				-- Fevered Plague
+				[8600] = {},
+				-- Rabid Maw
+				[4316] = {},
+				-- Brood Affliction: Red
+				[23155] = {},
+				-- Blight
+				[9796] = {},
+				-- Slime Dysentery
+				[16461] = {},
+				-- Creeping Mold
+				[18289] = {},
+				-- Weakening Disease
+				[18633] = {},
+				-- Putrid Breath
+				[21062] = {},
+				-- Dredge Sickness
+				[14535] = {},
+				-- Putrid Bite
+				[30113] = {},
+				-- Putrid Enzyme
+				[14539] = {},			
+				-- Black Rot
+				[16448] = {},
+				-- Cadaver Worms
+				[16143] = {},
+				-- Ghoul Plague
+				[16458] = {},
 			}, 
-			Curse = {			
+			Curse = {	
+				-- Molten Core: Lucifron's Curse
+				[19703] = {},
+				-- Molten Core: Gehennas' Curse 
+				-- Note: Tank should be prioritized 
+				[19716] = {},
+				-- Shazzrah's Curse
+				-- Note: Tank should be prioritized 
+				[19713] = {},
+				-- Shadowfang Keep: Veil of Shadow
+				[7068] = { dur = 1.5 },
+				-- Curse of Thorns
+				[6909] = {},
+				-- Wracking Pains
+				[13619] = {},
+				-- Curse of Stalvan
+				[13524] = {},
+				-- Curse of Blood
+				[16098] = {},
+				-- Curse of the Plague Rat
+				[17738] = {},
+				-- Discombobulate
+				[4060] = {},
+				-- Hex of Jammal'an
+				[12480] = {},
+				-- Shrink
+				[24054] = {},
+				-- Curse of the Firebrand
+				[16071] = {},
+				-- Enfeeble
+				[11963] = {},
+				-- Piercing Shadow
+				[16429] = {},
+				-- Rage of Thule
+				[3387] = {},
+				-- Mark of Kazzak
+				[21056] = {},
+				-- Curse of the Dreadmaul
+				[11960] = {},
+				-- Banshee Curse
+				[17105] = {},
+				-- Corrupted Fear
+				[21330] = {},
+				-- Curse of Impotence
+				[22371] = {},
+				-- Delusions of Jin'do
+				[24306] = {},
+				-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+				[16336] = {},
+				-- Tainted Mind
+				[16567] = {},
+				-- Ancient Hysteria
+				[19372] = {},
+				-- Breath of Sargeras
+				[28342] = {},
+				-- Curse of the Elemental Lord
+				[26977] = {},
+				-- Curse of Mending
+				[15730] = {},
+				-- Curse of the Darkmaster
+				[18702] = {},
 			},
-			Magic = {				
+			Magic = {	
+				-- Molten Core: Ignite Mana
+				[19659] = {},
+				-- Molten Core: Impending Doom
+				[19702] = { dur = 1.5 },
+				-- Molten Core: Panic
+				[19408] = {},			
+				-- Molten Core: Magma Splash
+				[13880] = { dur = 1.5 },
+				-- Firelords: Soul Burn
+				[19393] = {},
+				-- Ancient Despair
+				[19369] = {},
+				-- Dominate Mind
+				[20740] = {},
+				-- Immolate
+				[12742] = { dur = 2 },
+				-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+				[23952] = { dur = 2 },
 			}, 
 			Enrage = {
 			},
 			Frenzy = {
+				-- Frenzy 
+				[19451] = { dur = 1.5 },
 			},
 		},
 		PvP = {
@@ -2220,6 +2433,8 @@ local GlobalFactory = {
 				[3034] = { dur = 2 },
 				-- Hunter: Scorpid Sting
 				[3043] = { dur = 1.5 },
+				-- Rogue: Slow Poison
+				[3332] = {},
 			},
 			Disease = {
 			},
@@ -2424,74 +2639,50 @@ local function DispelPurgeEnrageRemap()
 				BlackList = Action.Data.Auras.PvE.BlackList,
 				Poison = Action.Data.Auras.PvE.Poison,
 				Curse = Action.Data.Auras.PvE.Curse,
-				--Magic = Action.Data.Auras.PvE.Magic,
-				--Disease = Action.Data.Auras.PvE.Disease,
-				--Enrage = Action.Data.Auras.PvE.Enrage,
 			},
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
 				Poison = Action.Data.Auras.PvP.Poison,
 				Curse = Action.Data.Auras.PvP.Curse,
-				--Magic = Action.Data.Auras.PvP.Magic,
-				--Disease = Action.Data.Auras.PvP.Disease,
-				--Enrage = Action.Data.Auras.PvP.Enrage,
 			},
 		},
 		["MAGE"] = {
 			PvE = {
 				BlackList = Action.Data.Auras.PvE.BlackList,
-				--Poison = Action.Data.Auras.PvE.Poison,
 				Curse = Action.Data.Auras.PvE.Curse,
-				--Magic = Action.Data.Auras.PvE.Magic,
-				--Disease = Action.Data.Auras.PvE.Disease,
-				--Enrage = Action.Data.Auras.PvE.Enrage,
 			},
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
-				--Poison = Action.Data.Auras.PvP.Poison,
 				Curse = Action.Data.Auras.PvP.Curse,
-				--Magic = Action.Data.Auras.PvP.Magic,
-				--Disease = Action.Data.Auras.PvP.Disease,
-				--Enrage = Action.Data.Auras.PvP.Enrage,
 			},
 		},
 		["PALADIN"] = {
 			PvE = {
 				BlackList = Action.Data.Auras.PvE.BlackList,
 				Poison = Action.Data.Auras.PvE.Poison,
-				--Curse = Action.Data.Auras.PvE.Curse,
 				Magic = Action.Data.Auras.PvE.Magic,
 				Disease = Action.Data.Auras.PvE.Disease,
-				--Enrage = Action.Data.Auras.PvE.Enrage,
 			},
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
 				Poison = Action.Data.Auras.PvP.Poison,
-				--Curse = Action.Data.Auras.PvP.Curse,
 				Magic = Action.Data.Auras.PvP.Magic,
 				Disease = Action.Data.Auras.PvP.Disease,
-				--Enrage = Action.Data.Auras.PvP.Enrage,
 			},
 		},
 		["PRIEST"] = {
 			PvE = {
 				BlackList = Action.Data.Auras.PvE.BlackList,
-				--Poison = Action.Data.Auras.PvE.Poison,
-				--Curse = Action.Data.Auras.PvE.Curse,
 				Magic = Action.Data.Auras.PvE.Magic,
 				Disease = Action.Data.Auras.PvE.Disease,
-				--Enrage = Action.Data.Auras.PvE.Enrage,
 				PurgeFriendly = Action.Data.Auras.PvE.PurgeFriendly,
 				PurgeHigh = Action.Data.Auras.PvE.PurgeHigh,
 				PurgeLow = Action.Data.Auras.PvE.PurgeLow,				
 			},
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
-				--Poison = Action.Data.Auras.PvP.Poison,
-				--Curse = Action.Data.Auras.PvP.Curse,
 				Magic = Action.Data.Auras.PvP.Magic,
 				Disease = Action.Data.Auras.PvP.Disease,
-				--Enrage = Action.Data.Auras.PvP.Enrage,
 				PurgeFriendly = Action.Data.Auras.PvP.PurgeFriendly,
 				PurgeHigh = Action.Data.Auras.PvP.PurgeHigh,
 				PurgeLow = Action.Data.Auras.PvP.PurgeLow,
@@ -2501,10 +2692,7 @@ local function DispelPurgeEnrageRemap()
 			PvE = {
 				BlackList = Action.Data.Auras.PvE.BlackList,
 				Poison = Action.Data.Auras.PvE.Poison,
-				--Curse = Action.Data.Auras.PvE.Curse,
-				--Magic = Action.Data.Auras.PvE.Magic,
 				Disease = Action.Data.Auras.PvE.Disease,
-				--Enrage = Action.Data.Auras.PvE.Enrage,
 				PurgeFriendly = Action.Data.Auras.PvE.PurgeFriendly,
 				PurgeHigh = Action.Data.Auras.PvE.PurgeHigh,
 				PurgeLow = Action.Data.Auras.PvE.PurgeLow,				
@@ -2512,10 +2700,7 @@ local function DispelPurgeEnrageRemap()
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
 				Poison = Action.Data.Auras.PvP.Poison,
-				--Curse = Action.Data.Auras.PvP.Curse,
-				--Magic = Action.Data.Auras.PvP.Magic,
 				Disease = Action.Data.Auras.PvP.Disease,
-				--Enrage = Action.Data.Auras.PvP.Enrage,
 				PurgeFriendly = Action.Data.Auras.PvP.PurgeFriendly,
 				PurgeHigh = Action.Data.Auras.PvP.PurgeHigh,
 				PurgeLow = Action.Data.Auras.PvP.PurgeLow,
@@ -2548,7 +2733,7 @@ local function DispelPurgeEnrageRemap()
 	}
 
 	if UnitAuras[Action.PlayerClass] then 
-		Action.Data.Auras.DisableCheckboxes = { UseDispel = true, UsePurge = true, UseExpelEnrage = true }
+		Action.Data.Auras.DisableCheckboxes = { UseDispel = true, UsePurge = true, UseExpelEnrage = true, UseExpelFrenzy = true }
 		for Mode, Mode_v in pairs(UnitAuras[Action.PlayerClass]) do 
 			for Category, Category_v in pairs(Mode_v) do 
 				if not TMW.db.profile.ActionDB[5][Mode] then 
@@ -2565,8 +2750,10 @@ local function DispelPurgeEnrageRemap()
 					Action.Data.Auras.DisableCheckboxes.UseDispel = false 
 				elseif Category:match("Purge") then 
 					Action.Data.Auras.DisableCheckboxes.UsePurge = false 
-				elseif Category:match("Enrage") or Category:match("Frenzy") then 	
+				elseif Category:match("Enrage") then 
 					Action.Data.Auras.DisableCheckboxes.UseExpelEnrage = false 
+				elseif Category:match("Frenzy") then 	
+					Action.Data.Auras.DisableCheckboxes.UseExpelFrenzy = false 
 				end		
 			end 	
 		end
@@ -2581,6 +2768,7 @@ local function DispelPurgeEnrageRemap()
 		TMW.db.profile.ActionDB[5].UseDispel = false 
 		TMW.db.profile.ActionDB[5].UsePurge = false 
 		TMW.db.profile.ActionDB[5].UseExpelEnrage = false
+		TMW.db.profile.ActionDB[5].UseExpelFrenzy = false
 	end 		
 end
 
@@ -4176,7 +4364,7 @@ function Action.InterruptIsValid(unitID, list, ignoreToggle)
 end 
 
 -- [5] Auras
--- Note: Toggles  ("UseDispel", "UsePurge", "UseExpelEnrage")  
+-- Note: Toggles  ("UseDispel", "UsePurge", "UseExpelEnrage", "UseExpelFrenzy")  
 --		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList")				
 function Action.AuraIsON(Toggle)
 	-- @return boolean 
@@ -7065,14 +7253,15 @@ function Action.ToggleMainUI()
 			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])							
 			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 10 } })
 			
-			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 50, L["TAB"][tab.name]["USETITLE"])
+			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 60, L["TAB"][tab.name]["USETITLE"])
 			UsePanel.titlePanel.label:SetFontSize(14)
 			UsePanel.titlePanel.label:SetTextColor(UI_Title:GetTextColor())
 			StdUi:GlueTop(UsePanel.titlePanel, UsePanel, 0, -5)
 			StdUi:EasyLayout(UsePanel, { gutter = 0, padding = { top = UsePanel.titlePanel.label:GetHeight() + 10 } })			
-			local UseDispel = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEDISPEL"])
-			local UsePurge = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEPURGE"])	
-			local UseExpelEnrage = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEEXPELENRAGE"])
+			local UseDispel = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEDISPEL"], 30)
+			local UsePurge = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEPURGE"], 30)	
+			local UseExpelEnrage = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEEXPELENRAGE"], 30)
+			local UseExpelFrenzy = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEEXPELFRENZY"], 30)
 			local Mode = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), Action.Data.theme.dd.height, {				
 				{ text = "PvE", value = "PvE" },				
 				{ text = "PvP", value = "PvP" },
@@ -7087,7 +7276,8 @@ function Action.ToggleMainUI()
 				{ text = L["TAB"][tab.name]["PURGEFRIENDLY"], value = "PurgeFriendly" },
 				{ text = L["TAB"][tab.name]["PURGEHIGH"], value = "PurgeHigh" },				
 				{ text = L["TAB"][tab.name]["PURGELOW"], value = "PurgeLow" },
-				{ text = L["TAB"][tab.name]["ENRAGE"], value = "Enrage" },				
+				{ text = L["TAB"][tab.name]["ENRAGE"], value = "Enrage" },
+				{ text = L["TAB"][tab.name]["USEEXPELFRENZY"], value = "Frenzy" },				
 			}, "Magic")	
 			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 140, L["TAB"][tab.name]["CONFIGPANEL"])	
 			ConfigPanel.titlePanel.label:SetFontSize(14)
@@ -7344,6 +7534,26 @@ function Action.ToggleMainUI()
 				UseExpelEnrage:Disable()
 			end 
 			
+			UseExpelFrenzy:SetChecked(TMW.db.profile.ActionDB[tab.name].UseExpelFrenzy)
+			UseExpelFrenzy:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			UseExpelFrenzy:SetScript("OnClick", function(self, button, down)	
+				ClearAllEditBox()
+				if not self.isDisabled then 
+					if button == "LeftButton" then 
+						TMW.db.profile.ActionDB[tab.name].UseExpelFrenzy = not TMW.db.profile.ActionDB[tab.name].UseExpelFrenzy
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].UseExpelFrenzy)	
+						Action.Print(L["TAB"][tab.name]["USEEXPELFRENZY"] .. ": ", TMW.db.profile.ActionDB[tab.name].UseExpelFrenzy)	
+					elseif button == "RightButton" then 
+						CraftMacro(L["TAB"][tab.name]["USEEXPELFRENZY"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseExpelFrenzy", "]] .. L["TAB"][tab.name]["USEEXPELFRENZY"] .. [[: "})]])	
+					end 
+				end
+			end)
+			UseExpelFrenzy.Identify = { Type = "Checkbox", Toggle = "UseExpelFrenzy" }	
+			StdUi:FrameTooltip(UseExpelFrenzy, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)	
+			if not Action.Data.Auras.DisableCheckboxes or Action.Data.Auras.DisableCheckboxes.UseExpelFrenzy then 
+				UseExpelFrenzy:Disable()
+			end 
+			
 			Mode.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end	
@@ -7520,10 +7730,10 @@ function Action.ToggleMainUI()
             StdUi:FrameTooltip(Remove, L["TAB"][4]["REMOVETOOLTIP"], nil, "TOPLEFT", true)							          
 				
 			tab.childs[spec]:AddRow({ margin = { top = -4, left = -15, right = -15 } }):AddElement(UsePanel)	
-			UsePanel:AddRow():AddElements(UseDispel, UsePurge, UseExpelEnrage, { column = "even" })
+			UsePanel:AddRow({ margin = { top = 5 } }):AddElements(UseDispel, UsePurge, UseExpelEnrage, UseExpelFrenzy, { column = "even" })	
 			UsePanel:DoLayout()	
-			tab.childs[spec]:AddRow({ margin = { top = -5 } }):AddElement(UI_Title)			
-			tab.childs[spec]:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
+			tab.childs[spec]:AddRow({ margin = { top = -10 } }):AddElement(UI_Title)			
+			tab.childs[spec]:AddRow({ margin = { top = 0, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
 			tab.childs[spec]:AddRow({ margin = { top = 18, left = -15, right = -15 } }):AddElement(ScrollTable)
 			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)
 			ConfigPanel:AddRow():AddElements(Role, Duration, Stack, { column = "even" })						
