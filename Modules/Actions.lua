@@ -496,6 +496,27 @@ function A:GetSpellMaxRank()
 	return 1
 end 
 
+function A.DetermineHealRank(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
+	-- @return object or nil 
+	-- Note: :PredictHeal(unitID) must be only ! Use self.ID inside to determine by that which spell is it 
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) and object:PredictHeal(unitID) then 
+			return object
+		end 
+	end 
+end 
+
+function A.DetermineUsableRank(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
+	-- @return object or nil 
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) then 
+			return object
+		end 
+	end 
+end 
+
 -------------------------------------------------------------------------------
 -- Racial (template)
 -------------------------------------------------------------------------------	 

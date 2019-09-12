@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "11.09.2019"
+local DateTime 						= "12.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -2413,6 +2413,8 @@ local GlobalFactory = {
 				[11129] = { dur = 4 },
 				-- Mage: Arcane Power
 				[12042] = { dur = 4 },
+				-- Priest (Human): Feedback
+				[13896] = { dur = 1.5 },
 			},
 			PurgeLow = {
 				-- Paladin: Blessing of Freedom  
@@ -2791,7 +2793,7 @@ end
 ConvertSpellNameToID = TMW:MakeSingleArgFunctionCached(ConvertSpellNameToID)
 local function GetTableKeyIdentify(action)
 	-- Using to link key in TMW.db.profile.ActionDB.disabledActions
-	return strElemBuilder(nil, action.SubType, action.ID, action.Desc, action.Color)
+	return strElemBuilder(nil, action.SubType, action.ID, action.isRank, action.Desc, action.Color)
 end
 local function ShowTooltip(parent, show, ID, Type)
 	if show then
