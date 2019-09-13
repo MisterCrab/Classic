@@ -79,6 +79,9 @@ local Data = {
 	IsShoot = GetSpellInfo(5019),
 	-- Attack
 	AttackActive = false,	
+	-- Behind
+	PlayerBehind = 0,
+	PetBehind = 0,
 	-- Items 
 	CheckItems 	= {},	
 	CountItems 	= {},		
@@ -124,6 +127,17 @@ function Data.logAttackOFF()
 	Data.AttackActive = false 
 end 
 
+function Data.logBehind(...)
+	local message = ...
+	if message == SPELL_FAILED_NOT_BEHIND then 
+		Data.PlayerBehind = TMW.time + 2.5
+	end 
+	
+	if message == ERR_PET_SPELL_NOT_BEHIND then 
+		Data.PetBehind = TMW.time + 2.5
+	end 
+end 
+
 A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STARTED_MOVING", function()
 	if Data.TimeStampMoving ~= TMW.time then 
 		Data.TimeStampMoving = TMW.time 
@@ -146,6 +160,7 @@ A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "UNIT_SPELLCAST_SUCCEEDED",	Data.upd
 A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTER_COMBAT", 	Data.logAttackON)
 A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_LEAVE_COMBAT", 	Data.logAttackOFF)
 A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTERING_WORLD", 	Data.logAttackOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "UI_ERROR_MESSAGE", 		Data.logBehind)
 
 A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 	Data.UpdateStance)
 A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 	Data.UpdateStance)
@@ -247,6 +262,16 @@ end
 function A.Player:IsAttacking()
 	-- @return boolean 
 	return Data.AttackActive
+end 
+
+function A.Player:IsBehind()
+	-- @return boolean 
+	return TMW.time > Data.PlayerBehind
+end 
+
+function A.Player:IsPetBehind()
+	-- @return boolean 
+	return TMW.time > Data.PetBehind
 end 
 
 function A.Player:IsMounted()
