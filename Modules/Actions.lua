@@ -796,9 +796,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 			not self:IsBlockedBySpellRank() and 
 			( not self.isTalent or self:IsSpellLearned() ) and 
 			self:IsUsable(nil, skipUsable) and 
-			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) ) and 
-			-- 8.2 Queen Court - Repeat Performance (DeBuff) // 2164 is The Eternal Palace   
-			( A.InstanceInfo.ID ~= 2164 or Unit("player"):HasDeBuffs(301244) == 0 or (A.LastPlayerCastName ~= self:Info() and Player:CastRemains(self.ID) == 0) )
+			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
 		then 
 			return true 				
 		end 
@@ -857,6 +855,13 @@ function A:IsReadyM(unitID, skipRange, skipUsable)
 		unitID = nil 
 	end 
     return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable)
+end 
+
+function A:IsReadyToUse(skipShouldStop, skipUsable)
+	-- @return boolean 
+	return 	not self:IsBlocked() and 
+			not self:IsBlockedByQueue() and 
+			self:IsCastable(nil, true, skipShouldStop, nil, skipUsable)
 end 
 
 -------------------------------------------------------------------------------

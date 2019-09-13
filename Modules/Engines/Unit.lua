@@ -818,8 +818,8 @@ A.Unit = PseudoClass({
 				Info.CacheMoveIn[GUID].Result = true 
 				return true 
 			else
-				if Info.CacheMoveOut[GUID].Snapshot < 0 then 
-					Info.CacheMoveOut[GUID].Snapshot = 0 
+				if Info.CacheMoveIn[GUID].Snapshot < 0 then 
+					Info.CacheMoveIn[GUID].Snapshot = 0 
 				end 			
 				Info.CacheMoveIn[GUID].Result = false
 				return false 
@@ -992,9 +992,9 @@ A.Unit = PseudoClass({
 		]]
 		local unitID 						= self.UnitID 
 		if not A.IsInPvP then 
-			return not A.Unit(unitID):IsBoss() and Info.ControlAbleClassification[A.Unit(unitID):Classification()] and A.Unit(unitID):GetDR(drCat) > (drDiminishing or 25)
+			return not A.Unit(unitID):IsBoss() and Info.ControlAbleClassification[A.Unit(unitID):Classification()] and (not drCat or A.Unit(unitID):GetDR(drCat) > (drDiminishing or 25))
 		else 
-			return A.Unit(unitID):GetDR(drCat) > (drDiminishing or 25)
+			return not drCat or A.Unit(unitID):GetDR(drCat) > (drDiminishing or 25)
 		end 
 	end, "UnitID"),
 	IsUndead								= Cache:Pass(function(self)

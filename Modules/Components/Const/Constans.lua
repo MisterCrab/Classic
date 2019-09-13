@@ -9,8 +9,8 @@ ACTION_CONST_CACHE_MEM_DRIVE									= false			-- On own risk, it will unlock re
 ACTION_CONST_CACHE_DEFAULT_TIMER 								= 0.01			-- "Tools.lua" offset on cache control 
 ACTION_CONST_CACHE_DEFAULT_TIMER_UNIT							= 0.005			-- "Unit.lua" offset on cache control 
 ACTION_CONST_CACHE_DEFAULT_TIMER_MULTIUNIT_CLEU					= 0.004
-ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE				= 40			-- Live: 60, Classic: 20 but exponense seems can be 40
-ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE_VALIDANCE		= "4e1"
+ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE				= 20			-- Live: 60, Classic: 20 but exponense seems can be 40
+ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE_VALIDANCE		= 20 -- "4e1"
 ACTION_CONST_CACHE_DEFAULT_OFFSET_DUEL							= 2.9			-- Delay until duel starts after event trigger
 
 -- Textures

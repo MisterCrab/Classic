@@ -773,7 +773,7 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNI
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function()
 	if A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)
-		-- Reset only when solo because if it make reset while grouped it will wipe real health which wil lcause trouble to predict healing 
+		-- Reset only when solo because if it make reset while grouped it will wipe real health which will cause trouble to predict healing 
 		if not TeamCache.Friendly.Type then 
 			wipe(CombatTracker.Data)
 		end 
