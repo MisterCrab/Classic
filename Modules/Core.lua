@@ -224,7 +224,7 @@ function A.Rotation(icon)
 	-- [3] Single / [4] AoE: AutoAttack
 	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() then 
 		useShoot = IsShoot(unit)
-		if not useShoot and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
+		if not useShoot and unit ~= "targettarget" and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
 			if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
 				return A:Show(icon, ACTION_CONST_AUTOSHOOT)

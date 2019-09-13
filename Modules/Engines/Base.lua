@@ -283,7 +283,7 @@ local function OnEvent(event, ...)
 		end		
 	end 
 	
-	if event == "PLAYER_ENTERING_WORLD" or "PLAYER_ENTERING_BATTLEGROUND" then 
+	if event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ENTERING_BATTLEGROUND" then 
 		TMW:Fire("TMW_ACTION_ENTERING") 		-- callback is used in Combat.lua to refresh and prepare unitGUID for deprecated official API on UnitHealth and UnitHealthMax
 	end 
 	

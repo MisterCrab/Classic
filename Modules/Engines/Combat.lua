@@ -17,6 +17,8 @@ local strElemBuilder							= A.strElemBuilder
 local TeamCache									= A.TeamCache
 local DRData 									= LibStub("DRList-1.1")
 
+local huge 										= math.huge 
+
 local _G, type, pairs, table, wipe, bitband  	= 
 	  _G, type, pairs, table, wipe, bit.band
 
@@ -52,11 +54,6 @@ local CombatTracker 							= {
 	AddToData 								= function(self, GUID)
 		if not self.Data[GUID] then
 			self.Data[GUID] 				= {
-				-- Classic: RealUnitHealth 
-				RealUnitHealth				= {
-					DamageTaken 			= 0,
-					CachedHealthMax			= 0,
-				},
 				-- RealTime Damage 
 				RealDMG 					= { 
 					-- Damage Taken
@@ -119,9 +116,13 @@ local CombatTracker 							= {
 	end,
 }
 
--- Classic: RealUnitHealth, this is cache to be sure what first hit received by unit which was at full hp 
--- This table is used to know which unit had full hp before get first hit 
-local isHealthWasMaxOnGUID = {}
+-- Classic: RealUnitHealth
+local RealUnitHealth 			= {
+	DamageTaken					= {},	-- log damage and healing taken (includes regen as healing only if can be received by events which provide unitID)
+	CachedHealthMax				= {},	-- used to display only when unit received damage 
+	CachedHealthMaxTemprorary 	= {},	-- used if need to display something and nothing above is not working 
+	isHealthWasMaxOnGUID 		= {},	-- used to determine state from which substract recorded taken damage 
+}
 
 local function logDefaultGUIDatMaxHealth()
 	if TeamCache.Friendly.Size > 0 then
@@ -139,52 +140,51 @@ end
 
 local function logDefaultGUIDatMaxHealthTarget()
 	CombatTracker.logHealthMax("target")
+	CombatTracker.logHealthMax("targettarget")
 end 
 
 local function logDefaultGUIDatMaxHealthMouseover()
 	CombatTracker.logHealthMax("mouseover")
+	CombatTracker.logHealthMax("mouseovertarget")
 end 
 
 --[[ This Logs the UnitHealthMax (Real) for every unit ]]
 CombatTracker.logHealthMax						= function(...)
-	local unitID = ...
-	-- For these units no reason to record log 
-	if UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") then 
+	local unitID 	= ...
+	local GUID 		= UnitGUID(unitID)
+	if not GUID or UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") then 
 		return 
 	end 
-	
-	local GUID = UnitGUID(unitID)
-	if not GUID then 
-		return 
-	end 
-	
-	local Data = CombatTracker.Data
-	if Data[GUID] and not UnitAffectingCombat(unitID) then 
-		Data[GUID] = nil 
-	end 
-	
+
 	local curr_hp, max_hp
-	if not isHealthWasMaxOnGUID[GUID] and (not Data[GUID] or Data[GUID].RealUnitHealth.CachedHealthMax == 0) then 
+	if not RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 
 		curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 		if curr_hp == max_hp then 			
 			-- Reset summary damage log to accurate calculate real health 
-			if Data[GUID] then 
-				Data[GUID].RealUnitHealth.DamageTaken = 0			
-			end 
-			isHealthWasMaxOnGUID[GUID] = true 
-			return 
+			RealUnitHealth.DamageTaken[GUID] = 0 
+			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 		
+			RealUnitHealth.CachedHealthMax[GUID] = nil 
 		end 
-	end 
-	
-	if isHealthWasMaxOnGUID[GUID] and Data[GUID] and Data[GUID].RealUnitHealth.CachedHealthMax == 0 and Data[GUID].RealUnitHealth.DamageTaken > 0 then 
-		curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)		
+	elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+		curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)	
 		
 		if curr_hp ~= max_hp then 
-			Data[GUID].RealUnitHealth.CachedHealthMax = Data[GUID].RealUnitHealth.DamageTaken / (1 - (curr_hp / max_hp))	
-			-- Reset pre saved since we cached this value due required interval before next wipe for Data 
-			isHealthWasMaxOnGUID[GUID] = nil 				
-		end 						
+			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))	
+			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
+			-- Reset pre saved since we cached this value due required interval
+			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 				
+		end 	
 	end 
+end 
+
+--[[ ENVIRONMENTAL ]] 
+CombatTracker.logEnvironmentalDamage			= function(...)
+	local Data = CombatTracker.Data	
+	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags, _,_, Amount = CombatLogGetCurrentEventInfo()
+	-- Classic: RealUnitHealth log taken
+	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount
+	-- Taken 
+	Data[DestGUID].DMG.dmgTaken = Data[DestGUID].DMG.dmgTaken + Amount
 end 
 
 --[[ This Logs the damage for every unit ]]
@@ -192,7 +192,7 @@ CombatTracker.logDamage 						= function(...)
 	local Data = CombatTracker.Data	
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, spellID, spellName, school, Amount = CombatLogGetCurrentEventInfo()	
 	-- Classic: RealUnitHealth log taken
-	Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
+	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount
 	-- Update last hit time
 	-- Taken 
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
@@ -282,7 +282,7 @@ CombatTracker.logSwing 							= function(...)
 	local Data 							= CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, Amount = CombatLogGetCurrentEventInfo()
 	-- Classic: RealUnitHealth log taken
-	Data[DestGUID].RealUnitHealth.DamageTaken = Data[DestGUID].RealUnitHealth.DamageTaken + Amount
+	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount
 	-- Update last  hit time
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
@@ -325,11 +325,11 @@ CombatTracker.logHealing			 			= function(...)
 	local Data = CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, spellID, spellName, _, Amount = CombatLogGetCurrentEventInfo()
 	-- Classic: RealUnitHealth log taken
-	local compare = Data[DestGUID].RealUnitHealth.DamageTaken - Amount
+	local compare = (RealUnitHealth.DamageTaken[DestGUID] or 0) - Amount
 	if compare <= 0 then 
-		Data[DestGUID].RealUnitHealth.DamageTaken = 0
+		RealUnitHealth.DamageTaken[DestGUID] = 0
 	else 
-		Data[DestGUID].RealUnitHealth.DamageTaken = compare
+		RealUnitHealth.DamageTaken[DestGUID] = compare
 	end 
 	-- Update last  hit time
 	-- Taken 
@@ -447,9 +447,14 @@ end
 
 --[[ This Logs the reset on death for every unit ]]
 CombatTracker.logDied							= function(...)
-	local _,_,_,_,_,_,_, DestGUID = CombatLogGetCurrentEventInfo()
-	CombatTracker.Data[DestGUID] 	= nil
-	isHealthWasMaxOnGUID[DestGUID] 	= nil
+	local _,_,_,_,_,_,_, DestGUID, _, destFlags = CombatLogGetCurrentEventInfo()
+	CombatTracker.Data[DestGUID] 					= nil
+	RealUnitHealth.DamageTaken[DestGUID]			= nil 
+	RealUnitHealth.CachedHealthMax[DestGUID] 		= nil
+	RealUnitHealth.isHealthWasMaxOnGUID[DestGUID] 	= nil
+	if not isPlayer(destFlags) then 
+		RealUnitHealth.CachedHealthMaxTemprorary[DestGUID] = nil 
+	end 
 end	
 
 --[[ This Logs the DR (Diminishing) ]]
@@ -503,19 +508,22 @@ end
 CombatTracker.OnEventCLEU 						= {
 	["SPELL_DAMAGE"] 						= CombatTracker.logDamage,
 	["DAMAGE_SHIELD"] 						= CombatTracker.logDamage,
+	--["DAMAGE_SPLIT"]						= CombatTracker.logDamage,
 	["SPELL_PERIODIC_DAMAGE"] 				= CombatTracker.logDamage,
 	["SPELL_BUILDING_DAMAGE"] 				= CombatTracker.logDamage,
 	["RANGE_DAMAGE"] 						= CombatTracker.logDamage,
 	["SWING_DAMAGE"] 						= CombatTracker.logSwing,
+	["ENVIRONMENTAL_DAMAGE"]				= CombatTracker.logEnvironmentalDamage,
 	["SPELL_HEAL"] 							= CombatTracker.logHealing,
 	["SPELL_PERIODIC_HEAL"] 				= CombatTracker.logHealing,
 	["SPELL_AURA_APPLIED"] 					= CombatTracker.logAbsorb,   
 	["SPELL_AURA_REFRESH"] 					= CombatTracker.logAbsorb, 
-	--["SPELL_ABSORBED"] 						= CombatTracker.logUpdateAbsorb,  -- TODO: Is broken wowpedia tip for args? Why 15th arg amount is a string type??
+	--["SPELL_ABSORBED"] 					= CombatTracker.logUpdateAbsorb,  -- TODO: Is broken wowpedia tip for args? Why 15th arg amount is a string type??
 	["SPELL_AURA_REMOVED"] 					= CombatTracker.remove_logAbsorb,  
 	["SPELL_CAST_SUCCESS"] 					= CombatTracker.logLastCast,
 	["UNIT_DIED"] 							= CombatTracker.logDied,
 	["UNIT_DESTROYED"]						= CombatTracker.logDied,
+	["UNIT_DISSIPATES"]						= CombatTracker.logDied,
 }
 
 CombatTracker.OnEventDR							= {
@@ -756,7 +764,10 @@ TMW:RegisterCallback("TMW_ACTION_ENTERING",											function()
 	if skipedFirstEnter then 
 		wipe(UnitTracker.Data)
 		wipe(CombatTracker.Data)
-		wipe(isHealthWasMaxOnGUID)
+		wipe(RealUnitHealth.DamageTaken)
+		wipe(RealUnitHealth.CachedHealthMax)
+		wipe(RealUnitHealth.isHealthWasMaxOnGUID)
+		wipe(RealUnitHealth.CachedHealthMaxTemprorary)
 	else 
 		skipedFirstEnter = true 
 	end 
@@ -766,27 +777,21 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_TARGET_CHANGED",				logDef
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UPDATE_MOUSEOVER_UNIT",				logDefaultGUIDatMaxHealthMouseover	)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "NAME_PLATE_UNIT_ADDED",				CombatTracker.logHealthMax			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_HEALTH",						CombatTracker.logHealthMax			)
-A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_HEALTH_FREQUENT",				CombatTracker.logHealthMax			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_MAXHEALTH",						CombatTracker.logHealthMax			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "COMBAT_LOG_EVENT_UNFILTERED", 		COMBAT_LOG_EVENT_UNFILTERED			) 
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNIT_SPELLCAST_SUCCEEDED			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function()
 	if A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)
-		-- Reset only when solo because if it make reset while grouped it will wipe real health which will cause trouble to predict healing 
-		if not TeamCache.Friendly.Type then 
-			wipe(CombatTracker.Data)
-		end 
+		wipe(CombatTracker.Data)		
 	end 
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				function()
 	-- Need leave slow delay to prevent reset Data which was recorded before combat began for flyout spells, otherwise it will cause a bug
-	local LastTimeCasted = A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastID) 
+	local LastTimeCasted = A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) 
 	if (LastTimeCasted == 0 or LastTimeCasted > 1.5) and A.Zone ~= "pvp" and not A.IsInDuel then 
-		local Data = CombatTracker.Data
-		local GUID = UnitGUID("player")
 		wipe(UnitTracker.Data)   		
-		--wipe(Data) -- this bring wrong real health 		
+		wipe(CombatTracker.Data) 		
 	end 
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "LOSS_OF_CONTROL_UPDATE", 			LossOfControl.OnEvent			)
@@ -806,19 +811,19 @@ A.CombatTracker									= {
 		end 
 			
 		local GUID = UnitGUID(unitID)
-		if CombatTracker.Data[GUID] then 
-			-- If cache was fine recorded 
-			if CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax > 0 then 
-				return CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax 
-			-- Otherwise get real math which can be not really accurate
-			elseif CombatTracker.Data[GUID].RealUnitHealth.DamageTaken > 0 then 
-				local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-				local curr_value = CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp)
-				if curr_value > 0 then 
-					return curr_value
-				end 
+		
+		if RealUnitHealth.CachedHealthMax[GUID] then 
+			return RealUnitHealth.CachedHealthMax[GUID]
+		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then
+			local curr_hp, max_hp 	= UnitHealth(unitID), UnitHealthMax(unitID)
+			local curr_value 		= RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))	
+			if curr_value > 0 then 
+				return curr_value
 			end 
+		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
+			return RealUnitHealth.CachedHealthMaxTemprorary[GUID]
 		end 
+
 		return 0 
 	end,
 	--[[ Returns the real unit health ]]
@@ -831,19 +836,26 @@ A.CombatTracker									= {
 		end 
 		
 		local GUID = UnitGUID(unitID)
-		if CombatTracker.Data[GUID] then 
-			-- If cache was fine recorded 
-			if CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax > 0 then 
-				return CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax - CombatTracker.Data[GUID].RealUnitHealth.DamageTaken + 1
-			-- Otherwise get real math which can be not really accurate
-			elseif CombatTracker.Data[GUID].RealUnitHealth.DamageTaken > 0 then 
-				local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-				local curr_value = (CombatTracker.Data[GUID].RealUnitHealth.DamageTaken * max_hp / (max_hp - curr_hp)) - CombatTracker.Data[GUID].RealUnitHealth.DamageTaken + 1
-				if curr_value > 0 then 
-					return curr_value
-				end 
+		if RealUnitHealth.CachedHealthMax[GUID] then 
+			return RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] + 1
+			-- Way which more accurate (in case if CLEU missed something in damage / healing log) but required more performance 
+			--return UnitHealth(unitID) * RealUnitHealth.CachedHealthMax[GUID] / UnitHealthMax(unitID)
+		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
+			local curr_value = (RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)) - RealUnitHealth.DamageTaken[GUID] + 1
+			if curr_value > 0 then 
+				return curr_value
+			end 
+		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
+			local compare = UnitHealth(unitID) * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / UnitHealthMax(unitID)
+			-- inf fix issue
+			if compare == huge then 
+				return RealUnitHealth.CachedHealthMaxTemprorary[GUID]
+			else 
+				return compare 
 			end 
 		end 
+		
 		return 0 
 	end,
 	--[[ Returns the total ammount of time a unit is in-combat for ]]
