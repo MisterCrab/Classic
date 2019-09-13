@@ -818,7 +818,7 @@ A.CombatTracker									= {
 			local curr_hp, max_hp 	= UnitHealth(unitID), UnitHealthMax(unitID)
 			local curr_value 		= RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))	
 			if curr_value > 0 then 
-				return curr_value
+				return curr_value == huge and 0 or curr_value				
 			end 
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
 			return RealUnitHealth.CachedHealthMaxTemprorary[GUID]
@@ -844,16 +844,11 @@ A.CombatTracker									= {
 			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 			local curr_value = (RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)) - RealUnitHealth.DamageTaken[GUID] + 1
 			if curr_value > 0 then 
-				return curr_value
+				return curr_value == huge and 0 or curr_value				
 			end 
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
 			local compare = UnitHealth(unitID) * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / UnitHealthMax(unitID)
-			-- inf fix issue
-			if compare == huge then 
-				return RealUnitHealth.CachedHealthMaxTemprorary[GUID]
-			else 
-				return compare 
-			end 
+			return compare == huge and 0 or compare 
 		end 
 		
 		return 0 
