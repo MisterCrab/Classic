@@ -119,8 +119,9 @@ local CombatTracker 							= {
 -- Classic: RealUnitHealth
 local RealUnitHealth 			= {
 	DamageTaken					= {},	-- log damage and healing taken (includes regen as healing only if can be received by events which provide unitID)
-	CachedHealthMax				= {},	-- used to display only when unit received damage 
-	CachedHealthMaxTemprorary 	= {},	-- used if need to display something and nothing above is not working 
+	CachedHealthMax				= {},	-- used to display when unit received damage at pre pared full health 
+	CachedHealthMaxTemprorary 	= {},	-- used to display when unit received damage at any health percentage 
+	SavedHealthPercent			= {},	-- used for post out 
 	isHealthWasMaxOnGUID 		= {},	-- used to determine state from which substract recorded taken damage 
 }
 
@@ -156,25 +157,83 @@ CombatTracker.logHealthMax						= function(...)
 		return 
 	end 
 
-	local curr_hp, max_hp
+	local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
+	if RealUnitHealth.DamageTaken[GUID] ~= 0 and not UnitAffectingCombat(unitID) then 
+		-- Additional out of combat reset
+		RealUnitHealth.DamageTaken[GUID] = 0  
+		RealUnitHealth.CachedHealthMax[GUID] = nil 
+		RealUnitHealth.SavedHealthPercent[GUID] = nil 
+		RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 		
+		--print("Wipe: ", UnitName(unitID)) 		
+	end 
+	
+	if curr_hp == max_hp then 			
+		-- Reset summary damage log to accurate calculate real health 
+		RealUnitHealth.DamageTaken[GUID] = 0 	
+		RealUnitHealth.CachedHealthMax[GUID] = nil 
+		RealUnitHealth.SavedHealthPercent[GUID]	= curr_hp 
+		RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 
+		--print("isHealthAtMax: ", UnitName(unitID))		
+	else  	
+		if not RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 		
+			if not RealUnitHealth.SavedHealthPercent[GUID] then 
+				-- Remember percent value to math it at any health percentage 
+				RealUnitHealth.DamageTaken[GUID] = 0 
+				RealUnitHealth.SavedHealthPercent[GUID] = curr_hp
+				--print("SavedHealthPercent: ", UnitName(unitID))	
+			elseif RealUnitHealth.SavedHealthPercent[GUID] > curr_hp and RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+				-- Post out
+				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.DamageTaken[GUID] * RealUnitHealth.SavedHealthPercent[GUID] / (RealUnitHealth.SavedHealthPercent[GUID] - curr_hp)	
+				--print("Post out: ", UnitName(unitID))
+			end 
+		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then  
+			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)
+			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
+			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
+			--print("Max Health done: ", UnitName(unitID))
+		end 
+	end 	
+
+	--[[
 	if not RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 
-		curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-		if curr_hp == max_hp then 			
+		if curr_hp >= max_hp then 			
 			-- Reset summary damage log to accurate calculate real health 
 			RealUnitHealth.DamageTaken[GUID] = 0 
-			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 		
-			RealUnitHealth.CachedHealthMax[GUID] = nil 
+			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 
+			RealUnitHealth.SavedHealthPercent[GUID]	= nil 
+			RealUnitHealth.CachedHealthMax[GUID] = nil
+			print("At max hp: ", UnitName(unitID))
+		elseif RealUnitHealth.DamageTaken[GUID] ~= 0 and not UnitAffectingCombat(unitID) then 
+			-- Additional out of combat reset
+			RealUnitHealth.DamageTaken[GUID] = 0
+			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
+			RealUnitHealth.SavedHealthPercent[GUID] = nil 
+			RealUnitHealth.CachedHealthMax[GUID] = nil
+			print("Reset out of combat: ", UnitName(unitID)) 
+		elseif not RealUnitHealth.SavedHealthPercent[GUID] then 
+			RealUnitHealth.DamageTaken[GUID] = 0 
+			RealUnitHealth.SavedHealthPercent[GUID] = curr_hp
+			print("Saved percent health: ", UnitName(unitID))
+		elseif not RealUnitHealth.CachedHealthMaxTemprorary[GUID] and RealUnitHealth.SavedHealthPercent[GUID] > curr_hp and RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+			-- Post out
+			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.DamageTaken[GUID] * RealUnitHealth.SavedHealthPercent[GUID] / (RealUnitHealth.SavedHealthPercent[GUID] - curr_hp)	
+			print("Post out: ", UnitName(unitID))
 		end 
 	elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-		curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)	
-		
 		if curr_hp ~= max_hp then 
-			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))	
-			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
-			-- Reset pre saved since we cached this value due required interval
-			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 				
+			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)
+			
+			if RealUnitHealth.CachedHealthMax[GUID] > 0 then 
+				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
+				RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
+				RealUnitHealth.SavedHealthPercent[GUID] = nil 					
+				print("Max Health is ok: ", UnitName(unitID))
+			else 
+				RealUnitHealth.CachedHealthMax[GUID] = nil 
+				print("[ERROR] Max Health didn't calculated state: ", UnitName(unitID))
+			end 		
 		end 	
-	end 
+	end ]]
 end 
 
 --[[ ENVIRONMENTAL ]] 
@@ -452,6 +511,7 @@ CombatTracker.logDied							= function(...)
 	RealUnitHealth.DamageTaken[DestGUID]			= nil 
 	RealUnitHealth.CachedHealthMax[DestGUID] 		= nil
 	RealUnitHealth.isHealthWasMaxOnGUID[DestGUID] 	= nil
+	RealUnitHealth.SavedHealthPercent[DestGUID] 	= nil 
 	if not isPlayer(destFlags) then 
 		RealUnitHealth.CachedHealthMaxTemprorary[DestGUID] = nil 
 	end 
@@ -768,6 +828,7 @@ TMW:RegisterCallback("TMW_ACTION_ENTERING",											function()
 		wipe(RealUnitHealth.CachedHealthMax)
 		wipe(RealUnitHealth.isHealthWasMaxOnGUID)
 		wipe(RealUnitHealth.CachedHealthMaxTemprorary)
+		wipe(RealUnitHealth.SavedHealthPercent)
 	else 
 		skipedFirstEnter = true 
 	end 
@@ -776,7 +837,12 @@ TMW:RegisterCallback("TMW_ACTION_GROUP_UPDATE",										logDefaultGUIDatMaxHeal
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_TARGET_CHANGED",				logDefaultGUIDatMaxHealthTarget		)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UPDATE_MOUSEOVER_UNIT",				logDefaultGUIDatMaxHealthMouseover	)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "NAME_PLATE_UNIT_ADDED",				CombatTracker.logHealthMax			)
+A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_TARGET",						function(...) 
+	local unitID = ... 
+	CombatTracker.logHealthMax(strElemBuilder(nil, unitID, "target"))
+end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_HEALTH",						CombatTracker.logHealthMax			)
+A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_HEALTH_FREQUENT",				CombatTracker.logHealthMax			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_MAXHEALTH",						CombatTracker.logHealthMax			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "COMBAT_LOG_EVENT_UNFILTERED", 		COMBAT_LOG_EVENT_UNFILTERED			) 
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNIT_SPELLCAST_SUCCEEDED			)
@@ -810,18 +876,18 @@ A.CombatTracker									= {
 			return UnitHealthMax(unitID)
 		end 
 			
-		local GUID = UnitGUID(unitID)
-		
+		local GUID = UnitGUID(unitID)		
 		if RealUnitHealth.CachedHealthMax[GUID] then 
-			return RealUnitHealth.CachedHealthMax[GUID]
-		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then
-			local curr_hp, max_hp 	= UnitHealth(unitID), UnitHealthMax(unitID)
-			local curr_value 		= RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))	
-			if curr_value > 0 then 
-				return curr_value == huge and 0 or curr_value				
-			end 
+			return RealUnitHealth.CachedHealthMax[GUID] 
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
-			return RealUnitHealth.CachedHealthMaxTemprorary[GUID]
+			-- Post out 
+			return RealUnitHealth.CachedHealthMaxTemprorary[GUID] 
+		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then			
+			-- If totaly all was broken and nothing to do let's do this at least 
+			local curr_value 		= RealUnitHealth.DamageTaken[GUID] / (1 - (UnitHealth(unitID) / UnitHealthMax(unitID))) 
+			if curr_value > 0 then
+				return curr_value				 					
+			end 			
 		end 
 
 		return 0 
@@ -835,20 +901,24 @@ A.CombatTracker									= {
 			return UnitHealth(unitID)
 		end 
 		
-		local GUID = UnitGUID(unitID)
+		local GUID = UnitGUID(unitID)		
 		if RealUnitHealth.CachedHealthMax[GUID] then 
-			return RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] + 1
+			return RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] 
 			-- Way which more accurate (in case if CLEU missed something in damage / healing log) but required more performance 
 			--return UnitHealth(unitID) * RealUnitHealth.CachedHealthMax[GUID] / UnitHealthMax(unitID)
-		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-			local curr_value = (RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)) - RealUnitHealth.DamageTaken[GUID] + 1
-			if curr_value > 0 then 
-				return curr_value == huge and 0 or curr_value				
-			end 
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
-			local compare = UnitHealth(unitID) * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / UnitHealthMax(unitID)
-			return compare == huge and 0 or compare 
+			-- Pre out 
+			return RealUnitHealth.CachedHealthMaxTemprorary[GUID] - RealUnitHealth.DamageTaken[GUID]
+			--local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
+			--local compare = curr_hp * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / max_hp
+			--return (curr_hp == max_hp or compare == huge) and 0 or compare 
+		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+			-- If totaly all was broken and nothing to do let's do this at least 
+			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
+			local curr_value = (RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))) - RealUnitHealth.DamageTaken[GUID] 
+			if curr_value > 0 then 
+				return (curr_hp == max_hp or curr_value == huge) and 0 or curr_value				
+			end 			
 		end 
 		
 		return 0 
