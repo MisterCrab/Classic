@@ -907,8 +907,11 @@ A.CombatTracker									= {
 			-- Way which more accurate (in case if CLEU missed something in damage / healing log) but required more performance 
 			--return UnitHealth(unitID) * RealUnitHealth.CachedHealthMax[GUID] / UnitHealthMax(unitID)
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
-			-- Pre out 
-			return RealUnitHealth.CachedHealthMaxTemprorary[GUID] - RealUnitHealth.DamageTaken[GUID]
+			-- Post out 
+			local curr_value = RealUnitHealth.CachedHealthMaxTemprorary[GUID] - RealUnitHealth.DamageTaken[GUID]
+			if curr_value > 0 then 
+				return curr_value
+			end 
 			--local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 			--local compare = curr_hp * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / max_hp
 			--return (curr_hp == max_hp or compare == huge) and 0 or compare 
