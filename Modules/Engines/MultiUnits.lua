@@ -334,6 +334,29 @@ function A.MultiUnits.GetByRangeAppliedDoTs(self, range, count, deBuffs, upTTD)
 end 
 A.MultiUnits.GetByRangeAppliedDoTs = A.MakeFunctionCachedDynamic(A.MultiUnits.GetByRangeAppliedDoTs)
 
+function A.MultiUnits.GetByRangeIsFocused(self, unitID, range, count)
+	-- @return number, namePlateUnitID
+	-- @usage A.MultiUnits:GetByRange(@string, @number, @number)
+	-- Returns count of enemies which have focusing in their target specified unitID 
+	local total, unitNamePlateID = 0, "none"
+	local nameplates = self:GetActiveUnitPlates()	
+	
+	if nameplates then 
+		for unitNamePlateID in pairs(nameplates) do 
+			if UnitIsUnit(unitNamePlateID .. "target", unitID) and (not range or A.Unit(unitNamePlateID):CanInterract(range)) then 
+				total = total + 1
+			end 
+			
+			if count and total >= count then 
+				break 
+			end 
+		end 
+	end 
+	
+	return total, unitNamePlateID	
+end 
+A.MultiUnits.GetByRangeIsFocused = A.MakeFunctionCachedDynamic(A.MultiUnits.GetByRangeIsFocused)
+
 -- CLEU
 function A.MultiUnits.GetActiveEnemies(self, timer, skipClear)
 	-- @return number 
