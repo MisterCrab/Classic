@@ -4861,6 +4861,12 @@ local function failedReturn(n, toggle)
 		end 
 	end 
 	
+	if n == 2 then 
+		if toggle == "Runes" then 
+			return 
+		end 
+	end 
+	
 	if n == 3 then 
 		if toggle == "CheckSpellLevel" then 
 			return 
