@@ -1,9 +1,13 @@
 --- 
-local DateTime 						= "13.09.2019"
+local DateTime 						= "16.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
 local huge	 						= math.huge
+local math_abs						= math.abs
+local math_floor					= math.floor
+local math_log10					= math.log10
+local math_max						= math.max
 
 local StdUi 						= LibStub("StdUi")
 local LibDBIcon	 					= LibStub("LibDBIcon-1.0")
@@ -23,8 +27,8 @@ local UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, 	UnitAur
 local HasWandEquipped 				= HasWandEquipped	  
 	  
 -- LetMeCast 	  
-local DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName =
-	  DoEmote, Dismount, CancelShapeshiftForm, CancelUnitBuff, CancelSpellByName
+local DoEmote, Dismount, CancelShapeshiftForm =
+	  DoEmote, Dismount, CancelShapeshiftForm
 	    
 -- AuraDuration 
 local SetPortraitToTexture, CooldownFrame_Set, TargetFrame_ShouldShowDebuffs, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition,    DebuffTypeColor =
@@ -3382,17 +3386,7 @@ local LETMECAST = {
 			
 			if self.ClassBuffs[Action.PlayerClass] then 
 				local buffName = Action.GetSpellInfo(self.ClassBuffs[Action.PlayerClass])
-				for i = 1, huge do			
-					local Name = UnitAura("player", i, "HELPFUL PLAYER")
-					if Name and Name == buffName then	
-						CancelUnitBuff("player", i, "HELPFUL PLAYER")
-						if Action.Unit("player"):CombatTime() == 0 then 
-							CancelSpellByName(buffName)
-						end 
-					else 
-						break 
-					end 
-				end 
+				Action.Player:CancelBuff(buffName)
 			end 
 			
 			Dismount()			
@@ -3804,7 +3798,30 @@ local AuraDuration = {
 }
 
 -- [1] RealHealth and PercentHealth
+local NumberGroupingScale = {
+	enUS = 3,
+	koKR = 4,
+	zhCN = 4,
+	zhTW = 4,
+}
 local UnitHealthTool = {
+	AddOn_Localization_NumberGroupingScale = NumberGroupingScale[GameLocale] or NumberGroupingScale["enUS"],
+	AbbreviateNumber		= function(self, val)
+		-- Calculate exponent of 10 and clamp to zero
+		local exp = math_max(0, math_floor(math_log10(math_abs(val))))
+		-- Less than 1k, return as-is
+		if exp < self.AddOn_Localization_NumberGroupingScale then 
+			return Action.toStr and Action.toStr[math_floor(val)] or tostring(math_floor(val))
+		end
+
+		-- Exponent factor of 1k
+		local factor 	= math_floor(exp / self.AddOn_Localization_NumberGroupingScale)
+		-- Dynamic precision based on how many digits we have (Returns numbers like 100k, 10.0k, and 1.00k)
+		local precision = math_max(0, (self.AddOn_Localization_NumberGroupingScale - 1) - exp % self.AddOn_Localization_NumberGroupingScale)
+
+		-- Fallback to scientific notation if we run out of units
+		return ((val < 0 and "-" or "") .. "%0." .. precision .. "f%s"):format(val / (10 ^ self.AddOn_Localization_NumberGroupingScale) ^ factor, NumberCaps[factor] or "e" .. (factor * self.AddOn_Localization_NumberGroupingScale))
+	end,
 	SetupStatusBarText		= function(self)
 		local parent = _G["TargetFrame"]
 		-- create font strings since default frame hasn't it 
@@ -3822,7 +3839,7 @@ local UnitHealthTool = {
 		-- set values 
 		local realValue = round(Action.Unit("target"):Health(), 0)
 		if realValue ~= 0 then 
-			parent.RealHealth:SetText(realValue)			
+			parent.RealHealth:SetText(self.AbbreviateNumber(realValue))
 		else 
 			parent.RealHealth:SetText("")
 		end 		
