@@ -743,7 +743,7 @@ TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 				HealingEngi
 TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 						HealingEngineInit) 
 
 --- ============================= API ==============================
---- API valid only for healer specializations  
+--- API valid only for healer specializations or if [1] Role has set fixed to HEALER
 --- Members are depend on A.GetToggle(1, "HE_Pets") variable 
 
 --- SetTarget Controller 
@@ -902,6 +902,21 @@ function A.HealingEngine.GetIncomingHPSAVG()
 		avg = A.HealingEngine.GetIncomingHPS() * 100 / f[#f].MAXHP
     end 
     return avg 
+end 
+
+function A.HealingEngine.GetTimeToFullDie()
+	-- @return number 
+	-- Returns AVG time to die all group members 
+	local total = 0
+	local m = A.HealingEngine.GetMembersAll()
+    if #m > 0 then 
+        for i = 1, #m do
+			total = total + A.Unit(m[i].Unit):TimeToDie()
+        end
+		return total / #m
+	else 
+		return huge 
+    end 
 end 
 
 function A.HealingEngine.GetTimeToDieUnits(timer)

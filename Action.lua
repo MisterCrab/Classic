@@ -3337,7 +3337,7 @@ end
 
 function GetLOS(unitID) 
 	-- External physical button use 
-	if Action.IsInitialized and Action.GetToggle(1, "LOSCheck") then	
+	if Action.IsInitialized and Action.GetToggle(1, "LOSCheck") then
 		if not Action.IsActiveGCD() and (not LineOfSight.PhysicalUnitID or TMW.time > LineOfSight.PhysicalUnitWait) and (unitID ~= "target" or not LineOfSight.PhysicalUnitWait or TMW.time > LineOfSight.PhysicalUnitWait + 1) and not Action.UnitInLOS(unitID) then 
 			LineOfSight.PhysicalUnitID = unitID
 			if unitID == "target" then 
