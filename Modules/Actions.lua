@@ -49,11 +49,16 @@ local isSpellRangeException = {
 	[33702]		= true,	
 }
 local ItemHasRange 			= ItemHasRange
-local isItemRangeException 	= {}
+local isItemRangeException 	= {
+	[19950] = true,
+	[18820] = true,
+}
 local isItemUseException	= {}
 local itemCategory 			= {
     [02] = "DPS", 	-- TODO: Classic 
 	[01] = "DEFF", 	-- TODO: Classic 
+	[19950] = "BOTH",
+	[18820] = "BOTH",
 }
 
 local GetNetStats 			= GetNetStats	
@@ -339,6 +344,12 @@ function A:IsSpellLearned()
 	return TalentMap[Name] and TalentMap[Name] > 0 or false 
 end
 
+function A:CanSafetyCastHeal(unitID, offset)
+	-- @return boolean 
+	local castTime = self:GetSpellCastTime()
+	return castTime and (castTime == 0 or castTime > Unit(unitID):TimeToDie() + A.GetCurrentGCD() + (offset or A.GetGCD())) or false 
+end 
+
 -------------------------------------------------------------------------------
 -- Talent 
 -------------------------------------------------------------------------------
@@ -496,7 +507,7 @@ function A:GetSpellMaxRank()
 	return 1
 end 
 
-function A.DetermineHealRank(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
+function A.DetermineHealObject(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
 	-- @return object or nil 
 	-- Note: :PredictHeal(unitID) must be only ! Use self.ID inside to determine by that which spell is it 
 	for i = 1, select("#", ...) do 
@@ -507,7 +518,7 @@ function A.DetermineHealRank(unitID, skipRange, skipLua, skipShouldStop, skipUsa
 	end 
 end 
 
-function A.DetermineUsableRank(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
+function A.DetermineUsableObject(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
 	-- @return object or nil 
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
@@ -812,7 +823,6 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 		end 
 		
 		if 	self.Type == "Potion" and 
-			not A.IsInPvP and 
 			A.GetToggle(1, "Potion") and 
 			A.BurstIsON(unitID or A.IamHealer and "targettarget" or "target") and 
 			self:GetCount() > 0 and 
@@ -857,7 +867,7 @@ function A:IsReadyM(unitID, skipRange, skipUsable)
     return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable)
 end 
 
-function A:IsReadyToUse(skipShouldStop, skipUsable)
+function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
 	-- @return boolean 
 	return 	not self:IsBlocked() and 
 			not self:IsBlockedByQueue() and 
