@@ -143,7 +143,7 @@ end
 
 function Data.logLevel(...)
 	local lvl = ... or UnitLevel("player")
-	if lvl and A.PlayerLevel ~= lvl then 
+	if lvl and lvl ~= A.PlayerLevel then 
 		A.PlayerLevel = lvl
 	end 
 end 
