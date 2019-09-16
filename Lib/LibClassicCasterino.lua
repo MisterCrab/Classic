@@ -2,9 +2,10 @@
 LibClassicCasterino
 Author: d87
 --]================]
+if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 14
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 16
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -18,9 +19,11 @@ local callbacks = lib.callbacks
 lib.casters = lib.casters or {} -- setmetatable({}, { __mode = "v" })
 local casters = lib.casters
 
+--[[
 lib.movecheckGUIDs = lib.movecheckGUIDs or {}
 local movecheckGUIDs = lib.movecheckGUIDs
 local MOVECHECK_TIMEOUT = 4
+]]
 
 local UnitGUID = UnitGUID
 local bit_band = bit.band
@@ -30,10 +33,11 @@ local ChannelInfo = ChannelInfo
 local GetUnitSpeed = GetUnitSpeed
 local UnitIsUnit = UnitIsUnit
 
-local COMBATLOG_OBJECT_TYPE_PLAYER = COMBATLOG_OBJECT_TYPE_PLAYER
 local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
+local COMBATLOG_OBJECT_TYPE_PLAYER_OR_PET = COMBATLOG_OBJECT_TYPE_PLAYER + COMBATLOG_OBJECT_TYPE_PET
 local classCasts
-local classChannels
+local classChannelsByAura
+local classChannelsByCast
 local talentDecreased
 local crowdControlAuras
 local FireToUnits
@@ -83,7 +87,8 @@ end
 local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime, isSrcEnemyPlayer )
     local _, _, icon, castTime = GetSpellInfo(spellID)
     if castType == "CHANNEL" then
-        castTime = classChannels[spellID]*1000
+        local channelDuration = classChannelsByAura[spellID] or classChannelsByCast[spellID]
+        castTime = channelDuration*1000
         local decreased = talentDecreased[spellID]
         if decreased then
             castTime = castTime - decreased
@@ -104,7 +109,7 @@ local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime
     end
 
     --if isSrcEnemyPlayer then
-        --movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
+       --movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
     --end
 
     if castType == "CAST" then
@@ -138,7 +143,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
     dstGUID, dstName, dstFlags, dstFlags2,
     spellID, spellName, arg3, arg4, arg5 = CombatLogGetCurrentEventInfo()
 
-    local isSrcPlayer = bit_band(srcFlags, COMBATLOG_OBJECT_TYPE_PLAYER) > 0
+    local isSrcPlayer = bit_band(srcFlags, COMBATLOG_OBJECT_TYPE_PLAYER_OR_PET) > 0
     if isSrcPlayer and spellID == 0 then
         spellID = spellNameToID[spellName]
     end
@@ -168,9 +173,19 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
             CastStop(srcGUID, "CAST", "FAILED")
 
     elseif eventType == "SPELL_CAST_SUCCESS" then
-            if isSrcPlayer and classChannels[spellID] then
-                -- SPELL_CAST_SUCCESS can come right after AURA_APPLIED, so ignoring it
-                return
+            if isSrcPlayer then
+                if classChannelsByAura[spellID] then
+                    -- SPELL_CAST_SUCCESS can come right after AURA_APPLIED, so ignoring it
+                    return
+                elseif classChannelsByCast[spellID] then
+                    -- Channels fire SPELL_CAST_SUCCESS at their start
+                    local isChanneling = classChannelsByCast[spellID]
+                    if isChanneling then
+                        local isSrcFriendlyPlayer = bit_band(srcFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) > 0
+                        CastStart(srcGUID, "CHANNEL", spellName, spellID, nil, not isSrcFriendlyPlayer)
+                    end
+                    return
+                end
             end
             if not isSrcPlayer then
                 local castUID = makeCastUID(srcGUID, spellName)
@@ -204,7 +219,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
                 return
             end
 
-            local isChanneling = classChannels[spellID]
+            local isChanneling = classChannelsByAura[spellID]
             if isChanneling then
                 local isSrcFriendlyPlayer = bit_band(srcFlags, COMBATLOG_OBJECT_REACTION_FRIENDLY) > 0
                 CastStart(srcGUID, "CHANNEL", spellName, spellID, nil, not isSrcFriendlyPlayer)
@@ -212,7 +227,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
         end
     elseif eventType == "SPELL_AURA_REMOVED" then
         if isSrcPlayer then
-            local isChanneling = classChannels[spellID]
+            local isChanneling = classChannelsByAura[spellID]
             if isChanneling then
                 CastStop(srcGUID, "CHANNEL", "STOP")
             end
@@ -236,7 +251,7 @@ local function IsSlowedDown(unit)
 end
 
 function lib:UnitCastingInfo(unit)
-    if UnitIsUnit(unit, "player") then return CastingInfo() end
+    if UnitIsUnit(unit,"player") then return CastingInfo() end
     local guid = UnitGUID(unit)
     local cast = casters[guid]
     if cast then
@@ -266,9 +281,9 @@ function lib:UnitChannelInfo(unit)
 end
 
 
-local Passthrough = function(self, event, unit)
+local Passthrough = function(self, event, unit, ...)
     if unit == "player" then
-        callbacks:Fire(event, unit)
+        callbacks:Fire(event, unit, ...)
     end
 end
 f.UNIT_SPELLCAST_START = Passthrough
@@ -366,6 +381,8 @@ classCasts = {
     [17923] = 1.5, -- Searing Pain
     [25307] = 3, -- Shadow Bolt
     [17924] = 4, -- Soul Fire
+    [6358] = 1.5, -- Seduction
+    [11763] = 2, -- Firebolt (Imp)
 
     [9853] = 1.5, -- Entangling Roots
     [18658] = 1.5, -- Hibernate
@@ -441,15 +458,14 @@ classCasts = {
     -- [10793] = 3, -- Striped Nightsaber
 }
 
-classChannels = {
+classChannelsByAura = {
     [746] = 6,      -- First Aid
-    [13278] = 4,    -- Gnomish Death Ray
     [20577] = 10,   -- Cannibalize
     [19305] = 6,    -- Starshards
 
     -- DRUID
-    [17402] = 9.5,  -- Hurricane
-    [9863] = 9.5,      -- Tranquility
+    [17402] = 10,  -- Hurricane
+    [9863] = 10,      -- Tranquility
 
     -- HUNTER
     [6197] = 60,     -- Eagle Eye
@@ -458,8 +474,6 @@ classChannels = {
     [1002] = 60,     -- Eyes of the Beast
     [14295] = 6,     -- Volley
 
-    -- MAGE
-    [25345] = 5,     -- Arcane Missiles
     [10187] = 8,     -- Blizzard
     [12051] = 8,     -- Evocation
 
@@ -470,21 +484,32 @@ classChannels = {
 
     -- WARLOCK
     [126] = 45,       -- Eye of Kilrogg
-    [11700] = 4.5,    -- Drain Life
-    [11704] = 4.5,    -- Drain Mana
-    [11675] = 14.5,   -- Drain Soul
-    [11678] = 7.5,    -- Rain of Fire
+    [11700] = 5,    -- Drain Life
+    [11704] = 5,    -- Drain Mana
+    [11675] = 15,   -- Drain Soul
+    [11678] = 8,    -- Rain of Fire
     [11684] = 15,     -- Hellfire
     [11695] = 10,     -- Health Funnel
+    [6358] = 15,    -- Seduction
+    [17854] = 10,   -- Consume Shadows (Voidwalker)
 }
+
+classChannelsByCast = {
+    [13278] = 4,    -- Gnomish Death Ray
+
+    -- MAGE
+    [25345] = 5,     -- Arcane Missiles
+}
+
 
 for id in pairs(classCasts) do
     spellNameToID[GetSpellInfo(id)] = id
-    -- AddSpellNameRecognition(id)
 end
-for id in pairs(classChannels) do
+for id in pairs(classChannelsByAura) do
     spellNameToID[GetSpellInfo(id)] = id
-    -- AddSpellNameRecognition(id)
+end
+for id in pairs(classChannelsByCast) do
+    spellNameToID[GetSpellInfo(id)] = id
 end
 
 local partyGUIDtoUnit = {}
@@ -631,7 +656,6 @@ crowdControlAuras = { -- from ClassicCastbars
 -- There's an issue that if you start a cast and immediately after cancel it, CAST_FAILED event won't ever come for it
 -- This leads to zombie casts that have to run until completion
 -- So for 4s after non-friendly player controlled guid started a cast we're watching if it's moving and cancel
-
 --[[
 do
     local GetUnitForFreshGUID = function(guid)
@@ -666,8 +690,8 @@ do
             guid, timeout = next(movecheckGUIDs, guid)
         end
     end)
-end
-]]
+end]]
+
 ------------------------------
 
 if lib.NPCSpellsTimer then
