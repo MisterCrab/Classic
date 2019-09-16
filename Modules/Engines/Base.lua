@@ -25,20 +25,10 @@ A.TeamCache				= {
 	Friendly 			= {
 		Size			= 1,
 		GUIDs			= {},
-		HEALER			= {},
-		TANK			= {},
-		DAMAGER			= {},
-		DAMAGER_MELEE	= {},
-		DAMAGER_RANGE	= {},
 	},
 	Enemy 				= {
 		Size 			= 0,
 		GUIDs 			= {},
-		HEALER			= {},
-		TANK			= {},
-		DAMAGER			= {},
-		DAMAGER_MELEE	= {},
-		DAMAGER_RANGE	= {},
 	},
 }
 
@@ -208,7 +198,6 @@ local function OnEvent(event, ...)
 			end 
 		end 
 		
-		-- Wipe Enemy TODO: Classic	
 		for _, v in pairs(A.TeamCache.Enemy) do
 			if type(v) == "table" then 
 				wipe(v)
@@ -225,25 +214,13 @@ local function OnEvent(event, ...)
 			A.TeamCache.Enemy.Type = nil 
 		end
 		
-		-- TODO: Classic 
+
 		if A.TeamCache.Enemy.Size > 0 then                
 			for i = 1, A.TeamCache.Enemy.Size do 
 				local arena = "arena" .. i
 				local guid 	= UnitGUID(arena)
 				if guid then 
-					A.TeamCache.Enemy.GUIDs[guid] = arena 
-					if A.Unit(arena):IsHealer() then 
-						A.TeamCache.Enemy.HEALER[arena] = arena
-					elseif A.Unit(arena):IsTank() then 
-						A.TeamCache.Enemy.TANK[arena] = arena
-					else
-						A.TeamCache.Enemy.DAMAGER[arena] = arena
-						if A.Unit(arena):IsMelee() then 
-							A.TeamCache.Enemy.DAMAGER_MELEE[arena] = arena
-						else 
-							A.TeamCache.Enemy.DAMAGER_RANGE[arena] = arena
-						end                        
-					end
+					A.TeamCache.Enemy.GUIDs[guid] = arena
 				end 
 			end   
 		end          
@@ -264,20 +241,6 @@ local function OnEvent(event, ...)
 				local guid 	= UnitGUID(member)
 				if guid then 
 					A.TeamCache.Friendly.GUIDs[guid] = member 
-					if not UnitIsUnit(member, "player") then 
-						if A.Unit(member):IsHealer() then 
-							A.TeamCache.Friendly.HEALER[member] = member
-						elseif A.Unit(member):IsTank() then  
-							A.TeamCache.Friendly.TANK[member] = member
-						else 
-							A.TeamCache.Friendly.DAMAGER[member] = member
-							if A.Unit(member):IsMelee() then 
-								A.TeamCache.Friendly.DAMAGER_MELEE[member] = member
-							else 
-								A.TeamCache.Friendly.DAMAGER_RANGE[member] = member
-							end 
-						end
-					end
 				end 
 			end 
 		end		

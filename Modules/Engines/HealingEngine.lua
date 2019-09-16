@@ -63,6 +63,10 @@ local function CalculateHP(unitID)
     local incomingheals = A.Unit(unitID):GetIncomingHeals()
 	local cHealth, mHealth = A.Unit(unitID):Health(), A.Unit(unitID):HealthMax()
 	
+	if mHealth <= 0 then 
+		mHealth = 0 
+	end 
+	
     local PercentWithIncoming = 100 * (cHealth + incomingheals) / mHealth
     local ActualWithIncoming = mHealth - (cHealth + incomingheals)
 	
@@ -98,7 +102,7 @@ local function HealingEngine(MODE, useActualHP)
 	
     if TeamCache.Friendly.Type ~= "raid" then 
 		local pHP, aHP, _, mHP = CalculateHP("player")
-        table.insert(A.HealingEngine.Members.ALL, { Unit = "player", GUID = UnitGUID("player"), HP = pHP, AHP = aHP, isPlayer = true, incDMG = A.Unit("player"):GetRealTimeDMG() }) -- TODO: Classic
+        table.insert(A.HealingEngine.Members.ALL, { Unit = "player", GUID = UnitGUID("player"), HP = pHP, AHP = aHP, isPlayer = true, incDMG = A.Unit("player"):GetRealTimeDMG() }) 
     end 
     
     local isQueuedDispel = false 
@@ -117,7 +121,7 @@ local function HealingEngine(MODE, useActualHP)
         A.HealingEngine.Frequency.Temp.AHP 	 = (A.HealingEngine.Frequency.Temp.AHP   or 0) + memberahp
         
         -- Party/Raid
-        if CanHeal(member, memberGUID) then
+        if membermhp > 0 and CanHeal(member, memberGUID) then
             local DMG = A.Unit(member):GetRealTimeDMG() 
             local Actual_DMG = DMG
             
@@ -148,7 +152,7 @@ local function HealingEngine(MODE, useActualHP)
 				end 
             elseif A.Unit(member):IsHealer() then                
                 if UnitIsUnit("player", member) and memberhp < 95 then 
-					if A.IsInPvP and A.Unit("player"):IsFocused(nil, true) then 
+					if A.IsInPvP and A.Unit("player"):IsFocused(true) then 
 						memberhp = memberhp - 20
 					else 
 						memberhp = memberhp - 2
@@ -185,7 +189,7 @@ local function HealingEngine(MODE, useActualHP)
 			A.HealingEngine.Frequency.Temp.MAXHP = (A.HealingEngine.Frequency.Temp.MAXHP or 0) + memberpetmhp 
 			A.HealingEngine.Frequency.Temp.AHP 	 = (A.HealingEngine.Frequency.Temp.AHP   or 0) + memberpetahp			
 			
-			if CanHeal(memberpet, memberpetGUID) then 
+			if memberpetmhp > 0 and CanHeal(memberpet, memberpetGUID) then 
 				if A.Unit("player"):CombatTime() > 0 then                
 					memberpethp  = memberpethp * 1.35
 					memberpetahp = memberpetahp * 1.35

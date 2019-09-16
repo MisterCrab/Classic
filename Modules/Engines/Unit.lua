@@ -97,6 +97,8 @@ local AuraList = {
 		2637, 				-- Hibernate 				(Druid)
 		1499, 				-- Freezing Trap			(Hunter)
 		118, 				-- Polymorph				(Mage)
+		851,				-- Polymorph: Sheep 		(Mage)
+		28270,				-- Polymorph: Cow			(Mage)
 		605, 				-- Mind Control 			(Priest)                 
         8122, 				-- Psychic Scream			(Priest)
 		9484, 				-- Shackle Undead 			(Priest)  				
@@ -155,7 +157,11 @@ local AuraList = {
 		8122, 				-- Psychic Scream			(Priest)
 	},
 	Shackled = 9484, 		-- Shackle Undead 			(Priest)	
-	Polymorphed	= 118, 		-- Polymorph				(Mage)
+	Polymorphed	= {
+		118, 				-- Polymorph				(Mage)
+		851,				-- Polymorph: Sheep 		(Mage)
+		28270,				-- Polymorph: Cow			(Mage)
+	},
     Disoriented = {			
 		19503, 				-- Scatter Shot 			(Hunter)		 
         2094, 				-- Blind					(Rogue)
@@ -364,14 +370,18 @@ local AuraList = {
     },
     Premonition = {
         {118, 30}, 			-- Polymorph 				(Mage)
+		{851, 20},			-- Polymorph: Sheep 		(Mage)
+		{28270, 30},		-- Polymorph: Cow	 		(Mage)
         {20066, 20}, 		-- Repentance 				(Paladin)
-        {19386, 35, 8},		-- Wyvern Sting (8 - 35)	(Hunter)
+        {24133, 35, 8},		-- Wyvern Sting (8 - 35)	(Hunter)
 		{5782, 20}, 		-- Fear 					(Warlock)        
     },
     CastBarsCC = {
         118, 				-- Polymorph 				(Mage)
+		851,				-- Polymorph: Sheep 		(Mage)
+		28270,				-- Polymorph: Cow			(Mage)
         20066, 				-- Repentance 				(Paladin)
-        19386, 				-- Wyvern Sting 			(Hunter)
+        24133, 				-- Wyvern Sting 			(Hunter)
         5782, 				-- Fear 					(Warlock) 
 		5484, 				-- Howl of Terror   		(Warlock)
         605, 				-- Mind Control 			(Priest)                 
@@ -379,6 +389,8 @@ local AuraList = {
     },
     AllPvPKickCasts = {    
         118, 				-- Polymorph 				(Mage)
+		851,				-- Polymorph: Sheep 		(Mage)
+		28270,				-- Polymorph: Cow			(Mage)
 		635,				-- Holy Light				(Paladin)
 		19750,				-- Flash of Light			(Paladin)
         20066, 				-- Repentance 				(Paladin)		
@@ -453,23 +465,24 @@ local Info = {
 	CacheStaying				= setmetatable({}, { __mode == "kv" }),
 	CacheInterrupt 				= setmetatable({}, { __mode == "kv" }),
 	SpecIs 						= {
-        ["MELEE"] 				= {251, 252, 577, 103, 255, 269, 70, 259, 260, 261, 263, 71, 72, 250, 581, 104, 268, 66, 73},
+        ["MELEE"] 				= {103, 255, 70, 259, 260, 261, 263, 71, 72, 66, 73},
         ["RANGE"] 				= {102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
-        ["HEALER"] 				= {105, 270, 65, 256, 257, 264},
-        ["TANK"] 				= {250, 581, 104, 268, 66, 73},
-        ["DAMAGER"] 			= {251, 252, 577, 103, 255, 269, 70, 259, 260, 261, 263, 71, 72, 102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
+        ["HEALER"] 				= {105, 65, 256, 257, 264},
+        ["TANK"] 				= {103, 66, 73},
+        ["DAMAGER"] 			= {255, 70, 259, 260, 261, 263, 71, 72, 102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
     },
-	ClassIsMelee = {
+	ClassCanBeTank				= {
         ["WARRIOR"] 			= true,
-        ["PALADIN"] 			= false,
-        ["HUNTER"] 				= false,
+        ["PALADIN"] 			= true,
+        ["DRUID"] 				= true,	
+	},
+	ClassCanBeMelee				= {
+        ["WARRIOR"] 			= true,
+        ["PALADIN"] 			= true,
         ["ROGUE"] 				= true,
-        ["PRIEST"] 				= false,
-        ["SHAMAN"] 				= false,
-        ["MAGE"] 				= false,
-        ["WARLOCK"] 			= false,
-        ["DRUID"] 				= false,
-    },
+        ["SHAMAN"] 				= true,
+        ["DRUID"] 				= true,		
+	},
 	AllCC 						= {"Silenced", "Stuned", "Sleep", "Fear", "Disoriented", "Incapacitated"},
 	IsUndead					= {
 		["Undead"]				= true, 
@@ -531,24 +544,12 @@ local Info = {
 		--[231052] 		= true, 	-- Rake (dot) spell -- seems old id which is not valid in BFA 
 		[155722] 		= true, 	-- Rake (dot)
 		[203123] 		= true, 	-- Maim (stun)
-		[236025] 		= true, 	-- Enraged Maim (incapacitate)
-		[339] 			= true, 	-- Entangling Roots (dispel able)
-		[235963] 		= true, 	-- Entangling Roots (NO dispel able)
 		-- Death Knight 
 		[204085] 		= true, 	-- Deathchill (Frost - PvP Roots)
 		[207171] 		= true, 	-- Winter is Coming (Frost - Remorseless Winter Stun)
 		-- Rogue  
 		[703] 			= true, 	-- Garroute - Dot 
 		[1330] 			= true, 	-- Garroute - Silence
-		-- Paladin 
-		--[216411] 		= true, 	-- BUFFS: Holy Shock 	(Divine Purpose)
-		--[216413] 		= true, 	-- BUFFS: Light of Down (Divine Purpose)
-		-- Priest 
-		[200200] 		= true, 	-- Holy word: Chastise (Holy stun)
-		[200196] 		= true, 	-- Holy Word: Chastise (Holy incapacitate)
-		-- Demon Hunter 
-		[217832]		= true, 	-- Imprison	
-		[200166]		= true, 	-- Metamorphosis
 	},
 }
 
@@ -641,59 +642,81 @@ A.Unit = PseudoClass({
 	IsHealer 								= Cache:Pass(function(self)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
-		return false 
-		--[[ TODO: Classic 
-	    if A.Unit(unitID):IsEnemy() then
-			return TeamCache.Enemy.HEALER[unitID] or A.Unit(unitID):HasSpec(Info.SpecIs["HEALER"])  
-		else 
-			return TeamCache.Friendly.HEALER[unitID] or A.Unit(unitID):Role() == "HEALER"
-		end ]]
+		if UnitIsUnit(unitID, "player") then 
+			return A.Unit("player"):HasSpec(Info.SpecIs.HEALER) 
+		end 
+											
+											-- bypass it in PvP 
+		local taken_dmg 					= (A.Unit(unitID):IsEnemy() and A.Unit(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID)
+		local done_dmg						= CombatTracker:GetDPS(unitID)
+		local done_hps						= CombatTracker:GetHPS(unitID)
+		return done_hps > taken_dmg and done_hps > done_dmg  
 	end, "UnitID"),
-	IsTank 									= Cache:Pass(function(self)    
+	IsTank 									= Cache:Pass(function(self, skipUnitIsUnit, class)    
 		-- @return boolean 
 		local unitID 						= self.UnitID
-		return false 
-		--[[ TODO: Classic 
-	    if A.Unit(unitID):IsEnemy() then
-			return TeamCache.Enemy.TANK[unitID] -- TODO: Classic 
-		else 
-			return TeamCache.Friendly.TANK[unitID] or A.Unit(unitID):Role() == "TANK" -- TODO: Classic 
-			-- return GetPartyAssignment("maintank", unitID)
-		end ]]	
+		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
+			return A.Unit("player"):HasSpec(Info.SpecIs.TANK) 
+		end 
+		
+		if Info.ClassCanBeTank[class or A.Unit(unitID):Class()] then 
+			if unitID:match("raid%d+") and GetPartyAssignment("maintank", unitID) then 
+				return true 
+			end 
+			
+			local taken_dmg 				= CombatTracker:GetDMG(unitID)
+			local done_dmg					= CombatTracker:GetDPS(unitID)
+			local done_hps					= CombatTracker:GetHPS(unitID)
+			return taken_dmg > done_dmg and taken_dmg > done_hps
+		end 
+	end, "UnitID"),	
+	IsDamager								= Cache:Pass(function(self, skipUnitIsUnit)    
+		-- @return boolean 
+		local unitID 						= self.UnitID
+		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
+			return A.Unit("player"):HasSpec(Info.SpecIs.DAMAGER) 
+		end 
+
+		if unitID:match("raid%d+") and GetPartyAssignment("mainassist", unitID) then 
+			return true 
+		end 
+		
+											-- bypass it in PvP 
+		local taken_dmg 					= (A.Unit(unitID):IsEnemy() and A.Unit(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID) 
+		local done_dmg						= CombatTracker:GetDPS(unitID)
+		local done_hps						= CombatTracker:GetHPS(unitID)
+		return done_dmg > taken_dmg and done_dmg > done_hps 
 	end, "UnitID"),	
 	IsMelee 								= Cache:Pass(function(self) 
 		-- @return boolean 
 		local unitID 						= self.UnitID
-		return false 
-		--[[ TODO: Classic 
-	    if A.Unit(unitID):IsEnemy() then
-			return TeamCache.Enemy.DAMAGER_MELEE[unitID] or A.Unit(unitID):HasSpec(Info.SpecIs["MELEE"])  
-		elseif UnitIsUnit(unitID, "player") then 
-			return A.Unit("player"):HasSpec(Info.SpecIs["MELEE"])
-		elseif A.Unit(unitID):Role() == "DAMAGER" or A.Unit(unitID):Role() == "TANK" then 
-			if TeamCache.Friendly.DAMAGER_MELEE[unitID] then 
+		if UnitIsUnit(unitID, "player") then 
+			return A.Unit("player"):HasSpec(Info.SpecIs.MELEE) 
+		end 
+		
+		local class = A.Unit(unitID):Class()
+		if Info.ClassCanBeMelee[class] then 
+			if A.Unit(unitID):IsTank(true, class) then 
 				return true 
 			end 
 			
-			local unitClass = A.Unit(unitID):Class()
-			if unitClass == "HUNTER" then 
-				return 
-				(
-					A.Unit(unitID):GetSpellCounter(186270) > 0 or -- Raptor Strike
-					A.Unit(unitID):GetSpellCounter(259387) > 0 or -- Mongoose Bite
-					A.Unit(unitID):GetSpellCounter(190925) > 0 or -- Harpoon
-					A.Unit(unitID):GetSpellCounter(259495) > 0    -- Firebomb
-				)
-			elseif unitClass == "SHAMAN" then 
-				local _, offhand = UnitAttackSpeed(unitID)
-				return offhand ~= nil                    
-			elseif unitClass == "DRUID" then 
-				local _, power = UnitPowerType(unitID)
-				return power == "ENERGY" or power == "FURY"
+			if A.Unit(unitID):IsDamager(true) then 
+				if unitClass == "SHAMAN" then 
+					local _, offhand = UnitAttackSpeed(unitID)
+					return offhand ~= nil                    
+				elseif unitClass == "DRUID" then 
+					local _, power = UnitPowerType(unitID)
+					return power == "ENERGY" or power == "FURY"
+				else 
+					return true 
+				end 
 			else 
-				return Info.ClassIsMelee[unitClass]
+				if class == "DRUID" then 
+					local _, power = UnitPowerType(unitID)
+					return power == "ENERGY" or power == "FURY"					
+				end 
 			end 
-		end ]]
+		end 
 	end, "UnitID"),
 	IsDead 									= Cache:Pass(function(self)  
 		-- @return boolean
@@ -1056,13 +1079,16 @@ A.Unit = PseudoClass({
 		end 
 	end, "UnitID"),
 	ThreatSituation							= Cache:Pass(function(self, otherunit)  
-		-- @return number  
+		-- @return number, number, number 
+		-- Returns: status (0 -> 3), percent of threat, value or threat 
 		local unitID 						= self.UnitID
 		if unitID then 
-			local GUID 						= UnitGUID(unitID)			
-			return TeamCache.threatData[GUID] and TeamCache.threatData[GUID].status or 0	       
+			local GUID 						= UnitGUID(unitID)		
+			if TeamCache.threatData[GUID] then 
+				return TeamCache.threatData[GUID].status or 0, TeamCache.threatData[GUID].scaledPercent, TeamCache.threatData[GUID].threatValue       
+			end 
 		end 
-		return 0
+		return 0, 0, 0
 	end, "UnitID"),
 	IsTanking 								= Cache:Pass(function(self, otherunit, range)  
 		-- @return boolean 
@@ -1347,32 +1373,16 @@ A.Unit = PseudoClass({
 	end, "UnitID"),	
 	HasSpec									= Cache:Pass(function(self, specID)	
 		-- @return boolean 
-		local unitID 						= self.UnitID
-		local name, server 					= UnitName(unitID)
-		if name then
-			name = name .. (server and "-" .. server or "")
-		else 
-			return false 
-		end       
-		
+		-- Only PLAYER!
+		local unitID 						= "player"
 		if type(specID) == "table" then        
 			for i = 1, #specID do
-				if unitID == "player" then
-					if specID[i] == A.PlayerSpec then 
-						return true 
-					end 
-				else
-					if Env.ModifiedUnitSpecs[name] and specID[i] == Env.ModifiedUnitSpecs[name] then 
-						return true 
-					end 
-				end
+				if specID[i] == A.PlayerSpec then 
+					return true 
+				end 
 			end       
-		else
-			if unitID == "player" then
-				return specID == A.PlayerSpec 
-			else 
-				return Env.ModifiedUnitSpecs[name] and specID == Env.ModifiedUnitSpecs[name] 
-			end       
+		else 
+			return specID == A.PlayerSpec      
 		end
 	end, "UnitID"),
 	HasFlags 								= Cache:Wrap(function(self) 
@@ -1762,68 +1772,53 @@ A.Unit = PseudoClass({
 			return Env.AuraStacks(unitID, (not byID and strlowerCache[A.GetSpellInfo(spell)]) or spell, filter)
 		end 		         
 	end, "UnitGUID"),
-	IsFocused 								= Cache:Wrap(function(self, specs, burst, deffensive, range)
+	IsFocused 								= Cache:Wrap(function(self, burst, deffensive, range, isMelee)
 		-- @return boolean
+		-- ATTENTION: Instead of retail version this function accepts in arguments now numbers only! Retail has boolean for some of them
 		local unitID 						= self.UnitID
-		local value 						= false 	
-		
+
 		if A.Unit(unitID):IsEnemy() then
-			if next(TeamCache.Friendly.DAMAGER) then     
-				for member in pairs(TeamCache.Friendly.DAMAGER) do 
-					if UnitIsUnit(member .. "target", unitID) 
-					and (not specs or 		(specs == "MELEE" and A.Unit(member):IsMelee()))
-					and (not burst or 		A.Unit(member):HasBuffs("DamageBuffs") > 2) 
-					and (not deffensive or 	A.Unit(unitID):HasBuffs("DeffBuffs") < 2)
-					and (not range or 		A.Unit(member):GetRange() <= range) then 
-						value = true 
-						break 
-					end
+			if TeamCache.Friendly.Type then 
+				for i = 1, TeamCache.Friendly.Size do 
+					local member = TeamCache.Friendly.Type .. i 
+					if  UnitIsUnit(member .. "target", unitID)  
+					and ((not isMelee and A.Unit(member):IsDamager()) or (isMelee and A.Unit(member):IsMelee()))
+					and (not burst 		or 	A.Unit(member):HasBuffs("DamageBuffs") >= burst) 
+					and (not deffensive or 	A.Unit(unitID):HasBuffs("DeffBuffs") <= deffensive)
+					and (not range 		or 	A.Unit(member):GetRange() <= range) 					
+					then 
+						return true 
+					end 
 				end 
-			end
+			end 
 		else
-			if next(TeamCache.Enemy.DAMAGER) then 
-				-- TYPES AND ROLES
-				specs = Info.SpecIs[specs] or specs or false
-				for arena in pairs(TeamCache.Enemy.DAMAGER) do
-					if UnitIsUnit(arena .. "target", unitID) 
-					and (not specs or 		A.Unit(arena):HasSpec(specs))
-					and (not burst or 		A.Unit(arena):HasBuffs("DamageBuffs") > 2) 
-					and (not deffensive or 	A.Unit(unitID):HasBuffs("DeffBuffs") < 2)
-					and (not range or 		A.Unit(arena):GetRange() <= range) then 
-						value = true 
-						break
-					end
+			if TeamCache.Enemy.Type then 
+				for i = 1, TeamCache.Enemy.Size do 
+					local arena = TeamCache.Enemy.Type .. i 
+					if  UnitIsUnit(arena .. "target", unitID) 
+					and ((not isMelee and A.Unit(arena):IsDamager()) or (isMelee and A.Unit(arena):IsMelee()))
+					and (not burst 		or	A.Unit(arena):HasBuffs("DamageBuffs") >= burst) 
+					and (not deffensive or 	A.Unit(unitID):HasBuffs("DeffBuffs") <= deffensive)
+					and (not range 		or	A.Unit(arena):GetRange() <= range)
+					then 
+						return true 
+					end 
 				end 
-			end
+			end 
 		end 
-		return value 
 	end, "UnitGUID"),
 	IsExecuted 								= Cache:Wrap(function(self)
 		-- @return boolean
 		local unitID 						= self.UnitID
-		local value 						= false 
-		
-		if A.Unit(unitID):IsEnemy() then
-			value = A.Unit(unitID):TimeToDieX(20) <= A.GetGCD() + A.GetCurrentGCD()
-		else
-			if next(TeamCache.Enemy.DAMAGER_MELEE) and A.Unit(unitID):TimeToDieX(20) <= A.GetGCD() + A.GetCurrentGCD() then
-				for arena in pairs(TeamCache.Enemy.DAMAGER_MELEE) do 
-					if A.Unit(arena):HasSpec({71, 72}) and UnitIsUnit(arena .. "target", unitID) and A.Unit(arena):Power() >= 20 and (unitID ~= "player" or A.Unit(arena):GetRange() < 7) then 
-						value = true 
-						break
-					end
-				end
-			end
-		end 
-		return value
+
+		return A.Unit(unitID):TimeToDieX(20) <= A.GetGCD() + A.GetCurrentGCD()
 	end, "UnitGUID"),
 	UseBurst 								= Cache:Wrap(function(self, pBurst)
 		-- @return boolean
 		local unitID 						= self.UnitID
-		local value 						= false 
-		
+
 		if A.Unit(unitID):IsEnemy() then
-			value = A.Unit(unitID):IsPlayer() and 
+			return A.Unit(unitID):IsPlayer() and 
 			(
 				A.Zone == "none" or 
 				A.Unit(unitID):TimeToDieX(25) <= A.GetGCD() * 4 or
@@ -1839,7 +1834,7 @@ A.Unit = PseudoClass({
 						A.Unit(unitID):HasDeBuffs("Stuned") >= A.GetGCD() * 2                         
 					)
 				) or 
-				A.Unit(unitID):IsFocused(nil, true) or 
+				A.Unit(unitID):IsFocused(true) or 
 				A.EnemyTeam("HEALER"):GetCC() >= A.GetGCD() * 3 or
 				(
 					pBurst and 
@@ -1848,7 +1843,7 @@ A.Unit = PseudoClass({
 			)       
 		elseif A.IamHealer then 
 			-- For HealingEngine as Healer
-			value = A.Unit(unitID):IsPlayer() and 
+			return A.Unit(unitID):IsPlayer() and 
 			(
 				A.Unit(unitID):IsExecuted() or
 				(
@@ -1862,7 +1857,7 @@ A.Unit = PseudoClass({
 					)
 				) or 
 				(
-					A.Unit(unitID):IsFocused(nil, true) and 
+					A.Unit(unitID):IsFocused(true) and 
 					(
 						A.Unit(unitID):TimeToDie() <= 10 or 
 						A.Unit(unitID):HealthPercent() <= 70
@@ -1870,19 +1865,17 @@ A.Unit = PseudoClass({
 				) 
 			)                   
 		end 
-		return value 
 	end, "UnitGUID"),
 	UseDeff 								= Cache:Wrap(function(self)
 		-- @return boolean
 		local unitID 						= self.UnitID
 		return 
 		(
-			A.Unit(unitID):IsFocused(nil, true) or 
+			A.Unit(unitID):IsFocused(true) or 
 			(
 				A.Unit(unitID):TimeToDie() < 8 and 
 				A.Unit(unitID):IsFocused() 
 			) or 
-			--A.Unit(unitID):HasDeBuffs("DamageDeBuffs") > 5 or 
 			A.Unit(unitID):IsExecuted()
 		) 			
 	end, "UnitGUID"),	
@@ -1893,30 +1886,39 @@ function A.Unit:New(UnitID, Refresh)
 	self.Refresh 	= Refresh
 end
 
+local function CheckUnitByRole(ROLE, unitID)
+	return  not ROLE 													or 
+			(ROLE == "HEALER" 			and A.Unit(unitID):IsHealer()) 	or 
+			(ROLE == "TANK"   			and A.Unit(unitID):IsTank()) 	or 
+			(ROLE == "DAMAGER" 			and A.Unit(unitID):IsDamager()) or 
+			(ROLE == "DAMAGER_MELEE"	and A.Unit(unitID):IsMelee())	or 
+			(ROLE == "DAMAGER_RANGE"	and A.Unit(unitID):IsDamager() and not A.Unit(unitID):IsMelee())
+end 
+
 -------------------------------------------------------------------------------
 -- API: FriendlyTeam 
 -------------------------------------------------------------------------------
+
 A.FriendlyTeam = PseudoClass({
-	GetUnitID 								= Cache:Pass(function(self, range)
-		-- @return string 
+	GetUnitID 								= Cache:Wrap(function(self, range)
+		-- @return string or nil 
 		local ROLE 							= self.ROLE
-		local value	 						= "none" 
 		
-		for member in pairs(TeamCache.Friendly[ROLE]) do
-			if not A.Unit(member):IsDead() and A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then 
-				value = member 
-				break 
+		if TeamCache.Friendly.Type then 
+			for i = 1, TeamCache.Friendly.Size do 
+				local member = TeamCache.Friendly.Type .. i 
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then 
+					return member
+				end 
 			end 
-		end 
-		
-		return value 
+		end  
 	end, "ROLE"),
-	GetCC 									= Cache:Pass(function(self, spells)
+	GetCC 									= Cache:Wrap(function(self, spells)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= 0, "none"
 		
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			if spells then 
 				local g = A.Unit("player"):HasDeBuffs(spells) 
 				if g ~= 0 then 
@@ -1934,112 +1936,88 @@ A.FriendlyTeam = PseudoClass({
 			end 
 		end 		
 		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if spells then 
-					value = A.Unit(member):HasDeBuffs(spells) 
-				else
-					value = A.Unit(member):InCC()
-					if value ~= 0 then 
-						break 
-					end 
-				end 				
-			end     
-		else
+		if TeamCache.Friendly.Type then 
 			for i = 1, TeamCache.Friendly.Size do
 				member = TeamCache.Friendly.Type .. i
-				if spells then 
-					value = A.Unit(member):HasDeBuffs(spells) 
-				else
-					value = A.Unit(member):InCC()
-					if value ~= 0 then 
-						break 
-					end 
-				end 	
-			end
-		end 		
+				if CheckUnitByRole(ROLE, member) then 
+					if spells then 
+						value = A.Unit(member):HasDeBuffs(spells) 
+						if value ~= 0 then 
+							return value, member 
+						end 					
+					else
+						value = A.Unit(member):InCC()
+						if value ~= 0 then 
+							return value, member 
+						end 
+					end 	
+				end 
+			end		
+		end 
 
-		return value, member
+		return 0, "none"
 	end, "ROLE"),
 	GetBuffs 								= Cache:Wrap(function(self, Buffs, range, iSource)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= 0, "none"
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			local d = A.Unit("player"):HasBuffs(spells, iSource)
 			if d ~= 0 then 
 				return d, "player"
 			else 
 				return value, member
 			end 
-		end 			
-		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then
-					value = A.Unit(member):HasBuffs(Buffs, iSource)       
-					if value ~= 0 then 
-						break
-					end
-				end 
-			end 
-		else
+		end 	
+
+		if TeamCache.Friendly.Type then 
 			for i = 1, TeamCache.Friendly.Size do
 				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then
-					value = A.Unit(member):HasBuffs(Buffs, iSource)                     				 
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then 
+					value = A.Unit(member):HasBuffs(Buffs, iSource) 
 					if value ~= 0 then 
-						break
-					end      
+						return value, member
+					end   
 				end 
-			end  
-		end  	
+			end		
+		end 		
 		
-		return value, member
+		return 0, "none"
 	end, "ROLE"),
 	GetDeBuffs		 						= Cache:Wrap(function(self, DeBuffs, range)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= 0, "none"
 		
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			local d = A.Unit("player"):HasDeBuffs(DeBuffs)
 			if d ~= 0 then 
 				return d, "player"
 			else 
 				return value, member
 			end 
-		end 			
-		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then
-					value = A.Unit(member):HasDeBuffs(DeBuffs)       
-					if value ~= 0 then 
-						break
-					end
-				end 
-			end 
-		else
+		end 		
+
+		if TeamCache.Friendly.Type then 
 			for i = 1, TeamCache.Friendly.Size do
 				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then
-					value = A.Unit(member):HasDeBuffs(DeBuffs)                     				 
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) then
+					value = A.Unit(member):HasDeBuffs(DeBuffs)  
 					if value ~= 0 then 
-						break
-					end      
+						return value, member
+					end   
 				end 
-			end  
-		end  		
+			end		
+		end 				
 		
-		return value, member
+		return value, "none"
 	end, "ROLE"),
-	GetTTD 									= Cache:Pass(function(self, count, seconds, range)
+	GetTTD 									= Cache:Wrap(function(self, count, seconds, range)
 		-- @return boolean, counter, unitID 
 		local ROLE 							= self.ROLE
 		local value, counter, member 		= false, 0, "none"
 		
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			if A.Unit("player"):TimeToDie() <= seconds then
 				return true, 1, "player"
 			else 
@@ -2047,36 +2025,18 @@ A.FriendlyTeam = PseudoClass({
 			end 
 		end 		
 		
-		if TeamCache.Friendly.Size == 0 then 
-			if A.Unit("player"):TimeToDie() <= seconds then
-				return true, 1, "player"
-			else 
-				return value, counter, member
-			end 
-		end 		
-		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) and A.Unit(member):TimeToDie() <= seconds then
+		if TeamCache.Friendly.Type then 
+			for i = 1, TeamCache.Friendly.Size do
+				member = TeamCache.Friendly.Type .. i
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) and A.Unit(member):TimeToDie() <= seconds then
 					counter = counter + 1        
 					if counter >= count then 
 						value = true
 						break
 					end
 				end 
-			end 
-		else
-			for i = 1, TeamCache.Friendly.Size do
-				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):InRange() and (not range or A.Unit(member):GetRange() <= range) and A.Unit(member):TimeToDie() <= seconds  then
-					counter = counter + 1     
-					if counter >= count then 
-						value = true
-						break
-					end
-				end                        
-			end  
-		end
+			end		
+		end 					
 		
 		return value, counter, member
 	end, "ROLE"),
@@ -2084,26 +2044,19 @@ A.FriendlyTeam = PseudoClass({
 		-- @return number, number 
 		local ROLE 							= self.ROLE
 		local value, members 				= 0, 0
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			return A.Unit("player"):TimeToDie(), 1
 		end 
 		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if A.Unit(member):InRange() then 
+		if TeamCache.Friendly.Type then 
+			for i = 1, TeamCache.Friendly.Size do
+				member = TeamCache.Friendly.Type .. i
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() then
 					value = value + A.Unit(member):TimeToDie()
 					members = members + 1
 				end 
-			end 
-		else 
-			for i = 1, TeamCache.Friendly.Size do
-				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):InRange() then
-					value = value + A.Unit(member):TimeToDie()
-					members = members + 1
-				end                        
-			end  
-		end 
+			end		
+		end 			
 		
 		if members > 0 then 
 			value = value / members
@@ -2115,7 +2068,7 @@ A.FriendlyTeam = PseudoClass({
 		-- @return boolean, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= false, "none"
-		if TeamCache.Friendly.Size == 0 then 
+		if TeamCache.Friendly.Size <= 1 then 
 			local d = A.Unit("player"):HasBuffs(spells, iSource) 
 			if d == 0 then 
 				return true, "player"
@@ -2124,57 +2077,48 @@ A.FriendlyTeam = PseudoClass({
 			end 
 		end 
 		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if A.Unit(member):InRange() and not A.Unit(member):IsDead() and A.Unit(member):HasBuffs(spells, iSource) == 0 then
-					return true, member 
-				end 
-			end 
-		else 
+		if TeamCache.Friendly.Type then 
 			for i = 1, TeamCache.Friendly.Size do
 				member = TeamCache.Friendly.Type .. i
-				if A.Unit(member):InRange() and not A.Unit(member):IsDead() and A.Unit(member):HasBuffs(spells, iSource) == 0 then
+				if CheckUnitByRole(ROLE, member) and A.Unit(member):InRange() and not A.Unit(member):IsDead() and A.Unit(member):HasBuffs(spells, iSource) == 0 then
 					return true, member 
-				end                        
-			end  
-		end 		
+				end 
+			end		
+		end 					
 		
-		return value, member 
+		return value, "none" 
 	end, "ROLE"),
 	PlayersInCombat 						= Cache:Wrap(function(self, range, combatTime)
 		-- @return boolean, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= false, "none"
 		
-		if ROLE then 
-			for member in pairs(TeamCache.Friendly[ROLE]) do
-				if ((not range and A.Unit(member):InRange()) or (range and A.Unit(member):GetRange() <= range)) and A.Unit(member):CombatTime() > 0 and (not combatTime or A.Unit(member):CombatTime() <= combatTime) then
-					return true, member 
-				end 
-			end 
-		else 		
+		if TeamCache.Friendly.Type then 
 			for i = 1, TeamCache.Friendly.Size do
 				member = TeamCache.Friendly.Type .. i
-				if ((not range and A.Unit(member):InRange()) or (range and A.Unit(member):GetRange() <= range)) and A.Unit(member):CombatTime() > 0 and (not combatTime or A.Unit(member):CombatTime() <= combatTime) then
-					return true, member
+				if CheckUnitByRole(ROLE, member) and ((not range and A.Unit(member):InRange()) or (range and A.Unit(member):GetRange() <= range)) and A.Unit(member):CombatTime() > 0 and (not combatTime or A.Unit(member):CombatTime() <= combatTime) then
+					return true, member 
 				end 
-			end 	
-		end 
+			end		
+		end 			
 		
-		return value, member 
+		return value, "none" 
 	end, "ROLE"),
-	HealerIsFocused 						= Cache:Wrap(function(self, burst, deffensive, range)
+	HealerIsFocused 						= Cache:Wrap(function(self, burst, deffensive, range, isMelee)
 		-- @return boolean, unitID 
 		local ROLE 							= self.ROLE
 		local value, member 				= false, "none"
 		
-		for member in pairs(TeamCache.Friendly.HEALER) do
-			if A.Unit(member):InRange() and A.Unit(member):IsFocused(nil, burst, deffensive, range) then
-				return true, member
-			end 
-		end 
+		if TeamCache.Friendly.Type then 
+			for i = 1, TeamCache.Friendly.Size do
+				member = TeamCache.Friendly.Type .. i
+				if CheckUnitByRole("HEALER", member) and A.Unit(member):InRange() and A.Unit(member):IsFocused(burst, deffensive, range, isMelee) then
+					return true, member 
+				end 
+			end		
+		end 				
 		
-		return value, member 
+		return value, "none" 
 	end, "ROLE"),
 })
 
@@ -2187,133 +2131,109 @@ end
 -- API: EnemyTeam 
 -------------------------------------------------------------------------------
 A.EnemyTeam = PseudoClass({
-	GetUnitID 								= Cache:Pass(function(self, range, specs)
-		-- @return string 
+	GetUnitID 								= Cache:Wrap(function(self, range)
+		-- @return string or nil 
 		local ROLE 							= self.ROLE
-		local value 						= "none" 
 
-		for arena in pairs(TeamCache.Enemy[ROLE]) do
-			if not A.Unit(arena):IsDead() and (not specs or A.Unit(arena):HasSpec(specs)) and (not range or A.Unit(arena):GetRange() <= range) then 
-				value = arena 
-				break 
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				local arena = TeamCache.Enemy.Type .. i 
+				if CheckUnitByRole(ROLE, arena) and not A.Unit(arena):IsDead() and (not range or A.Unit(arena):GetRange() <= range) then 
+					return arena
+				end 
 			end 
-		end 
-
-		return value 
+		end  
 	end, "ROLE"),
-	GetCC 									= Cache:Pass(function(self, spells)
+	GetCC 									= Cache:Wrap(function(self, spells)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, arena 					= 0, "none"
 		
-		if ROLE then 
-			for arena in pairs(TeamCache.Enemy[ROLE]) do
-				if spells then 
-					value = A.Unit(arena):HasDeBuffs(spells) 
-				elseif ROLE ~= "HEALER" or not UnitIsUnit(arena, "target") then 
-					value = A.Unit(arena):InCC()
-					if value ~= 0 then 
-						break 
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i 
+				if CheckUnitByRole(ROLE, arena) then 
+					if spells then 
+						value = A.Unit(arena):HasDeBuffs(spells) 
+						if value ~= 0 then 
+							return value,  arena
+						end 
+					elseif ROLE ~= "HEALER" or not UnitIsUnit(arena, "target") then 
+						value = A.Unit(arena):InCC()
+						if value ~= 0 then 
+							return value,  arena 
+						end 
 					end 
-				end 				
-			end     
-		else
-			for i = 1, TeamCache.Enemy.Size do
-				arena = TeamCache.Enemy.Type .. i
-				if spells then 
-					value = A.Unit(arena):HasDeBuffs(spells) 
-				elseif ROLE ~= "HEALER" or not UnitIsUnit(arena, "target") then 
-					value = A.Unit(arena):InCC()
-					if value ~= 0 then 
-						break 
-					end 
-				end 	
-			end
-		end 
+				end 
+			end 
+		end  		
 		
-		return value, arena 
+		return value, "none" 
 	end, "ROLE"),
 	GetBuffs 								= Cache:Wrap(function(self, Buffs, range, iSource)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, arena 					= 0, "none"
 		
-		if ROLE then 
-			for arena in pairs(TeamCache.Enemy[ROLE]) do
-				if not range or A.Unit(arena):GetRange() <= range then
-					value = A.Unit(arena):HasBuffs(Buffs, iSource)       
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i 
+				if CheckUnitByRole(ROLE, arena) and (not range or A.Unit(arena):GetRange() <= range) then 
+					value = A.Unit(arena):HasBuffs(Buffs, iSource)    
 					if value ~= 0 then 
-						break
-					end
+						return value, arena
+					end 
 				end 
 			end 
-		else
-			for i = 1, TeamCache.Enemy.Size do
-				arena = TeamCache.Enemy.Type .. i
-				if not range or A.Unit(arena):GetRange() <= range then
-					value = A.Unit(arena):HasBuffs(Buffs, iSource)                     				 
-					if value ~= 0 then 
-						break
-					end      
-				end 
-			end  
 		end  
 		
-		return value, arena 
+		return value, "none" 
 	end, "ROLE"),
 	GetDeBuffs 								= Cache:Wrap(function(self, DeBuffs, range)
 		-- @return number, unitID 
 		local ROLE 							= self.ROLE
 		local value, arena 					= 0, "none"
 		
-		if ROLE then 
-			for arena in pairs(TeamCache.Enemy[ROLE]) do
-				if not range or A.Unit(arena):GetRange() <= range then
-					value = A.Unit(arena):HasDeBuffs(DeBuffs)                     				 
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i 
+				if CheckUnitByRole(ROLE, arena) and (not range or A.Unit(arena):GetRange() <= range) then 
+					value = A.Unit(arena):HasDeBuffs(DeBuffs)  
 					if value ~= 0 then 
-						break
-					end
-				end
-			end 
-		else
-			for i = 1, TeamCache.Enemy.Size do
-				arena = TeamCache.Enemy.Type .. i
-				if not range or A.Unit(arena):GetRange() <= range then
-					value = A.Unit(arena):HasDeBuffs(DeBuffs)                     				 
-					if value ~= 0 then 
-						break
-					end         
+						return value, arena
+					end 
 				end 
-			end  
-		end   
+			end 
+		end  		
 		
-		return value, arena 
+		return value, "none" 
 	end, "ROLE"),
 	IsBreakAble 							= Cache:Wrap(function(self, range)
 		-- @return boolean, unitID 
 		local ROLE 							= self.ROLE
 		local value, arena 					= false, "none"
-		
-		if ROLE then 
-			for arena in pairs(TeamCache.Enemy[ROLE]) do
-				if not UnitIsUnit(arena, "target") and (not range or A.Unit(arena):GetRange() <= range) and A.Unit(arena):HasDeBuffs("BreakAble") ~= 0 then
-					value = true 
-					break
+				
+		if ROLE then 		
+			if TeamCache.Enemy.Type then 
+				for i = 1, TeamCache.Enemy.Size do 
+					arena = TeamCache.Enemy.Type .. i 
+					if CheckUnitByRole(ROLE, arena) and not UnitIsUnit(arena, "target") and (not range or A.Unit(arena):GetRange() <= range) and A.Unit(arena):HasDeBuffs("BreakAble") ~= 0 then 
+						return true, arena						 
+					end 
 				end 
-			end 
+			end  				
 		else
 			local activeUnitPlates 			= MultiUnits:GetActiveUnitPlates()
 			if activeUnitPlates then 
 				for arena in pairs(activeUnitPlates) do               
 					if A.Unit(arena):IsPlayer() and not UnitIsUnit("target", arena) and (not range or A.Unit(arena):GetRange() <= range) and A.Unit(arena):HasDeBuffs("BreakAble") ~= 0 then
-						value = true 
-						break
+						return true, arena	
 					end            
 				end  
 			end 
 		end 
 		
-		return value, arena 
+		return value, "none" 
 	end, "ROLE"),
 	PlayersInRange 							= Cache:Wrap(function(self, stop, range)
 		-- @return boolean, number, unitID 
@@ -2321,16 +2241,19 @@ A.EnemyTeam = PseudoClass({
 		local value, count, arena 			= false, 0, "none"
 		
 		if ROLE then 
-			for arena in pairs(TeamCache.Enemy[ROLE]) do
-				if not range or A.Unit(arena):GetRange() <= range then
-					count = count + 1 	
-					if not stop then 
-						value = true 
-					elseif count >= stop then 
-						value = true 
-						break 				 						
+			if TeamCache.Enemy.Type then
+				for i = 1, TeamCache.Enemy.Size do 
+					arena = TeamCache.Enemy.Type .. i 
+					if CheckUnitByRole(ROLE, arena) and (not range or A.Unit(arena):GetRange() <= range) then 
+						count = count + 1 	
+						if not stop then 
+							value = true 
+						elseif count >= stop then 
+							value = true 
+							break 				 						
+						end 
 					end 
-				end 
+				end 		
 			end 
 		else
 			local activeUnitPlates 			= MultiUnits:GetActiveUnitPlates()
@@ -2356,27 +2279,27 @@ A.EnemyTeam = PseudoClass({
 		-- @return boolean, unitID
 		local value, arena 					= false, "none"
 		
-		for i = 1, TeamCache.Enemy.Size do 
-			arena = TeamCache.Enemy.Type .. i
-			local class = A.Unit(arena):Class()
-			if not A.Unit(arena):IsDead() and (class == "ROGUE" or class == "DRUID") then 
-				value = true  
-				break 
+		if TeamCache.Enemy.Type then
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i
+				local class = A.Unit(arena):Class()
+				if not A.Unit(arena):IsDead() and (class == "ROGUE" or class == "DRUID") then 
+					return true, arena 
+				end 
 			end 
 		end 
 		 
-		return value, arena
+		return value, "none"
 	end, "ROLE"), 
 	IsTauntPetAble 							= Cache:Wrap(function(self, object)
 		-- @return boolean, unitID
 		-- object is always Action table key 
 		local value, pet = false, "none"
-		if TeamCache.Enemy.Size > 0 then 
+		if TeamCache.Enemy.Type and TeamCache.Enemy.Size > 0 then 
 			for i = 1, 10 do 
 				pet = TeamCache.Enemy.Type .. "pet" .. i
 				if A.Unit(pet):IsExists() and object:IsReady(pet) then 
-					value = true 
-					break 
+					return true, pet  
 				end              
 			end  
 		end
@@ -2387,17 +2310,19 @@ A.EnemyTeam = PseudoClass({
 		-- @return boolean, unitID
 		local value, arena 					= false, "none"
 		
-		for i = 1, TeamCache.Enemy.Size do 
-			arena = TeamCache.Enemy.Type .. i
-			local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
-			if castRemain > 0 and castRemain <= (offset or 0.5) then 
-				for i = 1, #AuraList.Premonition do 
-					if A.GetSpellInfo(AuraList.Premonition[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Premonition[i][2] then 
-						return true, arena
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i
+				local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
+				if castRemain > 0 and castRemain <= (offset or 0.5) then 
+					for i = 1, #AuraList.Premonition do 
+						if A.GetSpellInfo(AuraList.Premonition[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Premonition[i][2] then 
+							return true, arena
+						end
 					end
 				end
 			end
-		end
+		end 
  
 		return value, arena
 	end, "ROLE"),
@@ -2405,17 +2330,19 @@ A.EnemyTeam = PseudoClass({
 		-- @return boolean, unitID
 		local value, arena 					= false, "none"
 		
-		for i = 1, TeamCache.Enemy.Size do 
-			arena = TeamCache.Enemy.Type .. i
-			local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
-			if castRemain > 0 and castRemain <= A.GetCurrentGCD() + A.GetGCD() + (offset or 0.05) then 
-				for i = 1, #AuraList.Reshift do 
-					if A.GetSpellInfo(AuraList.Reshift[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Reshift[i][2] and not A.Unit("player"):IsFocused("MELEE") then 
-						return true, arena
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i
+				local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
+				if castRemain > 0 and castRemain <= A.GetCurrentGCD() + A.GetGCD() + (offset or 0.05) then 
+					for i = 1, #AuraList.Reshift do 
+						if A.GetSpellInfo(AuraList.Reshift[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Reshift[i][2] and not A.Unit("player"):IsFocused(nil, nil, 10, true) then 
+							return true, arena
+						end
 					end
 				end
 			end
-		end
+		end 
 		
 		return value, arena 
 	end, "ROLE"), 
@@ -2423,17 +2350,19 @@ A.EnemyTeam = PseudoClass({
 		-- @return boolean, unitID
 		local value, arena 					= false, "none"
 		
-		for i = 1, TeamCache.Enemy.Size do 
-			arena = TeamCache.Enemy.Type .. i
-			local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
-			if castRemain > 0 and castRemain <= A.GetGCD() + (offset + 0.05) then 
-				for i = 1, #AuraList.Premonition do 
-					if A.GetSpellInfo(AuraList.Premonition[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Premonition[i][2] then 
-						return true, arena
+		if TeamCache.Enemy.Type then 
+			for i = 1, TeamCache.Enemy.Size do 
+				arena = TeamCache.Enemy.Type .. i
+				local _, castRemain, _, _, castName = A.Unit(arena):CastTime()
+				if castRemain > 0 and castRemain <= A.GetGCD() + (offset + 0.05) then 
+					for i = 1, #AuraList.Premonition do 
+						if A.GetSpellInfo(AuraList.Premonition[i][1]) == castName and A.Unit(arena):GetRange() <= AuraList.Premonition[i][2] then 
+							return true, arena
+						end
 					end
 				end
 			end
-		end
+		end 
 			
 		return value, arena
 	end, "ROLE"),
