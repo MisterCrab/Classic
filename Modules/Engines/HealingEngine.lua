@@ -973,12 +973,12 @@ function A.HealingEngine.GetMinimumUnits(fullPartyMinus, raidLimit)
 			)
 end 
 
-function A.HealingEngine.GetBelowHealthPercentercentUnits(pHP, range)
+function A.HealingEngine.GetBelowHealthPercentercentUnits(pHP, inParty, range)
 	local total = 0 
 	local m = A.HealingEngine.GetMembersAll()
     if #m > 0 then 
         for i = 1, #m do
-            if (not range or A.Unit(m[i].Unit):CanInterract(range)) and m[i].HP <= pHP then
+            if (not range or A.Unit(m[i].Unit):CanInterract(range)) and m[i].HP <= pHP and (not inParty or A.Unit(m[i].Unit):InParty()) then
                 total = total + 1
             end
         end
@@ -986,7 +986,7 @@ function A.HealingEngine.GetBelowHealthPercentercentUnits(pHP, range)
 	return total 
 end 
 
-function A.HealingEngine.HealingByRange(range, predictName, spell, isMelee)
+function A.HealingEngine.HealingByRange(range, object, inParty, isMelee)
 	-- @return number 
 	-- Return how much members can be healed by specified range with spell
 	local total = 0
@@ -994,8 +994,9 @@ function A.HealingEngine.HealingByRange(range, predictName, spell, isMelee)
 	if #m > 0 then 		
 		for i = 1, #m do 
 			if 	(not isMelee or A.Unit(m[i].Unit):IsMelee()) and 
+				(not inParty or A.Unit(m[i].Unit):InParty()) and 
 				A.Unit(m[i].Unit):CanInterract(range) and
-				spell:PredictHeal(predictName, m[i].Unit)
+				object:PredictHeal(m[i].Unit)
 			then
                 total = total + 1
             end
@@ -1004,7 +1005,7 @@ function A.HealingEngine.HealingByRange(range, predictName, spell, isMelee)
 	return total 
 end 
 
-function A.HealingEngine.HealingBySpell(predictName, spell, isMelee)
+function A.HealingEngine.HealingBySpell(object, inParty, isMelee)
 	-- @return number 
 	-- Return how much members can be healed by specified spell 
 	local total = 0
@@ -1012,11 +1013,9 @@ function A.HealingEngine.HealingBySpell(predictName, spell, isMelee)
 	if #m > 0 then 		
 		for i = 1, #m do 
 			if 	(not isMelee or A.Unit(m[i].Unit):IsMelee()) and 
-				(
-					(not A.IsInitialized and Env.SpellInRange(m[i].Unit, spell)) or
-					(A.IsInitialized and spell:IsInRange(m[i].Unit))
-				) and 
-				spell:PredictHeal(predictName, m[i].Unit)
+				(not inParty or A.Unit(m[i].Unit):InParty()) and 
+				object:IsInRange(m[i].Unit) and 
+				object:PredictHeal(m[i].Unit)
 			then
                 total = total + 1
             end
