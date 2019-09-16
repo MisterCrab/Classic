@@ -8,13 +8,15 @@ local Pet					= LibStub("PetLibrary")
 local LoC 					= A.LossOfControl
 local MultiUnits			= A.MultiUnits
 
-local _G 					= _G
+local _G, select 			= _G, select
 
 local UnitIsUnit  			= UnitIsUnit
 
 local SpellIsTargeting		= SpellIsTargeting
 local IsMouseButtonDown		= IsMouseButtonDown
+--local IsPlayerAttacking	= IsPlayerAttacking
 local HasWandEquipped		= HasWandEquipped
+local UnitPowerType			= UnitPowerType
 
 local ClassPortaits = {
 	["WARRIOR"] 			= ACTION_CONST_PORTRAIT_WARRIOR,
@@ -99,7 +101,34 @@ A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_
 A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Lower" })
 A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Wand" })
 A.AutoShot					= A.Create({ Type = "Spell", 			ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Hunter's shoot" })
-A.HS						= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSGreater1				= A.Create({ Type = "Item", 			ID = 5510, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSGreater2				= A.Create({ Type = "Item", 			ID = 19010, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSGreater3				= A.Create({ Type = "Item", 			ID = 19011, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS1						= A.Create({ Type = "Item", 			ID = 5509, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS2						= A.Create({ Type = "Item", 			ID = 19008, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS3						= A.Create({ Type = "Item", 			ID = 19009, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser1					= A.Create({ Type = "Item", 			ID = 5511, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser2					= A.Create({ Type = "Item", 			ID = 19006, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser3					= A.Create({ Type = "Item", 			ID = 19007, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor1					= A.Create({ Type = "Item", 			ID = 9421, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor2					= A.Create({ Type = "Item", 			ID = 19012, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor3					= A.Create({ Type = "Item", 			ID = 19013, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor1					= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor2					= A.Create({ Type = "Item", 			ID = 19004, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor3					= A.Create({ Type = "Item", 			ID = 19005, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.DarkRune					= A.Create({ Type = "Item", 			ID = 20520, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+A.DemonicRune				= A.Create({ Type = "Item", 			ID = 12662, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+
+local TempHealthStones 		= { A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1 }
+local function GetHealthStone()
+	-- @return object or nil 
+	for i = 1, #TempHealthStones do 
+		local object = TempHealthStones[i]
+		if object:GetCount() > 0 and object:GetCooldown() == 0 then 
+			return object
+		end 
+	end 
+end 
 
 local function IsShoot(unit)
 	return 	A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
@@ -107,6 +136,25 @@ local function IsShoot(unit)
 				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 
 				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
 			)
+end 
+
+function A.CanUseManaRune(icon)
+	-- @return boolean or nil 
+	if select(2, UnitPowerType("player")) == "MANA" and not A.ShouldStop() then 
+		local Runes = A.GetToggle(2, "Runes") 
+		if Runes > 0 and Unit("player"):Health() > 1100 then 
+			local Rune = (A.DarkRune:GetCount() > 0 and A.DarkRune:GetCooldown() == 0 and A.DarkRune) or (A.DemonicRune:GetCount() > 0 and A.DemonicRune:GetCooldown() == 0 and A.DemonicRune) or nil 
+			if Rune then 			
+				if Runes >= 100 then -- AUTO 
+					if Unit("player"):TimeToDie() <= 9 and Unit("player"):PowerPercent() <= 20 then 
+						return Rune:Show(icon)	
+					end 
+				elseif Unit("player"):PowerPercent() <= Rune then 
+					return Rune:Show(icon)								 
+				end 
+			end 
+		end 
+	end 
 end 
 
 function A.Rotation(icon)
@@ -181,18 +229,21 @@ function A.Rotation(icon)
 			return A:Show(icon, A.LastTargetTexture)
 		end 
 		
-		-- Healthstone 
-		local Healthstone = A.GetToggle(1, "HealthStone") 
-		if Healthstone >= 0 then 
-			if A.HS:GetCount() > 0 and A.HS:GetCooldown() == 0 and not Player:IsStealthed() then 			
-				if Healthstone >= 100 then -- AUTO 
-					if Unit("player"):TimeToDie() <= 9 and Unit("player"):HealthPercent() <= 40 then 
-						return A.HS:Show(icon)	
+		if not Player:IsStealthed() then 
+			-- Healthstone 
+			local Healthstone = A.GetToggle(1, "HealthStone") 
+			if Healthstone >= 0 then 
+				local HealthStoneObject = GetHealthStone()
+				if HealthStoneObject then 			
+					if Healthstone >= 100 then -- AUTO 
+						if Unit("player"):TimeToDie() <= 9 and Unit("player"):HealthPercent() <= 40 then 
+							return HealthStoneObject:Show(icon)	
+						end 
+					elseif Unit("player"):HealthPercent() <= Healthstone then 
+						return HealthStoneObject:Show(icon)								 
 					end 
-				elseif Unit("player"):HealthPercent() <= 40 then 
-					return A.HS:Show(icon)								 
 				end 
-			end 
+			end 		
 		end 
 		
 		-- AutoTarget 
