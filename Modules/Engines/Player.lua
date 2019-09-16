@@ -32,8 +32,8 @@ local ArcaneChargesPowerType 	= PowerType.ArcaneCharges
 local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
 
-local UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, 	  UnitAura =
-	  UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, TMW.UnitAura
+local UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, 	 UnitAura =
+	  UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, TMW.UnitAura
 
 local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
 	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
@@ -141,6 +141,13 @@ function Data.logBehind(...)
 	end 
 end 
 
+function Data.logLevel(...)
+	local lvl = ... or UnitLevel("player")
+	if lvl and A.PlayerLevel ~= lvl then 
+		A.PlayerLevel = lvl
+	end 
+end 
+
 A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STARTED_MOVING", function()
 	if Data.TimeStampMoving ~= TMW.time then 
 		Data.TimeStampMoving = TMW.time 
@@ -165,10 +172,14 @@ A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_LEAVE_COMBAT", 	Data.logAtt
 A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTERING_WORLD", 	Data.logAttackOFF)
 A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "UI_ERROR_MESSAGE", 		Data.logBehind)
 
-A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 	Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 	Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_ENTERING_WORLD", 		Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_LOGIN", 				Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LEVEL_UP",			Data.logLevel)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_ENTERING_WORLD", 	Data.logLevel)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LOGIN", 			Data.logLevel)
+
+A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 		Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 		Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_ENTERING_WORLD", 			Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_LOGIN", 					Data.UpdateStance)
 
 local function RecoveryOffset()
 	return A.GetPing() + A.GetCurrentGCD()
