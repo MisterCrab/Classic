@@ -22,16 +22,17 @@ local LibClassicCasterino 			= LibStub("LibClassicCasterino")
 -- To activate it
 LibClassicCasterino.callbacks.OnUsed() 
 
-local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall =
-	  _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall
+local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, huge =
+	  _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, math.huge
 	  
 local CombatLogGetCurrentEventInfo	= _G.CombatLogGetCurrentEventInfo	  
 local GetUnitSpeed					= _G.GetUnitSpeed
 local GetPartyAssignment 			= _G.GetPartyAssignment	  
-local UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID =
-	  UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID
+local UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible =
+	  UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible
+local UnitAura 						= TMW.UnitAura	  
 	  
 -------------------------------------------------------------------------------
 -- Cache
@@ -331,11 +332,13 @@ local AuraList = {
         12880, 				-- Enrage (Warrior)
     }, 
     DamageBuffs = {        
+		19135,				-- Avatar					(Warrior)
 		13750,				-- Adrenaline Rush			(Rogue)
 		19574,				-- Bestial Wrath			(Hunter)
 		11129, 				-- Combustion 				(Mage)
 		12042, 				-- Arcane Power 			(Mage)
 		26297,				-- Berserking				(Troll)
+		20572,				-- Blood Fury				(Orc)
     },
     DamageBuffs_Melee = {        
         13750,				-- Adrenaline Rush			(Rogue)
@@ -606,6 +609,11 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return UnitInParty(unitID) or UnitInRaid(unitID)
 	end, "UnitID"),
+	InParty									= Cache:Pass(function(self)  
+		-- @return boolean 
+		local unitID 						= self.UnitID
+		return UnitInParty(unitID)
+	end, "UnitID"),
 	InRange 								= Cache:Pass(function(self)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
@@ -691,11 +699,21 @@ A.Unit = PseudoClass({
 		-- @return boolean
 		local unitID 						= self.UnitID
 		return UnitIsDeadOrGhost(unitID) and not UnitIsFeignDeath(unitID)
-	end, "UnitID"),
+	end, "UnitID"),	
 	IsPlayer								= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
 		return UnitIsPlayer(unitID)
+	end, "UnitID"),
+	IsPet									= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return UnitPlayerControlled(unitID)
+	end, "UnitID"),
+	IsVisible								= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return UnitIsVisible(unitID)
 	end, "UnitID"),
 	IsExists 								= Cache:Pass(function(self)  
 		-- @return boolean
@@ -1245,6 +1263,11 @@ A.Unit = PseudoClass({
 		return CombatTracker:TimeToDieMagic(unitID)
 	end, "UnitID"),
 	-- Combat: End
+	GetIncomingResurrection					= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return UnitHasIncomingResurrection(unitID)
+	end, "UnitID"),
 	GetIncomingHeals						= Cache:Pass(function(self)
 		-- @return number 
 		--[[ TODO: Classic (Idea is:
@@ -1421,7 +1444,76 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		local banishName					= strlowerCache[A.GetSpellInfo(710)] -- Banish 
 		return Env.AuraDur(unitID, banishName, "HARMFUL")
-	end, "UnitGUID"),
+	end, "UnitGUID"),	
+	GetDeBuffInfo							= Cache:Pass(function(self, auraTable, caster)
+		-- @return number, number, number, number 
+		-- rank, remain duration, total duration, stacks 
+		-- auraTable is { [spellID] = rank, [18] = 1 }
+		local unitID 						= self.UnitID		
+		local filter
+		if caster then 
+			filter = "HARMFUL PLAYER"
+		else 
+			filter = "HARMFUL"
+		end 
+		
+		for i = 1, huge do			
+			local Name, _, count, _, duration, expirationTime, _,_,_, id = UnitAura(unitID, i, filter)
+			
+			if Name then					
+				if auraTable[id] then 
+					return auraTable[id], expirationTime == 0 and huge or expirationTime - TMW.time, duration, count
+				end 
+			else
+				break 
+			end 
+		end 
+		
+		return 0, 0, 0, 0
+	end, "UnitID"),
+	GetDeBuffInfoByName						= Cache:Pass(function(self, auraName, caster)
+		-- @return number, number, number, number 
+		-- spellID, remain duration, total duration, stacks 
+		-- auraName must be exactly @string 
+		local unitID 						= self.UnitID		
+		local filter
+		if caster then 
+			filter = "HARMFUL PLAYER"
+		else 
+			filter = "HARMFUL"
+		end 
+		
+		for i = 1, huge do			
+			local Name, _, count, _, duration, expirationTime, _,_,_, id = UnitAura(unitID, i, filter)
+			
+			if Name then					
+				if Name == auraName then 
+					return id, expirationTime == 0 and huge or expirationTime - TMW.time, duration, count
+				end 
+			else
+				break 
+			end 
+		end 
+		
+		return 0, 0, 0, 0
+	end, "UnitID"),
+	IsDeBuffsLimited						= Cache:Pass(function(self)
+		-- @return boolean 
+		local unitID 						= self.UnitID	
+		local auras 						= 0 
+		
+		for i = 1, ACTION_CONST_AURAS_MAX_LIMIT do			
+			local Name = UnitAura(unitID, i, "HARMFUL")
+			
+			if Name then					
+				auras = auras + 1
+			else
+				break 
+			end 
+		end 
+		
+		return auras >= ACTION_CONST_AURAS_MAX_LIMIT
+	end, "UnitID"), 
 	HasDeBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
 		-- current remain, total applied duration
@@ -1523,6 +1615,58 @@ A.Unit = PseudoClass({
 			return Env.AuraPercent(unitID, (not byID and not Info.IsExceptionID[spell] and strlowerCache[A.GetSpellInfo(spell)]) or spell, filter) <= 0.3 
 		end 
     end, "UnitGUID"),
+	GetBuffInfo								= Cache:Pass(function(self, auraTable, caster)
+		-- @return number, number, number, number 
+		-- rank, remain duration, total duration, stacks 
+		-- auraTable is { [spellID] = rank, [18] = 1 }
+		local unitID 						= self.UnitID		
+		local filter
+		if caster then 
+			filter = "HELPFUL PLAYER"
+		else 
+			filter = "HELPFUL"
+		end 
+		
+		for i = 1, huge do			
+			local Name, _, count, _, duration, expirationTime, _,_,_, id = UnitAura(unitID, i, filter)
+			
+			if Name then					
+				if auraTable[id] then 
+					return auraTable[id], expirationTime == 0 and huge or expirationTime - TMW.time, duration, count
+				end 
+			else
+				break 
+			end 
+		end 
+		
+		return 0, 0, 0, 0
+	end, "UnitID"),
+	GetBuffInfoByName						= Cache:Pass(function(self, auraName, caster)
+		-- @return number, number, number, number 
+		-- spellID, remain duration, total duration, stacks 
+		-- auraName must be exactly @string 
+		local unitID 						= self.UnitID		
+		local filter
+		if caster then 
+			filter = "HELPFUL PLAYER"
+		else 
+			filter = "HELPFUL"
+		end 
+		
+		for i = 1, huge do			
+			local Name, _, count, _, duration, expirationTime, _,_,_, id = UnitAura(unitID, i, filter)
+			
+			if Name then					
+				if Name == auraName then 
+					return id, expirationTime == 0 and huge or expirationTime - TMW.time, duration, count
+				end 
+			else
+				break 
+			end 
+		end 
+		
+		return 0, 0, 0, 0
+	end, "UnitID"),
 	HasBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
 		-- current remain, total applied duration	
@@ -1997,6 +2141,28 @@ A.FriendlyTeam = PseudoClass({
 		
 		return value, member 
 	end, "ROLE"),
+	PlayersInCombat 						= Cache:Wrap(function(self, range, combatTime)
+		-- @return boolean, unitID 
+		local ROLE 							= self.ROLE
+		local value, member 				= false, "none"
+		
+		if ROLE then 
+			for member in pairs(TeamCache.Friendly[ROLE]) do
+				if ((not range and A.Unit(member):InRange()) or (range and A.Unit(member):GetRange() <= range)) and A.Unit(member):CombatTime() > 0 and (not combatTime or A.Unit(member):CombatTime() <= combatTime) then
+					return true, member 
+				end 
+			end 
+		else 		
+			for i = 1, TeamCache.Friendly.Size do
+				member = TeamCache.Friendly.Type .. i
+				if ((not range and A.Unit(member):InRange()) or (range and A.Unit(member):GetRange() <= range)) and A.Unit(member):CombatTime() > 0 and (not combatTime or A.Unit(member):CombatTime() <= combatTime) then
+					return true, member
+				end 
+			end 	
+		end 
+		
+		return value, member 
+	end, "ROLE"),
 	HealerIsFocused 						= Cache:Wrap(function(self, burst, deffensive, range)
 		-- @return boolean, unitID 
 		local ROLE 							= self.ROLE
@@ -2193,7 +2359,7 @@ A.EnemyTeam = PseudoClass({
 		for i = 1, TeamCache.Enemy.Size do 
 			arena = TeamCache.Enemy.Type .. i
 			local class = A.Unit(arena):Class()
-			if not A.Unit(arena):IsDead() and (class == "MAGE" or class == "ROGUE" or class == "DRUID") then 
+			if not A.Unit(arena):IsDead() and (class == "ROGUE" or class == "DRUID") then 
 				value = true  
 				break 
 			end 
@@ -2201,13 +2367,14 @@ A.EnemyTeam = PseudoClass({
 		 
 		return value, arena
 	end, "ROLE"), 
-	IsTauntPetAble 							= Cache:Wrap(function(self, spellID)
+	IsTauntPetAble 							= Cache:Wrap(function(self, object)
 		-- @return boolean, unitID
+		-- object is always Action table key 
 		local value, pet = false, "none"
 		if TeamCache.Enemy.Size > 0 then 
-			for i = 1, 3 do 
+			for i = 1, 10 do 
 				pet = TeamCache.Enemy.Type .. "pet" .. i
-				if A.Unit(pet):IsExists() and (not spellID or (type(spellID) == "table" and spellID:IsInRange(pet)) or (type(spellID) ~= "table" and A.IsSpellInRange(spellID, pet))) then 
+				if A.Unit(pet):IsExists() and object:IsReady(pet) then 
 					value = true 
 					break 
 				end              
