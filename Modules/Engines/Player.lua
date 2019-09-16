@@ -11,8 +11,8 @@ local A   						= Action
 local InstanceInfo				= A.InstanceInfo
 --local TeamCache				= A.TeamCache
 
-local _G, error, type, pairs, table, next =
-	  _G, error, type, pairs, table, next 
+local _G, error, type, pairs, table, next, 		huge =
+	  _G, error, type, pairs, table, next, math.huge 
 
 local Enum 						= _G.Enum 
 local PowerType 				= Enum.PowerType
@@ -32,14 +32,17 @@ local ArcaneChargesPowerType 	= PowerType.ArcaneCharges
 local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
 
-local UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage =
-	  UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage
+local UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, 	  UnitAura =
+	  UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, TMW.UnitAura
 
 local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
 	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
 	  
-local IsEquippedItem, IsStealthed, IsMounted, IsFalling = 	  
-	  IsEquippedItem, IsStealthed, IsMounted, IsFalling 
+local IsEquippedItem, IsStealthed, IsMounted, IsFalling, IsSwimming, IsSubmerged = 	  
+	  IsEquippedItem, IsStealthed, IsMounted, IsFalling, IsSwimming, IsSubmerged
+	  
+local CancelUnitBuff, CancelSpellByName =
+	  CancelUnitBuff, CancelSpellByName
 
 -------------------------------------------------------------------------------
 -- Locals 
@@ -279,6 +282,11 @@ function A.Player:IsMounted()
 	return IsMounted() and (not Data.AuraOnCombatMounted[A.PlayerClass] or A.Unit(self.UnitID):HasBuffs(Data.AuraOnCombatMounted[A.PlayerClass], true) == 0)
 end 
 
+function A.Player:IsSwimming()
+	-- @return boolean 
+	return IsSwimming() or IsSubmerged()
+end 
+
 function A.Player:IsStealthed()
 	-- @return boolean 
 	return IsStealthed() or (A.PlayerRace == "NightElf" and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed.Shadowmeld, true, true) > 0) or (Data.AuraStealthed[A.PlayerClass] and A.Unit(self.UnitID):HasBuffs(Data.AuraStealthed[A.PlayerClass], true, true) > 0) 
@@ -305,6 +313,23 @@ function A.Player:CastCost()
 	-- @return number 
 	local castName, castStartTime, castEndTime, notInterruptable, spellID, isChannel = A.Unit(self.UnitID):IsCasting()
 	return castName and A.GetSpellPowerCost(spellID) or 0
+end 
+
+function A.Player:CancelBuff(buffName)
+	-- @return nil 
+	for i = 1, huge do			
+		local Name = UnitAura("player", i, "HELPFUL PLAYER")
+		if Name then	
+			if Name == buffName then 
+				CancelUnitBuff("player", i, "HELPFUL PLAYER")
+				if A.Unit("player"):CombatTime() == 0 then 
+					CancelSpellByName(buffName)
+				end 
+			end 
+		else 
+			break 
+		end 
+	end 
 end 
 
 -- crit_chance
