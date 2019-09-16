@@ -822,13 +822,16 @@ end
 
 TMW:RegisterCallback("TMW_ACTION_ENTERING",											function()
 	if skipedFirstEnter then 
-		wipe(UnitTracker.Data)
-		wipe(CombatTracker.Data)
-		wipe(RealUnitHealth.DamageTaken)
-		wipe(RealUnitHealth.CachedHealthMax)
-		wipe(RealUnitHealth.isHealthWasMaxOnGUID)
-		wipe(RealUnitHealth.CachedHealthMaxTemprorary)
-		wipe(RealUnitHealth.SavedHealthPercent)
+		if not InCombatLockdown() then 
+			wipe(UnitTracker.Data)
+			wipe(CombatTracker.Data)
+			wipe(RealUnitHealth.DamageTaken)
+			wipe(RealUnitHealth.CachedHealthMax)
+			wipe(RealUnitHealth.isHealthWasMaxOnGUID)
+			wipe(RealUnitHealth.CachedHealthMaxTemprorary)
+			wipe(RealUnitHealth.SavedHealthPercent)
+			logDefaultGUIDatMaxHealthTarget()
+		end 
 	else 
 		skipedFirstEnter = true 
 	end 
@@ -857,7 +860,12 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				funct
 	local LastTimeCasted = A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) 
 	if (LastTimeCasted == 0 or LastTimeCasted > 1.5) and A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)   		
-		wipe(CombatTracker.Data) 		
+		wipe(CombatTracker.Data) 
+	else 
+		local GUID = UnitGUID("player")
+		if CombatTracker.Data[GUID] then 
+			CombatTracker.Data[GUID].combat_time = TMW.time 
+		end 
 	end 
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "LOSS_OF_CONTROL_UPDATE", 			LossOfControl.OnEvent			)
@@ -1275,18 +1283,23 @@ A.CombatTracker									= {
 		
 		return ttd or 500
 	end,
-	--[[ Debug ]]
-	--[[Debug 										= function(self, command)
+	--[[ Debug Real Health ]]
+	Debug 										= function(self, command)
 		local cmd = command:lower()
 		if cmd == "wipe" then 
-			wipe(CombatTracker.Data)
-		elseif cmd == "data" then 
-			return CombatTracker.Data
-		elseif cmd == "resetMaxSave" then 
 			local GUID = UnitGUID("target")
-			CombatTracker.Data[GUID].RealUnitHealth.CachedHealthMax = 0 
+			if GUID then 
+				RealUnitHealth.DamageTaken[GUID] = nil 
+				RealUnitHealth.CachedHealthMax[GUID] = nil 
+				RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
+				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = nil 
+				RealUnitHealth.SavedHealthPercent[GUID] = nil 
+				logDefaultGUIDatMaxHealthTarget()
+			end 
+		elseif cmd == "data" then 
+			return RealUnitHealth
 		end 
-	end, ]]
+	end, 
 }
 
 -------------------------------------------------------------------------------
@@ -1482,7 +1495,7 @@ A.UnitCooldown 									= {
 -- Tracks Freezing Trap 
 A.UnitCooldown:Register(ACTION_CONST_SPELLID_FREEZING_TRAP, 15, nil, nil, {
 	["SPELL_CAST_SUCCESS"] = true,		
-}, true)
+})
 
 -------------------------------------------------------------------------------
 -- API: LossOfControl
