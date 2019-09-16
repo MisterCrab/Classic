@@ -94,7 +94,7 @@ local function CanHeal(unitID, unitGUID)
 		)
 end
 
-local healingTarget, healingTargetGUID = "None", "None"
+local healingTarget, healingTargetGUID, healingTargetDelay = "None", "None", 0
 local function HealingEngine(MODE, useActualHP)   
 	local mode = MODE or "ALL"
     local ActualHP = useActualHP or false
@@ -721,8 +721,10 @@ local function HealingEngineInit()
 			if self.elapsed > INTV then 
 				local ROLE = A.GetToggle(1, "HE_Toggle")
 				HealingEngine(ROLE) 
-				setHealingTarget(ROLE) 
-				setColorTarget()   
+				if TMW.time > healingTargetDelay then 
+					setHealingTarget(ROLE) 
+					setColorTarget()   
+				end 
 				UpdateLOS() 
 				self.elapsed = 0
 			end			
@@ -747,21 +749,28 @@ TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 						HealingEngineIni
 --- Members are depend on A.GetToggle(1, "HE_Pets") variable 
 
 --- SetTarget Controller 
-function A.HealingEngine.SetTargetMostlyIncDMG()
+function A.HealingEngine.SetTargetMostlyIncDMG(delay)
 	local GUID = UnitGUID("target")
-	if GUID and GUID ~= healingTargetGUID and #A.HealingEngine.Members.MOSTLYINCDMG > 0 then 
-		healingTargetGUID 	= A.HealingEngine.Members.MOSTLYINCDMG[1].GUID
-		healingTarget		= A.HealingEngine.Members.MOSTLYINCDMG[1].Unit
-		setColorTarget(true)
+	if GUID then 
+		healingTargetDelay = TMW.time + (delay or 2)
+		if GUID ~= healingTargetGUID and #A.HealingEngine.Members.MOSTLYINCDMG > 0 then 
+			healingTargetGUID 	= A.HealingEngine.Members.MOSTLYINCDMG[1].GUID
+			healingTarget		= A.HealingEngine.Members.MOSTLYINCDMG[1].Unit
+			setColorTarget(true)
+		end 
 	end 
 end 
 
-function A.HealingEngine.SetTarget(unitID)
+function A.HealingEngine.SetTarget(unitID, delay)
+	-- Sets in HealingEngine specified unitID with delay which will prevent reset target during next few seconds 
 	local GUID = UnitGUID(unitID)
-	if GUID and GUID ~= healingTargetGUID and #A.HealingEngine.Members.ALL > 0 then 
-		healingTargetGUID 	= GUID
-		healingTarget		= unitID
-		setColorTarget(true)
+	if GUID then 
+		healingTargetDelay = TMW.time + (delay or 2)
+		if GUID ~= healingTargetGUID and #A.HealingEngine.Members.ALL > 0 then 
+			healingTargetGUID 	= GUID
+			healingTarget		= unitID
+			setColorTarget(true)
+		end 
 	end 
 end 
 
