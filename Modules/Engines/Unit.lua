@@ -471,6 +471,12 @@ local Info = {
         ["TANK"] 				= {103, 66, 73},
         ["DAMAGER"] 			= {255, 70, 259, 260, 261, 263, 71, 72, 102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
     },
+	ClassCanBeHealer			= {
+		["PALADIN"] 			= true,
+		["PRIEST"]				= true,
+		["SHAMAN"] 				= true,
+		["DRUID"] 				= true,	
+	},
 	ClassCanBeTank				= {
         ["WARRIOR"] 			= true,
         ["PALADIN"] 			= true,
@@ -639,20 +645,22 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return (unitID and (UnitCanAttack("player", unitID) or UnitIsEnemy("player", unitID)) and (not isPlayer or UnitIsPlayer(unitID))) or false
 	end, "UnitID"),
-	IsHealer 								= Cache:Pass(function(self)  
+	IsHealer 								= Cache:Wrap(function(self, skipUnitIsUnit, class)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		if UnitIsUnit(unitID, "player") then 
 			return A.Unit("player"):HasSpec(Info.SpecIs.HEALER) 
 		end 
-											
+		
+		if Info.ClassCanBeHealer[class or A.Unit(unitID):Class()] then 		
 											-- bypass it in PvP 
-		local taken_dmg 					= (A.Unit(unitID):IsEnemy() and A.Unit(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID)
-		local done_dmg						= CombatTracker:GetDPS(unitID)
-		local done_hps						= CombatTracker:GetHPS(unitID)
-		return done_hps > taken_dmg and done_hps > done_dmg  
-	end, "UnitID"),
-	IsTank 									= Cache:Pass(function(self, skipUnitIsUnit, class)    
+			local taken_dmg 				= (A.Unit(unitID):IsEnemy() and A.Unit(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID)
+			local done_dmg					= CombatTracker:GetDPS(unitID)
+			local done_hps					= CombatTracker:GetHPS(unitID)
+			return done_hps > taken_dmg and done_hps > done_dmg  
+		end 
+	end, "UnitGUID"),
+	IsTank 									= Cache:Wrap(function(self, skipUnitIsUnit, class)    
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
@@ -669,8 +677,8 @@ A.Unit = PseudoClass({
 			local done_hps					= CombatTracker:GetHPS(unitID)
 			return taken_dmg > done_dmg and taken_dmg > done_hps
 		end 
-	end, "UnitID"),	
-	IsDamager								= Cache:Pass(function(self, skipUnitIsUnit)    
+	end, "UnitGUID"),	
+	IsDamager								= Cache:Wrap(function(self, skipUnitIsUnit)    
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
@@ -686,8 +694,8 @@ A.Unit = PseudoClass({
 		local done_dmg						= CombatTracker:GetDPS(unitID)
 		local done_hps						= CombatTracker:GetHPS(unitID)
 		return done_dmg > taken_dmg and done_dmg > done_hps 
-	end, "UnitID"),	
-	IsMelee 								= Cache:Pass(function(self) 
+	end, "UnitGUID"),	
+	IsMelee 								= Cache:Wrap(function(self) 
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		if UnitIsUnit(unitID, "player") then 
@@ -717,7 +725,7 @@ A.Unit = PseudoClass({
 				end 
 			end 
 		end 
-	end, "UnitID"),
+	end, "UnitGUID"),
 	IsDead 									= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
