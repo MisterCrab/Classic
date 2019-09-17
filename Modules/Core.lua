@@ -116,8 +116,8 @@ A.HSMajor3					= A.Create({ Type = "Item", 			ID = 19013, 									QueueForbidde
 A.HSMinor1					= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
 A.HSMinor2					= A.Create({ Type = "Item", 			ID = 19004, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
 A.HSMinor3					= A.Create({ Type = "Item", 			ID = 19005, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
-A.DarkRune					= A.Create({ Type = "Item", 			ID = 20520, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
-A.DemonicRune				= A.Create({ Type = "Item", 			ID = 12662, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+A.DarkRune					= A.Create({ Type = "Item", 			ID = 20520, Texture = 134417,					QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+A.DemonicRune				= A.Create({ Type = "Item", 			ID = 12662, Texture = 134417,					QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
 
 local TempHealthStones 		= { A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1 }
 local function GetHealthStone()
