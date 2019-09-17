@@ -1973,7 +1973,7 @@ local Factory = {
 	-- ISCURSOR will swap key localized Name from Localization table and create formated table 
 	[1] = {
 		CheckDeadOrGhost = true, 
-		CheckDeadOrGhostTarget = false,
+		CheckDeadOrGhostTarget = true,
 		CheckMount = false, 
 		CheckCombat = false, 
 		CheckSpellIsTargeting = true, 
