@@ -284,7 +284,7 @@ end
 
 -- Get ApplicationMax
 function Lib:GetApplicationMax(category)
-	local durations = Lib.diminishedDurations[category or "default"] or Lib.diminishedDurations.default
+	local durations = Lib.diminishedDurations[Lib.gameExpansion][category or "default"] or Lib.diminishedDurations[Lib.gameExpansion].default
 	return #durations 
 end 
 

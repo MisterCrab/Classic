@@ -277,9 +277,9 @@ function A.Rotation(icon)
 		useShoot = IsShoot(unit)
 		if not useShoot and unit ~= "targettarget" and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
-			if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
-				return A:Show(icon, ACTION_CONST_AUTOSHOOT)
-			end 
+			--if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
+				--return A:Show(icon, ACTION_CONST_AUTOSHOOT)
+			--end 
 			
 			-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
 			if A.PlayerClass ~= "HUNTER" or not A.GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit) then 
