@@ -284,7 +284,7 @@ end
 
 -- Get ApplicationMax
 function Lib:GetApplicationMax(category)
-	local durations = Data.diminishedDurations[category or "default"] or Data.diminishedDurations.default
+	local durations = Lib.diminishedDurations[category or "default"] or Lib.diminishedDurations.default
 	return #durations 
 end 
 
