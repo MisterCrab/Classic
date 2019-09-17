@@ -4864,6 +4864,9 @@ local function failedReturn(n, toggle)
 	if n == 2 then 
 		if toggle == "Runes" then 
 			return 
+		else  
+			Action.Print(TMW.db:GetCurrentProfile() .. " - Toggle: [" .. (n or "") .. "] " .. toggle .. " " .. (L and L["NOSUPPORT"] or ""))
+			return 
 		end 
 	end 
 	
