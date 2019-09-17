@@ -18,6 +18,7 @@ local TeamCache									= A.TeamCache
 local DRData 									= LibStub("DRList-1.1")
 
 local huge 										= math.huge 
+local abs 										= math.abs 
 
 local _G, type, pairs, table, wipe, bitband  	= 
 	  _G, type, pairs, table, wipe, bit.band
@@ -158,14 +159,9 @@ CombatTracker.logHealthMax						= function(...)
 	end 
 
 	local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-	if RealUnitHealth.DamageTaken[GUID] ~= 0 and not UnitAffectingCombat(unitID) then 
-		-- Additional out of combat reset
-		RealUnitHealth.DamageTaken[GUID] = 0  
-		RealUnitHealth.CachedHealthMax[GUID] = nil 
-		RealUnitHealth.SavedHealthPercent[GUID] = nil 
-		RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 		
-		--print("Wipe: ", UnitName(unitID)) 		
-	end 
+	if curr_hp <= 0 then 
+		return 
+	end 		
 	
 	if curr_hp == max_hp then 			
 		-- Reset summary damage log to accurate calculate real health 
@@ -173,67 +169,41 @@ CombatTracker.logHealthMax						= function(...)
 		RealUnitHealth.CachedHealthMax[GUID] = nil 
 		RealUnitHealth.SavedHealthPercent[GUID]	= curr_hp 
 		RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 
-		--print("isHealthAtMax: ", UnitName(unitID))		
-	else  	
-		if not RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 		
-			if not RealUnitHealth.SavedHealthPercent[GUID] then 
-				-- Remember percent value to math it at any health percentage 
-				RealUnitHealth.DamageTaken[GUID] = 0 
-				RealUnitHealth.SavedHealthPercent[GUID] = curr_hp
-				--print("SavedHealthPercent: ", UnitName(unitID))	
-			elseif RealUnitHealth.SavedHealthPercent[GUID] > curr_hp and RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-				-- Post out
-				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.DamageTaken[GUID] * RealUnitHealth.SavedHealthPercent[GUID] / (RealUnitHealth.SavedHealthPercent[GUID] - curr_hp)	
-				--print("Post out: ", UnitName(unitID))
+		--print(UnitName(unitID), "MAX HEALTH!")		
+	elseif not RealUnitHealth.CachedHealthMax[GUID] and CombatTracker.Data[GUID] then  	
+		-- Always reset damage taken and remember percent out of combat 
+		if RealUnitHealth.DamageTaken[GUID] ~= 0 and not UnitAffectingCombat(unitID) then 
+			RealUnitHealth.DamageTaken[GUID] = 0  
+			RealUnitHealth.SavedHealthPercent[GUID] = curr_hp 
+			--print(UnitName(unitID), "Out of combat, DamageTaken: ", RealUnitHealth.DamageTaken[GUID])
+			return 
+		end 
+		
+		-- Always update percent because out of combat unit gaining health
+		if RealUnitHealth.DamageTaken[GUID] == 0 then 
+			if (not RealUnitHealth.SavedHealthPercent[GUID] or curr_hp > RealUnitHealth.SavedHealthPercent[GUID]) and not UnitAffectingCombat(unitID) then 
+				--print(UnitName(unitID), "Out of combat, SavedPercent: ", curr_hp, "from", RealUnitHealth.SavedHealthPercent[GUID] or "nil")
+				RealUnitHealth.SavedHealthPercent[GUID] = curr_hp 		
 			end 
-		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then  
-			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)
-			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
-			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
-			--print("Max Health done: ", UnitName(unitID))
+		else 			
+			if RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 
+				RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)
+				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]		
+				--print(UnitName(unitID), "In combat, MaxHP PRE:", RealUnitHealth.CachedHealthMax[GUID]) 
+			else 
+				if not RealUnitHealth.SavedHealthPercent[GUID] then 
+					RealUnitHealth.DamageTaken[GUID] = 0
+					RealUnitHealth.SavedHealthPercent[GUID] = curr_hp
+					--print(UnitName(unitID), "In combat, SavedPercent (wasn't existed before):", RealUnitHealth.SavedHealthPercent[GUID])
+					--print(UnitName(unitID), "In combat, DamageTaken: ", RealUnitHealth.DamageTaken[GUID])
+				elseif RealUnitHealth.SavedHealthPercent[GUID] > curr_hp and not RealUnitHealth.CachedHealthMaxTemprorary[GUID] then   
+					RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.DamageTaken[GUID] * RealUnitHealth.SavedHealthPercent[GUID] / (RealUnitHealth.SavedHealthPercent[GUID] - curr_hp)
+					RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.CachedHealthMaxTemprorary[GUID]
+					--print(UnitName(unitID), "In combat, MaxHP POST POST (percent of health has been decreased):", RealUnitHealth.CachedHealthMaxTemprorary[GUID])
+				end 
+			end 
 		end 
 	end 	
-
-	--[[
-	if not RealUnitHealth.isHealthWasMaxOnGUID[GUID] then 
-		if curr_hp >= max_hp then 			
-			-- Reset summary damage log to accurate calculate real health 
-			RealUnitHealth.DamageTaken[GUID] = 0 
-			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = true 
-			RealUnitHealth.SavedHealthPercent[GUID]	= nil 
-			RealUnitHealth.CachedHealthMax[GUID] = nil
-			print("At max hp: ", UnitName(unitID))
-		elseif RealUnitHealth.DamageTaken[GUID] ~= 0 and not UnitAffectingCombat(unitID) then 
-			-- Additional out of combat reset
-			RealUnitHealth.DamageTaken[GUID] = 0
-			RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
-			RealUnitHealth.SavedHealthPercent[GUID] = nil 
-			RealUnitHealth.CachedHealthMax[GUID] = nil
-			print("Reset out of combat: ", UnitName(unitID)) 
-		elseif not RealUnitHealth.SavedHealthPercent[GUID] then 
-			RealUnitHealth.DamageTaken[GUID] = 0 
-			RealUnitHealth.SavedHealthPercent[GUID] = curr_hp
-			print("Saved percent health: ", UnitName(unitID))
-		elseif not RealUnitHealth.CachedHealthMaxTemprorary[GUID] and RealUnitHealth.SavedHealthPercent[GUID] > curr_hp and RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-			-- Post out
-			RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.DamageTaken[GUID] * RealUnitHealth.SavedHealthPercent[GUID] / (RealUnitHealth.SavedHealthPercent[GUID] - curr_hp)	
-			print("Post out: ", UnitName(unitID))
-		end 
-	elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-		if curr_hp ~= max_hp then 
-			RealUnitHealth.CachedHealthMax[GUID] = RealUnitHealth.DamageTaken[GUID] * max_hp / (max_hp - curr_hp)
-			
-			if RealUnitHealth.CachedHealthMax[GUID] > 0 then 
-				RealUnitHealth.CachedHealthMaxTemprorary[GUID] = RealUnitHealth.CachedHealthMax[GUID]
-				RealUnitHealth.isHealthWasMaxOnGUID[GUID] = nil 
-				RealUnitHealth.SavedHealthPercent[GUID] = nil 					
-				print("Max Health is ok: ", UnitName(unitID))
-			else 
-				RealUnitHealth.CachedHealthMax[GUID] = nil 
-				print("[ERROR] Max Health didn't calculated state: ", UnitName(unitID))
-			end 		
-		end 	
-	end ]]
 end 
 
 --[[ ENVIRONMENTAL ]] 
@@ -250,13 +220,13 @@ end
 CombatTracker.logDamage 						= function(...) 
 	local Data = CombatTracker.Data	
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, spellID, spellName, school, Amount = CombatLogGetCurrentEventInfo()	
-	-- Classic: RealUnitHealth log taken
-	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount
 	-- Update last hit time
 	-- Taken 
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
 	-- Done 
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
+	-- Classic: RealUnitHealth log taken
+	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
 	-- Filter by School   
 	if CombatTracker.Doubles[school] then
 		-- Taken 
@@ -340,11 +310,11 @@ end
 CombatTracker.logSwing 							= function(...) 
 	local Data 							= CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, Amount = CombatLogGetCurrentEventInfo()
-	-- Classic: RealUnitHealth log taken
-	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount
 	-- Update last  hit time
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
+	-- Classic: RealUnitHealth log taken
+	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
 	-- Damage 
 	Data[DestGUID].DMG.dmgTaken_P = Data[DestGUID].DMG.dmgTaken_P + Amount
 	Data[DestGUID].DMG.dmgTaken = Data[DestGUID].DMG.dmgTaken + Amount
@@ -383,18 +353,18 @@ end
 CombatTracker.logHealing			 			= function(...) 
 	local Data = CombatTracker.Data
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_, spellID, spellName, _, Amount = CombatLogGetCurrentEventInfo()
+	-- Update last  hit time
+	-- Taken 
+	Data[DestGUID].HPS.heal_lasttime = TMW.time
+	-- Done 
+	Data[SourceGUID].HPS.heal_lasttime_done = TMW.time
 	-- Classic: RealUnitHealth log taken
 	local compare = (RealUnitHealth.DamageTaken[DestGUID] or 0) - Amount
 	if compare <= 0 then 
 		RealUnitHealth.DamageTaken[DestGUID] = 0
 	else 
 		RealUnitHealth.DamageTaken[DestGUID] = compare
-	end 
-	-- Update last  hit time
-	-- Taken 
-	Data[DestGUID].HPS.heal_lasttime = TMW.time
-	-- Done 
-	Data[SourceGUID].HPS.heal_lasttime_done = TMW.time
+	end 	
 	-- Totals    
 	-- Taken 
 	Data[DestGUID].HPS.heal_taken = Data[DestGUID].HPS.heal_taken + Amount
@@ -568,7 +538,7 @@ end
 CombatTracker.OnEventCLEU 						= {
 	["SPELL_DAMAGE"] 						= CombatTracker.logDamage,
 	["DAMAGE_SHIELD"] 						= CombatTracker.logDamage,
-	--["DAMAGE_SPLIT"]						= CombatTracker.logDamage,
+	["DAMAGE_SPLIT"]						= CombatTracker.logDamage,
 	["SPELL_PERIODIC_DAMAGE"] 				= CombatTracker.logDamage,
 	["SPELL_BUILDING_DAMAGE"] 				= CombatTracker.logDamage,
 	["RANGE_DAMAGE"] 						= CombatTracker.logDamage,
@@ -886,13 +856,14 @@ A.CombatTracker									= {
 			
 		local GUID = UnitGUID(unitID)		
 		if RealUnitHealth.CachedHealthMax[GUID] then 
+			-- Pre out 			
 			return RealUnitHealth.CachedHealthMax[GUID] 
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
 			-- Post out 
 			return RealUnitHealth.CachedHealthMaxTemprorary[GUID] 
 		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then			
-			-- If totaly all was broken and nothing to do let's do this at least 
-			local curr_value 		= RealUnitHealth.DamageTaken[GUID] / (1 - (UnitHealth(unitID) / UnitHealthMax(unitID))) 
+			-- Broken out 
+			local curr_value = RealUnitHealth.DamageTaken[GUID] / (1 - (UnitHealth(unitID) / UnitHealthMax(unitID))) 
 			if curr_value > 0 then
 				return curr_value				 					
 			end 			
@@ -911,24 +882,34 @@ A.CombatTracker									= {
 		
 		local GUID = UnitGUID(unitID)		
 		if RealUnitHealth.CachedHealthMax[GUID] then 
-			return RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] 
+			-- Pre out 
+			local curr_value = RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] 
+			--print("PRE OUT UnitHealth(", unitID, "): ", curr_value)
+			if curr_value > 0 then 
+				return curr_value
+			else 
+				return abs(curr_value)	
+			end 			
 			-- Way which more accurate (in case if CLEU missed something in damage / healing log) but required more performance 
 			--return UnitHealth(unitID) * RealUnitHealth.CachedHealthMax[GUID] / UnitHealthMax(unitID)
 		elseif RealUnitHealth.CachedHealthMaxTemprorary[GUID] then 
 			-- Post out 
 			local curr_value = RealUnitHealth.CachedHealthMaxTemprorary[GUID] - RealUnitHealth.DamageTaken[GUID]
+			--print("POST POST OUT UnitHealth(", unitID, "): ", curr_value)
 			if curr_value > 0 then 
 				return curr_value
+			else 
+				return abs(curr_value)
 			end 
-			--local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-			--local compare = curr_hp * RealUnitHealth.CachedHealthMaxTemprorary[GUID] / max_hp
-			--return (curr_hp == max_hp or compare == huge) and 0 or compare 
 		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
-			-- If totaly all was broken and nothing to do let's do this at least 
+			-- Broken out
 			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 			local curr_value = (RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))) - RealUnitHealth.DamageTaken[GUID] 
+			--print("BROKEN OUT UnitHealth(", unitID, "): ", curr_value)
 			if curr_value > 0 then 
-				return (curr_hp == max_hp or curr_value == huge) and 0 or curr_value				
+				return (curr_hp == max_hp or curr_value == huge) and 0 or curr_value
+			else 
+				return abs((curr_hp == max_hp or curr_value == huge) and 0 or curr_value)
 			end 			
 		end 
 		

@@ -469,7 +469,7 @@ function A.UpdateSpellRanks()
 					DataIsSpellBlockedByRanks[v.ID] = true 
 					-- Prevent nil errors with ranks if not found at all 
 					if not v.isRank then 
-						v.isRank = 0
+						v.isRank = 1
 					end 
 				end 								 								
 			end 
