@@ -142,12 +142,12 @@ local function HealingEngine(MODE, useActualHP)
 				if A.PlayerClass == "PRIEST" then 
 					local Obj = A[A.PlayerClass]
 					if Obj then 
-						if A.GetToggle(2, "PreParePOWS") and Obj.PowerWordShield:IsReady(member) and A.Unit(member):HasDeBuffs(Obj.WeakenedSoul.ID) == 0 and A.Unit(member):HasBuffs(Obj.PowerWordShield.ID) == 0 then 
+						if A.GetToggle(2, "PreParePOWS") and Obj.PowerWordShield:IsReady(member, nil, nil, true, nil) and A.Unit(member):HasDeBuffs(Obj.WeakenedSoul.ID) == 0 and A.Unit(member):HasBuffs(Obj.PowerWordShield.ID) == 0 then 
 							memberhp = memberhp - 20
 						end 
 						
 						if A.GetToggle(2, "PrePareRenew") and A.Unit(member):HasBuffs(Obj.Renew.ID, true) == 0 then 
-							local Renew = A.DetermineUsableObject(member, nil, nil, nil, nil, Obj.Renew, Obj.Renew9, Obj.Renew8, Obj.Renew7, Obj.Renew6, Obj.Renew5, Obj.Renew4, Obj.Renew3, Obj.Renew2, Obj.Renew1)
+							local Renew = A.DetermineUsableObject(member, nil, nil, true, nil, Obj.Renew, Obj.Renew9, Obj.Renew8, Obj.Renew7, Obj.Renew6, Obj.Renew5, Obj.Renew4, Obj.Renew3, Obj.Renew2, Obj.Renew1)
 							if Renew then 
 								memberhp = memberhp - 20					
 							end 							
