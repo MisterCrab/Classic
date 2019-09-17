@@ -405,7 +405,7 @@ A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_LOGIN", function()
 	local listDisable, toDisable = { "ButtonFacade", "Masque", "Masque_ElvUIesque", "GSE", "Gnome Sequencer Enhanced", "Gnome Sequencer", "AddOnSkins" }
 	for i = 1, #listDisable do    
 		if IsAddOnLoaded(listDisable[i]) then
-			toDisable = (toDisable or "\n") .. v .. "\n"
+			toDisable = (toDisable or "\n") .. listDisable[i] .. "\n"
 		end
 	end
 
