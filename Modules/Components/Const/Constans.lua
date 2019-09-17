@@ -35,6 +35,7 @@ ACTION_CONST_AUTOSHOOT											= dir .. [[ABILITY_SHOOTWAND]] -- 132317 -- spe
 ACTION_CONST_AUTOATTACK											= dir .. [[INV_Sword_04]] -- spellID: 7038
 
 ACTION_CONST_HUMAN 												= dir .. [[Spell_Shadow_Charm]]
+ACTION_CONST_SHADOWFORM											= dir .. [[Spell_Shadow_Shadowform]]
 
 -- Class portraits
 ACTION_CONST_PORTRAIT_WARRIOR									= dir .. [[ClassIcon_Warrior]]
