@@ -6118,7 +6118,7 @@ function Action.ToggleMainUI()
 							obj:Disable()
 						end 
 					elseif config.E == "Checkbox" then 						
-						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[CL], 30)
+						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[CL], 35)
 						obj:SetChecked(TMW.db.profile.ActionDB[tab.name][config.DB])
 						obj:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 						obj:SetScript("OnClick", function(self, button, down)	
@@ -8284,7 +8284,7 @@ function Action.ToggleMainUI()
 							table.insert(data, setmetatable({
 								Enabled = v.Enabled,
 								Key = v.Key,
-								Source = v.Source,
+								Source = v.Source or "",
 								LUA = v.LUA,
 								Name = k, 								
 								Icon = Action[Action.PlayerClass][v.Key]:Icon(),
