@@ -185,10 +185,37 @@ local function strElemBuilder(replaceFirst, ...)
 	return concat(et) 
 end 
 
+local st = {}
+local function strOnlyBuilder(...)
+	-- @return string by vararg (...) as (arg, arg, arg, arg, arg)
+	-- Elements as arguments must be number, string or boolean 
+	-- String Concatenation
+	local n = select("#", ...)
+	if n == 0 then 
+		return 
+	end 
+	
+	wipe(st)
+	
+	for i = 1, n do 
+		local type = type(select(i, ...))
+		if type == "string" or type == "number" then
+			st[#st + 1] = select(i, ...)
+		elseif type == "nil" then 
+			st[#st + 1] = type
+		else -- boolean, userdata	
+			st[#st + 1] = toStr[select(i, ...)]
+		end 		 
+	end 
+
+	return concat(st) 
+end 
+
 A.toStr 			= toStr
 A.toNum 			= toNum
 A.strBuilder		= strBuilder
 A.strElemBuilder 	= strElemBuilder
+A.strOnlyBuilder	= strOnlyBuilder
 
 
 local Cache = { 
