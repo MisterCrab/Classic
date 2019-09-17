@@ -1,4 +1,5 @@
 [Basic v4]
+Fixed Interrupts for arena1-3 by Player 
 Added Mana Runes 
 
 [Basic v3]
