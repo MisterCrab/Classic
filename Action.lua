@@ -6144,7 +6144,7 @@ function Action.ToggleMainUI()
 					elseif config.E == "Dropdown" then
 						obj = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, math.floor(12 / #Action.Data.ProfileUI[tab.name][row])), config.H or 20, config.OT, nil, config.MULT)
 						if config.SetPlaceholder then 
-							obj:SetPlaceholder(config.SetPlaceholder[CL])
+							obj:SetPlaceholder(config.SetPlaceholder.ANY or config.SetPlaceholder[CL])
 						end 
 						if config.MULT then 
 							for i = 1, #obj.optsFrame.scrollChild.items do 
