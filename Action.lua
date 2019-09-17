@@ -6118,7 +6118,7 @@ function Action.ToggleMainUI()
 							obj:Disable()
 						end 
 					elseif config.E == "Checkbox" then 						
-						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[CL])
+						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[CL], 30)
 						obj:SetChecked(TMW.db.profile.ActionDB[tab.name][config.DB])
 						obj:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 						obj:SetScript("OnClick", function(self, button, down)	
