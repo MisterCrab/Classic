@@ -139,8 +139,40 @@ local function HealingEngine(MODE, useActualHP)
             
 			-- Enable specific instructions by profile 
 			if A.IsGGLprofile then 
-				-- TODO: Classic
-				-- Use by class (for priest need additional spec check - probably)
+				if A.PlayerClass == "PRIEST" then 
+					local Obj = A[A.PlayerClass]
+					if Obj then 
+						if A.GetToggle(2, "PreParePOWS") and Obj.PowerWordShield:IsReady(member) and A.Unit(member):HasDeBuffs(Obj.WeakenedSoul.ID) == 0 and A.Unit(member):HasBuffs(Obj.PowerWordShield.ID) == 0 then 
+							memberhp = memberhp - 20
+						end 
+						
+						if A.GetToggle(2, "PrePareRenew") and A.Unit(member):HasBuffs(Obj.Renew.ID, true) == 0 then 
+							local Renew = A.DetermineUsableObject(member, nil, nil, nil, nil, Obj.Renew, Obj.Renew9, Obj.Renew8, Obj.Renew7, Obj.Renew6, Obj.Renew5, Obj.Renew4, Obj.Renew3, Obj.Renew2, Obj.Renew1)
+							if Renew then 
+								memberhp = memberhp - 20					
+							end 							
+						end 
+						
+						-- Dispels
+						if not UnitIsUnit("player", member) and (not isQueuedDispel or A.Unit(member):IsHealer()) then 
+							if (A.AuraIsValid(member, "UseDispel", "Magic") or A.AuraIsValid(member, "UsePurge", "PurgeFriendly")) and Obj.DispelMagic:IsReady(member, nil, nil, true) then 
+								isQueuedDispel = true 
+								if A.Unit(member):IsHealer() then 
+									memberhp = memberhp - 50	
+								else 
+									memberhp = memberhp - 20	
+								end 
+							elseif A.Unit(member):HasBuffs(Obj.AbolishDisease.ID) == 0 and A.AuraIsValid(member, "UseDispel", "Disease") and (Obj.AbolishDisease:IsReady(member, nil, nil, true) or Obj.CureDisease:IsReady(member, nil, nil, true)) then 
+								isQueuedDispel = true 
+								if A.Unit(member):IsHealer() then 
+									memberhp = memberhp - 50	
+								else 
+									memberhp = memberhp - 20	
+								end 
+							end 							
+						end 
+					end 
+				end 
 			end 
 			
             -- Misc: Sort by Roles 			
