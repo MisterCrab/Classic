@@ -1,3 +1,6 @@
+[Priest v4]
+Touch of Weakness removed range checks (caused wrong distance while leveling)
+
 [Priest v3]
 Updated to sync up with the last global API 
 Fear MSG now checking properly available conditions on the spell
