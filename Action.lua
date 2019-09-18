@@ -2815,6 +2815,10 @@ local function GetKids(tab, spec)
 end 
 local function CreateResizer(parent)
 	if not TMW or parent.resizer then return end 
+	-- Pre Loading options if case if first time it failed 
+	if TMW.Classes.Resizer_Generic == nil then 
+		TMW:LoadOptions()
+	end 
 	local frame = {}
 	frame.resizer = TMW.Classes.Resizer_Generic:New(parent)
 	frame.resizer:Show()
@@ -4531,7 +4535,7 @@ function Action.ToggleMSG(isLaunch)
 		Action.Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER", 	UpdateChat)
 	end 	
 	
-	if Action.MainUI and Action.Data.ProfileUI and Action.Data.ProfileUI[7] and next(Action.Data.ProfileUI[7][Action.PlayerClass]) then 
+	if Action.MainUI and Action.Data.ProfileUI and Action.Data.ProfileUI[7] and Action.Data.ProfileUI[7][Action.PlayerClass] and next(Action.Data.ProfileUI[7][Action.PlayerClass]) then 
 		local spec = Action.PlayerClass .. CL
 		local tab = tabFrame.tabs[7]
 		if tab and tab.childs[spec] then 
@@ -8674,7 +8678,7 @@ local function OnInitialize()
 				if TMW.Locked then 
 					TMW:LockToggle()
 				end 
-				TMW.db:SetProfile(Action.Data.DefaultProfile["BASIC"])
+				TMW.db:SetProfile(Action.Data.DefaultProfile["BASIC"])				
 				return 
 			end 
 		end 
