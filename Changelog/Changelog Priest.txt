@@ -1,2 +1,7 @@
+[Priest v2] 
+Fixed miss typo for unit power type, FURY replaced by RAGE, it will skip use PoW:S on warriors and ferals to let them gain rage 
+Tweaked Predict Healing - ByPass HOT category (Renew, Power Word: Shield), it will first check by dificit health or if health is enough then predict by damage incoming with healing compare (auto toggle only)
+Touch of Weakness will no longer been used if some one by attackers got debuff by attacking you in melee
+
 [Priest v1]
 Classic Release. Full all specs PvP PvE
