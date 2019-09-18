@@ -3325,6 +3325,7 @@ local LETMECAST = {
 		[ERR_CANTATTACK_NOTSTANDING]				= "STAND",
 		[ERR_LOOT_NOTSTANDING]						= "STAND",
 		[ERR_TAXINOTSTANDING]						= "STAND",
+		[SPELL_FAILED_BAD_TARGETS]					= "SIT",
 		[SPELL_FAILED_NOT_MOUNTED] 					= "DISMOUNT",
 		[ERR_NOT_WHILE_MOUNTED]						= "DISMOUNT",
 		[ERR_MOUNT_ALREADYMOUNTED]					= "DISMOUNT",
@@ -3348,6 +3349,9 @@ local LETMECAST = {
 		local _, msg = ...
 		if self.MSG[msg] == "STAND" then 
 			DoEmote("STAND")
+		elseif self.MSG[msg] == "SIT" then 
+			-- Sometimes game bugging and not allow to use damage spells, the fix is simply to make /sit and /stand which is supposed to do 
+			DoEmote("SIT")
 		elseif self.MSG[msg] == "DISMOUNT" then 
 			if Action.PlayerClass == "DRUID" and Action.Player:GetStance() ~= 0 then 
 				CancelShapeshiftForm()
