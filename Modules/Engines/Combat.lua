@@ -827,8 +827,7 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				functi
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				function()
 	-- Need leave slow delay to prevent reset Data which was recorded before combat began for flyout spells, otherwise it will cause a bug
-	local LastTimeCasted = A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) 
-	if (LastTimeCasted == 0 or LastTimeCasted > 1.5) and A.Zone ~= "pvp" and not A.IsInDuel then 
+	if A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) > 1.5 and A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(UnitTracker.Data)   		
 		wipe(CombatTracker.Data) 
 	else 
@@ -1118,7 +1117,7 @@ A.CombatTracker									= {
 			local start = Data[GUID].spell_lastcast_time[spell] or 0
 			return TMW.time - start, start 
 		end 
-		return 0, 0 
+		return huge, 0 -- huge in Classic! Retail will be 0 
 	end,
 	--[[ Get Count Spell of total used during fight ]]
 	GetSpellCounter								= function(self, unitID, spell)

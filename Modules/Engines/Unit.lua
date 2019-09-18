@@ -2407,8 +2407,7 @@ end)
 
 A.Listener:Add("ACTION_EVENT_UNIT", "PLAYER_REGEN_DISABLED", 				function()
 	-- Need leave slow delay to prevent reset Data which was recorded before combat began for flyout spells, otherwise it will cause a bug
-	local LastTimeCasted = CombatTracker:GetSpellLastCast("player", A.LastPlayerCastID) 
-	if (LastTimeCasted == 0 or LastTimeCasted > 0.5) and A.Zone ~= "arena" and A.Zone ~= "pvp" and not A.IsInDuel then 
+	if CombatTracker:GetSpellLastCast("player", A.LastPlayerCastID)  > 0.5 and A.Zone ~= "arena" and A.Zone ~= "pvp" and not A.IsInDuel then 
 		wipe(Info.CacheMoveIn)
 		wipe(Info.CacheMoveOut)
 		wipe(Info.CacheMoving)
