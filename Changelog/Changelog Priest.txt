@@ -1,3 +1,9 @@
+[Priest v3]
+Updated to sync up with the last global API 
+Fear MSG now checking properly available conditions on the spell
+Fixed Predict Healing lua errors (was broken in v2)
+Fixed StartByPreCast bug when it double casted spell 
+
 [Priest v2] 
 Fixed miss typo for unit power type, FURY replaced by RAGE, it will skip use PoW:S on warriors and ferals to let them gain rage 
 Tweaked Predict Healing - ByPass HOT category (Renew, Power Word: Shield), it will first check by dificit health or if health is enough then predict by damage incoming with healing compare (auto toggle only)
