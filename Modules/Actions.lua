@@ -371,10 +371,10 @@ end
 -- Spell Rank 
 -------------------------------------------------------------------------------
 local DataSpellRanks = {}
-local DataIsSpellBlockedByRanks = {}
-function A.UpdateSpellRanks()
+local DataIsSpellUnknown = {}
+function A.UpdateSpellBook()
 	wipe(DataSpellRanks)
-	wipe(DataIsSpellBlockedByRanks)
+	wipe(DataIsSpellUnknown)
 	-- Search by player book 
 	for i = 1, huge do 
 		local spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_SPELL)
@@ -466,7 +466,7 @@ function A.UpdateSpellRanks()
 				
 				-- Add to block 
 				if not slot then 
-					DataIsSpellBlockedByRanks[v.ID] = true 
+					DataIsSpellUnknown[v.ID] = true 
 					-- Prevent nil errors with ranks if not found at all 
 					if not v.isRank then 
 						v.isRank = 1
@@ -476,23 +476,19 @@ function A.UpdateSpellRanks()
 		end 
 	end 
 
-	TMW:Fire("TMW_ACTION_SPELL_RANK_CHANGED")	  -- for [3] tab refresh 
+	TMW:Fire("TMW_ACTION_SPELL_BOOK_CHANGED")	  -- for [3] tab refresh 
 	--TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") -- no need here since :Show method will be triggered 
 end 
 
-A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellRanks)
-A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellRanks)
-A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellRanks)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_UP", 			A.UpdateSpellBook)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_CHANGED", 		A.UpdateSpellBook)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellBook)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellBook)
+A.Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellBook)
 
-function A:IsBlockedBySpellRank()
+function A:IsBlockedBySpellBook()
 	-- @return boolean 
-	return DataIsSpellBlockedByRanks[self.ID]
-	--[[
-	if self.isRank then 
-		local spellName = self:Info()
-		return not DataSpellRanks[spellName] or not DataSpellRanks[spellName][self.isRank] 
-	end 
-	]]
+	return DataIsSpellUnknown[self.ID]
 end 
 
 function A:GetSpellRank()
@@ -513,7 +509,7 @@ end
 
 function A.DetermineHealObject(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
 	-- @return object or nil 
-	-- Note: :PredictHeal(unitID) must be only ! Use self.ID inside to determine by that which spell is it 
+	-- Note: :PredictHeal(unitID) must be only ! Use self.ID or self:Info() inside to determine by that which spell is it 
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
 		if object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) and object:PredictHeal(unitID) then 
@@ -807,8 +803,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 	
 	if isMsg or ((skipShouldStop or not A.ShouldStop()) and not self:ShouldStopByGCD()) then 
 		if 	self.Type == "Spell" and 
-			not self:IsBlockedBySpellLevel() and 
-			not self:IsBlockedBySpellRank() and 
+			not self:IsBlockedBySpellBook() and 
 			( not self.isTalent or self:IsSpellLearned() ) and 
 			self:IsUsable(nil, skipUsable) and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )

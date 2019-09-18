@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "17.09.2019"
+local DateTime 						= "18.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -20,8 +20,8 @@ local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring,
 local GetRealmName, GetExpansionLevel, GetSpecialization, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick = 
 	  GetRealmName, GetExpansionLevel, GetSpecialization, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick
 	  
-local UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, 	UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit = 
-	  UnitName, UnitClass, UnitRace, UnitLevel, UnitExists, UnitIsUnit, TMW.UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit	  
+local UnitName, UnitClass, UnitRace, UnitExists, UnitIsUnit, 	 UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit = 
+	  UnitName, UnitClass, UnitRace, UnitExists, UnitIsUnit, TMW.UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local HasWandEquipped 				= HasWandEquipped	  
@@ -215,11 +215,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000You didn't selected row!|r",
 				AUTOHIDDEN = "AutoHide unavailable actions",
 				AUTOHIDDENTOOLTIP = "Makes Scroll Table smaller and clear by visual hide\nFor example character class has few racials but can use one, this option will hide others racials\nJust for comfort view",
-				CHECKSPELLLVL = "Check required spell level",
-				CHECKSPELLLVLTOOLTIP = "All spells which is not available by character level will be blocked\nThey will be updated every time with level up",
-				CHECKSPELLLVLERROR = "Already initialized!",
-				CHECKSPELLLVLERRORMAXLVL = "You're at MAX possible level!",
-				CHECKSPELLLVLMACRONAME = "CheckSpellLevel",
 				LUAAPPLIED = "LUA code was applied to ",
 				LUAREMOVED = "LUA was removed from ",
 			},
@@ -515,11 +510,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000Вы не выбрали строку!|r",
 				AUTOHIDDEN = "АвтоСкрытие недоступных действий",
 				AUTOHIDDENTOOLTIP = "Делает прокручивающейся список меньше и чистее за счет визуального скрытия\nНапример, класс персонажа имеет несколько расовых способностей, но может использовать лишь одну, эта опция скроет остальные\nПросто для удобства просмотра",
-				CHECKSPELLLVL = "Проверять необходимый уровень способности",
-				CHECKSPELLLVLTOOLTIP = "Все способности которые не доступны по уровню персонажа будут заблокированы\nОни будут обновляться каждый раз по достижению нового уровня",					
-				CHECKSPELLLVLERROR = "Уже инициализировано!",
-				CHECKSPELLLVLERRORMAXLVL = "Вы на МАКСИМАЛЬНО возможном уровне!",
-				CHECKSPELLLVLMACRONAME = "Проверять Уровень Способностей",
 				LUAAPPLIED = "LUA код был добавлен к ",
 				LUAREMOVED = "LUA код был удален из ",
 			},
@@ -815,11 +805,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000Du hast nichts ausgewählt!|r",
 				AUTOHIDDEN = "Nicht verfügbare Aktionen automatisch ausblenden",
 				AUTOHIDDENTOOLTIP = "Verkleinern Sie die Bildlauftabelle und löschen Sie sie durch visuelles Ausblenden\nZum Beispiel hat die Charakterklasse nur wenige Rassen, kann aber eine verwenden. Diese Option versteckt andere Rassen\nNur zur Komfortsicht",
-				CHECKSPELLLVL = "Überprüfe den vorrausgesetzten Spell Level",
-				CHECKSPELLLVLTOOLTIP = "Alle Zaubersprüche, die auf Charakterebene nicht verfügbar sind, werden blockiert.\nSie werden jedes Mal mit einer höheren Stufe aktualisiert",
-				CHECKSPELLLVLERROR = "Schon installiert!",
-				CHECKSPELLLVLERRORMAXLVL = "Max Level erreicht!",
-				CHECKSPELLLVLMACRONAME = "Spell Level überprüfen",
 				LUAAPPLIED = "LUA-Code wurde angewendet auf ",
 				LUAREMOVED = "LUA-Code wurde gelöscht von ",
 			},
@@ -1115,11 +1100,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000Vous n'avez pas sélectionné de ligne!|r",
 				AUTOHIDDEN = "Masquer automatiquement les actions non disponibles",
 				AUTOHIDDENTOOLTIP = "Rendre la table de défilement plus petite et claire en masquant visuellement\nPar exemple, la classe de personnage a peu de caractères raciaux, mais peut en utiliser un. Cette option masquera les autres caractères raciaux\nJuste pour le confort vue",
-				CHECKSPELLLVL = "Vérifier le niveau du sort",
-				CHECKSPELLLVLTOOLTIP = "Tout les sort qui ne sont pas disponible par le personnage à cause de son level seront bloqué\nCela se met à jour à chaque fois que vous gagnez un niveau",
-				CHECKSPELLLVLERROR = "Déjà initialisé!",
-				CHECKSPELLLVLERRORMAXLVL = "Vous êtes au niveau MAX!",
-				CHECKSPELLLVLMACRONAME = "VérifierNiveauSort",
 				LUAAPPLIED = "Le code LUA a été appliqué à",
 				LUAREMOVED = "Le code LUA a été retiré de",
 			},
@@ -1415,11 +1395,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000Non hai selezionato una riga!|r",
 				AUTOHIDDEN = "Nascondi automaticamente le azioni non disponibili",
 				AUTOHIDDENTOOLTIP = "Rende la Tabella di Scorrimento più piccola e chiara per nascondere l'immagine\nAd esempio, la classe personaggio ha poche razze ma può usarne una, questa opzione nasconderà altre razze\nSolo per una visione confortevole",
-				CHECKSPELLLVL = "Verifica il livello richiesto",
-				CHECKSPELLLVLTOOLTIP = "Tutti gli spell non disponibilit dat il livello del personaggio sono bloccati\nTorneranno disponibili non appena il personaggio raggiunge il livello richiesto",
-				CHECKSPELLLVLERROR = "Giá inizializzato!",
-				CHECKSPELLLVLERRORMAXLVL = "Sel al livello MAX possibile!",
-				CHECKSPELLLVLMACRONAME = "VerificaLivello",
 				LUAAPPLIED = "LUA code é applicato a ",
 				LUAREMOVED = "LUA code é rimosso da ",
 			},
@@ -1715,11 +1690,6 @@ local Localization = {
 				SELECTIONERROR = "|cffff0000No has seleccionado una fila!|r",
 				AUTOHIDDEN = "AutoOcultar acciones no disponibles",
 				AUTOHIDDENTOOLTIP = "Hace que la tabla de desplazamiento sea más pequeña y clara ocultándola visualmente\nPor ejemplo, el tipo de personaje tiene pocos racials pero puede usar uno, esta opción hará que se escondan los demás raciales\nPara que sea más cómodo visualmente",				
-				CHECKSPELLLVL = "Comprueba el nivel requerido de la habilidad",
-				CHECKSPELLLVLTOOLTIP = "Todas las habilidades que no estén disponibles por el nivel del personaje serán bloqueadas\nSerán actualizadas cada vez que se sube de nivel",
-				CHECKSPELLLVLERROR = "Ya inicializado!",
-				CHECKSPELLLVLERRORMAXLVL = "Estás al MÁXIMO nivel posible!",
-				CHECKSPELLLVLMACRONAME = "Comprueba el nivel de la habilidad",
 				LUAAPPLIED = "El código LUA ha sido aplicado a ",
 				LUAREMOVED = "El código LUA ha sido removido de ",
 			},
@@ -2015,8 +1985,7 @@ local Factory = {
 		ReTarget = true, 			
 	}, 
 	[3] = {			
-		AutoHidden = true,
-		CheckSpellLevel = false,		
+		AutoHidden = true,	
 		disabledActions = {},
 		luaActions = {},
 		QluaActions = {},
@@ -3939,91 +3908,6 @@ function Action.ToggleAoE()
 	Action.SetToggle(tempAoE)
 end 
 
--- [3] SpellLevel (skipping unknown spells by character level)
-local SpellLevel = { 
-	Blocked 		= {},
-	Wipe			= function(self)
-		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"PLAYER_LEVEL_UP")
-		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"LEARNED_SPELL_IN_TAB")
-		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"CHARACTER_POINTS_CHANGED")
-		Action.Listener:Remove("ACTION_EVENT_SPELLLEVEL", 	"CONFIRM_TALENT_WIPE")
-		wipe(self.Blocked)
-		self.Initialized = nil
-		self.PlayerLVL 	 = nil 	
-	end,
-	Reset 			= function(self)	
-		if Action.GetToggle(3, "CheckSpellLevel") then 
-			Action.SetToggle({3, "CheckSpellLevel", L["TAB"][3]["CHECKSPELLLVL"] .. ": "}, false)
-		end 
-		self:Wipe()
-	end,
-	Update			= function(self, ...)
-		if self.Initialized then
-			local lvl = ... or UnitLevel("player")
-			if lvl and lvl ~= self.PlayerLVL then 
-				self.PlayerLVL  = lvl
-
-				if self.PlayerLVL >= MAX_PLAYER_LEVEL_TABLE[GetExpansionLevel()] then 
-					Action.Print(L["DEBUG"] .. L["TAB"][3]["CHECKSPELLLVLERRORMAXLVL"])
-					self:Reset()
-					return 
-				end 
-				
-				wipe(self.Blocked)
-				
-				for k, v in pairs(Action[Action.PlayerClass]) do 
-					if type(v) == "table" and v.Type == "Spell" then 
-						local book, slot = BOOKTYPE_SPELL,  FindSpellBookSlotBySpellID(v.ID, false)  
-
-						if not slot then 
-							book, slot 	 = BOOKTYPE_PET, 	FindSpellBookSlotBySpellID(v.ID, true)
-						end 
-						
-						if not slot then 
-							self.Blocked[v.ID] = true 
-						end
-					end 
-				end 
-			end
-		end 	
-	end,
-	Initialize		= function(self, isLaunch)		
-		if Action[Action.PlayerClass] and UnitLevel("player") < MAX_PLAYER_LEVEL_TABLE[GetExpansionLevel()] then 			
-			if isLaunch then 
-				TMW.db.profile.ActionDB[3].CheckSpellLevel = true 
-			else 
-				Action.SetToggle({3, "CheckSpellLevel", L["TAB"][3]["CHECKSPELLLVL"] .. ": "})
-			end 
-			
-			local toggle = Action.GetToggle(3, "CheckSpellLevel") 
-			if toggle then 
-				if not self.Initialized then 		
-					self.Initialized = true
-					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "PLAYER_LEVEL_UP", 				function(...) 	self:Update(...) 	end)
-					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "LEARNED_SPELL_IN_TAB",			function() 		self:Update() 		end)
-					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "CHARACTER_POINTS_CHANGED",	 	function() 		self:Update() 		end)
-					Action.Listener:Add("ACTION_EVENT_SPELLLEVEL", "CONFIRM_TALENT_WIPE",	 		function() 		self:Update() 		end)
-					if isLaunch then 
-						Action.Print(L["TAB"][3]["CHECKSPELLLVL"] .. ": ", toggle)
-					end 
-					self:Update()
-				elseif not isLaunch then  
-					Action.Print(L["DEBUG"] .. L["TAB"][3]["CHECKSPELLLVLERROR"])
-				end 
-			elseif self.Initialized then 	
-				self:Wipe()
-			end 
-		elseif self.Initialized then 	
-			self:Wipe()
-		end 		
-	end,
-}
-
-function Action:IsBlockedBySpellLevel()
-	-- @return boolean
-	return SpellLevel.Initialized and SpellLevel.Blocked[self.ID]
-end 
-
 -- [3] SetBlocker 
 function Action:IsBlocked()
 	-- @return boolean 
@@ -4200,7 +4084,7 @@ function Action:SetQueue(args)
 			MetaSlot (number) usage for MSG system to set queue on fixed position 
 	]]
 	-- Check validance 
-	if not self.Queued and (not self:IsExists() or self:IsBlockedBySpellRank()) then  
+	if not self.Queued and (not self:IsExists() or self:IsBlockedBySpellBook()) then  
 		Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"]) 
 		return 
 	end 
@@ -4866,12 +4750,6 @@ local function failedReturn(n, toggle)
 			return 
 		else  
 			Action.Print(TMW.db:GetCurrentProfile() .. " - Toggle: [" .. (n or "") .. "] " .. toggle .. " " .. (L and L["NOSUPPORT"] or ""))
-			return 
-		end 
-	end 
-	
-	if n == 3 then 
-		if toggle == "CheckSpellLevel" then 
 			return 
 		end 
 	end 
@@ -6271,7 +6149,7 @@ function Action.ToggleMainUI()
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, Action.Data.theme.dd.height - 3, "LUA")
 			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, Action.Data.theme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
-			local Key = StdUi:SimpleEditBox(tab.childs[spec], 150, Action.Data.theme.dd.height, "")							
+			local Key = StdUi:SimpleEditBox(tab.childs[spec], 50, Action.Data.theme.dd.height, "")							
 			
 			local function ScrollTableActionsData()
 				local data = {}
@@ -6288,7 +6166,7 @@ function Action.ToggleMainUI()
 							-- AutoHidden unavailable 
 							if ToggleAutoHidden and v.ID ~= ACTION_CONST_PICKPOCKET then 								
 								if v.Type == "Spell" then 															
-									if not v:IsExists() or v:IsBlockedBySpellLevel() or v:IsBlockedBySpellRank() then 
+									if not v:IsExists() or v:IsBlockedBySpellBook() then 
 										isShown = false 
 									end 
 								else 
@@ -6412,7 +6290,7 @@ function Action.ToggleMainUI()
 						OnClick = OnClickCell,
                     },
                 },
-            }, 15, 25)
+            }, 16, 25)
 			local headerEvents = {
 				OnClick = function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
 					if button == "LeftButton" then
@@ -6430,8 +6308,8 @@ function Action.ToggleMainUI()
 				self:SortData(self.SORTBY)
 			end)
 			-- Register callback to refresh table by earned ranks 
-			TMW:RegisterCallback("TMW_ACTION_SPELL_RANK_CHANGED", function()
-				if tab.childs[spec].ScrollTable:IsVisible() and (Action.GetToggle(tab.name, "AutoHidden") or Action.GetToggle(tab.name, "CheckSpellLevel")) then 
+			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", function()
+				if tab.childs[spec].ScrollTable:IsVisible() and Action.GetToggle(tab.name, "AutoHidden") then 
 					tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
 					tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)					
 				end 
@@ -6517,32 +6395,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			AutoHidden.Identify = { Type = "Checkbox", Toggle = "AutoHidden" }
-			StdUi:FrameTooltip(AutoHidden, L["TAB"][tab.name]["AUTOHIDDENTOOLTIP"], nil, "TOP", true)	
-			
-			local CheckSpellLevel = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["CHECKSPELLLVL"])		
-			CheckSpellLevel:SetChecked(TMW.db.profile.ActionDB[tab.name].CheckSpellLevel)
-			CheckSpellLevel:RegisterForClicks("LeftButtonUp")
-			CheckSpellLevel:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then 
-					if button == "LeftButton" then 	
-						SpellLevel:Initialize()
-						tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
-						tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)
-					end 
-				end 
-			end)
-			CheckSpellLevel:SetScript("OnShow", function(self)
-				if UnitLevel("player") >= MAX_PLAYER_LEVEL_TABLE[GetExpansionLevel()] then 
-					if self.isChecked then 
-						self:Click("LeftButton")
-					end 
-					self:Disable()
-				else 
-					self:Enable()
-				end 
-			end)
-			CheckSpellLevel.Identify = { Type = "Checkbox", Toggle = "CheckSpellLevel" }
-			StdUi:FrameTooltip(CheckSpellLevel, L["TAB"][tab.name]["CHECKSPELLLVLTOOLTIP"], nil, "TOP", true)		
+			StdUi:FrameTooltip(AutoHidden, L["TAB"][tab.name]["AUTOHIDDENTOOLTIP"], nil, "TOP", true)		
 			
 			local SetBlocker = StdUi:Button(tab.childs[spec], tab.childs[spec]:GetWidth() / 2 - 22, 30, L["TAB"][tab.name]["SETBLOCKER"])
 			SetBlocker:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -6588,10 +6441,9 @@ function Action.ToggleMainUI()
             StdUi:FrameTooltip(SetQueue, L["TAB"][tab.name]["SETQUEUETOOLTIP"], nil, "TOPLEFT", true)		
 			
 			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(tab.childs[spec].ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(Key)
+			tab.childs[spec]:AddRow({ margin = { left = -15, right = 70 } }):AddElement(Key)
 			tab.childs[spec]:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElement(AutoHidden)
-			tab.childs[spec]:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElement(CheckSpellLevel)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(SetBlocker, SetQueue, { column = "even" })
+			tab.childs[spec]:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElements(SetBlocker, SetQueue, { column = "even" })
 			tab.childs[spec]:DoLayout()
 			
 			-- Action LUA 
@@ -8929,9 +8781,6 @@ local function OnInitialize()
 	-- Initialization LOS System
 	LineOfSight:Initialize()
 	
-	-- Initialization SpellLevel if it was selected in db or player level lower than MAX on this expansion	
-	SpellLevel:Initialize(true)
-	
 	-- Initialization Cursor hooks 
 	Action.CursorInit()
 	
@@ -9132,7 +8981,7 @@ local function OnInitialize()
 	end 
 			
 	-- Update ranks	and overwrite ID 
-	Action.UpdateSpellRanks()
+	Action.UpdateSpellBook()
 	
 	-- Make frames work able 
 	Action.IsInitialized = true 	
@@ -9177,8 +9026,6 @@ function Action:OnInitialize()
 			Action.ToggleMainUI()
 		end
 		Action.IsInitialized = nil
-		-- SpellLevel
-		SpellLevel:Reset(true)
 		-- ReTarget 
 		Re:Reset()
 		-- LOSInit 
