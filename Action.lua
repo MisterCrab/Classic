@@ -321,6 +321,9 @@ local Localization = {
 				GROUNDINGTOTEM = "grounding totem",
 				WINDRUSHTOTEM = "wind rush totem",
 				EARTHBINDTOTEM = "earthbind totem",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "horde battle standard",
+				ALLIANCEBATTLESTANDARD = "alliance battle standard",
 				-- GameToolTips
 				ALLIANCEFLAG = "alliance flag",
 				HORDEFLAG = "horde flag",
@@ -616,6 +619,9 @@ local Localization = {
 				GROUNDINGTOTEM = "тотем заземления",
 				WINDRUSHTOTEM = "тотем ветряного порыва",
 				EARTHBINDTOTEM = "тотем оков земли",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "боевой штандарт орды",
+				ALLIANCEBATTLESTANDARD = "боевой штандарт альянса",
 				-- GameToolTips
 				ALLIANCEFLAG = "флаг альянса",
 				HORDEFLAG = "флаг орды",
@@ -911,6 +917,9 @@ local Localization = {
 				GROUNDINGTOTEM = "totem der erdung",
 				WINDRUSHTOTEM = "totem des windsturms",
 				EARTHBINDTOTEM = "totem der erdbindung",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "schlachtstandarte der horde",
+				ALLIANCEBATTLESTANDARD = "schlachtstandarte der allianz",
 				-- GameToolTips
 				ALLIANCEFLAG = "siegesflagge der allianz",
 				HORDEFLAG = "siegesflagge der horde",                                 
@@ -1206,6 +1215,9 @@ local Localization = {
 				GROUNDINGTOTEM = "totem de glèbe",
 				WINDRUSHTOTEM = "totem de bouffée de vent",
 				EARTHBINDTOTEM = "totem de lien terrestre",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "etendard de bataille de la horde",
+				ALLIANCEBATTLESTANDARD = "etendard de bataille de l'alliance",
 				-- GameToolTips
 				ALLIANCEFLAG = "drapeau de l’alliance",
 				HORDEFLAG = "drapeau de la horde",
@@ -1501,6 +1513,9 @@ local Localization = {
 				GROUNDINGTOTEM = "totem dell'adescamento magico",
 				WINDRUSHTOTEM = "totem del soffio di vento",
 				EARTHBINDTOTEM = "totem del vincolo terrestre",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "horde battle standard",
+				ALLIANCEBATTLESTANDARD = "alliance battle standard",
 				-- GameToolTips
 				ALLIANCEFLAG = "bandiera dell'alleanza",
 				HORDEFLAG = "bandiera dell'orda",
@@ -1796,6 +1811,9 @@ local Localization = {
 				GROUNDINGTOTEM = "grounding totem",
 				WINDRUSHTOTEM = "tótem de carga de viento",
 				EARTHBINDTOTEM = "tótem nexo terrestre",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "estandarte de batalla de la horda",
+				ALLIANCEBATTLESTANDARD = "estandarte de batalla de la alianza",
 				-- GameToolTips
 				ALLIANCEFLAG = "bandera de la alianza",
 				HORDEFLAG = "bandera de la horda",
@@ -2101,23 +2119,25 @@ local Factory = {
 			UnitName = {
 				[GameLocale] = {
 					ISCURSOR = true,
-					[Localization[GameLocale]["TAB"][6]["SPIRITLINKTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["HEALINGTIDETOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["CAPACITORTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["SKYFURYTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["ANCESTRALPROTECTIONTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["COUNTERSTRIKETOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["TREMORTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["GROUNDINGTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["WINDRUSHTOTEM"]] = { isTotem = true, Button = "LEFT" },
-					[Localization[GameLocale]["TAB"][6]["EARTHBINDTOTEM"]] = { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["SPIRITLINKTOTEM"]] 				= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["HEALINGTIDETOTEM"]] 				= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["CAPACITORTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["SKYFURYTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["ANCESTRALPROTECTIONTOTEM"]] 		= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["COUNTERSTRIKETOTEM"]] 				= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["TREMORTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["GROUNDINGTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["WINDRUSHTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["EARTHBINDTOTEM"]] 					= { isTotem = true, Button = "LEFT" },
+					[Localization[GameLocale]["TAB"][6]["HORDEBATTLESTANDARD"]]				= { Button = "LEFT" },					
+					[Localization[GameLocale]["TAB"][6]["ALLIANCEBATTLESTANDARD"]]			= { Button = "LEFT" },
 				}, 
 			},
 			GameToolTip = {
 				[GameLocale] = {
 					ISCURSOR = true,
-					[Localization[GameLocale]["TAB"][6]["ALLIANCEFLAG"]] = { Button = "RIGHT" },
-					[Localization[GameLocale]["TAB"][6]["HORDEFLAG"]] = { Button = "RIGHT" },
+					[Localization[GameLocale]["TAB"][6]["ALLIANCEFLAG"]] 					= { Button = "RIGHT" },
+					[Localization[GameLocale]["TAB"][6]["HORDEFLAG"]] 						= { Button = "RIGHT" },
 				},
 			},
 		},
@@ -4380,7 +4400,7 @@ function Action.CursorInit()
 										if text then 
 											text = text:lower()
 											local GameTooltipKey = GameTooltipTable[text]
-											if GameTooltipKey and GameTooltipKey.Enabled and ((GameTooltipKey.Button == "LEFT" and UseLeft) or (GameTooltipKey.Button == "RIGHT" and UseRight)) and RunLua(GameTooltipKey.LUA, "mouseover") then 								
+											if GameTooltipKey and GameTooltipKey.Enabled and ((GameTooltipKey.Button == "LEFT" and UseLeft) or (GameTooltipKey.Button == "RIGHT" and UseRight)) and (not GameTooltipKey.isTotem or Action.Unit("mouseover"):IsTotem() and not Action.Unit("target"):IsTotem()) and RunLua(GameTooltipKey.LUA, "mouseover") then 								
 												Action.GameTooltipClick = GameTooltipKey.Button
 												return 									
 											end 
@@ -7759,13 +7779,8 @@ function Action.ToggleMainUI()
 			ScrollTable:EnableSelection(true)
 			
 			local function ScrollTableData()
+				isTotem:SetChecked(false)
 				local CategoryValue = Category:GetValue()
-				if CategoryValue == "UnitName" then 					
-					isTotem:Disable()
-					isTotem:SetChecked(false)
-				else 
-					isTotem:Enable()
-				end 
 				local ModeValue = Mode:GetValue()
 				local data = {}
 				for k, v in pairs(TMW.db.profile.ActionDB[tab.name][ModeValue][CategoryValue][GameLocale]) do 
@@ -7853,7 +7868,7 @@ function Action.ToggleMainUI()
 			end)			
 			
 			StdUi:FrameTooltip(isTotem, L["TAB"][tab.name]["ISTOTEMTOOLTIP"], nil, "BOTTOMLEFT", true)	
-			isTotem:HookScript("OnClick", function()
+			isTotem:HookScript("OnClick", function(self)
 				if not self.isDisabled then 
 					InputBox:ClearFocus()
 				end 

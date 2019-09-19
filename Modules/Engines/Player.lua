@@ -202,6 +202,10 @@ function A.Player:GetStance()
 	--[[Number - one of following:
 		All
 		0 = humanoid form
+		Warrior 
+		1 = Battle Stance
+		2 = Defensive Stance
+		3 = Berserker Stance
 		Druid
 		1 = Bear Form
 		2 = Cat Form
@@ -211,12 +215,14 @@ function A.Player:GetStance()
 		6 = The third known of: Moonkin Form, Treant Form, Stag Form (in order)
 		Note: The last 3 are ordered. For example, if you know Stag Form only, it is form 4. If you know both Treant and Stag, Treant is 4 and Stag is 5. If you know all 3, Moonkin is 4, Treant 5, and Stag 6.
 		Priest
-		1 = Shadowform
+		1 = Shadowform / Spirit of Redemption		
 		Rogue
 		1 = Stealth
 		2 = Vanish / Shadow Dance (for Subtlety rogues, both Vanish and Shadow Dance return as Form 1)
 		Shaman
 		1 = Ghost Wolf
+		Warlock 
+		1 = Metamorphosis
 	]]	
 	return Data.Stance
 end 
