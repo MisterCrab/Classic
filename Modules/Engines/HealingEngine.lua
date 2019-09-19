@@ -154,20 +154,28 @@ local function HealingEngine(MODE, useActualHP)
 						end 
 						
 						-- Dispels
-						if not UnitIsUnit("player", member) and (not isQueuedDispel or A.Unit(member):IsHealer()) then 
+						if (not A.IsInPvP or not UnitIsUnit("player", member)) and (not isQueuedDispel or A.Unit(member):IsHealer()) then 
 							if (A.AuraIsValid(member, "UseDispel", "Magic") or A.AuraIsValid(member, "UsePurge", "PurgeFriendly")) and Obj.DispelMagic:IsReady(member, nil, nil, true) then 
 								isQueuedDispel = true 
-								if A.Unit(member):IsHealer() then 
-									memberhp = memberhp - 50	
+								if A.Unit(member):IsHealer() then 									
+									if UnitIsUnit("player", member) then 
+										memberhp = memberhp - 25
+									else 
+										memberhp = memberhp - 60	
+									end 
 								else 
-									memberhp = memberhp - 20	
+									memberhp = memberhp - 40	
 								end 
 							elseif A.Unit(member):HasBuffs(Obj.AbolishDisease.ID) == 0 and A.AuraIsValid(member, "UseDispel", "Disease") and (Obj.AbolishDisease:IsReady(member, nil, nil, true) or Obj.CureDisease:IsReady(member, nil, nil, true)) then 
 								isQueuedDispel = true 
 								if A.Unit(member):IsHealer() then 
-									memberhp = memberhp - 50	
+									if UnitIsUnit("player", member) then 
+										memberhp = memberhp - 25
+									else 
+										memberhp = memberhp - 60	
+									end 
 								else 
-									memberhp = memberhp - 20	
+									memberhp = memberhp - 40	
 								end 
 							end 							
 						end 
