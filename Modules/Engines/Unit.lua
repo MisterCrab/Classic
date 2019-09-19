@@ -667,9 +667,22 @@ A.Unit = PseudoClass({
 			return A.Unit("player"):HasSpec(Info.SpecIs.TANK) 
 		end 
 		
-		if Info.ClassCanBeTank[class or A.Unit(unitID):Class()] then 
+		local unitID_class 					= class or A.Unit(unitID):Class()
+		if Info.ClassCanBeTank[unitID_class] then 
 			if unitID:match("raid%d+") and GetPartyAssignment("maintank", unitID) then 
 				return true 
+			end 
+			
+			if CombatTracker:CombatTime(unitID) == 0 then 
+				if unitID_class == "PALADIN" then 
+					local _, offhand = UnitAttackSpeed(unitID)
+					return offhand ~= nil and A.Unit(unitID):HasBuffs(25781) > 0 -- Righteous Fury
+				elseif unitID_class == "DRUID" then 
+					return UnitPowerType(unitID) == 1
+				elseif unitID_class == "WARRIOR" then 
+					local _, offhand = UnitAttackSpeed(unitID)
+					return offhand ~= nil and A.Unit(unitID):HasBuffs(71) > 0 -- Defensive Stance
+				end 
 			end 
 			
 			local taken_dmg 				= CombatTracker:GetDMG(unitID)
