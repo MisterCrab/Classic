@@ -469,7 +469,7 @@ function A.UpdateSpellBook()
 					DataIsSpellUnknown[v.ID] = true 
 					-- Prevent nil errors with ranks if not found at all 
 					if not v.isRank then 
-						v.isRank = 1
+						v.isRank = 0
 					end 
 				end 								 								
 			end 

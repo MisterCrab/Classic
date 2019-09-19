@@ -2815,7 +2815,7 @@ local function GetKids(tab, spec)
 end 
 local function CreateResizer(parent)
 	if not TMW or parent.resizer then return end 
-	-- Pre Loading options if case if first time it failed 
+	-- Pre Loading options in case if first time it failed 
 	if TMW.Classes.Resizer_Generic == nil then 
 		TMW:LoadOptions()
 	end 
@@ -3990,7 +3990,7 @@ local Queue = {
 	-- Events
 	UNIT_SPELLCAST_SUCCEEDED 	= function(self, ...)
 		local source, _, spellID = ...
-		if (source == "player" or source == "pet") and Action.Data.Q[1] and Action.Data.Q[1].Type == "Spell" and ((Action.Data.Q[1].isRank and Action.Data.Q[1].ID == spellID) or (not Action.Data.Q[1].isRank and Action.Data.Q[1]:Info() == Action.GetSpellInfo(spellID))) then 			
+		if (source == "player" or source == "pet") and Action.Data.Q[1] and Action.Data.Q[1].Type == "Spell" and ((Action.Data.Q[1].isRank and Action.Data.Q[1].isRank ~= 0 and Action.Data.Q[1].ID == spellID) or ((not Action.Data.Q[1].isRank or Action.Data.Q[1].isRank == 0) and Action.Data.Q[1]:Info() == Action.GetSpellInfo(spellID))) then 			
 			getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 		end 	
 	end,
