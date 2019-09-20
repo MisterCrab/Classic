@@ -41,7 +41,7 @@ local function UnitInspectItem(unitID, invID)
 		end 				
 		
 		-- Open inspect frame 
-		if not _G.InspectFrame or not _G.InspectFrame:IsShown() then 
+		--if not _G.InspectFrame or not _G.InspectFrame:IsShown() then 
 			-- ByPass game errors depend on language, English game is OKAY, game devs missed to fix for different languages inspect 			
 			if not AllowedLocale[GameLocale] then 
 				scriptErrors = GetCVar("scriptErrors")
@@ -51,7 +51,7 @@ local function UnitInspectItem(unitID, invID)
 			end 
 						
 			InspectUnit(unitID)				
-		end 
+		--end 
 		
 		-- Getting info from inspect frame 
 		local ID = GetInventoryItemID(unitID, invID)
