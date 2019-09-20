@@ -676,12 +676,14 @@ A.Unit = PseudoClass({
 			if CombatTracker:CombatTime(unitID) == 0 then 
 				if unitID_class == "PALADIN" then 
 					local _, offhand = UnitAttackSpeed(unitID)
-					return offhand ~= nil and A.Unit(unitID):HasBuffs(25781) > 0 -- Righteous Fury
+					-- Buff: Righteous Fury 
+					return offhand == nil and A.Unit(unitID):HasBuffs(25781) > 0 and A.GetUnitItem(unitID, ACTION_CONST_INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD, nil, true) -- byPassDistance
 				elseif unitID_class == "DRUID" then 
 					return UnitPowerType(unitID) == 1
 				elseif unitID_class == "WARRIOR" then 
 					local _, offhand = UnitAttackSpeed(unitID)
-					return offhand ~= nil and A.Unit(unitID):HasBuffs(71) > 0 -- Defensive Stance
+					-- Buff: Defensive Stance
+					return offhand == nil and A.Unit(unitID):HasBuffs(71) > 0 and A.GetUnitItem(unitID, ACTION_CONST_INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD) -- don't byPassDistance
 				end 
 			end 
 			

@@ -36,6 +36,7 @@ Modules\Engines\HealingEngine.lua
 Modules\Engines\MultiUnits.lua
 Modules\Engines\Player.lua
 Modules\Engines\Unit.lua
+Modules\Engines\UnitInspect.lua
 
 Modules\Misc\BossMods.lua
 Modules\Misc\ElvUI.lua
