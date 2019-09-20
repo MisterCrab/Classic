@@ -1,3 +1,7 @@
+[Priest v6]
+Fixed lua error 634 attempt to index global 'MindSootheLevelByRank'
+Fixed lua error 286 attempt to index local 'Obj'
+
 [Priest v5]
 Renew and Power Word: Shield now will be used out of combat at full health only on tank
 

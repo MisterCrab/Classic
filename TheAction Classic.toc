@@ -50,5 +50,4 @@ Modules\Core.lua
 # Test
 # Modules\TestDev\FindG.lua
 # Modules\TestDev\StressTests.lua
-# Modules\TestDev\UnitAuras.lua
 # Modules\TestDev\UpdateTriggerGCD.lua
