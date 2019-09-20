@@ -63,7 +63,7 @@ local function UnitInspectItem(unitID, invID)
 				if UseCloseInspect then 				
 					HideUIPanel(InspectFrame)
 					UseCloseInspect = false 
-					-- Return errors back to be shown, jsut bypass errors from inspectUI
+					-- Return errors back to be shown, just bypass errors from inspectUI
 					if scriptErrors and scriptErrors == "1" then 
 						SetCVar("scriptErrors", 1)
 					end 					

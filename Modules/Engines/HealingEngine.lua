@@ -28,6 +28,7 @@ Frame:SetPoint("TOPLEFT", 442, 0)
 Frame.texture = Frame:CreateTexture(nil, "TOOLTIP")
 Frame.texture:SetAllPoints(true)
 Frame.texture:SetColorTexture(0, 0, 0, 1.0)
+local healingTarget, healingTargetGUID, healingTargetDelay = "None", "None", 0
 
 A.HealingEngine.Members = {
 	ALL = {},
@@ -94,18 +95,58 @@ local function CanHeal(unitID, unitGUID)
 		)
 end
 
-local healingTarget, healingTargetGUID, healingTargetDelay = "None", "None", 0
+local function PerformByProfileHP(member, memberhp, membermhp, DMG, isQueuedDispel)
+	-- Enable specific instructions by profile 
+	if A.IsGGLprofile then 
+		if A.PlayerClass == "PRIEST" then 
+			local Obj = A[A.PlayerClass]
+			if Obj then 
+				if A.GetToggle(2, "PreParePOWS") and Obj.PowerWordShield:IsReady(member, nil, nil, true, nil) and A.Unit(member):HasDeBuffs(Obj.WeakenedSoul.ID) == 0 and A.Unit(member):HasBuffs(Obj.PowerWordShield.ID) == 0 then 
+					memberhp = 50
+				elseif A.GetToggle(2, "PrePareRenew") and A.Unit(member):HasBuffs(Obj.Renew.ID, true) == 0 then 
+					local Renew = A.DetermineUsableObject(member, nil, nil, true, nil, Obj.Renew, Obj.Renew9, Obj.Renew8, Obj.Renew7, Obj.Renew6, Obj.Renew5, Obj.Renew4, Obj.Renew3, Obj.Renew2, Obj.Renew1)
+					if Renew then 
+						memberhp = 50					
+					end 							
+				end 
+				
+				-- Dispels
+				if (not A.IsInPvP or not UnitIsUnit("player", member)) and (not isQueuedDispel or A.Unit(member):IsHealer()) then 
+					if ((A.AuraIsValid(member, "UseDispel", "Magic") or A.AuraIsValid(member, "UsePurge", "PurgeFriendly")) and Obj.DispelMagic:IsReady(member, nil, nil, true))
+					or (A.Unit(member):HasBuffs(Obj.AbolishDisease.ID) == 0 and A.AuraIsValid(member, "UseDispel", "Disease") and (Obj.AbolishDisease:IsReady(member, nil, nil, true) or Obj.CureDisease:IsReady(member, nil, nil, true)))
+					then 
+						isQueuedDispel = true 
+						if A.Unit(member):IsHealer() then 									
+							if UnitIsUnit("player", member) then 
+								memberhp = memberhp - 25
+							else 
+								memberhp = memberhp - 60	
+							end 
+						else 
+							memberhp = memberhp - 40	
+						end  
+					end 							
+				end 
+			end 
+		end 
+	end 
+	
+	return memberhp, isQueuedDispel
+end 
+
 local function HealingEngine(MODE, useActualHP)   
-	local mode = MODE or "ALL"
-    local ActualHP = useActualHP or false
+	local mode 				= MODE or "ALL"
+    local ActualHP 			= useActualHP or false
+	local isQueuedDispel 	= false 
 	A.HealingEngine.Members:Wipe()
 	
     if TeamCache.Friendly.Type ~= "raid" then 
-		local pHP, aHP, _, mHP = CalculateHP("player")
-        table.insert(A.HealingEngine.Members.ALL, { Unit = "player", GUID = UnitGUID("player"), HP = pHP, AHP = aHP, isPlayer = true, incDMG = A.Unit("player"):GetRealTimeDMG() }) 
+		local pHP, aHP, _, mHP 	= CalculateHP("player")
+		local DMG 				= A.Unit("player"):GetRealTimeDMG() 
+		pHP, isQueuedDispel 	= PerformByProfileHP("player", pHP, mHP, DMG, isQueuedDispel)
+        table.insert(A.HealingEngine.Members.ALL, { Unit = "player", GUID = UnitGUID("player"), HP = pHP, AHP = aHP, isPlayer = true, incDMG = DMG }) 
     end 
-    
-    local isQueuedDispel = false 
+        
     local group = TeamCache.Friendly.Type
 	if not group then 
 		return 
@@ -137,51 +178,7 @@ local function HealingEngine(MODE, useActualHP)
                 memberhp = memberhp - 5
             end            
             
-			-- Enable specific instructions by profile 
-			if A.IsGGLprofile then 
-				if A.PlayerClass == "PRIEST" then 
-					local Obj = A[A.PlayerClass]
-					if Obj then 
-						if A.GetToggle(2, "PreParePOWS") and Obj.PowerWordShield:IsReady(member, nil, nil, true, nil) and A.Unit(member):HasDeBuffs(Obj.WeakenedSoul.ID) == 0 and A.Unit(member):HasBuffs(Obj.PowerWordShield.ID) == 0 then 
-							memberhp = memberhp - 20
-						end 
-						
-						if A.GetToggle(2, "PrePareRenew") and A.Unit(member):HasBuffs(Obj.Renew.ID, true) == 0 then 
-							local Renew = A.DetermineUsableObject(member, nil, nil, true, nil, Obj.Renew, Obj.Renew9, Obj.Renew8, Obj.Renew7, Obj.Renew6, Obj.Renew5, Obj.Renew4, Obj.Renew3, Obj.Renew2, Obj.Renew1)
-							if Renew then 
-								memberhp = memberhp - 20					
-							end 							
-						end 
-						
-						-- Dispels
-						if (not A.IsInPvP or not UnitIsUnit("player", member)) and (not isQueuedDispel or A.Unit(member):IsHealer()) then 
-							if (A.AuraIsValid(member, "UseDispel", "Magic") or A.AuraIsValid(member, "UsePurge", "PurgeFriendly")) and Obj.DispelMagic:IsReady(member, nil, nil, true) then 
-								isQueuedDispel = true 
-								if A.Unit(member):IsHealer() then 									
-									if UnitIsUnit("player", member) then 
-										memberhp = memberhp - 25
-									else 
-										memberhp = memberhp - 60	
-									end 
-								else 
-									memberhp = memberhp - 40	
-								end 
-							elseif A.Unit(member):HasBuffs(Obj.AbolishDisease.ID) == 0 and A.AuraIsValid(member, "UseDispel", "Disease") and (Obj.AbolishDisease:IsReady(member, nil, nil, true) or Obj.CureDisease:IsReady(member, nil, nil, true)) then 
-								isQueuedDispel = true 
-								if A.Unit(member):IsHealer() then 
-									if UnitIsUnit("player", member) then 
-										memberhp = memberhp - 25
-									else 
-										memberhp = memberhp - 60	
-									end 
-								else 
-									memberhp = memberhp - 40	
-								end 
-							end 							
-						end 
-					end 
-				end 
-			end 
+			memberhp, isQueuedDispel = PerformByProfileHP(member, memberhp, membermhp, DMG, isQueuedDispel)
 			
             -- Misc: Sort by Roles 			
             if A.Unit(member):IsTank() then
