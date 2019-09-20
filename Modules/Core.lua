@@ -61,6 +61,7 @@ local FoodAndDrink = {
 	26263,	-- Dim Sum (doesn't triggers Food and Drink)
 	26030,	-- Windblossom Berries (doesn't triggers Food and Drink)
 	25691, 	-- Brain Food (unknown what does it exactly trigger)
+	30020,	-- First Aid
 }
 function A.PauseChecks()  	
 	-- Chat, BindPad, TellMeWhen
