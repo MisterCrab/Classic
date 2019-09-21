@@ -135,7 +135,7 @@ local function IsShoot(unit)
 	return 	A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
 			(
 				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 
-				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
+				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and A.GetCurrentGCD() <= A.GetPing() and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
 			)
 end 
 
