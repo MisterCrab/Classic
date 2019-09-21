@@ -263,6 +263,11 @@ function A.Rotation(icon)
 		return A.Data.Q[1]:Show(icon)				 
     end 
 	
+	-- Hide frames which are not used by profile
+	if not A[A.PlayerClass][meta] then 
+		return A.Hide(icon)
+	end 
+	
 	-- Save unit for AutoAttack, AutoShoot
 	local unit, useShoot
 	if A.IsUnitEnemy("mouseover") then 
