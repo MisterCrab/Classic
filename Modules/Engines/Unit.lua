@@ -28,9 +28,9 @@ local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostring
 local CombatLogGetCurrentEventInfo	= _G.CombatLogGetCurrentEventInfo	  
 local GetUnitSpeed					= _G.GetUnitSpeed
 local GetPartyAssignment 			= _G.GetPartyAssignment	  
-local UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+local UnitIsUnit, UnitInRaid, UnitInAnyGroup, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible =
-	  UnitIsUnit, UnitInRaid, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+	  UnitIsUnit, UnitInRaid, UnitInAnyGroup, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible
 local UnitAura 						= TMW.UnitAura	  
 	  
@@ -614,12 +614,17 @@ A.Unit = PseudoClass({
 	InGroup 								= Cache:Pass(function(self)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
-		return UnitInParty(unitID) or UnitInRaid(unitID)
+		return UnitInAnyGroup(unitID)
 	end, "UnitID"),
 	InParty									= Cache:Pass(function(self)  
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		return UnitInParty(unitID)
+	end, "UnitID"),
+	InRaid									= Cache:Pass(function(self)  
+		-- @return boolean 
+		local unitID 						= self.UnitID
+		return UnitInRaid(unitID)
 	end, "UnitID"),
 	InRange 								= Cache:Pass(function(self)  
 		-- @return boolean 
@@ -1436,7 +1441,7 @@ A.Unit = PseudoClass({
 	HealthPercent							= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-		if UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
+		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
 			return UnitHealth(unitID) * 100 / UnitHealthMax(unitID)
 		end 
 	    return UnitHealth(unitID)

@@ -15,6 +15,7 @@ local isPlayer									= A.Bit.isPlayer
 local strElemBuilder							= A.strElemBuilder
 --local InstanceInfo							= A.InstanceInfo
 local TeamCache									= A.TeamCache
+local FriendlyGUIDs								= TeamCache.Friendly.GUIDs
 local DRData 									= LibStub("DRList-1.1")
 
 local huge 										= math.huge 
@@ -23,8 +24,8 @@ local abs 										= math.abs
 local _G, type, pairs, table, wipe, bitband  	= 
 	  _G, type, pairs, table, wipe, bit.band
 
-local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat	= 
-	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat
+local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup	= 
+	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup
 	  
 	  
 local InCombatLockdown, CombatLogGetCurrentEventInfo = 
@@ -153,11 +154,15 @@ end
 --[[ This Logs the UnitHealthMax (Real) for every unit ]]
 CombatTracker.logHealthMax						= function(...)
 	local unitID 	= ...
-	local GUID 		= UnitGUID(unitID)
-	if not GUID or UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") then 
+	if UnitInAnyGroup(unitID) or UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") then 
 		return 
 	end 
-
+	
+	local GUID 		= UnitGUID(unitID)
+	if not GUID then 
+		return 
+	end 
+	
 	local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 	if curr_hp <= 0 then 
 		return 
@@ -226,7 +231,9 @@ CombatTracker.logDamage 						= function(...)
 	-- Done 
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
 	-- Classic: RealUnitHealth log taken
-	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
+	if not FriendlyGUIDs[DestGUID] then 
+		RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
+	end 
 	-- Filter by School   
 	if CombatTracker.Doubles[school] then
 		-- Taken 
@@ -314,7 +321,9 @@ CombatTracker.logSwing 							= function(...)
 	Data[DestGUID].DMG.lastHit_taken = TMW.time
 	Data[SourceGUID].DMG.lastHit_done = TMW.time
 	-- Classic: RealUnitHealth log taken
-	RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
+	if not FriendlyGUIDs[DestGUID] then 
+		RealUnitHealth.DamageTaken[DestGUID] = (RealUnitHealth.DamageTaken[DestGUID] or 0) + Amount	
+	end 
 	-- Damage 
 	Data[DestGUID].DMG.dmgTaken_P = Data[DestGUID].DMG.dmgTaken_P + Amount
 	Data[DestGUID].DMG.dmgTaken = Data[DestGUID].DMG.dmgTaken + Amount
@@ -359,12 +368,14 @@ CombatTracker.logHealing			 			= function(...)
 	-- Done 
 	Data[SourceGUID].HPS.heal_lasttime_done = TMW.time
 	-- Classic: RealUnitHealth log taken
-	local compare = (RealUnitHealth.DamageTaken[DestGUID] or 0) - Amount
-	if compare <= 0 then 
-		RealUnitHealth.DamageTaken[DestGUID] = 0
-	else 
-		RealUnitHealth.DamageTaken[DestGUID] = compare
-	end 	
+	if not FriendlyGUIDs[DestGUID] then 
+		local compare = (RealUnitHealth.DamageTaken[DestGUID] or 0) - Amount
+		if compare <= 0 then 
+			RealUnitHealth.DamageTaken[DestGUID] = 0
+		else 
+			RealUnitHealth.DamageTaken[DestGUID] = compare
+		end 	
+	end 
 	-- Totals    
 	-- Taken 
 	Data[DestGUID].HPS.heal_taken = Data[DestGUID].HPS.heal_taken + Amount
@@ -849,7 +860,7 @@ A.CombatTracker									= {
 	UnitHealthMax								= function(self, unitID)
 		-- @return number (0 in case if unit dead or if it's not recorded by logs)		
 		-- Exception for self because we can self real hp by this func 
-		if UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
+		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
 			return UnitHealthMax(unitID)
 		end 
 			
@@ -875,7 +886,7 @@ A.CombatTracker									= {
 	UnitHealth									= function(self, unitID)
 		-- @return number (0 in case if unit dead or if it's not recorded by logs)
 		-- Exception for self because we can self real hp by this func 
-		if UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then  
+		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then  
 			return UnitHealth(unitID)
 		end 
 		
