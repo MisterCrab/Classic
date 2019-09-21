@@ -156,7 +156,7 @@ end
 function A:ShouldStopByGCD()
 	-- @return boolean 
 	-- By Global Cooldown
-	return self:IsRequiredGCD() and A.GetGCD() - A.GetPing() > 0.3 and A.GetCurrentGCD() >= A.GetPing() + 0.65
+	return not Player:IsShooting() and self:IsRequiredGCD() and A.GetGCD() - A.GetPing() > 0.3 and A.GetCurrentGCD() >= A.GetPing() + 0.65
 end 
 
 function A.ShouldStop()
