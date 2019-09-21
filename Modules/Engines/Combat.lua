@@ -880,6 +880,12 @@ A.CombatTracker									= {
 		end 
 		
 		local GUID = UnitGUID(unitID)		
+		
+		-- Unit wiped or not recorded 
+		if not RealUnitHealth.DamageTaken[GUID] then 
+			return 0 
+		end 		
+		
 		if RealUnitHealth.CachedHealthMax[GUID] then 
 			-- Pre out 
 			local curr_value = RealUnitHealth.CachedHealthMax[GUID] - RealUnitHealth.DamageTaken[GUID] 
@@ -900,7 +906,7 @@ A.CombatTracker									= {
 			else 
 				return abs(curr_value)
 			end 
-		elseif RealUnitHealth.DamageTaken[GUID] and RealUnitHealth.DamageTaken[GUID] > 0 then 
+		elseif RealUnitHealth.DamageTaken[GUID] > 0 then 
 			-- Broken out
 			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
 			local curr_value = (RealUnitHealth.DamageTaken[GUID] / (1 - (curr_hp / max_hp))) - RealUnitHealth.DamageTaken[GUID] 
