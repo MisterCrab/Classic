@@ -863,7 +863,7 @@ function A:IsReadyM(unitID, skipRange, skipUsable)
 	if unitID == "" then 
 		unitID = nil 
 	end 
-    return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable)
+    return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable) and self:RunLua(unitID)
 end 
 
 function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
