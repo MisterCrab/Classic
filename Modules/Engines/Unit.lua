@@ -563,6 +563,17 @@ local Info = {
 	},
 }
 
+function Info.UnitIsNameplate(unitID) 
+	local nameplates = MultiUnits:GetActiveUnitPlates()
+	if nameplates then 
+		for nameplateUnit in pairs(nameplates) do 
+			if UnitIsUnit(unitID, nameplateUnit) then 
+				return true 
+			end 
+		end 
+	end 
+end 
+
 A.Unit = PseudoClass({
 	-- if it's by "UnitGUID" then it will use cache for different unitID with same unitGUID (which is not really best way to waste performance)
 	-- use "UnitGUID" only on high required resource functions
@@ -1361,6 +1372,12 @@ A.Unit = PseudoClass({
 		if not max_range then 
 			return 0, 0 
 		end 
+		
+		-- Limit range to 20 if unitID is nameplated and max range over normal behaivor 
+		if max_range > ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE and A.Unit(unitID):IsEnemy() and Info.UnitIsNameplate(unitID) then 
+			return ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, min_range
+		end 			
+		
 	    return max_range, min_range 
 	end, "UnitGUID"),
 	CanInterract							= Cache:Pass(function(self, range) 
