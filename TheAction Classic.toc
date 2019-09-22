@@ -8,16 +8,16 @@
 Lib\LibSharedMedia-3.0\lib.xml
 Lib\ForAllIndentsAndPurposes.lua
 Lib\LibDBIcon-1.0.lua
-Lib\StdUI.lua
+Lib\StdUI\StdUi.xml
 
 # Classic Libs 
 Lib\DRList-1.1\DRList-1.1.xml
-# Need for ThreatClassic 
-Lib\AceBucket-3.0\AceBucket-3.0.xml
-Lib\ThreatClassic-1.0\lib.xml
 Lib\LibClassicCasterino.lua
 Lib\LibSpellLock.lua
 Lib\LibAuraTypes.lua
+# Need for ThreatClassic 
+Lib\AceBucket-3.0\AceBucket-3.0.xml
+Lib\ThreatClassic-1.0\lib.xml
 
 # First constans!
 Modules\Components\Const\Constans.lua

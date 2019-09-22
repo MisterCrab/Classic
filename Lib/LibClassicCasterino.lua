@@ -5,7 +5,7 @@ Author: d87
 if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 16
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 17
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -159,7 +159,7 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
             local cachedTime = castTimeCache[castUID]
             local spellID = NPCspellNameToID[spellName] -- just for the icon
             if not spellID then
-                spellID = 2050
+                spellID = 4036 -- Engineering Icon
             end
             if cachedTime then
                 CastStart(srcGUID, "CAST", spellName, spellID, cachedTime*1000)
@@ -294,6 +294,7 @@ f.UNIT_SPELLCAST_INTERRUPTED = Passthrough
 f.UNIT_SPELLCAST_CHANNEL_START = Passthrough
 f.UNIT_SPELLCAST_CHANNEL_UPDATE = Passthrough
 f.UNIT_SPELLCAST_CHANNEL_STOP = Passthrough
+f.UNIT_SPELLCAST_SUCCEEDED = Passthrough
 
 function callbacks.OnUsed()
     f:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -306,6 +307,7 @@ function callbacks.OnUsed()
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_UPDATE")
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
+	f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 
     -- for unit lookup
     f:RegisterEvent("GROUP_ROSTER_UPDATE")
