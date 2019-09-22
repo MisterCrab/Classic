@@ -5665,7 +5665,7 @@ function Action.ToggleMainUI()
 			AutoShoot.Identify = { Type = "Checkbox", Toggle = "AutoShoot" }
 			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
 			local function AutoShootCheckBoxUpdate()
-				if Action.PlayerClass ~= "HUNTER" and not HasWandEquipped() then 
+				if Action.PlayerClass ~= "WARRIOR" and Action.PlayerClass ~= "ROGUE" and Action.PlayerClass ~= "HUNTER" and not HasWandEquipped() then 
 					if not AutoShoot.isDisabled then 
 						AutoShoot:Disable()
 					end 
@@ -5680,7 +5680,6 @@ function Action.ToggleMainUI()
 					AutoShootCheckBoxUpdate()
 				end 
 			end)
-			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					AutoShootCheckBoxUpdate) 
 			AutoShootCheckBoxUpdate()
 
 			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 360, L["TAB"][tab.name]["PAUSECHECKS"])

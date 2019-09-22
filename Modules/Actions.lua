@@ -71,8 +71,8 @@ local maxn					= table.maxn
 -- Spell 
 local Spell					= _G.Spell
 
-local IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell =
-	  IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell
+local IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell =
+	  IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell
 
 local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste = 
 	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste
@@ -343,6 +343,10 @@ function A:IsSpellLearned()
 	end	
 	return TalentMap[Name] and TalentMap[Name] > 0 or false 
 end
+
+function A:IsSpellCurrent()
+	return IsCurrentSpell(self.ID)
+end 
 
 function A:CanSafetyCastHeal(unitID, offset)
 	-- @return boolean 
@@ -692,13 +696,14 @@ end
 
 function A:IsUsable(extraCD, skipUsable)
 	-- @return boolean 
+	-- skipUsable can be number to check specified power 
 	
 	if self.Type == "Spell" then 
 		-- Works for pet spells 01/04/2019
-		return (skipUsable or IsUsableSpell(self:Info())) and self:GetCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
+		return (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableSpell(self:Info())) and self:GetCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
 	end 
 	
-	return not isItemUseException[self.ID] and (skipUsable or IsUsableItem(self:Info())) and self:GetItemCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
+	return not isItemUseException[self.ID] and (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableItem(self:Info())) and self:GetItemCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A.GetCurrentGCD() or 0) + (extraCD or 0)
 end
 
 function A:IsHarmful()
@@ -871,6 +876,12 @@ function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
 	return 	not self:IsBlocked() and 
 			not self:IsBlockedByQueue() and 
 			self:IsCastable(nil, true, skipShouldStop, nil, skipUsable)
+end 
+
+function A:IsReadyOnPower(unitID, skipRange, skipLua, skipShouldStop)
+	-- @return boolean 
+	-- Note: Created to bypass stances and equip 
+	return self:IsReady(unitID, skipRange, skipLua, skipShouldStop, self.PowerCost)
 end 
 
 -------------------------------------------------------------------------------
