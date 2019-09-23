@@ -1,3 +1,6 @@
+[Priest v7]
+Added Toggle for Renew to use only on Tank 
+
 [Priest v6]
 Fixed lua error 634 attempt to index global 'MindSootheLevelByRank'
 Fixed lua error 286 attempt to index local 'Obj'
