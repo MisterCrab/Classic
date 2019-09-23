@@ -150,22 +150,21 @@ end
 -------------------------------------------------------------------------------
 function A.GetPing()
 	-- @return number
-	return select(4, GetNetStats()) / 1000 * 2
+	return select(4, GetNetStats()) / 1000
 end 
 
 function A:ShouldStopByGCD()
 	-- @return boolean 
 	-- By Global Cooldown
-	return not Player:IsShooting() and self:IsRequiredGCD() and A.GetGCD() - A.GetPing() > 0.3 and A.GetCurrentGCD() >= A.GetPing() + 0.65
+	return not Player:IsShooting() and self:IsRequiredGCD() and A.GetGCD() - A.GetPing() > 0.301 and A.GetCurrentGCD() >= A.GetPing() + 0.65
 end 
 
 function A.ShouldStop()
 	-- @return boolean 
 	-- By Casting
-	local castName, castStartTime, castEndTime, _, spellID, isChannel = Unit("player"):IsCasting()
-	return isChannel or (castName and castEndTime / 1000 - TMW.time > A.GetPing())
+	return Unit("player"):IsCasting()
 end 
-A.ShouldStop = A.MakeFunctionCachedStatic(A.ShouldStop)
+A.ShouldStop = A.MakeFunctionCachedStatic(A.ShouldStop, 0)
 
 -------------------------------------------------------------------------------
 -- Spell
@@ -345,7 +344,7 @@ function A:IsSpellLearned()
 end
 
 function A:IsSpellCurrent()
-	return IsCurrentSpell(self.ID)
+	return IsCurrentSpell(self:Info())
 end 
 
 function A:CanSafetyCastHeal(unitID, offset)
