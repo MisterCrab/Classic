@@ -12,7 +12,7 @@ local InstanceInfo				= A.InstanceInfo
 --local TeamCache				= A.TeamCache
 
 local _G, error, type, pairs, table, next, 		huge =
-	  _G, error, type, pairs, table, next, math.huge 
+	  _G, error, type, pairs, table, next, math.huge
 
 local Enum 						= _G.Enum 
 local PowerType 				= Enum.PowerType
@@ -43,6 +43,11 @@ local IsEquippedItem, IsStealthed, IsMounted, IsFalling, IsSwimming, IsSubmerged
 	  
 local CancelUnitBuff, CancelSpellByName =
 	  CancelUnitBuff, CancelSpellByName
+	  
+-- Bags / Inventory
+local GetContainerNumSlots, GetContainerItemID, GetInventoryItemID, GetItemInfoInstant, GetItemCount, IsEquippableItem =	  
+	  GetContainerNumSlots, GetContainerItemID, GetInventoryItemID, GetItemInfoInstant, GetItemCount, IsEquippableItem
+	  
 
 -------------------------------------------------------------------------------
 -- Locals 
@@ -85,9 +90,18 @@ local Data = {
 	-- Behind
 	PlayerBehind = 0,
 	PetBehind = 0,
+	-- Swap 
+	isSwapLocked = false, 
 	-- Items 
 	CheckItems 	= {},	
-	CountItems 	= {},		
+	CountItems 	= {},	
+	-- Bags 
+	CheckBagsMaxN = 0,
+	CheckBags	= {},
+	InfoBags    = {},
+	-- Inventory
+	CheckInv 	= {},
+	InfoInv 	= {},
 } 
 
 function Data.OnItemsUpdate()
@@ -148,6 +162,87 @@ function Data.logLevel(...)
 	end 
 end 
 
+function Data.logSwapLocked()
+	Data.isSwapLocked = true 
+end 
+
+function Data.logSwapUnlocked()
+	Data.isSwapLocked = false 
+end 
+
+function Data.logBag()
+	local maxToCheck = Data.CheckBagsMaxN
+	local checked	 = 0 
+	wipe(Data.InfoBags)
+
+	if checked == maxToCheck then 
+		return 
+	end 
+	
+	local _, itemID, itemEquipLoc, itemClassID, itemSubClassID
+	for i = 0, NUM_BAG_SLOTS do
+		for j = 1, GetContainerNumSlots(i) do
+			itemID = GetContainerItemID(i, j)
+			if itemID then 
+				_, _, _, itemEquipLoc, _, itemClassID, itemSubClassID = GetItemInfoInstant(itemID)
+				for name, v in pairs(Data.CheckBags) do 
+					if (not v.itemID or v.itemID == itemID) and (not v.itemEquipLoc or v.itemEquipLoc == itemEquipLoc) and (not v.itemClassID or v.itemClassID == itemClassID) and (not v.itemSubClassID or v.itemSubClassID == itemSubClassID) and (v.isEquippableItem == nil or IsEquippableItem(itemID) == v.isEquippableItem) then 
+						if not Data.InfoBags[name] then 
+							Data.InfoBags[name] = {} 
+						end 
+						Data.InfoBags[name].count 				= GetItemCount(itemID) or 1
+						Data.InfoBags[name].itemID				= itemID
+						
+						checked 								= checked + 1
+						if checked >= maxToCheck then 
+							return 
+						end 						
+					end 
+				end 
+			end 		
+		end
+	end
+end 
+
+function Data.logInv()
+	wipe(Data.InfoInv)
+	if not next(Data.CheckInv) then 
+		return 
+	end 
+	
+	local _, itemID, itemEquipLoc, itemClassID, itemSubClassID
+	for name, v in pairs(Data.CheckInv) do 
+		if v.slot then 
+			itemID = GetInventoryItemID("player", v.slot)
+			if itemID then 
+				_, _, _, itemEquipLoc, _, itemClassID, itemSubClassID = GetItemInfoInstant(itemID)
+				if (not v.itemID or v.itemID == itemID) and (not v.itemEquipLoc or v.itemEquipLoc == itemEquipLoc) and (not v.itemClassID or v.itemClassID == itemClassID) and (not v.itemSubClassID or v.itemSubClassID == itemSubClassID) and (v.isEquippableItem == nil or IsEquippableItem(itemID) == v.isEquippableItem) then 
+					if not Data.InfoInv[name] then 
+						Data.InfoInv[name] = {} 
+					end 
+					Data.InfoInv[name].slot 				= v.slot
+					Data.InfoInv[name].itemID				= itemID
+				end 
+			end 
+		else
+			for i = 1, ACTION_CONST_INVSLOT_LAST_EQUIPPED do 
+				itemID = GetInventoryItemID("player", i)
+				if itemID then 
+					_, _, _, _, _, itemClassID, itemSubClassID 	= GetItemInfoInstant(itemID)
+					if (not v.itemID or v.itemID == itemID) and (not v.itemClassID or v.itemClassID == itemClassID) and (not v.itemSubClassID or v.itemSubClassID == itemSubClassID) and (not v.isEquippableItem or IsEquippableItem(itemID)) then 
+						if not Data.InfoInv[name] then 
+							Data.InfoInv[name] = {} 
+						end 
+						Data.InfoInv[name].slot 				= i
+						Data.InfoInv[name].itemID				= itemID
+						break 
+					end 
+				end 			
+			end 
+		end 
+	end 
+end 
+
 A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STARTED_MOVING", function()
 	if Data.TimeStampMoving ~= TMW.time then 
 		Data.TimeStampMoving = TMW.time 
@@ -162,24 +257,27 @@ A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STOPPED_MOVING", function()
 	end 
 end)
 
-A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "START_AUTOREPEAT_SPELL", 	Data.logAutoShootON)
-A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "STOP_AUTOREPEAT_SPELL", 	Data.logAutoShootOFF)
-A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "PLAYER_ENTERING_WORLD", 	Data.logAutoShootOFF)
-A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "UNIT_SPELLCAST_SUCCEEDED",	Data.updateAutoShoot)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "START_AUTOREPEAT_SPELL", 		Data.logAutoShootON)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "STOP_AUTOREPEAT_SPELL", 		Data.logAutoShootOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "PLAYER_ENTERING_WORLD", 		Data.logAutoShootOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "UNIT_SPELLCAST_SUCCEEDED",		Data.updateAutoShoot)
 
-A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTER_COMBAT", 	Data.logAttackON)
-A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_LEAVE_COMBAT", 	Data.logAttackOFF)
-A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTERING_WORLD", 	Data.logAttackOFF)
-A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "UI_ERROR_MESSAGE", 		Data.logBehind)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTER_COMBAT", 		Data.logAttackON)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_LEAVE_COMBAT", 		Data.logAttackOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "PLAYER_ENTERING_WORLD", 		Data.logAttackOFF)
+A.Listener:Add("ACTION_EVENT_PLAYER_ATTACK", "UI_ERROR_MESSAGE", 			Data.logBehind)
 
-A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LEVEL_UP",			Data.logLevel)
-A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_ENTERING_WORLD", 	Data.logLevel)
-A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LOGIN", 			Data.logLevel)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LEVEL_UP",				Data.logLevel)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_ENTERING_WORLD", 		Data.logLevel)
+A.Listener:Add("ACTION_EVENT_PLAYER_LEVEL", "PLAYER_LOGIN", 				Data.logLevel)
 
-A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 		Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 		Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_ENTERING_WORLD", 			Data.UpdateStance)
-A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_LOGIN", 					Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER_SWAP_EQUIP", "ITEM_LOCKED", 			Data.logSwapLocked)
+A.Listener:Add("ACTION_EVENT_PLAYER_SWAP_EQUIP", "ITEM_UNLOCKED", 			Data.logSwapUnlocked)
+
+A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORMS", 			Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "UPDATE_SHAPESHIFT_FORM", 			Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_ENTERING_WORLD", 				Data.UpdateStance)
+A.Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_LOGIN", 						Data.UpdateStance)
 
 local function RecoveryOffset()
 	return A.GetPing() + A.GetCurrentGCD()
@@ -380,41 +478,7 @@ function A.Player:GCDRemains()
 	return A.GetCurrentGCD()
 end 
 
--- Equipment
-function A.Player:RemoveTier(tier)
-	-- @usage A.Player:RemoveTier("Tier21")
-	Data.CheckItems[tier] = nil 
-	Data.CountItems[tier] = nil
-	if not next(Data.CheckItems) then 
-		Data.IierIsInitialized = nil 
-		A.Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD")
-		A.Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED")		
-	end 
-end
-
-function A.Player:AddTier(tier, items)
-	-- @usage A.Player:AddTier("Tier21", { itemID, itemID, itemID, itemID, itemID, itemID })
-	Data.CheckItems[tier] = items 
-	Data.CountItems[tier] = 0
-	if not Data.IierIsInitialized then 
-		Data.IierIsInitialized = true 
-		A.Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD", 		Data.OnItemsUpdate)
-		A.Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED",	Data.OnItemsUpdate)	
-		Data.OnItemsUpdate()
-	end 
-end
-
-function A.Player:GetTier(tier)
-	-- @return number (how much parts of tier gear is equipped)
-	return Data.CountItems[tier] or 0
-end 
-
-function A.Player:HasTier(tier, count)
-	-- @return boolean 
-	-- Set Bonuses are disabled in Challenge Mode (Diff = 8) and in Proving Grounds (Map = 1148)
-	return self:GetTier(tier) >= count and InstanceInfo.difficultyID ~= 8 and InstanceInfo.ID ~= 1148 
-end 
-
+-- Swing 
 function A.Player:GetSwing(inv)
 	-- @return number (time in seconds of the swing for each slot)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
@@ -433,6 +497,247 @@ function A.Player:GetSwing(inv)
 	end 
 	
 	return Env.SwingDuration(inv)
+end 
+
+-- Swap 
+function A.Player:IsSwapLocked()
+	-- @return boolean 
+	-- Note: This condition must be checked always before equip swap
+	return Data.isSwapLocked 
+end 
+
+-- Equipment
+function A.Player:RemoveTier(tier)
+	-- @usage A.Player:RemoveTier("Tier21")
+	Data.CheckItems[tier] = nil 
+	Data.CountItems[tier] = nil
+	if not next(Data.CheckItems) then 
+		Data.IierIsInitialized = nil 
+		A.Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD")
+		A.Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED")		
+	end 
+end
+
+function A.Player:AddTier(tier, items)
+	-- @usage A.Player:AddTier("Tier21", { itemID, itemID, itemID, itemID, itemID, itemID })
+	Data.CheckItems[tier] = items 
+	Data.CountItems[tier] = 0
+	if not Data.IierIsInitialized then 
+		Data.IierIsInitialized = true 
+		--A.Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD", 		Data.OnItemsUpdate)
+		A.Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED",	Data.OnItemsUpdate)			
+	end 
+	Data.OnItemsUpdate()
+end
+
+function A.Player:GetTier(tier)
+	-- @return number (how much parts of tier gear is equipped)
+	return Data.CountItems[tier] or 0
+end 
+
+function A.Player:HasTier(tier, count)
+	-- @return boolean 
+	-- Set Bonuses are disabled in Challenge Mode (Diff = 8) and in Proving Grounds (Map = 1148)
+	return self:GetTier(tier) >= count and InstanceInfo.difficultyID ~= 8 and InstanceInfo.ID ~= 1148 
+end 
+
+-- Bags 
+function A.Player:RemoveBag(name)
+	-- @usage A.Player:RemoveBag("SOMETHING")
+	if Data.CheckBags[name] then 
+		Data.CheckBagsMaxN	 = Data.CheckBagsMaxN - 1
+	end 
+	
+	Data.CheckBags[name] = nil 
+	Data.InfoBags[name]	 = nil 
+	
+	if not next(Data.CheckBags) then 
+		Data.BagsIsInitialized = false 
+		A.Listener:Remove("ACTION_EVENT_PLAYER_BAG", "BAG_NEW_ITEMS_UPDATED", 		Data.logBag)
+		A.Listener:Remove("ACTION_EVENT_PLAYER_BAG", "BAG_UPDATE_DELAYED",			Data.logBag)				
+	end 
+end 
+
+function A.Player:AddBag(name, data)
+	-- @usage A.Player:AddBag("SOMETHING", { itemID = 123123 }) or A.Player:AddBag("SHIELDS", { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
+	-- Optional: itemEquipLoc, itemClassID, itemSubClassID, itemID, isEquippableItem but at least one of them must be up 
+	-- More info about itemClassID, itemSubClassID here: https://wow.gamepedia.com/ItemType
+	if not Data.CheckBags[name] then 
+		Data.CheckBagsMaxN	 = Data.CheckBagsMaxN + 1
+	end 
+	
+	Data.CheckBags[name] = data 
+	
+	if not Data.BagsIsInitialized then 
+		Data.BagsIsInitialized = true 
+		A.Listener:Add("ACTION_EVENT_PLAYER_BAG", "BAG_NEW_ITEMS_UPDATED", 		Data.logBag)
+		A.Listener:Add("ACTION_EVENT_PLAYER_BAG", "BAG_UPDATE_DELAYED",			Data.logBag)				
+	end 
+	Data.logBag()
+end 
+
+function A.Player:GetBag(name)
+	-- @return table info ( .count , .itemID ) or nil 
+	return Data.InfoBags[name]
+end 
+
+-- Inventory 
+function A.Player:RemoveInv(name)
+	-- @usage A.Player:RemoveInv("SOMETHING")
+	Data.CheckInv[name] = nil 
+	Data.InfoInv[name]	= nil 
+	if not next(Data.CheckInv) then 
+		Data.InvIsInitialized = false 
+		A.Listener:Remove("ACTION_EVENT_PLAYER_INV", "PLAYER_EQUIPMENT_CHANGED", 	Data.logInv)				
+	end 
+end 
+
+function A.Player:AddInv(name, slot, data)
+	-- @usage A.Player:AddInv("SOMETHING", ACTION_CONST_INVSLOT_OFFHAND, { itemID = 123123 }) or A.Player:AddInv("SHIELDS", ACTION_CONST_INVSLOT_OFFHAND, { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
+	-- Optional: itemEquipLoc, itemClassID, itemSubClassID, itemID, isEquippableItem all of them can be omited 
+	-- More info about itemClassID, itemSubClassID here: https://wow.gamepedia.com/ItemType
+	local temp 			= data 
+	temp.slot 			= slot 
+	Data.CheckInv[name] = temp  
+	if not Data.InvIsInitialized then 
+		Data.InvIsInitialized = true 
+		A.Listener:Add("ACTION_EVENT_PLAYER_INV", "PLAYER_EQUIPMENT_CHANGED", 		Data.logInv)				
+	end 
+	Data.logInv()
+end 
+
+function A.Player:GetInv(name)
+	-- @return table info ( .slot , .itemID ) or nil 
+	return Data.InfoInv[name]
+end 
+
+-----------------------------------
+--- Shared Functions | Register ---
+-----------------------------------
+function A.Player:RegisterAmmo()
+	-- Registers to track ammo count in bags
+	A.Player:AddBag("AMMO1", 													{ itemClassID = LE_ITEM_CLASS_PROJECTILE, itemSubClassID = 2 												})
+	A.Player:AddBag("AMMO2", 													{ itemClassID = LE_ITEM_CLASS_PROJECTILE, itemSubClassID = 3 												})
+end 
+
+function A.Player:RegisterThrown()
+	-- Registers to track ammo count in bags 
+	A.Player:AddBag("THROWN", 													{ itemEquipLoc = "INVTYPE_THROWN"																			})
+end 
+
+function A.Player:RegisterShield()
+	-- Registers to track shields in bags or equiped 
+	A.Player:AddBag("SHIELD", 													{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true 		})
+	A.Player:AddInv("SHIELD", 			ACTION_CONST_INVSLOT_OFFHAND, 			{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD 									})
+end 
+
+function A.Player:RegisterWeaponOffHand()
+	-- Registers to track off hand weapons in bags or equiped 
+	A.Player:AddBag("WEAPON_OFFHAND_1", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE1H, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_OFFHAND_2", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE1H, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_OFFHAND_3", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_OFFHAND_4", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_UNARMED, isEquippableItem = true		})
+	A.Player:AddBag("WEAPON_OFFHAND_5", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER, isEquippableItem = true		})
+	A.Player:AddInv("WEAPON_OFFHAND", 	ACTION_CONST_INVSLOT_OFFHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON 																		})
+end 
+
+function A.Player:RegisterWeaponTwoHand()
+	-- Registers to track off hand weapons in bags or equiped 
+	A.Player:AddBag("WEAPON_TWOHAND_1", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_TWOHAND_2", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_TWOHAND_3", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM, isEquippableItem = true 		})
+	A.Player:AddBag("WEAPON_TWOHAND_4", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H, isEquippableItem = true		})
+	A.Player:AddBag("WEAPON_TWOHAND_5", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF, isEquippableItem = true		})
+	A.Player:AddInv("WEAPON_TWOHAND_1", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H									})
+	A.Player:AddInv("WEAPON_TWOHAND_2", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H								})
+	A.Player:AddInv("WEAPON_TWOHAND_3", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM								})
+	A.Player:AddInv("WEAPON_TWOHAND_4", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H								})
+	A.Player:AddInv("WEAPON_TWOHAND_5", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF									})
+end 
+
+------------------------------
+--- Shared Functions | API ---
+------------------------------
+function A.Player:GetAmmo()
+	-- @return number 
+	-- Returns number of remain ammo (Arrow or Bullet depended on what first found) , 0 if none 
+	local c = A.Player:GetBag("AMMO1") or A.Player:GetBag("AMMO2")
+	return c and c.count or 0 
+end 
+
+function A.Player:GetArrow()
+	-- @return number 
+	-- Returns number of remain ammo, 0 if none 
+	local c = A.Player:GetBag("AMMO1")
+	return c and c.count or 0 
+end 
+
+function A.Player:GetBullet()
+	-- @return number 
+	-- Returns number of remain ammo, 0 if none 
+	local c = A.Player:GetBag("AMMO2")
+	return c and c.count or 0 
+end 
+
+function A.Player:GetThrown()
+	-- @return number 
+	-- Returns number of remain ammo, 0 if none 
+	local c = A.Player:GetBag("THROWN")
+	return c and c.count or 0 
+end 
+
+function A.Player:HasShield(isEquiped)
+	-- @return itemID or nil  
+	-- Bag 
+	if not isEquiped then 
+		local bag_shield = A.Player:GetBag("SHIELD")
+		return bag_shield and bag_shield.itemID or nil 
+	-- Inventory
+	else
+		local inv_shield = A.Player:GetInv("SHIELD")
+		return inv_shield and inv_shield.itemID or nil 
+	end 
+end 
+
+function A.Player:HasWeaponOffHand(isEquiped)
+	-- @return itemID or nil 
+	-- Bag 
+	if not isEquiped then 
+		local bag_offhand 
+		for i = 1, 5 do 
+			bag_offhand = A.Player:GetBag("WEAPON_OFFHAND_" .. i)
+			if bag_offhand and bag_offhand.itemID then 
+				return bag_offhand.itemID
+			end 
+		end 
+	-- Inventory
+	else
+		local inv_offhand = A.Player:GetInv("WEAPON_OFFHAND")
+		return inv_offhand and inv_offhand.itemID or nil 
+	end 	
+end 
+
+function A.Player:HasWeaponTwoHand(isEquiped)
+	-- @return itemID or nil 
+	-- Bag 
+	if not isEquiped then 
+		local inv_twohand 
+		for i = 1, 5 do 
+			inv_twohand = A.Player:GetBag("WEAPON_TWOHAND_" .. i)
+			if inv_twohand and inv_twohand.itemID then 
+				return inv_twohand.itemID
+			end 
+		end 
+	-- Inventory
+	else
+		local inv_twohand 
+		for i = 1, 5 do 
+			inv_twohand = A.Player:GetInv("WEAPON_TWOHAND_" .. i)
+			if inv_twohand and inv_twohand.itemID then 
+				return inv_twohand.itemID
+			end 
+		end 
+	end 	
 end 
 
 --------------------------
