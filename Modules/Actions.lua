@@ -798,10 +798,8 @@ function A:GetCooldown()
 	-- @return number
 	if self.Type == "Spell" then 
 		if self.isStance then 
-			local start, duration, isActive = GetShapeshiftFormCooldown(self.isStance)
-			if isActive then 
-				return huge 
-			elseif duration then
+			local start, duration, _ = GetShapeshiftFormCooldown(self.isStance)
+			if start and start ~= 0 then
 				return (duration == 0 and 0) or (duration - (TMW.time - start))
 			end
 			

@@ -4079,7 +4079,7 @@ function Action:QueueValidCheck()
 	-- Why "player"? Coz while @target an enemy you can set queue of supportive spells for "self" and if they will be used on enemy then they will be applied on "player" 	
 	local isCastingName, _, _, _, castID, isChannel = Action.Unit("player"):IsCasting()
 	if (not isCastingName or isCastingName ~= self:Info()) and (not isChannel or Queue.IsInterruptAbleChannel[castID]) then
-		if self.Type == "SwapEquip" then 
+		if self.Type == "SwapEquip" or self.isStance then 
 			return true 
 		elseif not self:HasRange() then 
 			return self:AbsentImun(self.UnitID, self.AbsentImunQueueCache)	-- Well at least will do something, better than nothing 
