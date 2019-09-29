@@ -1212,7 +1212,7 @@ A.CombatTracker									= {
 		if DMG >= 1 and Hits > 1 then
 			ttd = ttd / DMG
 			if ttd <= 0 then 
-				return 100
+				return 500
 			end 			
 		end    
 		
@@ -1231,7 +1231,7 @@ A.CombatTracker									= {
 		if DMG >= 1 and Hits > 1 then
 			ttd = A.CombatTracker:UnitHealth(UNIT) / DMG
 			if ttd <= 0 then 
-				return 100
+				return 500
 			end 
 		end    
 		
