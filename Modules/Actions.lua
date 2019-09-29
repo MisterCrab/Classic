@@ -55,8 +55,8 @@ local isItemRangeException 	= {
 }
 local isItemUseException	= {}
 local itemCategory 			= {
-    [02] = "DPS", 	-- TODO: Classic 
-	[01] = "DEFF", 	-- TODO: Classic 
+	[1404]	= "CC",		-- Tidal Charm (stun 3sec)
+	[17744]	= "MISC",	-- Heart of Noxxion (1 posion self-dispel)
 	[19950] = "BOTH",
 	[18820] = "BOTH",
 }
@@ -74,8 +74,8 @@ local Spell					= _G.Spell
 local IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell =
 	  IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell
 
-local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste = 
-	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste
+local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown = 
+	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown
 
 -- Item 	  
 local IsUsableItem, IsHelpfulItem, IsHarmfulItem 	=
@@ -169,6 +169,21 @@ A.ShouldStop = A.MakeFunctionCachedStatic(A.ShouldStop, 0)
 -------------------------------------------------------------------------------
 -- Spell
 -------------------------------------------------------------------------------
+local spellbasecache  = setmetatable({}, { __index = function(t, v)
+	local cd = GetSpellBaseCooldown(v)
+	if cd then
+		t[v] = cd / 1000
+		return t[v]
+	end     
+	return 0
+end })
+
+function A:GetSpellBaseCooldown(self)
+	-- @return number (seconds)
+	-- Gives the (unmodified) cooldown
+	return unpack(spellbasecache[self.ID]) 
+end 
+
 local spellpowercache = setmetatable({}, { __index = function(t, v)
 	local pwr = GetSpellPowerCost(A.GetSpellInfo(v))
 	if pwr and pwr[1] then
@@ -510,6 +525,9 @@ function A:GetSpellMaxRank()
 	return 1
 end 
 
+-------------------------------------------------------------------------------
+-- Determine
+-------------------------------------------------------------------------------
 function A.DetermineHealObject(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
 	-- @return object or nil 
 	-- Note: :PredictHeal(unitID) must be only ! Use self.ID or self:Info() inside to determine by that which spell is it 
@@ -529,6 +547,18 @@ function A.DetermineUsableObject(unitID, skipRange, skipLua, skipShouldStop, ski
 			return object
 		end 
 	end 
+end 
+
+function A.DetermineCountGCDs(...)
+	-- @return number, count of required summary GCD times to use all in vararg
+	local count = 0
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)		
+		if (not object.isStance or A.PlayerClass ~= "WARRIOR") and object:IsRequiredGCD() and not object:IsBlocked() and not object:IsBlockedBySpellBook() and (not object.isTalent or object:IsSpellLearned()) and object:GetCooldown() <= A.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + A.GetCurrentGCD() then 
+			count = count + 1
+		end 
+	end 	
+	return count
 end 
 
 -------------------------------------------------------------------------------
@@ -565,7 +595,8 @@ local Racial = {
 		
 		-- Iterrupts 
 		if A.PlayerRace == "Tauren" then 
-			return 	(
+			return 	Player:IsStaying() and 
+					(
 						(
 							unitID and 	
 							Unit(unitID):IsEnemy() and 
@@ -668,6 +699,18 @@ function A:GetItemCategory()
 	return itemCategory[self.ID]
 end 
 
+function A:IsItemTank()
+	-- @return boolean 
+	local cat = itemCategory[self.ID]
+	return not cat or (cat ~= "DPS" and cat ~= "MISC" and cat ~= "CC")
+end 
+
+function A:IsItemDamager()
+	-- @return boolean 
+	local cat = itemCategory[self.ID]
+	return not cat or (cat ~= "DEFF" and cat ~= "MISC" and cat ~= "CC")
+end 
+
 -- Next works by TMW components
 -- A:IsInRange(unitID) (in Shared)
 -- A:GetCount() (in Shared)
@@ -688,6 +731,10 @@ function A:IsExists()
 		-- DON'T USE HERE A.GetSpellInfo COZ IT'S CACHE WHICH WILL WORK WRONG DUE RACE CHANGES
 		local spellID = select(7, GetSpellInfo(self:Info())) -- Small trick, it will be nil in case of if it's not a player's spell 
 		return spellID and (IsPlayerSpell(spellID) or (Pet:IsActive() and Pet:IsSpellKnown(spellID)))
+	end 
+	
+	if self.Type == "SwapEquip" then 
+		return self.Equip1() or self.Equip2()
 	end 
 	
 	return self:GetEquipped() or self:GetCount() > 0	
@@ -750,7 +797,18 @@ end
 function A:GetCooldown()
 	-- @return number
 	if self.Type == "Spell" then 
-		return CooldownDuration(self:Info())
+		if self.isStance then 
+			local start, duration, isActive = GetShapeshiftFormCooldown(self.isStance)
+			if isActive then 
+				return huge 
+			elseif duration then
+				return (duration == 0 and 0) or (duration - (TMW.time - start))
+			end
+			
+			return 0
+		else 
+			return CooldownDuration(self:Info())
+		end 
 	end 
 	
 	return self:GetItemCooldown()
@@ -863,11 +921,26 @@ end
 
 function A:IsReadyM(unitID, skipRange, skipUsable)
 	-- @return boolean
-	-- For MSG System 
+	-- For MSG System or bypass ShouldStop with GCD checks and blocked conditions 
 	if unitID == "" then 
 		unitID = nil 
 	end 
     return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable) and self:RunLua(unitID)
+end 
+
+function A:IsReadyByPassCastGCD(unitID, skipRange, skipLua, skipUsable)
+	-- @return boolean
+	-- For [3-4, 6-8]
+    return 	not self:IsBlocked() and 
+			not self:IsBlockedByQueue() and 
+			self:IsCastable(unitID, skipRange, nil, true, skipUsable) and 
+			( skipLua or self:RunLua(unitID) )
+end 
+
+function A:IsReadyByPassCastGCDP(unitID, skipRange, skipLua, skipUsable)
+	-- @return boolean
+	-- For [1-2, 5]
+    return 	self:IsCastable(unitID, skipRange, nil, true, skipUsable) and (skipLua or self:RunLua(unitID))
 end 
 
 function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
@@ -875,12 +948,6 @@ function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
 	return 	not self:IsBlocked() and 
 			not self:IsBlockedByQueue() and 
 			self:IsCastable(nil, true, skipShouldStop, nil, skipUsable)
-end 
-
-function A:IsReadyOnPower(unitID, skipRange, skipLua, skipShouldStop)
-	-- @return boolean 
-	-- Note: Created to bypass stances and equip 
-	return self:IsReady(unitID, skipRange, skipLua, skipShouldStop, self.PowerCost)
 end 
 
 -------------------------------------------------------------------------------
@@ -976,27 +1043,34 @@ function A:GetColoredItemTexture(custom)
     return "state; texture", {Color = A.Data.C[self.Color] or self.Color, Alpha = 1, Texture = ""}, (custom and GetItemIcon(custom)) or self:GetItemIcon()
 end 
 
+-- Swap Colored Texture
+function A:GetColoredSwapTexture(custom)
+    return "state; texture", {Color = A.Data.C[self.Color] or self.Color, Alpha = 1, Texture = ""}, custom or self.ID
+end 
+
 -------------------------------------------------------------------------------
 -- UI: Create
 -------------------------------------------------------------------------------
 function A.Create(attributes)
 	--[[@usage: attributes (table)
 		Required: 
-			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|ItemBySlot (TrinketBySlot, ItemBySlot is only in CORE!)
-			ID (@number) 	- spellID | itemID
-			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor, this will set color which stored in A.Data.C[Color] or here can be own hex 
+			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|ItemBySlot|SwapEquip (TrinketBySlot, ItemBySlot is only in CORE!)
+			ID (@number) 	- spellID | itemID | textureID (textureID only for Type "SwapEquip")
+			Color (@string) - only if type is Spell|SpellSingleColor|Item|ItemSingleColor|SwapEquip, this will set color which stored in A.Data.C[Color] or here can be own hex 
 	 	Optional: 
 			Desc (@string) uses in UI near Icon tab (usually to describe relative action like Penance can be for heal and for dps and it's different actions but with same name)
 			BlockForbidden (@boolean) uses to preset for action fixed block valid 
 			QueueForbidden (@boolean) uses to preset for action fixed queue valid 
-			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket
-			FixedTexture (@number or @file) valid only if Type is Spell|Item|Potion|Trinket
+			Texture (@number) valid only if Type is Spell|Item|Potion|Trinket|SwapEquip
+			FixedTexture (@number or @file) valid only if Type is Spell|Item|Potion|Trinket|SwapEquip
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
+			isStance (@number) will check in :GetCooldown cooldown timer by GetShapeshiftFormCooldown function instead of default, only if Type is Spell|SpellSingleColor
 			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
-			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor)			
-			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 
-			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7} 	
+			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor), only if Type is Spell|SpellSingleColor			
+			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor 
+			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor
+			Equip1, Equip2 (@function) between which equipments do swap, used in :IsExists method, only if Type is SwapEquip
 			
 		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
 		Otherwise it will interract with additional frame  
@@ -1050,6 +1124,8 @@ function A.Create(attributes)
 		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()
 		-- Talent 
 		s.isTalent = attributes.isTalent
+		-- Stance 
+		s.isStance = attributes.isStance
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 
@@ -1074,6 +1150,8 @@ function A.Create(attributes)
 		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()	
 		-- Talent 
 		s.isTalent = attributes.isTalent
+		-- Stance 
+		s.isStance = attributes.isStance
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 
@@ -1193,6 +1271,48 @@ function A.Create(attributes)
 		-- Misc 
 		s.Item = TMW.Classes.ItemByID:New(attributes.ID)
 		GetItemInfoInstant(attributes.ID) -- must be here as request limited data from server	
+	elseif attributes.Type == "SwapEquip" then 
+		s = setmetatable(s, {__index = A})	
+		s.Type = attributes.Type
+		-- Methods (metakey:Link())	
+		s.Info = function()
+			return ACTION_CONST_EQUIPMENT_MANAGER
+		end 
+		s.Link = s.Info		
+		s.Icon = function()
+			return attributes.ID 
+		end 
+		if attributes.Color then 
+			s.Color = attributes.Color
+			if attributes.Texture then 
+				s.Texture = function()
+					return A.GetColoredSwapTexture(s, attributes.Texture)
+				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 				
+			else 
+				s.Texture = A.GetColoredSwapTexture
+			end 		
+		else 		
+			if attributes.Texture then 
+				s.Texture = function()
+					return "texture", attributes.Texture
+				end 
+			elseif attributes.FixedTexture then 
+				s.Texture = function()
+					return "texture", attributes.FixedTexture
+				end 				
+			else 
+				s.Texture = function()
+					return "texture", attributes.ID
+				end 
+			end 
+		end	
+		-- Equip 
+		s.Equip1 = attributes.Equip1
+		s.Equip2 = attributes.Equip2
 	else 
 		s = setmetatable(s, {__index = A})	
 		s.Hidden = true 
