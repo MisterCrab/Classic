@@ -809,3 +809,18 @@ function A.FrameHasSpell(frame, spellID)
 	end 
 	return false 
 end 
+
+function A.FrameHasObject(frame, ...)
+	-- @return boolean 
+	-- @usage A.FrameHasObject(frame, A.Spell1, A.Item1)
+	if frame and frame.Enabled and frame:IsVisible() and frame.attributes and frame.attributes.texture and frame.attributes.texture ~= "" then 
+		local texture = frame.attributes.texture
+		for i = 1, select("#", ...) do 
+			local obj = select(i, ...)
+			local _, objTexture = obj:Texture()
+			if objTexture and objTexture == texture then 
+				return true 
+			end 
+		end 
+	end 
+end 
