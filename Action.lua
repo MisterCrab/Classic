@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "29.09.2019"
+local DateTime 						= "30.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -4059,6 +4059,12 @@ local Queue = {
 			getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 		end 
 	end, 
+	OnEventToResetNoCombat 	= function(self)
+		-- ByPass wrong reset events by equip swap during combat
+		if Action.Unit("player"):CombatTime() == 0 then 
+			self.OnEventToReset()
+		end 
+	end, 
 	OnEventToReset 				= function(self)
 		if #Action.Data.Q > 0 then 
 			for i = 1, #Action.Data.Q do 
@@ -4261,10 +4267,10 @@ function Action:SetQueue(args)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			function() 	  Queue:BAG_UPDATE_COOLDOWN() 		  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED",					function() 	  Queue:ITEM_UNLOCKED() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			function() 	  Queue:OnEventToReset() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		function() 	  Queue:OnEventToReset() 			  	end)	
-    Action.Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			function() 	  Queue:OnEventToReset() 			  	end)
+	Action.Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		function() 	  Queue:OnEventToResetNoCombat() 	  	end)	
+    Action.Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			function() 	  Queue:OnEventToResetNoCombat() 	  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED", 			function() 	  Queue:OnEventToReset() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED", 		function() 	  Queue:OnEventToReset() 			  	end)
+	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED", 		function() 	  Queue:OnEventToResetNoCombat() 	 	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD", 			function() 	  Queue:OnEventToReset() 			  	end)	
 	TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 							function() 	  Queue:OnEventToReset() 				end,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
 end
