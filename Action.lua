@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "24.09.2019"
+local DateTime 						= "29.09.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -2629,6 +2629,20 @@ local function DispelPurgeEnrageRemap()
 	end 
 	-- Creates relative to each specs which can dispel or purje anyhow
 	local UnitAuras = {
+		["WARRIOR"] = {
+			PvE = {
+				BlackList = Action.Data.Auras.PvE.BlackList,
+				PurgeFriendly = Action.Data.Auras.PvE.PurgeFriendly,
+				PurgeHigh = Action.Data.Auras.PvE.PurgeHigh,
+				PurgeLow = Action.Data.Auras.PvE.PurgeLow,				
+			},
+			PvP = {
+				BlackList = Action.Data.Auras.PvP.BlackList,
+				PurgeFriendly = Action.Data.Auras.PvP.PurgeFriendly,
+				PurgeHigh = Action.Data.Auras.PvP.PurgeHigh,
+				PurgeLow = Action.Data.Auras.PvP.PurgeLow,
+			},
+		},
 		["DRUID"] = {
 			PvE = {
 				BlackList = Action.Data.Auras.PvE.BlackList,
@@ -2749,7 +2763,19 @@ local function DispelPurgeEnrageRemap()
 					Action.Data.Auras.DisableCheckboxes.UseExpelEnrage = false 
 				elseif Category:match("Frenzy") then 	
 					Action.Data.Auras.DisableCheckboxes.UseExpelFrenzy = false 
-				end		
+				end	
+				
+				if #Category_v > 0 then 
+					for i = 1, #Category_v do 
+						for k, v in pairs(Category_v[i]) do 
+							TMW.db.profile.ActionDB[5][Mode][Category][GameLocale][k] = v
+						end 
+					end 
+				else
+					for k, v in pairs(Category_v) do 
+						TMW.db.profile.ActionDB[5][Mode][Category][GameLocale][k] = v
+					end 
+				end 
 			end 	
 		end
 		 
@@ -2790,7 +2816,7 @@ local function GetTableKeyIdentify(action)
 end
 local function ShowTooltip(parent, show, ID, Type)
 	if show then
-		if ID == nil then 
+		if ID == nil or Type == "SwapEquip" then 
 			GameTooltip:Hide()
 			return 
 		end
@@ -4001,6 +4027,7 @@ local Queue = {
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED")	
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED")	
 		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD")	
+		Action.Listener:Remove("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED")
 		TMW:UnregisterCallback("TMW_ACTION_MODE_CHANGED", function() self:OnEventToReset() end,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
 	end, 
 	IsThisMeta 					= function(self, meta)
@@ -4015,7 +4042,7 @@ local Queue = {
 		end 	
 	end,
 	BAG_UPDATE_COOLDOWN			= function(self)
-		if Action.Data.Q[1] and Action.Data.Q[1].Type ~= "Spell" then 
+		if Action.Data.Q[1] and Action.Data.Q[1].Type ~= "Spell" and Action.Data.Q[1].Type ~= "SwapEquip" then 
 			local start, duration, enable = Action.Data.Q[1].Item:GetCooldown()
 			if duration and math.abs(TMW.time - start) <= 2 then 
 				getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
@@ -4026,6 +4053,11 @@ local Queue = {
 				getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 			end 
 		end 	
+	end, 
+	ITEM_UNLOCKED				= function(self)
+		if Action.Data.Q[1] and Action.Data.Q[1].Type == "SwapEquip" then 
+			getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
+		end 
 	end, 
 	OnEventToReset 				= function(self)
 		if #Action.Data.Q > 0 then 
@@ -4047,7 +4079,9 @@ function Action:QueueValidCheck()
 	-- Why "player"? Coz while @target an enemy you can set queue of supportive spells for "self" and if they will be used on enemy then they will be applied on "player" 	
 	local isCastingName, _, _, _, castID, isChannel = Action.Unit("player"):IsCasting()
 	if (not isCastingName or isCastingName ~= self:Info()) and (not isChannel or Queue.IsInterruptAbleChannel[castID]) then
-		if not self:HasRange() then 
+		if self.Type == "SwapEquip" then 
+			return true 
+		elseif not self:HasRange() then 
 			return self:AbsentImun(self.UnitID, self.AbsentImunQueueCache)	-- Well at least will do something, better than nothing 
 		else 
 			local isHarm 	= self:IsHarmful()
@@ -4066,14 +4100,43 @@ function Action:QueueValidCheck()
 	return false 
 end 
 
+function Action.CancelAllQueueForMeta(meta)
+	local index 			= #Action.Data.Q 
+	if index > 0 then 
+		for i = 1, index do 
+			if (not Action.Data.Q[i].MetaSlot and (meta == 3 or meta == 4)) or Action.Data.Q[i].MetaSlot == meta then 
+				getmetatable(Action.Data.Q[i]).__index:SetQueue(Queue.Temp.SilenceON)
+			end 
+		end 
+	end 
+end 
+
+function Action.IsQueueRunning()
+	-- @return boolean 
+	return #Action.Data.Q > 0
+end 
+
+function Action.IsQueueRunningAuto()
+	-- @return boolean 	
+	local index = #Action.Data.Q
+	return index > 0 and (Action.Data.Q[index].Auto or Action.Data.Q[1].Auto)
+end 
+
 function Action.IsQueueReady(meta)
 	-- @return boolean
-    if #Action.Data.Q > 0 and Queue:IsThisMeta(meta) then 
+	local index = #Action.Data.Q
+    if index > 0 and Queue:IsThisMeta(meta) then 		
 		local self = Action.Data.Q[1]
+		if self.Auto and self.Start and TMW.time - self.Start > (Action.Data.QueueAutoResetTimer or 10) then 
+			Queue:OnEventToReset()
+			return false 
+		end 		
         if self.Type == "Spell" or self.Type == "Trinket" or self.Type == "Potion" or self.Type == "Item" then -- Note: Equip, Count, Existance of action already checked in Action:SetQueue 
 			if self.UnitID == "player" or self:QueueValidCheck() then 
-				return self:IsUsable(self.ExtraCD) and (not self.PowerCustom or UnitPower("player", self.PowerType) >= (self.PowerCost or 0)) and self:RunQLua(self.UnitID)    
+				return self:IsUsable(self.ExtraCD) and (not self.PowerCustom or UnitPower("player", self.PowerType) >= (self.PowerCost or 0)) and (self.Auto or self:RunQLua(self.UnitID))   
 			end
+		elseif self.Type == "SwapEquip" then 
+			return not Action.Player:IsSwapLocked() and (self.Auto or self:RunQLua(self.UnitID))
         else 
 			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"])          
 			getmetatable(self).__index:SetQueue()
@@ -4110,6 +4173,7 @@ function Action:SetQueue(args)
 			Value (boolean) sets custom fixed statement for queue
 			Priority (number) put in specified priority 
 			MetaSlot (number) usage for MSG system to set queue on fixed position 
+			Auto (boolean) usage to skip RunQLua
 	]]
 	-- Check validance 
 	if not self.Queued and (not self:IsExists() or self:IsBlockedBySpellBook()) then  
@@ -4122,8 +4186,10 @@ function Action:SetQueue(args)
 	
 	local args = args or {}	
 	local Identify = GetTableKeyIdentify(self)
-	if self.QueueForbidden then 
-        Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. " " .. L["TAB"][3]["KEY"] .. printKey)
+	if self.QueueForbidden or (self.isStance and Action.Player:IsStance(self.isStance)) then 
+		if not args.Silence then 
+			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. " " .. L["TAB"][3]["KEY"] .. printKey)
+		end 
         return 	 
 	-- Let for user allow run blocked actions whenever he wants, anyway why not 
 	--elseif self:IsBlocked() and not self.Queued then 
@@ -4176,7 +4242,7 @@ function Action:SetQueue(args)
 			end 
 		end 
 	end
-    table.insert(Action.Data.Q, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot }, { __index = self }))
+    table.insert(Action.Data.Q, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot, Auto = args.Auto, Start = TMW.time }, { __index = self }))
 
 	if args.PowerType then 
 		-- Note: we set it as true to use in function Action.IsQueueReady()
@@ -4193,12 +4259,13 @@ function Action:SetQueue(args)
 		
     Action.Listener:Add("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED", 		function(...) Queue:UNIT_SPELLCAST_SUCCEEDED(...) 	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			function() 	  Queue:BAG_UPDATE_COOLDOWN() 		  	end)
+	Action.Listener:Add("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED",					function() 	  Queue:ITEM_UNLOCKED() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			function() 	  Queue:OnEventToReset() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		function() 	  Queue:OnEventToReset() 			  	end)	
     Action.Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			function() 	  Queue:OnEventToReset() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED", 			function() 	  Queue:OnEventToReset() 			  	end)
 	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED", 		function() 	  Queue:OnEventToReset() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD", 			function() 	  Queue:OnEventToReset() 			  	end)
+	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD", 			function() 	  Queue:OnEventToReset() 			  	end)	
 	TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 							function() 	  Queue:OnEventToReset() 				end,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
 end
 
@@ -4299,7 +4366,7 @@ end
 --		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList")				
 function Action.AuraIsON(Toggle)
 	-- @return boolean 
-	return TMW.db.profile.ActionDB[5][Toggle]
+	return type(Toggle) == "boolean" or TMW.db.profile.ActionDB[5][Toggle]
 end 
 
 function Action.AuraGetCategory(Category)
@@ -6192,7 +6259,11 @@ function Action.ToggleMainUI()
 							local isShown = true 
 							-- AutoHidden unavailable 
 							if ToggleAutoHidden and v.ID ~= ACTION_CONST_PICKPOCKET then 								
-								if v.Type == "Spell" then 															
+								if v.Type == "SwapEquip" then 
+									if not v:IsExists() then 
+										isShown = false 
+									end 
+								elseif v.Type == "Spell" then 															
 									if not v:IsExists() or v:IsBlockedBySpellBook() then 
 										isShown = false 
 									end 
@@ -6333,6 +6404,22 @@ function Action.ToggleMainUI()
 			tab.childs[spec].ScrollTable:SetScript("OnShow", function(self)			
 				self:SetData(ScrollTableActionsData())	
 				self:SortData(self.SORTBY)
+				
+				local index = self:GetSelection()
+				if not index then 
+					Key:SetText("")
+					Key:ClearFocus() 
+				else 
+					local data = self:GetRow(index)
+					if data then 
+						if data.TableKeyName ~= Key:GetText() then 
+							Key:SetText(data.TableKeyName)
+						end 
+					else 
+						Key:SetText("")
+						Key:ClearFocus() 
+					end 
+				end 
 			end)
 			-- Register callback to refresh table by earned ranks 
 			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", function()
@@ -6377,6 +6464,22 @@ function Action.ToggleMainUI()
 						self:SetData(ScrollTableActionsData())	
 						self:SortData(self.SORTBY)
 					end 
+					
+					local index = self:GetSelection()
+					if not index then 
+						Key:SetText("")
+						Key:ClearFocus() 
+					else 
+						local data = self:GetRow(index)
+						if data then 
+							if data.TableKeyName ~= Key:GetText() then 
+								Key:SetText(data.TableKeyName)
+							end 
+						else 
+							Key:SetText("")
+							Key:ClearFocus() 
+						end 
+					end 
 				end 
 			end)
 			-- If we had return back to this tab then handler will be skipped 
@@ -6413,11 +6516,27 @@ function Action.ToggleMainUI()
 			AutoHidden:RegisterForClicks("LeftButtonUp")
 			AutoHidden:SetScript("OnClick", function(self, button, down)
 				if not self.isDisabled then 
-					if button == "LeftButton" then 
+					if button == "LeftButton" then 						
 						Action.SetToggle({tab.name, "AutoHidden", L["TAB"][tab.name]["AUTOHIDDEN"] .. ": "})
 						tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
 						tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)	
 						EVENTS_INIT()
+						
+						local index = tab.childs[spec].ScrollTable:GetSelection()
+						if not index then 
+							Key:SetText("")
+							Key:ClearFocus() 
+						else 
+							local data = tab.childs[spec].ScrollTable:GetRow(index)
+							if data then 
+								if data.TableKeyName ~= Key:GetText() then 
+									Key:SetText(data.TableKeyName)
+								end 
+							else 
+								Key:SetText("")
+								Key:ClearFocus() 
+							end 
+						end 						
 					end 
 				end 
 			end)
