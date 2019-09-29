@@ -1,6 +1,7 @@
 local TMW 						= TMW
 local CNDT						= TMW.CNDT 
 local Env 						= CNDT.Env
+local SwingTimers 				= TMW.COMMON.SwingTimerMonitor.SwingTimers
 --local strlowerCache  			= TMW.strlowerCache
 
 local A   						= Action	
@@ -11,8 +12,8 @@ local A   						= Action
 local InstanceInfo				= A.InstanceInfo
 --local TeamCache				= A.TeamCache
 
-local _G, error, type, pairs, table, next, 		huge =
-	  _G, error, type, pairs, table, next, math.huge
+local _G, error, type, pairs, table, next, 		huge, math_max =
+	  _G, error, type, pairs, table, next, math.huge, math.max
 
 local Enum 						= _G.Enum 
 local PowerType 				= Enum.PowerType
@@ -228,8 +229,8 @@ function Data.logInv()
 			for i = 1, ACTION_CONST_INVSLOT_LAST_EQUIPPED do 
 				itemID = GetInventoryItemID("player", i)
 				if itemID then 
-					_, _, _, _, _, itemClassID, itemSubClassID 	= GetItemInfoInstant(itemID)
-					if (not v.itemID or v.itemID == itemID) and (not v.itemClassID or v.itemClassID == itemClassID) and (not v.itemSubClassID or v.itemSubClassID == itemSubClassID) and (not v.isEquippableItem or IsEquippableItem(itemID)) then 
+					_, _, _, itemEquipLoc, _, itemClassID, itemSubClassID 	= GetItemInfoInstant(itemID)
+					if (not v.itemID or v.itemID == itemID) and (not v.itemEquipLoc or v.itemEquipLoc == itemEquipLoc) and (not v.itemClassID or v.itemClassID == itemClassID) and (not v.itemSubClassID or v.itemSubClassID == itemSubClassID) and (not v.isEquippableItem or IsEquippableItem(itemID)) then 
 						if not Data.InfoInv[name] then 
 							Data.InfoInv[name] = {} 
 						end 
@@ -490,13 +491,33 @@ function A.Player:GetSwing(inv)
 		inv = ACTION_CONST_INVSLOT_RANGED
 	elseif inv == 4 then 
 		local inv1, inv2 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND)
-		return math.max(inv1, inv2)
+		return math_max(inv1, inv2)
 	elseif inv == 5 then 
 		local inv1, inv2, inv3 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_RANGED)
-		return math.max(inv1, inv2, inv3)
+		return math_max(inv1, inv2, inv3)
 	end 
 	
 	return Env.SwingDuration(inv)
+end 
+
+function A.Player:GetSwingMax(inv)
+	-- @return number (max duration taken from the last swing)
+	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
+	if inv == 1 then 
+		inv = ACTION_CONST_INVSLOT_MAINHAND
+	elseif inv == 2 then 
+		inv = ACTION_CONST_INVSLOT_OFFHAND
+	elseif inv == 3 then
+		inv = ACTION_CONST_INVSLOT_RANGED
+	elseif inv == 4 then 
+		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0)
+	elseif inv == 5 then 
+		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0)
+	end 
+	
+	return SwingTimers[inv] and SwingTimers[inv].duration or 0
 end 
 
 -- Swap 
@@ -621,7 +642,7 @@ function A.Player:RegisterAmmo()
 end 
 
 function A.Player:RegisterThrown()
-	-- Registers to track ammo count in bags 
+	-- Registers to track throwns count in bags 
 	A.Player:AddBag("THROWN", 													{ itemEquipLoc = "INVTYPE_THROWN"																			})
 end 
 
@@ -667,21 +688,21 @@ end
 
 function A.Player:GetArrow()
 	-- @return number 
-	-- Returns number of remain ammo, 0 if none 
+	-- Returns number of remain arrows, 0 if none 
 	local c = A.Player:GetBag("AMMO1")
 	return c and c.count or 0 
 end 
 
 function A.Player:GetBullet()
 	-- @return number 
-	-- Returns number of remain ammo, 0 if none 
+	-- Returns number of remain bullets, 0 if none 
 	local c = A.Player:GetBag("AMMO2")
 	return c and c.count or 0 
 end 
 
 function A.Player:GetThrown()
 	-- @return number 
-	-- Returns number of remain ammo, 0 if none 
+	-- Returns number of remain throwns, 0 if none 
 	local c = A.Player:GetBag("THROWN")
 	return c and c.count or 0 
 end 
@@ -1029,7 +1050,7 @@ end
 -- Predict the expected Energy Deficit at the end of the Cast/GCD.
 function A.Player:EnergyDeficitPredicted(Offset)
 	if self:EnergyRegen() == 0 then return -1 end
-	return math.max(0, self:EnergyDeficit() - self:EnergyRemainingCastRegen(Offset))
+	return math_max(0, self:EnergyDeficit() - self:EnergyRemainingCastRegen(Offset))
 end
 
 -- Predict time to max energy at the end of Cast/GCD
