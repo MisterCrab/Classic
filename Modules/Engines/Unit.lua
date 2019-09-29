@@ -1054,6 +1054,7 @@ A.Unit = PseudoClass({
 		return castTotal, castLeft, castLeftPercent, castID, castName, notInterruptable
 	end, "UnitGUID"),
 	IsControlAble 							= Cache:Pass(function(self, drCat, drDiminishing)
+		-- @return boolean 
 		-- drDiminishing is Tick (number: 100 -> 50 -> 25 -> 0) where 0 is fully imun, 100% no imun - can be fully duration CC'ed 
 		-- "taunt" has unique Tick (number: 100 -> 65 -> 42 -> 27 -> 0)
 		--[[ drCat accepts:
@@ -1482,6 +1483,11 @@ A.Unit = PseudoClass({
 		-- @return number 
 		local unitID 						= self.UnitID
 	    return UnitPower(unitID)
+	end, "UnitID"),
+	PowerType								= Cache:Pass(function(self)
+		-- @return number 
+		local unitID 						= self.UnitID
+	    return select(2, UnitPowerType(unitID))
 	end, "UnitID"),
 	PowerMax								= Cache:Pass(function(self)
 		-- @return number 
@@ -2351,14 +2357,14 @@ A.EnemyTeam = PseudoClass({
 		 
 		return value, "none"
 	end, "ROLE"), 
-	IsTauntPetAble 							= Cache:Wrap(function(self, object)
+	IsTauntPetAble 							= Cache:Wrap(function(self, object, range)
 		-- @return boolean, unitID
 		-- object is always Action table key 
 		local value, pet = false, "none"
 		if TeamCache.Enemy.Type and TeamCache.Enemy.Size > 0 then 
 			for i = 1, 10 do 
 				pet = TeamCache.Enemy.Type .. "pet" .. i
-				if A.Unit(pet):IsExists() and object:IsReady(pet) then 
+				if A.Unit(pet):IsExists() and ((not range and object:IsInRange(pet)) or (range and A.Unit(pet):CanInterract(range))) then 
 					return true, pet  
 				end              
 			end  
