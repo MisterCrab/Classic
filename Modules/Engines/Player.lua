@@ -157,7 +157,10 @@ function Data.logBehind(...)
 end 
 
 function Data.logLevel(...)
-	local lvl = ... or UnitLevel("player")
+	local lvl = ... 
+	if type(arg) ~= "number" then 
+		lvl = UnitLevel("player")
+	end 
 	if lvl and lvl ~= A.PlayerLevel then 
 		A.PlayerLevel = lvl
 	end 
