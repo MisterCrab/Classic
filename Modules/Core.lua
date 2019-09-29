@@ -11,12 +11,12 @@ local MultiUnits			= A.MultiUnits
 local _G, select 			= _G, select
 
 local UnitIsUnit  			= UnitIsUnit
+local UnitIsFriend			= UnitIsFriend
 
 local SpellIsTargeting		= SpellIsTargeting
 local IsMouseButtonDown		= IsMouseButtonDown
 --local IsPlayerAttacking	= IsPlayerAttacking
 local HasWandEquipped		= HasWandEquipped
-local UnitPowerType			= UnitPowerType
 
 local ClassPortaits = {
 	["WARRIOR"] 			= ACTION_CONST_PORTRAIT_WARRIOR,
@@ -69,7 +69,15 @@ function A.PauseChecks()
 		return ACTION_CONST_PAUSECHECKS_DISABLED
 	end 
 	
-	if (A.GetToggle(1, "CheckDeadOrGhost") and Unit("player"):IsDead()) or (A.GetToggle(1, "CheckDeadOrGhostTarget") and (Unit("target"):IsDead() or Unit("mouseover"):IsDead()) and (not A.IsInPvP or Unit("target"):Class() ~= "HUNTER")) then 						-- exception in PvP Hunter 
+	if 	(A.GetToggle(1, "CheckDeadOrGhost") and Unit("player"):IsDead()) or 
+		(
+			A.GetToggle(1, "CheckDeadOrGhostTarget") and 
+			(
+				(Unit("target"):IsDead() and not UnitIsFriend("player", "target") and (not A.IsInPvP or Unit("target"):Class() ~= "HUNTER")) or 
+				(Unit("mouseover"):IsDead() and not UnitIsFriend("player", "mouseover") and (not A.IsInPvP or Unit("mouseover"):Class() ~= "HUNTER"))
+			)
+		) 
+	then 																																																											-- exception in PvP Hunter 
 		return ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST
 	end 	
 	
@@ -132,16 +140,17 @@ local function GetHealthStone()
 end 
 
 local function IsShoot(unit)
-	return 	A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
+	return 	A.PlayerClass ~= "WARRIOR" and A.PlayerClass ~= "ROGUE" and 		-- their shot must be in profile 
+			A.GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
 			(
-				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 
+				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 	-- :IsReady also checks ammo amount by :IsUsable method
 				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and A.GetCurrentGCD() <= A.GetPing() and (not A.GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
 			)
 end 
 
 function A.CanUseManaRune(icon)
 	-- @return boolean or nil 
-	if select(2, UnitPowerType("player")) == "MANA" and not A.ShouldStop() then 
+	if Unit("player"):PowerType() == "MANA" and not A.ShouldStop() then 
 		local Runes = A.GetToggle(2, "Runes") 
 		if Runes > 0 and Unit("player"):Health() > 1100 then 
 			local Rune = (A.DarkRune:GetCount() > 0 and A.DarkRune:GetCooldown() == 0 and A.DarkRune) or (A.DemonicRune:GetCount() > 0 and A.DemonicRune:GetCooldown() == 0 and A.DemonicRune) or nil 
