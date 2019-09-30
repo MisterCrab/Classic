@@ -4388,7 +4388,16 @@ function Action.AuraGetCategory(Category)
 	elseif Category:match("BlackList") then 
 		Filter = Filter .. " HELPFUL"
 	end 
-	return TMW.db.profile.ActionDB[5][Mode] and TMW.db.profile.ActionDB[5][Mode][Category] and TMW.db.profile.ActionDB[5][Mode][Category][GameLocale], Filter
+	
+	if TMW.db.profile.ActionDB[5][Mode] and TMW.db.profile.ActionDB[5][Mode][Category] then 
+		return TMW.db.profile.ActionDB[5][Mode][Category][GameLocale], Filter
+	end 
+	
+	if Action.Data.Auras[Mode] then 
+		return Action.Data.Auras[Mode][Category], Filter
+	end 
+	
+	return nil, Filter
 end
 
 function Action.AuraIsBlackListed(unitID)
