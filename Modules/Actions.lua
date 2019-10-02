@@ -178,10 +178,10 @@ local spellbasecache  = setmetatable({}, { __index = function(t, v)
 	return 0
 end })
 
-function A:GetSpellBaseCooldown(self)
+function A:GetSpellBaseCooldown()
 	-- @return number (seconds)
 	-- Gives the (unmodified) cooldown
-	return unpack(spellbasecache[self.ID]) 
+	return spellbasecache[self.ID]
 end 
 
 local spellpowercache = setmetatable({}, { __index = function(t, v)
