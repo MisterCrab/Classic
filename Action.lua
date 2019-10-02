@@ -6100,8 +6100,8 @@ function Action.ToggleMainUI()
 							end 
 						end)
 						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
-						obj.FontStringTitle = StdUi:FontString(obj, config.L.ANY or config.L[CL])
-						StdUi:GlueAbove(obj.FontStringTitle, obj)
+						--obj.FontStringTitle = StdUi:FontString(obj, config.L.ANY or config.L[CL])
+						--StdUi:GlueAbove(obj.FontStringTitle, obj)
 						if config.isDisabled then 
 							obj:Disable()
 						end 
