@@ -794,6 +794,10 @@ end
 
 function A:GetCooldown()
 	-- @return number
+	if self.Type == "SwapEquip" then 
+		return (Player:IsSwapLocked() and huge) or 0
+	end 
+	
 	if self.Type == "Spell" then 
 		if self.isStance then 
 			local start, duration, _ = GetShapeshiftFormCooldown(self.isStance)
