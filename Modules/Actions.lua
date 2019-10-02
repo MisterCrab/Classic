@@ -624,8 +624,6 @@ local Racial = {
 			return true 
 		end 	
 		
-		-- TODO: Classic - Perception (PvP)
-		
 		-- Iterrupts 
 		if A.PlayerRace == "Tauren" then 
 			return  (

@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "30.09.2019"
+local DateTime 						= "02.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -2896,6 +2896,7 @@ local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
 	Action.Print(L["MACRO"] .. " " .. Name .. " " .. L["CREATED"] .. "!")
 	GameMenuButtonMacros:Click()
 end
+Action.CraftMacro = CraftMacro
 local function SetProperlyScale()
 	if GetCVar("useUiScale") ~= "1" then
 		Action.MainUI:SetScale(0.8)

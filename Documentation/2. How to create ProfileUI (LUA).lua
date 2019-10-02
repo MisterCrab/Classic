@@ -120,7 +120,6 @@ A.Data.ProfileUI = {
 				-- OR Forced
 				ANY = '@string',
 			},
-			M = '@any' or nil, 						-- non-nill will display tooltip if it's empty about "Right Click to create macro"
 			isDisabled = true or nil,
 		},
 		{
