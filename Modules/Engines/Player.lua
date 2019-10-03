@@ -517,10 +517,70 @@ function A.Player:GetSwingMax(inv)
 		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0)
 	elseif inv == 5 then 
 		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
-		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0)
+		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0, SwingTimers[inv3] and SwingTimers[inv3].duration or 0)
 	end 
 	
 	return SwingTimers[inv] and SwingTimers[inv].duration or 0
+end 
+
+function A.Player:GetSwingStart(inv)
+	-- @return number (start stamp taken from the last swing)
+	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
+	if inv == 1 then 
+		inv = ACTION_CONST_INVSLOT_MAINHAND
+	elseif inv == 2 then 
+		inv = ACTION_CONST_INVSLOT_OFFHAND
+	elseif inv == 3 then
+		inv = ACTION_CONST_INVSLOT_RANGED
+	elseif inv == 4 then 
+		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		return math_max(SwingTimers[inv1] and SwingTimers[inv1].startTime or 0, SwingTimers[inv2] and SwingTimers[inv2].startTime or 0)
+	elseif inv == 5 then 
+		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		return math_max(SwingTimers[inv1] and SwingTimers[inv1].startTime or 0, SwingTimers[inv2] and SwingTimers[inv2].startTime or 0, SwingTimers[inv3] and SwingTimers[inv3].startTime or 0)
+	end 
+	
+	return SwingTimers[inv] and SwingTimers[inv].startTime or 0
+end 
+
+function A.Player:ReplaceSwingDuration(inv, dur)
+	-- @usage A.Player:ReplaceSwingDuration(1, 2.6)
+	if inv == 1 then 
+		inv = ACTION_CONST_INVSLOT_MAINHAND
+	elseif inv == 2 then 
+		inv = ACTION_CONST_INVSLOT_OFFHAND
+	elseif inv == 3 then
+		inv = ACTION_CONST_INVSLOT_RANGED
+	elseif inv == 4 then 
+		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		
+		if SwingTimers[inv1] then 
+			SwingTimers[inv1].duration = dur
+		end 
+		
+		if SwingTimers[inv2] then 
+			SwingTimers[inv2].duration = dur
+		end
+		return
+	elseif inv == 5 then 
+		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		if SwingTimers[inv1] then 
+			SwingTimers[inv1].duration = dur
+		end 
+		
+		if SwingTimers[inv2] then 
+			SwingTimers[inv2].duration = dur
+		end
+		
+		if SwingTimers[inv3] then 
+			SwingTimers[inv3].duration = dur
+		end
+		return 
+	end 
+	
+	if SwingTimers[inv] then 
+		SwingTimers[inv].duration = dur
+	end 
 end 
 
 -- Swap 
