@@ -1,3 +1,7 @@
+[Basic v5]
+Added Warrior's and Rogue's AutoShoot support
+Added visual border on visible APL 
+
 [Basic v4]
 Fixed Interrupts for arena1-3 by Player 
 Added Mana Runes 
