@@ -1,3 +1,6 @@
+[Priest v8]
+Added visual border on visible APL 
+
 [Priest v7]
 Added Toggle for Renew to use only on Tank 
 
