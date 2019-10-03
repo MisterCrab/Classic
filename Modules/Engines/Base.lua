@@ -107,9 +107,12 @@ local function OnEvent(event, ...)
 			return
 		end            
 		
-		if not A.IsInDuel and (event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ENTERING_BATTLEGROUND" or event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_LOGIN") then                                
+		if not A.IsInDuel and (event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ENTERING_BATTLEGROUND" or event == "PLAYER_TARGET_CHANGED" or event == "PLAYER_LOGIN") then   
+			local oldMode = A.IsInPvP
 			A.IsInPvP = A:CheckInPvP()  
-			TMW:Fire("TMW_ACTION_MODE_CHANGED")
+			if oldMode ~= A.IsInPvP then 
+				TMW:Fire("TMW_ACTION_MODE_CHANGED")
+			end 
 		end  
 	end
 	
