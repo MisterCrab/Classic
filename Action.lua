@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "04.10.2019"
+local DateTime 						= "05.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -4069,7 +4069,7 @@ local Queue = {
 	OnEventToReset 				= function(self)
 		if #Action.Data.Q > 0 then 
 			for i = 1, #Action.Data.Q do 
-				if Action.Data.Q[i].Queued then 
+				if Action.Data.Q[i] and Action.Data.Q[i]:IsQueued() then 
 					getmetatable(Action.Data.Q[i]).__index:SetQueue(self.Temp.SilenceOFF)
 				end 
 			end 		
