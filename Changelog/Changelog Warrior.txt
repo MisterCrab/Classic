@@ -1,12 +1,26 @@
 [Warrior v2]
-HeroicStrike will exploit bug for damage increase if you playing with dual one hand weapons (StopCast checkbox must be enabled in General tab)
-HeroicStrike will be unqueued if you reached highest threat which stated on UI slider 
-Hamstring (Flurry spam) will check now attack types instead of slow types 
-MightyRagePotion will be used now if rage < 15 and target health percent <= 20 or rage < 30 otherwise 
+Rotation reworked with better CPU optimization
+HeroicStrike will exploit bug for damage increase if you playing with dual one hand weapons (StopCast checkbox must be enabled in General tab, required WeaponSwingTimer addon, itself checkbox for WeaponSwingTimer must be ON)
+HeroicStrike will be unqueued if you reached highest threat which stated on UI slider (StopCast checkbox must be enabled in General tab only for that)
 Burst timing adjusted by adding full gcd count in summary time 
-Execute will suspend rotation if time to die of target will less than next 3 times of full gcd (still bypassed by overpower)
-ShieldWall, LastStand fixed unlogic usage by catch kill strike at begin of combat
-Now will use dynamic swing timers 
+Execute will suspend rotation if time to die to 20% on target will less than next 3 times of full gcd (still bypassed by overpower)
+Whirlwind which is AoE 2+ units moved in priority below Execute 
+Fixed Execute 						- removed condition for safest threat rotation since Execute isn't caused high amount of threat
+Fixed MS BT 						- wrong rage calculation if you're not in berserker stance for WW
+Fixed MightyRagePotion				- will be used now if rage < 15 and target health percent <= 20 or rage < 25 otherwise 
+Fixed ShieldWall, LastStand			- unlogic usage by catch kill strike at begin of combat caused by invisible openers 
+Fixed Hamstring (Flurry spam) 		- will check now attack types instead of slow types 
+Fixed ShieldSlam PvP 				- purge on friendly target  
+Fixed ShieldSlam					- removed tank role check 
+Fixed Overpower						- conditions when he wasn't used sometimes in battle stance 
+Fixed SweepingStrikes				- more correctly rage calculation to use on upper sweepings
+Fixed SweepingStrikes				- missed rage limit 25 check (caused weird situations with stance swaps)
+Fixed HeroicStrike, Cleave 			- missed unqueue if execute up 
+Fixed PiercingHowl PvP 				- wrong unitID check in AoE 
+Fixed ChallengingShout				- wrong unitID check in AoE 
+Fixed Rend PvP 						- missed debuff check 
+Fixed @mouseover 					- wrong behavior (mostly seen with Taunt by @mouseover while you had @target at same time) 
+Fixed LUA error						- 759: attempt to index local 'icon' (a nil value)
 
 [Warrior v1]
 Release
