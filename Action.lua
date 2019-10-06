@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "05.10.2019"
+local DateTime 						= "06.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -3371,6 +3371,7 @@ end
 
 -- [1] LetMeCast 
 local LETMECAST = {
+	SitElapsed = 0,
 	MSG 				= {
 		[SPELL_FAILED_NOT_STANDING] 				= "STAND", 
 		[ERR_CANTATTACK_NOTSTANDING]				= "STAND",
@@ -3402,7 +3403,10 @@ local LETMECAST = {
 			DoEmote("STAND")
 		elseif self.MSG[msg] == "SIT" then 
 			-- Sometimes game bugging and not allow to use damage spells, the fix is simply to make /sit and /stand which is supposed to do 
-			DoEmote("SIT")
+			if TMW.time > self.SitElapsed then 
+				DoEmote("SIT")
+				self.SitElapsed = TMW.time + 5
+			end 
 		elseif self.MSG[msg] == "DISMOUNT" then 
 			if Action.PlayerClass == "DRUID" and Action.Player:GetStance() ~= 0 then 
 				CancelShapeshiftForm()
@@ -4671,10 +4675,20 @@ function Action.SetToggle(arg, custom)
 	local bool 
 	local n, toggle, text, silence = arg[1], arg[2], arg[3], arg[4]
 	if TMW.db.global.ActionDB[toggle] ~= nil then 
-		TMW.db.global.ActionDB[toggle] = custom ~= nil and custom or not TMW.db.global.ActionDB[toggle]		
+		if custom ~= nil then 
+			TMW.db.global.ActionDB[toggle] = custom		
+		else 
+			TMW.db.global.ActionDB[toggle] = not TMW.db.global.ActionDB[toggle]	
+		end 
+		
 		bool = TMW.db.global.ActionDB[toggle] 		
 	elseif Factory[n] and Factory[n][toggle] ~= nil then 
-		TMW.db.profile.ActionDB[n][toggle] = custom ~= nil and custom or not TMW.db.profile.ActionDB[n][toggle]		
+		if custom ~= nil then 
+			TMW.db.profile.ActionDB[n][toggle] = custom 	
+		else 
+			TMW.db.profile.ActionDB[n][toggle] = not TMW.db.profile.ActionDB[n][toggle]	
+		end 
+		
 		bool = TMW.db.profile.ActionDB[n][toggle] 
 	elseif TMW.db.profile.ActionDB[n] == nil or TMW.db.profile.ActionDB[n][toggle] == nil then
 		if not silence then 
@@ -4706,7 +4720,12 @@ function Action.SetToggle(arg, custom)
 			if anyIsON then 
 				for k, v in pairs(TMW.db.profile.ActionDB[n][toggle]) do
 					if TMW.db.profile.ActionDB[n][toggle][k] and k ~= "Cache" then 
-						TMW.db.profile.ActionDB[n][toggle][k] = custom ~= nil and custom or not v
+						if custom ~= nil then 
+							TMW.db.profile.ActionDB[n][toggle][k] = custom
+						else 
+							TMW.db.profile.ActionDB[n][toggle][k] = not v
+						end 
+						
 						if text then 
 							Action.Print(text .. " " .. k .. ": ", TMW.db.profile.ActionDB[n][toggle][k])
 						end 
@@ -4724,7 +4743,12 @@ function Action.SetToggle(arg, custom)
 			else 
 				for k, v in pairs(TMW.db.profile.ActionDB[n][toggle]) do
 					if k ~= "Cache" then 
-						TMW.db.profile.ActionDB[n][toggle][k] = custom ~= nil and custom or not v	
+						if custom ~= nil then 
+							TMW.db.profile.ActionDB[n][toggle][k] = custom
+						else 
+							TMW.db.profile.ActionDB[n][toggle][k] = not v 
+						end 
+						
 						if text then 
 							Action.Print(text .. " " .. k .. ": ", TMW.db.profile.ActionDB[n][toggle][k])
 						end		
@@ -4732,7 +4756,11 @@ function Action.SetToggle(arg, custom)
 				end 				
 			end 
 		else 
-			TMW.db.profile.ActionDB[n][toggle] = custom ~= nil and custom or not TMW.db.profile.ActionDB[n][toggle]						
+			if custom ~= nil then 
+				TMW.db.profile.ActionDB[n][toggle] = custom					
+			else 
+				TMW.db.profile.ActionDB[n][toggle] = not TMW.db.profile.ActionDB[n][toggle]	
+			end 			
 		end
 		bool = TMW.db.profile.ActionDB[n][toggle] 
 	end 
