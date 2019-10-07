@@ -1,3 +1,9 @@
+[Warrior v3]
+Fixed Overpower 					- wasn't perform swing misses properly
+Fixed Bloodthirst					- will bypass option for heroic strike trick rage save 
+Fixed Bloodthirst					- more early pre use, now count current gcd with latency additionaly
+Fixed HeroicStrike					- was taken value from Cleave power slider 
+
 [Warrior v2]
 Rotation reworked with better CPU optimization
 HeroicStrike will exploit bug for damage increase if you playing with dual one hand weapons (StopCast checkbox must be enabled in General tab, required WeaponSwingTimer addon, itself checkbox for WeaponSwingTimer must be ON)
