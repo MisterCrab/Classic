@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "06.10.2019"
+local DateTime 						= "07.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -135,7 +135,9 @@ local Localization = {
 				TANK = "Only Tanks",
 				DAMAGER = "Only Damage Dealers",
 				HEALER = "Only Healers",
-				HEALINGENGINETOOLTIP = "This option relative for unit selection on healers\nAll: Everyone member\nRaid: Everyone member without tanks\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER'",
+				TANKANDPARTY = "Tanks and Party",
+				PARTY = "Party",
+				HEALINGENGINETOOLTIP = "This option relative for unit selection on healers\nAll: Everyone member\nRaid: Everyone member without tanks\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "DBM Timers",
 				DBMTOOLTIP = "Tracking pull timers and some specific events such as trash incoming.\nThis feature is not availble for all the profiles!\n\nRightClick: Create macro",
 				FPS = "FPS Optimization",
@@ -432,8 +434,10 @@ local Localization = {
 				RAID = "Рейд",
 				TANK = "Только Танки",
 				DAMAGER = "Только Дамагеры",
-				HEALER = "Только Хилеры",					
-				HEALINGENGINETOOLTIP = "Эта опция отвечает за выбор участников группы или рейда если вы играете хилером\nВсе: Каждый участник\nРейд: Каждый участник исключая танков\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то\\nиспользуйте аргумент (АРГУМЕНТ): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER'",
+				HEALER = "Только Хилеры",			
+				TANKANDPARTY = "Танки и Группа",
+				PARTY = "Группа",	
+				HEALINGENGINETOOLTIP = "Эта опция отвечает за выбор участников группы или рейда если вы играете хилером\nВсе: Каждый участник\nРейд: Каждый участник исключая танков\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то используйте аргумент (АРГУМЕНТ): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "DBM Таймеры",
 				DBMTOOLTIP = "Отслеживает пулл таймер и некоторые спец. события такие как 'след.треш'.\nЭта опция доступна не для всех профилей!\n\nПравая кнопка мышки: Создать макрос",
 				FPS = "FPS Оптимизация",
@@ -731,7 +735,9 @@ local Localization = {
 				TANK = "Nur Tanks",
 				DAMAGER = "Nur Damagers",
 				HEALER = "Nur Healers",
-				HEALINGENGINETOOLTIP = "Diese Option bezieht sich auf die Einheitenauswahl bei Heilern.\nAlle: Alle Mitglieder\nGezahlt: Alle Mitglieder ohne Tanks\n\nRechtsklick: Makro erstellen\nWenn Sie das Argument für die Verwendung des Status zum Festlegen des Umschaltens in (ARG) festlegen möchten: 'ALL', 'RAID'. , 'TANK', 'HEILER', 'DAMAGER'",
+				TANKANDPARTY = "Tanks und Party",
+				PARTY = "Party",
+				HEALINGENGINETOOLTIP = "Diese Option bezieht sich auf die Einheitenauswahl bei Heilern.\nAlle: Alle Mitglieder\nGezahlt: Alle Mitglieder ohne Tanks\n\nRechtsklick: Makro erstellen\nWenn Sie das Argument für die Verwendung des Status zum Festlegen des Umschaltens in (ARG) festlegen möchten: 'ALL', 'RAID'. , 'TANK', 'HEILER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "DBM Timers",
 				DBMTOOLTIP = "Verfolgen von Pull-Timern und bestimmten Ereignissen, z. B. eingehendem Thrash.\nDiese Funktion ist nicht für alle Profile verfügbar!\n\nKlicken mit der rechten Maustaste: Makro erstellen",
 				FPS = "FPS Optimierungen",
@@ -1029,7 +1035,9 @@ local Localization = {
 				TANK = "Tanks seulement",
 				DAMAGER = "DPS seulement",
 				HEALER = "Heal seulement",
-				HEALINGENGINETOOLTIP = "Cette option concerne les cible pour les heals\nTout: Tout les membres\nRaid: Tous les membres sauf les tanks\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule le ciblage des cible utiliser l'argumment (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER'",
+				TANKANDPARTY = "Tanks et Groupe",
+				PARTY = "Groupe",
+				HEALINGENGINETOOLTIP = "Cette option concerne les cible pour les heals\nTout: Tout les membres\nRaid: Tous les membres sauf les tanks\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule le ciblage des cible utiliser l'argumment (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "Timeur DBM",
 				DBMTOOLTIP = "Suit les timeur de pull and certain événement spécifique comme l'arrivé de trash.\nCette fonction n'est pas disponible pour tout les profiles!\n\nClique droit : Créer la macro",
 				FPS = "FPS Optimisation",
@@ -1327,7 +1335,9 @@ local Localization = {
 				TANK = "Solo Tank",
 				DAMAGER = "Solo Danno",
 				HEALER = "Solo Curatori",
-				HEALINGENGINETOOLTIP = "Opzione per la selezione bersagli per i curatori\nTutti: Tutti i membri\nRaid: Tutti i membri ma non i tank\n\nTastodestro: Crea macro\nSe desideri utilizzare specifici attributi per il bersaglio usa in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER'",
+				TANKANDPARTY = "Tanks e Gruppo",
+				PARTY = "Gruppo",
+				HEALINGENGINETOOLTIP = "Opzione per la selezione bersagli per i curatori\nTutti: Tutti i membri\nRaid: Tutti i membri ma non i tank\n\nTastodestro: Crea macro\nSe desideri utilizzare specifici attributi per il bersaglio usa in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "Timers DBM",
 				DBMTOOLTIP = "Tiene traccia dei timer di avvio combattimento e alcuni eventi specific tipo patrol in arrivo.\nQuesta funzionalitá é disponibile per tutti i profili!\n\nTastodestro: Crea macro",
 				FPS = "Ottimizzazione FPS",
@@ -1625,7 +1635,9 @@ local Localization = {
 				TANK = "Solo Tanques",
 				DAMAGER = "Solo Damage Dealers",
 				HEALER = "Solo Healers",
-				HEALINGENGINETOOLTIP = "Esta opción relativa a selección de unidad en curación\nTodo: todos los miembros\nRaid: Todos los miembros sin tanques\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER'",
+				TANKANDPARTY = "Tanks y Grupo",
+				PARTY = "Grupo",
+				HEALINGENGINETOOLTIP = "Esta opción relativa a selección de unidad en curación\nTodo: todos los miembros\nRaid: Todos los miembros sin tanques\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
 				DBM = "Tiempos DBM",
 				DBMTOOLTIP = "Rastrea tiempos de pull y algunos eventos específicos como la basura que pueda venir.\nEsta característica no está disponible para todos los perfiles!\n\nClickDerecho: Crear macro",
 				FPS = "Optimización de FPS",
@@ -3211,10 +3223,14 @@ function Action.ToggleHE(fixed)
 		Current = "DAMAGER"
 	elseif Current == "DAMAGER" then 
 		Current = "HEALER"
+	elseif Current == "HEALER" then 
+		Current = "TANKANDPARTY"
+	elseif Current == "TANKANDPARTY" then 
+		Current = "PARTY"
 	else 
 		Current = "ALL"
 	end 		
-	Action.SetToggle({1, "HE_Toggle", "HealingEngine" .. ": "}, fixed or Current)	
+	Action.SetToggle({1, "HE_Toggle", "HealingEngine: "}, fixed or Current)	
 end 
 
 -- [1] ReTarget
@@ -5570,6 +5586,8 @@ function Action.ToggleMainUI()
 				{ text = L["TAB"][tab.name]["TANK"], value = "TANK" },
 				{ text = L["TAB"][tab.name]["DAMAGER"], value = "DAMAGER" },
 				{ text = L["TAB"][tab.name]["HEALER"], value = "HEALER" },
+				{ text = L["TAB"][tab.name]["TANKANDPARTY"], value = "TANKANDPARTY" },
+				{ text = L["TAB"][tab.name]["PARTY"], value = "PARTY" },				
 			})		          
 			HE_ToggleFrame:SetValue(TMW.db.profile.ActionDB[tab.name].HE_Toggle)
 			HE_ToggleFrame.OnValueChanged = function(self, val)                

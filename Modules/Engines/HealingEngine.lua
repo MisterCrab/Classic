@@ -37,6 +37,9 @@ A.HealingEngine.Members = {
 	HEALER = {},
 	RAID = {},
 	MOSTLYINCDMG = {},
+	-- Classic relative only 
+	TANKANDPARTY = {},
+	PARTY = {},
 }
 
 A.HealingEngine.Frequency = {
@@ -185,7 +188,11 @@ local function HealingEngine(MODE, useActualHP)
                 memberhp = memberhp - 2
 				
 				if mode == "TANK" then 
-					table.insert(A.HealingEngine.Members.TANK, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })      
+					table.insert(A.HealingEngine.Members.TANK, 				{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+				elseif mode == "TANKANDPARTY" then 					
+					table.insert(A.HealingEngine.Members.TANKANDPARTY, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG }) 
+				elseif mode == "PARTY" and A.Unit(member):InGroup() then 					
+					table.insert(A.HealingEngine.Members.PARTY, 			{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG }) 		
 				end 
             elseif A.Unit(member):IsHealer() then                
                 if UnitIsUnit("player", member) and memberhp < 95 then 
@@ -199,21 +206,29 @@ local function HealingEngine(MODE, useActualHP)
                 end
 				
 				if mode == "HEALER" then 
-					table.insert(A.HealingEngine.Members.HEALER, 	{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+					table.insert(A.HealingEngine.Members.HEALER, 			{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
 				elseif mode == "RAID" then 	
-					table.insert(A.HealingEngine.Members.RAID, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+					table.insert(A.HealingEngine.Members.RAID, 				{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+				elseif mode == "TANKANDPARTY" and A.Unit(member):InGroup() then 					
+					table.insert(A.HealingEngine.Members.TANKANDPARTY, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  	
+				elseif mode == "PARTY" and A.Unit(member):InGroup() then 					
+					table.insert(A.HealingEngine.Members.PARTY, 			{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG }) 	
 				end 				 
 			else 
 				memberhp = memberhp - 1
 				
 				if mode == "DAMAGER" then 
-					table.insert(A.HealingEngine.Members.DAMAGER, 	{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+					table.insert(A.HealingEngine.Members.DAMAGER, 			{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
 				elseif mode == "RAID" then  
-					table.insert(A.HealingEngine.Members.RAID, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+					table.insert(A.HealingEngine.Members.RAID, 				{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG }) 
+				elseif mode == "TANKANDPARTY" and A.Unit(member):InGroup() then 					
+					table.insert(A.HealingEngine.Members.TANKANDPARTY, 		{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  	
+				elseif mode == "PARTY" and A.Unit(member):InGroup() then 					
+					table.insert(A.HealingEngine.Members.PARTY, 			{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG }) 		
 				end			 
             end
 
-            table.insert(A.HealingEngine.Members.ALL, 				{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
+            table.insert(A.HealingEngine.Members.ALL, 						{ Unit = member, GUID = memberGUID, HP = memberhp, AHP = memberahp, isPlayer = true, incDMG = Actual_DMG })  
         end        
         
         -- Pets 
