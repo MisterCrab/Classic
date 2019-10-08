@@ -20,20 +20,17 @@ local DRData 									= LibStub("DRList-1.1")
 
 local huge 										= math.huge 
 local abs 										= math.abs 
+local math_max									= math.max 
 
 local _G, type, pairs, table, wipe, bitband  	= 
 	  _G, type, pairs, table, wipe, bit.band
 
-local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup	= 
-	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup
+local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff	= 
+	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff
 	  
 	  
 local InCombatLockdown, CombatLogGetCurrentEventInfo = 
-	  InCombatLockdown, CombatLogGetCurrentEventInfo
-	  
-local cLossOfControl 							= _G.C_LossOfControl
-local GetEventInfo 								= cLossOfControl.GetEventInfo
-local GetNumEvents 								= cLossOfControl.GetNumEvents	  
+	  InCombatLockdown, CombatLogGetCurrentEventInfo 
 
 local GetSpellInfo								= _G.GetSpellInfo
 
@@ -645,120 +642,576 @@ local UnitTracker 								= {
 -------------------------------------------------------------------------------
 -- Locals: LossOfControl
 -------------------------------------------------------------------------------
-local LossOfControl								= {
-	LastEvent 									= 0,
-	["SCHOOL_INTERRUPT"]						= {
-		["PHYSICAL"] = {
-			bit = 0x1,
-			result = 0,
-		},
-		["HOLY"] = {
-			bit = 0x2,
-			result = 0,
-		},
-		["FIRE"] = {
-			bit = 0x4,
-			result = 0,
-		},
-		["NATURE"] = {
-			bit = 0x8,
-			result = 0,
-		},
-		["FROST"] = {
-			bit = 0x10,
-			result = 0,		
-		},
-		["SHADOW"] = {
-			bit = 0x20,
-			result = 0,			
-		},
-		["ARCANE"] = {
-			bit = 0x40,
-			result = 0,			
-		},
-	},	 
-	["BANISH"] 									= 0,
-	["CHARM"] 									= 0,
-	["CYCLONE"]									= 0,
-	["DAZE"]									= 0,
-	["DISARM"]									= 0,
-	["DISORIENT"]								= 0,
-	--["DISTRACT"]								= 0, -- no need 
-	["FREEZE"]									= 0,
-	["HORROR"]									= 0,
-	["INCAPACITATE"]							= 0,
-	["INTERRUPT"]								= 0,
-	--["INVULNERABILITY"]						= 0,
-	--["MAGICAL_IMMUNITY"]						= 0,
-	["PACIFY"]									= 0,
-	["PACIFYSILENCE"]							= 0, -- "Disabled"
-	["POLYMORPH"]								= 0,
-	["POSSESS"]									= 0,
-	["SAP"]										= 0,
-	["SHACKLE_UNDEAD"]							= 0,
-	["SLEEP"]									= 0,
-	["SNARE"]									= 0, -- "Snared" slow usually example Concussive Shot
-	["TURN_UNDEAD"]								= 0, -- "Feared Undead" currently usable in Classic PvP (info: Undead race) 
-	--["LOSECONTROL_TYPE_SCHOOLLOCK"] 			= 0, -- HAS SPECIAL HANDLING (per spell school) as "SCHOOL_INTERRUPT"
-	["ROOT"]									= 0, -- "Rooted"
-	["CONFUSE"]									= 0, -- "Confused" 
-	["STUN"]									= 0, -- "Stunned"
-	--["STUN_MECHANIC"]							= 0, -- I don't know what is it 
-	["SILENCE"]									= 0, -- "Silenced"
-	["FEAR"]									= 0, -- "Feared"	
-	--["FEAR_MECHANIC"]							= 0, -- I don't know what is it 
-	--["TAUNT"]									= 0, -- Not sure if it's required 
+local LossOfControl								= {	
+	Data 										= {
+		["SCHOOL_INTERRUPT"]					= {
+			["PHYSICAL"] 						= 0,
+			["HOLY"] 							= 0,
+			["FIRE"] 							= 0,
+			["NATURE"] 							= 0,
+			["FROST"] 							= 0,
+			["SHADOW"] 							= 0,
+			["ARCANE"] 							= 0,
+		},	 
+		["BANISH"] 								= { Applied = {}, Result = 0 },
+		["CHARM"] 								= { Applied = {}, Result = 0 },
+		--["CYCLONE"]								= { Applied = {}, Result = 0 },
+		--["DAZE"]								= { Applied = {}, Result = 0 },
+		["DISARM"]								= { Applied = {}, Result = 0 },
+		["DISORIENT"]							= { Applied = {}, Result = 0 },
+		["FREEZE"]								= { Applied = {}, Result = 0 },
+		["HORROR"]								= { Applied = {}, Result = 0 },
+		["INCAPACITATE"]						= { Applied = {}, Result = 0 },
+		--["INTERRUPT"]							= { Applied = {}, Result = 0 },
+		--["PACIFY"]								= { Applied = {}, Result = 0 },
+		--["PACIFYSILENCE"]						= { Applied = {}, Result = 0 }, 
+		["POLYMORPH"]							= { Applied = {}, Result = 0 },
+		--["POSSESS"]								= { Applied = {}, Result = 0 },
+		["SAP"]									= { Applied = {}, Result = 0 },
+		["SHACKLE_UNDEAD"]						= { Applied = {}, Result = 0 },
+		["SLEEP"]								= { Applied = {}, Result = 0 },
+		["SNARE"]								= { Applied = {}, Result = 0 }, 
+		["TURN_UNDEAD"]							= { Applied = {}, Result = 0 }, 
+		["ROOT"]								= { Applied = {}, Result = 0 }, 
+		--["CONFUSE"]								= { Applied = {}, Result = 0 }, 
+		["STUN"]								= { Applied = {}, Result = 0 },
+		["SILENCE"]								= { Applied = {}, Result = 0 },
+		["FEAR"]								= { Applied = {}, Result = 0 }, 
+	},
+	Aura										= {
+		-- [[ ROOT ]] 
+		-- Entangling Roots
+		[GetSpellInfo(339)]						= "ROOT",
+		-- Feral Charge Effect
+		[GetSpellInfo(19675)]					= "ROOT",
+		-- Improved Wing Clip
+		[GetSpellInfo(19229)]					= "ROOT",
+		-- Entrapment
+		[GetSpellInfo(19185)]					= "ROOT",
+		-- Boar Charge
+		[GetSpellInfo(25999)]					= "ROOT",
+		-- Frost Nova
+		[GetSpellInfo(122)]						= "ROOT",
+		-- Frostbite
+		[GetSpellInfo(12494)]					= "ROOT",
+		-- Improved Hamstring
+		[GetSpellInfo(23694)]					= "ROOT",
+		-- Trap
+		[GetSpellInfo(8312)]					= "ROOT",
+		-- Mobility Malfunction
+		[GetSpellInfo(8346)]					= "ROOT",
+		-- Net-o-Matic
+		[GetSpellInfo(13099)]					= "ROOT",
+		-- Fire Blossom
+		[GetSpellInfo(19636)]					= "ROOT",
+		-- Paralyze
+		[GetSpellInfo(23414)]					= "ROOT",
+		-- Chains of Ice
+		[GetSpellInfo(113)]						= "ROOT",
+		-- Grasping Vines
+		[GetSpellInfo(8142)]					= "ROOT",
+		-- Soul Drain
+		[GetSpellInfo(7295)]					= "ROOT",
+		-- Net
+		[GetSpellInfo(6533)]					= "ROOT",
+		-- Electrified Net
+		[GetSpellInfo(11820)]					= "ROOT",
+		-- Ice Blast
+		[GetSpellInfo(11264)]					= "ROOT",
+		-- Earthgrab
+		[GetSpellInfo(8377)]					= "ROOT",
+		-- Web Spray
+		[GetSpellInfo(12252)]					= "ROOT",
+		-- Web
+		[GetSpellInfo(745)]						= "ROOT",
+		-- Web Explosion
+		[GetSpellInfo(15474)]					= "ROOT",
+		-- Hooked Net
+		[GetSpellInfo(14030)]					= "ROOT",
+		-- Encasing Webs
+		[GetSpellInfo(4962)]					= "ROOT",
+		
+		-- [[ SNARE ]]
+		-- Wing Clip
+		[GetSpellInfo(2974)]					= "SNARE",
+		-- Concussive Shot
+		[GetSpellInfo(5116)]					= "SNARE",
+		-- Dazed
+		[GetSpellInfo(15571)]					= "SNARE", -- FIX ME: Can be DAZE 
+		-- Frost Trap
+		[GetSpellInfo(13809)]					= "SNARE",
+		-- Frost Trap Aura
+		[GetSpellInfo(13810)]					= "SNARE",
+		-- Blizzard
+		[GetSpellInfo(10)]						= "SNARE",
+		-- Cone of Cold
+		[GetSpellInfo(120)]						= "SNARE",
+		-- Frostbolt
+		[GetSpellInfo(116)]						= "SNARE",
+		-- Blast Wave
+		[GetSpellInfo(11113)]					= "SNARE",
+		-- Mind Flay
+		[GetSpellInfo(15407)]					= "SNARE",
+		-- Crippling Poison
+		[GetSpellInfo(3409)]					= "SNARE",
+		-- Frost Shock
+		[GetSpellInfo(8056)]					= "SNARE",
+		-- Earthbind
+		[GetSpellInfo(3600)]					= "SNARE",
+		-- Curse of Exhaustion
+		[GetSpellInfo(18223)]					= "SNARE",
+		-- Aftermath
+		[GetSpellInfo(18118)]					= "SNARE",
+		-- Cripple
+		[GetSpellInfo(89)]						= "SNARE",
+		-- Hamstring
+		[GetSpellInfo(1715)]					= "SNARE",
+		-- Long Daze
+		[GetSpellInfo(12705)]					= "SNARE",
+		-- Piercing Howl
+		[GetSpellInfo(12323)]					= "SNARE",
+		-- Curse of Shahram
+		[GetSpellInfo(16597)]					= "SNARE",
+		-- Magma Shackles
+		[GetSpellInfo(19496)]					= "SNARE",		
+		-- Suppression Aura
+		[GetSpellInfo(22247)]					= "SNARE",	
+		-- Thunderclap
+		[GetSpellInfo(15548)]					= "SNARE",	
+		-- Slow
+		[GetSpellInfo(13747)]					= "SNARE",
+		-- Brood Affliction: Blue
+		[GetSpellInfo(23153)]					= "SNARE",
+		-- Molten Metal
+		[GetSpellInfo(5213)]					= "SNARE",
+		-- Melt Ore
+		[GetSpellInfo(5159)]					= "SNARE",		
+		-- Frostbolt Volley
+		[GetSpellInfo(8398)]					= "SNARE",	
+		-- Hail Storm
+		[GetSpellInfo(10734)]					= "SNARE",	
+		-- Twisted Tranquility
+		[GetSpellInfo(21793)]					= "SNARE",	
+		-- Frost Shot
+		[GetSpellInfo(12551)]					= "SNARE",	
+		-- Icicle
+		[GetSpellInfo(11131)]					= "SNARE",	
+		-- Chilled
+		[GetSpellInfo(18101)]					= "SNARE",	
+		
+		-- [[ STUN ]]
+		-- Pounce
+		[GetSpellInfo(9005)]					= "STUN",
+		-- Bash
+		[GetSpellInfo(5211)]					= "STUN",
+		-- Starfire Stun
+		[GetSpellInfo(16922)]					= "STUN",
+		-- Improved Concussive Shot
+		[GetSpellInfo(19410)]					= "STUN",
+		-- Intimidation
+		[GetSpellInfo(24394)]					= "STUN",
+		-- Impact
+		[GetSpellInfo(12355)]					= "STUN",
+		-- Hammer of Justice
+		[GetSpellInfo(853)]						= "STUN",
+		-- Stun
+		[GetSpellInfo(20170)]					= "STUN",
+		-- Blackout
+		[GetSpellInfo(15269)]					= "STUN",
+		-- Kidney Shot
+		[GetSpellInfo(408)]						= "STUN",
+		-- Cheap Shot
+		[GetSpellInfo(1833)]					= "STUN",
+		-- Inferno Effect
+		[GetSpellInfo(22703)]					= "STUN",
+		-- Pyroclasm
+		[GetSpellInfo(18093)]					= "STUN",
+		-- War Stomp
+		[GetSpellInfo(19482)]					= "STUN",
+		-- Charge Stun
+		[GetSpellInfo(7922)]					= "STUN",
+		-- Intercept Stun
+		[GetSpellInfo(20253)]					= "STUN",
+		-- Mace Stun Effect
+		[GetSpellInfo(5530)]					= "STUN",
+		-- Revenge Stun
+		[GetSpellInfo(12798)]					= "STUN",
+		-- Concussion Blow 
+		[GetSpellInfo(12809)]					= "STUN",
+		-- Stun
+		[GetSpellInfo(56)]						= "STUN",
+		-- Tidal Charm 
+		[GetSpellInfo(835)]						= "STUN",
+		-- Rough Copper Bomb
+		[GetSpellInfo(4064)]					= "STUN",
+		-- Large Copper Bomb
+		[GetSpellInfo(4065)]					= "STUN",
+		-- Small Bronze Bomb
+		[GetSpellInfo(4066)]					= "STUN",
+		-- Big Bronze Bomb
+		[GetSpellInfo(4067)]					= "STUN",
+		-- Iron Grenade
+		[GetSpellInfo(4068)]					= "STUN",
+		-- Big Iron Bomb
+		[GetSpellInfo(4069)]					= "STUN",
+		-- The Big One
+		[GetSpellInfo(12562)]					= "STUN",
+		-- Mithril Frag Bomb
+		[GetSpellInfo(12421)]					= "STUN",
+		-- Dark Iron Bomb
+		[GetSpellInfo(19784)]					= "STUN",
+		-- Thorium Grenade
+		[GetSpellInfo(19769)]					= "STUN",
+		-- M73 Frag Grenade
+		[GetSpellInfo(13808)]					= "STUN",
+		-- Knockdown
+		[GetSpellInfo(15753)]					= "STUN",
+		-- Enveloping Winds 
+		[GetSpellInfo(15535)]					= "STUN",
+		-- Highlord's Justice
+		[GetSpellInfo(20683)]					= "STUN",
+		-- Crusader's Hammer
+		[GetSpellInfo(17286)]					= "STUN",
+		-- Might of Shahram
+		[GetSpellInfo(16600)]					= "STUN",
+		-- Smite Demon
+		[GetSpellInfo(13907)]					= "STUN",
+		-- Ground Stomp
+		[GetSpellInfo(19364)]					= "STUN",
+		-- Pyroclast Barrage
+		[GetSpellInfo(19641)]					= "STUN",
+		-- Fist of Ragnaros
+		[GetSpellInfo(20277)]					= "STUN",
+		-- Brood Power: Green
+		[GetSpellInfo(22289)]					= "STUN",
+		-- Time Stop 
+		[GetSpellInfo(23171)]					= "STUN",
+		-- Tail Lash
+		[GetSpellInfo(23364)]					= "STUN",
+		-- Aura of Nature
+		[GetSpellInfo(25043)]					= "STUN",
+		-- Shield Slam
+		[GetSpellInfo(8242)]					= "STUN",
+		-- Rhahk'Zor Slam
+		[GetSpellInfo(6304)]					= "STUN",
+		-- Smite Slam
+		[GetSpellInfo(6435)]					= "STUN",
+		-- Smite Stomp
+		[GetSpellInfo(6435)]					= "STUN",
+		-- Axe Toss
+		[GetSpellInfo(6466)]					= "STUN",
+		-- Thundercrack
+		[GetSpellInfo(8150)]					= "STUN",
+		-- Fel Stomp
+		[GetSpellInfo(7139)]					= "STUN",
+		-- Ravage
+		[GetSpellInfo(8391)]					= "STUN",
+		-- Smoke Bomb
+		[GetSpellInfo(7964)]					= "STUN",
+		-- Backhand
+		[GetSpellInfo(6253)]					= "STUN",
+		-- Rampage
+		[GetSpellInfo(8285)]					= "STUN",
+		-- Enveloping Winds
+		[GetSpellInfo(6728)]					= "STUN",
+		-- Ground Tremor
+		[GetSpellInfo(6524)]					= "STUN",
+		-- Summon Shardlings
+		[GetSpellInfo(21808)]					= "STUN",
+		-- Petrify
+		[GetSpellInfo(11020)]					= "STUN",
+		-- Freeze Solid
+		[GetSpellInfo(11836)]					= "STUN",
+		-- Lash
+		[GetSpellInfo(25852)]					= "STUN",
+		-- Paralyzing Poison
+		[GetSpellInfo(3609)]					= "STUN",
+		-- Hand of Thaurissan
+		[GetSpellInfo(17492)]					= "STUN",
+		-- Drunken Stupor
+		[GetSpellInfo(14870)]					= "STUN",
+		-- Chest Pains
+		[GetSpellInfo(6945)]					= "STUN",
+		-- Skull Crack
+		[GetSpellInfo(3551)]					= "STUN",
+		-- Snap Kick
+		[GetSpellInfo(15618)]					= "STUN",
+		-- Throw Axe
+		[GetSpellInfo(16075)]					= "STUN",
+		-- Crystallize
+		[GetSpellInfo(16104)]					= "STUN",
+		-- Stun Bomb
+		[GetSpellInfo(16497)]					= "STUN",
+		-- Ground Smash
+		[GetSpellInfo(12734)]					= "STUN",
+		-- Burning Winds
+		[GetSpellInfo(17293)]					= "STUN",
+		-- Ice Tomb
+		[GetSpellInfo(16869)]					= "STUN",
+		-- Sacrifice
+		[GetSpellInfo(22651)]					= "STUN",
+		
+		-- [[ DISARM ]]
+		-- Riposte
+		[GetSpellInfo(14251)]					= "DISARM",
+		-- Disarm
+		[GetSpellInfo(676)]						= "DISARM",		
+		-- Dropped Weapon
+		[GetSpellInfo(23365)]					= "DISARM",	
+		
+		-- [[ SLEEP ]]
+		-- Hibernate
+		[GetSpellInfo(2637)]					= "SLEEP",
+		-- Wyvern Sting
+		[GetSpellInfo(19386)]					= "SLEEP",
+		-- Sleep
+		[GetSpellInfo(9159)]					= "SLEEP",
+		-- Dreamless Sleep Potion
+		[GetSpellInfo(15822)]					= "SLEEP",
+		-- Calm Dragonkin
+		[GetSpellInfo(19872)]					= "SLEEP",
+		-- Druid's Slumber
+		[GetSpellInfo(8040)]					= "SLEEP",
+		-- Naralex's Nightmare
+		[GetSpellInfo(7967)]					= "SLEEP",
+		-- Deep Sleep
+		[GetSpellInfo(9256)]					= "SLEEP",
+		-- Enchanting Lullaby
+		[GetSpellInfo(16798)]					= "SLEEP",
+		-- Crystalline Slumber
+		[GetSpellInfo(3636)]					= {"STUN", "SLEEP"},
+		
+		-- [[ INCAPACITATE ]] 
+		-- Mangle
+		[GetSpellInfo(22570)]					= "INCAPACITATE",
+		-- Repentance
+		[GetSpellInfo(20066)]					= "INCAPACITATE",
+		-- Gouge
+		[GetSpellInfo(1776)]					= "INCAPACITATE",
+		-- Reckless Charge
+		[GetSpellInfo(13327)]					= "INCAPACITATE",
+		
+		-- [[ FREEZE ]] 
+		-- Freezing Trap Effect
+		[GetSpellInfo(3355)]					= "FREEZE",
+		-- Freeze
+		[GetSpellInfo(5276)]					= {"STUN", "FREEZE"},
+		
+		-- [[ DISORIENT ]]
+		-- Scatter Shot
+		[GetSpellInfo(19503)]					= "DISORIENT",
+		-- Blind
+		[GetSpellInfo(2094)]					= "DISORIENT",
+		-- Glimpse of Madness
+		[GetSpellInfo(26108)]					= "DISORIENT",
+		-- Ancient Despair
+		[GetSpellInfo(19369)]					= "DISORIENT",
+		
+		-- [[ SILENCE ]]
+		-- Counterspell - Silenced
+		[GetSpellInfo(18469)]					= "SILENCE",
+		-- Silence 
+		[GetSpellInfo(15487)]					= "SILENCE",
+		-- Kick - Silenced
+		[GetSpellInfo(18425)]					= "SILENCE",
+		-- Spell Lock (Felhunter)
+		[GetSpellInfo(24259)]					= "SILENCE",
+		-- Arcane Bomb
+		[GetSpellInfo(19821)]					= "SILENCE",
+		-- Silence (Silent Fang sword)
+		[GetSpellInfo(18278)]					= "SILENCE",
+		-- Soul Burn
+		[GetSpellInfo(19393)]					= "SILENCE",
+		-- Screams of the Past
+		[GetSpellInfo(7074)]					= "SILENCE",
+		-- Sonic Burst
+		[GetSpellInfo(8281)]					= "SILENCE",
+		-- Putrid Stench
+		[GetSpellInfo(12946)]					= "SILENCE",	
+		-- Banshee Shriek
+		[GetSpellInfo(16838)]					= "SILENCE",		
+		
+		-- [[ HORROR ]] (on mechanic Fleeing)
+		-- Psychic Scream
+		[GetSpellInfo(8122)]					= {"FEAR", "HORROR"},
+		-- Howl of Terror
+		[GetSpellInfo(5484)]					= {"FEAR", "HORROR"},
+		-- Death Coil
+		[GetSpellInfo(6789)]					= {"FEAR", "HORROR"},
+		-- Intimidating Shout
+		[GetSpellInfo(5246)]					= {"FEAR", "HORROR"},
+		-- Flash Bomb
+		[GetSpellInfo(5134)]					= {"FEAR", "HORROR"},
+		-- Corrupted Fear
+		[GetSpellInfo(21330)]					= {"FEAR", "HORROR"},
+		-- Bellowing Roar
+		[GetSpellInfo(18431)]					= {"FEAR", "HORROR"},	
+		-- Terrify
+		[GetSpellInfo(7399)]					= {"FEAR", "HORROR"},		
+		-- Repulsive Gaze
+		[GetSpellInfo(21869)]					= {"FEAR", "HORROR"},	
+		
+		-- [[ FEAR ]]
+		-- Fear
+		[GetSpellInfo(5782)]					= "FEAR",
+		
+		-- [[ TURN_UNDEAD ]]
+		-- Turn Undead
+		[GetSpellInfo(2878)]					= {"FEAR", "TURN_UNDEAD"},
+		
+		-- [[ POLYMORPH ]]
+		-- Polymorph
+		[GetSpellInfo(118)]						= "POLYMORPH",
+		-- Polymorph: Sheep
+		[GetSpellInfo(851)]						= "POLYMORPH",
+		-- Polymorph: Cow
+		[GetSpellInfo(28270)]					= "POLYMORPH",
+		-- Polymorph: Turtle
+		[GetSpellInfo(28271)]					= "POLYMORPH",
+		-- Polymorph: Pig
+		[GetSpellInfo(28272)]					= "POLYMORPH",
+		-- Polymorph: Chicken
+		[GetSpellInfo(228)]						= "POLYMORPH",
+		-- Polymorph Backfire
+		[GetSpellInfo(28406)]					= "POLYMORPH",
+		-- Greater Polymorph
+		[GetSpellInfo(22274)]					= "POLYMORPH",
+		-- Hex
+		[GetSpellInfo(17172)]					= "POLYMORPH",
+		-- Hex of Jammal'an
+		[GetSpellInfo(12480)]					= "POLYMORPH",
+		
+		-- [[ CHARM ]]
+		-- Mind Control
+		[GetSpellInfo(605)]						= "CHARM",
+		-- Seduction
+		[GetSpellInfo(6358)]					= "CHARM",
+		-- Gnomish Mind Control Cap
+		[GetSpellInfo(13181)]					= "CHARM",
+		-- Dominion of Soul
+		[GetSpellInfo(16053)]					= "CHARM",
+		-- Dominate Mind
+		[GetSpellInfo(15859)]					= "CHARM",
+		-- Shadow Command
+		[GetSpellInfo(22667)]					= "CHARM",
+		-- Creature of Nightmare
+		[GetSpellInfo(25806)]					= "CHARM",
+		-- Cause Insanity
+		[GetSpellInfo(12888)]					= "CHARM",
+		-- Domination
+		[GetSpellInfo(17405)]					= "CHARM",
+		-- Possess
+		[GetSpellInfo(17244)]					= "CHARM",
+		-- Arugal's Curse
+		[GetSpellInfo(7621)]					= {"POLYMORPH", "CHARM"},
+		
+		-- [[ SHACKLE_UNDEAD ]]
+		-- Shackle Undead 
+		[GetSpellInfo(9484)]					= "SHACKLE_UNDEAD",
+		
+		-- [[ SAP ]]
+		-- Sap
+		[GetSpellInfo(6770)]					= {"INCAPACITATE", "SAP"},
+		
+		-- [[ BANISH ]] 
+		-- Banish
+		[GetSpellInfo(710)]						= "BANISH",
+		
+		
+		-- TEST 
+		[GetSpellInfo(11918)]					= {"STUN", "ROOT"},
+	},
+	Interrupt									= {
+		-- Shield Bash 
+		[GetSpellInfo(72)]						= 6,
+		-- Pummel
+		[GetSpellInfo(6552)]					= 4,
+		-- Kick
+		[GetSpellInfo(1766)]					= 5,
+		-- Counterspell
+		[GetSpellInfo(2139)]					= 10,
+		-- Earth Shock 
+		[GetSpellInfo(8042)]					= 2,
+		-- Spell Lock
+		[GetSpellInfo(19647)]					= 8,
+		-- Feral Charge
+		[GetSpellInfo(19675)]					= 4,
+	},
+	BitBandSchool								= {
+		[0x1]									= "PHYSICAL",
+		[0x2]									= "HOLY",
+		[0x4]									= "FIRE",
+		[0x8]									= "NATURE",
+		[0x10]									= "FROST",
+		[0x20]									= "SHADOW",
+		[0x40]									= "ARCANE",
+	},
+	Enumerate									= function(self, action, aura, ...)
+		local Expiration = 0
+		if action == "Add" then 
+			local _, Name, expirationTime
+			for j = 1, huge do 
+				Name, _, _, _, _, expirationTime = UnitDebuff("player", j)
+				if not Name then 
+					Expiration = 0
+					break 
+				elseif Name == aura then 
+					Expiration = expirationTime == 0 and huge or expirationTime
+					break
+				end 
+			end 
+		end 
+		
+		local isTable = type(self.Aura[aura]) == "table"
+		for i = 1, isTable and #self.Aura[aura] or 1 do
+			local locType = isTable and self.Aura[aura][i] or self.Aura[aura]
+			if Expiration > self.Data[locType].Result then 
+				-- Applied more longer duration than previous
+				self.Data[locType].Result = Expiration
+				self.Data[locType].Applied[aura] = Expiration	
+			elseif Expiration == 0 then 
+				-- Removed 
+				self.Data[locType].Applied[aura] = nil
+				
+				-- Recheck if persistent another loss of control and update expirationTime, otherwise 0 if nothing
+				local maxExpiration = 0
+				if next(self.Data[locType].Applied) then 					
+					for k, v in pairs(self.Data[locType].Applied) do 
+						if maxExpiration == 0 or v > maxExpiration then 
+							maxExpiration = v 
+						end 
+					end 					
+				end 
+				
+				self.Data[locType].Result = maxExpiration				
+			else	
+				-- Applied more shorter duration if previous is longer 
+				self.Data[locType].Applied[aura] = Expiration
+			end 
+		end 
+	end, 
+	OnEventInterrupt 							= function(self, spellName, lockSchool) 
+		self.Data["SCHOOL_INTERRUPT"][lockSchool] = TMW.time + self.Interrupt[spellName]
+	end, 
 }
 
-LossOfControl.OnEvent							= function(...)
-    if TMW.time == LossOfControl.LastEvent then
-        return
-    end
-    LossOfControl.LastEvent = TMW.time
-    
-	local isValidType = false
-    for eventIndex = 1, GetNumEvents() do 
-        local locType, spellID, text, _, start, timeRemaining, duration, lockoutSchool = GetEventInfo(eventIndex)  			
-		
-		if LossOfControl[locType] then 
-			if locType == "SCHOOL_INTERRUPT" then
-				-- Check that the user has requested the schools that are locked out.
-				if lockoutSchool and lockoutSchool ~= 0 then 
-					for name, val in pairs(LossOfControl[locType]) do
-						if bitband(lockoutSchool, val.bit) ~= 0 then 						                 						
-							isValidType = true
-							LossOfControl[locType][name].result = (start or 0) + (duration or 0)											
-						end 
-					end 
-				end 
-			else 
-				for name in pairs(LossOfControl) do 
-					if _G["LOSS_OF_CONTROL_DISPLAY_" .. name] == text then 
-						-- Check that the user has requested the category that is active on the player.
-						isValidType = true
-						LossOfControl[locType] = (start or 0) + (duration or 0)
-						break 
-					end 
-				end 
-			end
-		end 
-    end 
-    
-    -- Reset running durations.
-    if not isValidType then 
-        for name, val in pairs(LossOfControl) do 
-            if name ~= "LastEvent" and type(val) == "number" and LossOfControl[name] > 0 then
-                LossOfControl[name] = 0
-            end            
-        end
-    end
-end
+LossOfControl.OnEvent 							= {
+	-- Add 
+	SPELL_AURA_APPLIED 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
+	SPELL_AURA_APPLIED_DOSE 					= function(aura) LossOfControl:Enumerate("Add", aura) end, 
+	SPELL_AURA_REFRESH 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
+	-- Remove 
+	SPELL_AURA_REMOVED							= function(aura) LossOfControl:Enumerate("Remove", aura) end, 
+	--SPELL_AURA_REMOVED_DOSE 					= function(aura) LossOfControl:Enumerate("Remove", aura) end, -- FIX ME: Do we need this?
+	-- Interrupt
+	SPELL_INTERRUPT								= function(spellName, lockSchool) LossOfControl:OnEventInterrupt(spellName, lockSchool) end,
+}
 
 -------------------------------------------------------------------------------
 -- OnEvent
 -------------------------------------------------------------------------------
 local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)	
-	local _, EVENT, _, SourceGUID, _, sourceFlags, _, DestGUID, _, destFlags, _, spellID, spellName, _, auraType = CombatLogGetCurrentEventInfo()
+	local _, EVENT, _, SourceGUID, _, sourceFlags, _, DestGUID, _, destFlags, _, spellID, spellName, spellSchool, auraType = CombatLogGetCurrentEventInfo()
 	
 	-- Add the unit to our data if we dont have it
 	CombatTracker:AddToData(SourceGUID)
@@ -772,6 +1225,20 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 	-- Diminishing (DR-Tracker)
 	if CombatTracker.OnEventDR[EVENT] and auraType == "DEBUFF" then 
 		CombatTracker.OnEventDR[EVENT](EVENT, DestGUID, destFlags, spellName)
+	end 
+	
+	-- Loss of Control (Classic only)
+	if LossOfControl.OnEvent[EVENT] then 
+		if auraType == "DEBUFF" and spellName and LossOfControl.Aura[spellName] and UnitGUID("player") == DestGUID then 
+			LossOfControl.OnEvent[EVENT](spellName)
+		end 
+		
+		if EVENT == "SPELL_INTERRUPT" and spellSchool and LossOfControl.Interrupt[spellName] and UnitGUID("player") == DestGUID then 
+			local lockSchool = LossOfControl.BitBandSchool[spellSchool] 
+			if lockSchool then 
+				LossOfControl.OnEvent[EVENT](spellName, lockSchool)
+			end 
+		end 
 	end 
 		
 	-- PvP players tracker
@@ -848,8 +1315,6 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				funct
 		end 
 	end 
 end)
-A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "LOSS_OF_CONTROL_UPDATE", 			LossOfControl.OnEvent			)
-A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "LOSS_OF_CONTROL_ADDED", 				LossOfControl.OnEvent			)
 
 -------------------------------------------------------------------------------
 -- API: CombatTracker
@@ -1499,15 +1964,18 @@ A.UnitCooldown:Register(ACTION_CONST_SPELLID_FREEZING_TRAP, 15, nil, nil, {
 -------------------------------------------------------------------------------
 A.LossOfControl									= {
 	Get											= function(self,  locType, name)
-		-- @return number (remain duration in seconds of LossOfControl)
-		local result = 0		
-		if name then 
-			result = LossOfControl[locType][name] and LossOfControl[locType][name].result or 0
-		else 
-			result = LossOfControl[locType] or 0        
+		-- @return number (remain duration in seconds of LossOfControl)	
+		if LossOfControl.Data[locType] then 
+			if name then 
+				if LossOfControl.Data[locType][name] then 
+					return math_max(LossOfControl.Data[locType][name] - TMW.time, 0)
+				end 
+			else 
+				return math_max(LossOfControl.Data[locType].Result - TMW.time, 0)   
+			end 
 		end 
 		
-		return (TMW.time >= result and 0) or result - TMW.time 		
+		return 0	
 	end, 
 	IsMissed									= function(self, MustBeMissed)
 		-- @return boolean 
@@ -1546,7 +2014,7 @@ A.LossOfControl									= {
 			-- Gnome in current speed 
 			if A.PlayerRace == "Gnome" then 
 				local cSpeed = A.Unit("player"):GetCurrentSpeed()
-				isApplied = cSpeed > 0 and cSpeed < 100
+				isApplied = cSpeed > 0 and cSpeed < 65
 			end 
 		end 
 		
@@ -1562,7 +2030,7 @@ A.LossOfControl									= {
 		return result, isApplied
 	end,
 	GetExtra 									= {
-		["Dwarf"] = {
+		["Dwarf"] 								= {
 			Applied 							= {"SLEEP"}, -- Can be sleepd by  Wyvern Sting 
 			Missed 								= {"POLYMORPH", "INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "STUN", "FEAR", "HORROR", "CHARM", "SHACKLE_UNDEAD", "TURN_UNDEAD"},
 		},

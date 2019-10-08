@@ -839,9 +839,9 @@ function A:AbsentImun(unitID, imunBuffs)
 			MinDur = MinDur + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0)
 		end
 		
-		if Unit(unitID):DeBuffCyclone() > MinDur then 
-			return false 
-		end 
+		--if Unit(unitID):DeBuffCyclone() > MinDur then 
+			--return false 
+		--end 
 		
 		if imunBuffs then 
 			if type(imunBuffs) == "table" then 

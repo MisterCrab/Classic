@@ -136,16 +136,22 @@ local AuraList = {
 		5246, 				-- Intimidating Shout		(Warrior)
 		12809,				-- Concussion Blow			(Warrior)
 		20253,				-- Intercept Stun 			(Warrior)
+		5211,				-- Bash						(Druid)
+		9005,				-- Pounce					(Druid)
+		12355,				-- Impact					(Mage, physical effect)
 		19503, 				-- Scatter Shot 			(Hunter)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
+		19410,				-- Improved Concussive Shot	(Hunter)
 		408, 				-- Kidney Shot 				(Rogue)	
 		1833, 				-- Cheap Shot 				(Rogue)        
 		1776, 				-- Gouge					(Rogue)		
 		6770, 				-- Sap 						(Rogue)
 		2094, 				-- Blind					(Rogue)		        
 		20549, 				-- War Stomp 				(Tauren)	
-		20685				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?
-    },
+		20685,				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?
+		5530,				-- Mace Stun				(Unknown)
+		16922,				-- Starfire Stun			(Unknown)
+   },
     -- CC CONTROL TYPE
     Incapacitated = { 
         1499, 				-- Freezing Trap			(Hunter) 
@@ -153,6 +159,7 @@ local AuraList = {
 		6770, 				-- Sap 						(Rogue)
         1776, 				-- Gouge					(Rogue)
 		710, 				-- Banish        			(Warlock)
+		22570,				-- Mangle					(Druid)
     },
 	Fleeing		= {
 		5782, 				-- Fear						(Warlock)
@@ -165,6 +172,8 @@ local AuraList = {
 		118, 				-- Polymorph				(Mage)
 		851,				-- Polymorph: Sheep 		(Mage)
 		28270,				-- Polymorph: Cow			(Mage)
+		28272,				-- Polymorph: Pig			(Mage)
+		28271,				-- Polymorph: Turtle		(Mage)
 	},
     Disoriented = {			
 		19503, 				-- Scatter Shot 			(Hunter)		 
@@ -174,11 +183,12 @@ local AuraList = {
 		5782, 				-- Fear						(Warlock)
 		5484, 				-- Howl of Terror   		(Warlock)
 		5246, 				-- Intimidating Shout		(Warrior)
+		6789,				-- Death Coil				(Warlock)
 		8122, 				-- Psychic Scream			(Priest)
     },
     Charmed = {
         605, 				-- Mind Control 			(Priest)                 
-        9484, 				-- Shackle Undead 			(Priest)
+        --9484, 				-- Shackle Undead 			(Priest)
     },
     Sleep = {
 		2637, 				-- Hibernate 				(Druid)	
@@ -188,29 +198,73 @@ local AuraList = {
 		7922, 				-- Charge Stun				(Warrior)
 		12809,				-- Concussion Blow			(Warrior)
 		20253,				-- Intercept Stun 			(Warrior)
+		5530,				-- Mace Stun Effect			(Warrior)
+		12798,				-- Revenge Stun				(Warrior)
+		5211,				-- Bash						(Druid)
+		9005,				-- Pounce					(Druid)
+		12355,				-- Impact					(Mage, physical effect)
+		22703,				-- Inferno Effect			(Warlock)
+		18093,				-- Pyroclasm				(Warlock)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
+		19410,				-- Improved Concussive Shot	(Hunter)
 		853, 				-- Hammer of Justice 		(Paladin)
 		1833, 				-- Cheap Shot 				(Rogue)
         408, 				-- Kidney Shot 				(Rogue)	
 		20549, 				-- War Stomp 				(Tauren)
-		20685,				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?	
-    },
+		20685,				-- Storm Bolt 				(Unknown)				-- FIX ME: Is it useable?			
+		16922,				-- Starfire Stun			(Unknown)
+		56,					-- Stun 					(Weapon proc)
+		4067,				-- Big Bronze Bomb
+		4066,				-- Small Bronze Bomb
+		4065,				-- Large Copper Bomb
+		4064,				-- Rough Copper Bomb
+	},
     PhysStuned = {
 		7922, 				-- Charge Stun				(Warrior)
 		12809,				-- Concussion Blow			(Warrior)
 		20253,				-- Intercept Stun 			(Warrior)
+		5530,				-- Mace Stun Effect			(Warrior)
+		12798,				-- Revenge Stun				(Warrior)
+		5211,				-- Bash						(Druid)
+		9005,				-- Pounce					(Druid)		
+		12355,				-- Impact					(Mage, physical effect)
+		22703,				-- Inferno Effect			(Warlock)
+		18093,				-- Pyroclasm				(Warlock)
 		19577,				-- Intimidation 			(Hunter)  				-- Berserker Rage can remove it!
+		19410,				-- Improved Concussive Shot	(Hunter)
 		1833, 				-- Cheap Shot 				(Rogue)
         408, 				-- Kidney Shot 				(Rogue)		
 		20549, 				-- War Stomp 				(Tauren)	
-		20685				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
-    },
-    Silenced = 15487, 		-- Silence 					(Priest) 
-    Disarmed = 676, 		-- Disarm 					(Warrior)
+		20685,				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
+		16922,				-- Starfire Stun			(Unknown)		
+		56,					-- Stun 					(Weapon proc)	
+		4067,				-- Big Bronze Bomb
+		4066,				-- Small Bronze Bomb
+		4065,				-- Large Copper Bomb
+		4064,				-- Rough Copper Bomb
+	},
+    Silenced = {
+		15487, 				-- Silence 					(Priest) 
+		18469,				-- Counterspell - Silenced	(Mage)
+		18425,				-- Kick - Silenced			(Rogue)
+		24259,				-- Spell Lock (Felhunter) 	(Warlock)
+		19821,				-- Arcane Bomb
+		18278,				-- Silence (Silent Fang sword)
+	},
+    Disarmed = {
+		676, 				-- Disarm 					(Warrior)
+		14251,				-- Riposte					(Rogue)
+	},
     Rooted = {
+		23694,				-- Improved Hamstring		(Warrior)
         22519, 				-- Ice Nova 				(Mage)
-        122, 				-- Frost Nova 				(Mage)		
+        122, 				-- Frost Nova 				(Mage)	
+		12494,				-- Frostbite				(Mage)	
         339, 				-- Entangling Roots 		(Druid)
+		19675,				-- Feral Charge Effect		(Druid)
+		19229,				-- Improved Wing Clip 		(Hunter)
+		19185,				-- Entrapment				(Hunter)
+		25999,				-- Boar Charge				(Hunter's pet)		
     },  
     Slowed = {		
         1715, 				-- Hamstring				(Warrior)
@@ -262,10 +316,14 @@ local AuraList = {
     -- Imun Specific Buffs 
     FearImun = {
 		18499, 				-- Berserker Rage 			(Warrior)
+		12328,				-- Death Wish				(Warrior)
+		1719,				-- Recklessness				(Warrior)
         8143, 				-- Tremor Totem 			(Shaman)
+		6346,				-- Fear Ward				(Priest)
     },
     StunImun = {
-        6615, 				-- Free Action 				(Human)
+        6615, 				-- Free Action 				
+		24364,				-- Living Free Action		(Potion)
         1953, 				-- Blink (micro buff)		(Mage)
     },        
     Freedom = 1044, 		-- Blessing of Freedom		(Paladin)
@@ -274,9 +332,14 @@ local AuraList = {
         642, 				-- Divine Shield			(Paladin)		
         11958, 				-- Ice Block				(Mage)
         19263, 				-- Deterrence    			(Hunter)
-        20711, 				-- Spirit of Redemption		(Priest)		
+        20711, 				-- Spirit of Redemption		(Priest)
+		17624,				-- Petrification			(Flask of Petrification)
     },
-    DamagePhysImun = 1022, 	-- Blessing of Protection	(Paladin)
+    DamagePhysImun = {
+		1022, 				-- Blessing of Protection	(Paladin)
+		3169,				-- Invulnerability			(Limited Invulnerability Potion)
+		--16621,			-- Self Invulnerability (Invulnerable Mail weapon) -- FIX ME: seems only for swing attacks
+	},
     DamageMagicImun = 710, 	-- Banish 					(Warlock)
     CCTotalImun = {},     
     CCMagicImun = 8178,		-- Grounding Totem Effect	(Shaman)
@@ -1517,9 +1580,10 @@ A.Unit = PseudoClass({
 	end, "UnitGUID"),
 	DeBuffCyclone 							= Cache:Wrap(function(self)
 		-- @return number 
-		local unitID 						= self.UnitID
-		local banishName					= strlowerCache[A.GetSpellInfo(710)] -- Banish 
-		return Env.AuraDur(unitID, banishName, "HARMFUL")
+		return 0 -- Right now no such effects 
+		--local unitID 						= self.UnitID
+		--local banishName					= strlowerCache[A.GetSpellInfo(710)] -- Banish 
+		--return Env.AuraDur(unitID, banishName, "HARMFUL")
 	end, "UnitGUID"),	
 	GetDeBuffInfo							= Cache:Pass(function(self, auraTable, caster)
 		-- @return number, number, number, number 

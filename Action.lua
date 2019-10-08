@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "07.10.2019"
+local DateTime 						= "09.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -2174,12 +2174,20 @@ local GlobalFactory = {
 				-- Seduction
 				--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
 				--return PlayerClass ~= "MAGE" ]] },
+				-- Dominate Mind
+				[15859] = {},		-- FIX ME: Is a buff?
+				-- Cause Insanity
+				[12888] = {},		-- FIX ME: Is a buff?
 			},
-			PurgeHigh = {				
+			PurgeHigh = {		
+				-- Molten Core: Deaden Magic
+				[19714] = {},
 			},
 			PurgeLow = {
 			},
 			Poison = {    
+				-- Onyxia: Brood Affliction: Green
+				[23169] = {},
 				-- Aspect of Venoxis
 				[24688] = { dur = 1.5 },
 				-- Atal'ai Poison
@@ -2230,6 +2238,8 @@ local GlobalFactory = {
 				[28311] = {},
 				-- Seeping Willow
 				[17196] = {},
+				-- Paralyzing Poison
+				[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
 			},
 			Disease = {
 				-- Rabies
@@ -2308,6 +2318,8 @@ local GlobalFactory = {
 				[16143] = {},
 				-- Ghoul Plague
 				[16458] = {},
+				-- Putrid Stench
+				[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
 			}, 
 			Curse = {	
 				-- Molten Core: Lucifron's Curse
@@ -2370,6 +2382,8 @@ local GlobalFactory = {
 				[15730] = {},
 				-- Curse of the Darkmaster
 				[18702] = {},
+				-- Arugal's Curse
+				[7621] = {},
 			},
 			Magic = {	
 				-- Molten Core: Ignite Mana
@@ -2380,6 +2394,14 @@ local GlobalFactory = {
 				[19408] = {},			
 				-- Molten Core: Magma Splash
 				[13880] = { dur = 1.5 },
+				-- Molten Core: Ancient Despair
+				[19369] = { dur = 1.5 },
+				-- Molten Core: Soul Burn
+				[19393] = { dur = 1.5 },
+				-- Onyxia: Greater Polymorph
+				[22274] = {},
+				-- Onyxia: Wild Polymorph
+				[23603] = {},
 				-- Firelords: Soul Burn
 				[19393] = {},
 				-- Ancient Despair
@@ -2390,6 +2412,48 @@ local GlobalFactory = {
 				[12742] = { dur = 2 },
 				-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
 				[23952] = { dur = 2 },
+				-- Misc: Reckless Charge
+				[13327] = { dur = 1 },
+				-- Misc: Hex 
+				[17172] = {},
+				-- Polymorph Backfire (Azshara)
+				[28406] = {},	
+				-- Polymorph: Chicken
+				[228] = {},
+				-- Chains of Ice
+				[113] = { dur = 12 },
+				-- Grasping Vines
+				[8142] = { dur = 4 },
+				-- Naralex's Nightmare
+				[7967] = {},
+				-- Thundercrack
+				[8150] = { dur = 1 },
+				-- Screams of the Past
+				[7074] = { dur = 1 },
+				-- Smoke Bomb
+				[7964] = { dur = 1 },
+				-- Ice Blast
+				[11264] = { dur = 6 },
+				-- Pacify
+				[10730] = {},
+				-- Sonic Burst
+				[8281] = { dur = 0.5 },
+				-- Enveloping Winds
+				[6728] = { dur = 1 },
+				-- Petrify
+				[11020] = { dur = 1 },
+				-- Freeze Solid
+				[11836] = { dur = 1 },
+				-- Deep Slumber
+				[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				-- Crystallize
+				[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				-- Enchanting Lullaby
+				[16798] = { dur = 1 },
+				-- Burning Winds
+				[17293] = { dur = 1 },
+				-- Banshee Shriek
+				[16838] = { dur = 1 },
 			}, 
 			Enrage = {
 			},
@@ -2420,6 +2484,10 @@ local GlobalFactory = {
 				[12042] = { dur = 4 },
 				-- Priest (Human): Feedback
 				[13896] = { dur = 1.5 },
+				-- Druid | Shaman: Nature's Swiftness
+				[16188] = { dur = 1.5 },
+				-- Shaman: Elemental Mastery
+				[16166] = { dur = 1.5 },
 			},
 			PurgeLow = {
 				-- Paladin: Blessing of Freedom  
@@ -2460,6 +2528,8 @@ local GlobalFactory = {
 				[17862] = {},
 				-- Warlock: Curse of the Elements
 				[1490] = {},
+				-- Corrupted Fear (set bonus)
+				[21330] = {},
 			},
 			Magic = {			
 				-- Paladin: Repentance
@@ -2467,7 +2537,15 @@ local GlobalFactory = {
 				-- Paladin: Hammer of Justice
 				[853] = { dur = 0 },
 				-- Hunter: Freezing Trap
-				[1499] = { dur = 1.5 },
+				[1499] = { dur = 1 },
+				-- Hunter: Entrapment
+				[19185] = { dur = 1.5 },
+				-- Hunter: Hunter's Mark
+				[14325] = {},
+				-- Hunter: Trap 
+				[8312] = { dur = 1 },
+				-- Rogue: Kick - Silenced
+				[18425] = { dur = 1 },
 				-- Priest: Mind Control 
 				[605] = { dur = 0 },
 				-- Priest: Psychic Scream
@@ -2476,8 +2554,20 @@ local GlobalFactory = {
 				[9484] = { dur = 1 },
 				-- Priest: Silence
 				[15487] = { dur = 1 },
+				-- Priest: Blackout
+				[15269] = { dur = 1 },
 				-- Mage: Polymorph 
-				[118] = { dur = 1.5 },	
+				[118] = { dur = 1.5 },
+				-- Mage: Polymorph: Sheep 
+				[851] = { dur = 1.5 },
+				-- Mage: Polymorph: Cow 
+				[28270] = { dur = 1.5 },
+				-- Mage: Polymorph: Turtle 
+				[28271] = { dur = 1.5 },
+				-- Mage: Polymorph: Pig 
+				[28272] = { dur = 1.5 },
+				-- Mage: Frost Nova  
+				[122] = { dur = 1 },
 				-- Warlock: Banish 
 				[710] = {},				
 				-- Warlock: Fear 
@@ -2486,18 +2576,36 @@ local GlobalFactory = {
 				[6358] = { dur = 1.5 },	
 				-- Warlock: Howl of Terror
 				[5484] = { dur = 1.5 },
+				-- Warlock: Death Coil
+				[6789] = { dur = 1 },
+				-- Warlock: Spell Lock (Felhunter)
+				[24259] = { dur = 1 },
 				-- Druid: Hibernate 
 				[2637] = { dur = 1.5 },
 				-- Druid: Faerie Fire (Feral)
-				[17390] = { dur = 0 },	
-				-- Mage: Frost Nova  
-				[122] = { dur = 1 },
+				[17390] = { dur = 0 },					
 				-- Mage: Ice Nova 
 				[22519] = { dur = 1 },
 				-- Druid: Entangling Roots
-				[339] = { dur = 1 },	
-				-- Hunter: Hunter's Mark
-				[14325] = {},
+				[339] = { dur = 1 },					
+				-- Trinket: Tidal Charm
+				[835] = { dur = 1 },
+				-- Iron Grenade
+				[4068] = {},
+				-- Sleep (Green Whelp Armor chest)
+				[9159] = {},
+				-- Arcane Bomb
+				[19821] = {},
+				-- Silence (Silent Fang sword)
+				[18278] = {},
+				-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+				[20683] = {},
+				-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+				[17286] = {},
+				-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+				[17820] = {},
+				-- Glimpse of Madness (Dark Edge of Insanity axe)
+				[26108] = { dur = 1 },
 			},
 			Enrage = {
 				-- Berserker Rage
@@ -7360,7 +7468,7 @@ function Action.ToggleMainUI()
 				{ text = L["TAB"][tab.name]["DISEASE"], value = "Disease" },
 				{ text = L["TAB"][tab.name]["CURSE"], value = "Curse" },				
 				{ text = L["TAB"][tab.name]["MAGIC"], value = "Magic" },
-				{ text = L["TAB"][tab.name]["MAGICMOVEMENT"], value = "MagicMovement" },				
+				--{ text = L["TAB"][tab.name]["MAGICMOVEMENT"], value = "MagicMovement" },				
 				{ text = L["TAB"][tab.name]["PURGEFRIENDLY"], value = "PurgeFriendly" },
 				{ text = L["TAB"][tab.name]["PURGEHIGH"], value = "PurgeHigh" },				
 				{ text = L["TAB"][tab.name]["PURGELOW"], value = "PurgeLow" },
