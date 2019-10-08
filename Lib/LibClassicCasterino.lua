@@ -5,9 +5,10 @@ Author: d87
 if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 17
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 20
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
+
 
 lib.callbacks = lib.callbacks or LibStub("CallbackHandler-1.0"):New(lib)
 
@@ -27,6 +28,8 @@ local MOVECHECK_TIMEOUT = 4
 
 local UnitGUID = UnitGUID
 local bit_band = bit.band
+
+local GetSpellInfo = GetSpellInfo
 local GetTime = GetTime
 local CastingInfo = CastingInfo
 local ChannelInfo = ChannelInfo
@@ -53,6 +56,10 @@ local NPCSpells
 
 local castTimeCache = {}
 local castTimeCacheStartTimes = setmetatable({}, { __mode = "v" })
+
+local AIMED_SHOT = GetSpellInfo(19434)
+local castingAimedShot = false
+local playerGUID = UnitGUID("player")
 
 --[[
 function DUMPCASTS()
@@ -113,6 +120,11 @@ local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime
     --end
 
     if castType == "CAST" then
+        if srcGUID == playerGUID and spellName == AIMED_SHOT then
+            castingAimedShot = true
+            --movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
+            callbacks:Fire("UNIT_SPELLCAST_START", "player")
+        end
         FireToUnits("UNIT_SPELLCAST_START", srcGUID)
     else
         FireToUnits("UNIT_SPELLCAST_CHANNEL_START", srcGUID)
@@ -129,6 +141,10 @@ local function CastStop(srcGUID, castType, suffix )
 
         if castType == "CAST" then
             local event = "UNIT_SPELLCAST_"..suffix
+            if srcGUID == playerGUID and castingAimedShot then
+                castingAimedShot = false
+                callbacks:Fire(event, "player")
+            end
             FireToUnits(event, srcGUID)
         else
             FireToUnits("UNIT_SPELLCAST_CHANNEL_STOP", srcGUID)
@@ -251,7 +267,11 @@ local function IsSlowedDown(unit)
 end
 
 function lib:UnitCastingInfo(unit)
-    if UnitIsUnit(unit,"player") then return CastingInfo() end
+    if UnitIsUnit(unit,"player") then
+        if not castingAimedShot then
+            return CastingInfo()
+        end
+    end
     local guid = UnitGUID(unit)
     local cast = casters[guid]
     if cast then
@@ -282,7 +302,7 @@ end
 
 
 local Passthrough = function(self, event, unit, ...)
-    if unit == "player" then
+    if unit == "player" or UnitIsUnit(unit, "player") then
         callbacks:Fire(event, unit, ...)
     end
 end
@@ -307,7 +327,7 @@ function callbacks.OnUsed()
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_UPDATE")
     f:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
-	f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+    f:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 
     -- for unit lookup
     f:RegisterEvent("GROUP_ROSTER_UPDATE")
@@ -408,6 +428,18 @@ classCasts = {
     [10216] = 3, -- Flamestrike
     [10207] = 1.5, -- Scorch
     [25304] = 3, -- Frostbolt
+    [3561] = 10, -- Teleport: Stormwind
+    [3562] = 10, -- Teleport: Ironforge
+    [3563] = 10, -- Teleport: Undercity
+    [3565] = 10, -- Teleport: Darnassus
+    [3566] = 10, -- Teleport: Thuner Bluff
+    [3567] = 10, -- Teleport: Orgrimmar
+    [10059] = 10, -- Portal: Stormwind
+    [11416] = 10, -- Portal: Ironforge
+    [11418] = 10, -- Portal: Undercity
+    [11419] = 10, -- Portal: Darnassus
+    [11420] = 10, -- Portal: Thuner Bluff
+    [11417] = 10, -- Portal: Orgrimmar
 
     [10876] = 3, -- Mana Burn
     [10955] = 1.5, -- Shackle Undead
@@ -692,7 +724,8 @@ do
             guid, timeout = next(movecheckGUIDs, guid)
         end
     end)
-end]]
+end
+]]
 
 ------------------------------
 
