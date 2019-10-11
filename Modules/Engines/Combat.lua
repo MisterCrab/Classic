@@ -22,8 +22,8 @@ local huge 										= math.huge
 local abs 										= math.abs 
 local math_max									= math.max 
 
-local _G, type, pairs, table, wipe, bitband  	= 
-	  _G, type, pairs, table, wipe, bit.band
+local _G, type, pairs, table, strsub, wipe, bitband = 
+	  _G, type, pairs, table, strsub, wipe, bit.band
 
 local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff	= 
 	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff
@@ -1116,10 +1116,6 @@ local LossOfControl								= {
 		-- [[ BANISH ]] 
 		-- Banish
 		[GetSpellInfo(710)]						= "BANISH",
-		
-		
-		-- TEST 
-		[GetSpellInfo(11918)]					= {"STUN", "ROOT"},
 	},
 	Interrupt									= {
 		-- Shield Bash 
@@ -1257,7 +1253,10 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 	if EVENT == "UNIT_DIED" or EVENT == "UNIT_DESTROYED" then 
 		UnitTracker:UNIT_DIED(DestGUID)
 	else 
-		UnitTracker:RESET_IS_FLYING(EVENT, SourceGUID, spellName)
+		local firstFive = strsub(EVENT, 1, 5)
+		if firstFive == "SPELL" then 
+			UnitTracker:RESET_IS_FLYING(EVENT, SourceGUID, spellName)
+		end 
 	end 
 end 
 
