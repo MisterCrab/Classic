@@ -74,7 +74,7 @@ function A.PauseChecks()
 			A.GetToggle(1, "CheckDeadOrGhostTarget") and 
 			(
 				(Unit("target"):IsDead() and not UnitIsFriend("player", "target") and (not A.IsInPvP or Unit("target"):Class() ~= "HUNTER")) or 
-				(Unit("mouseover"):IsDead() and not UnitIsFriend("player", "mouseover") and (not A.IsInPvP or Unit("mouseover"):Class() ~= "HUNTER"))
+				(Action.GetToggle(2, "mouseover") and Unit("mouseover"):IsDead() and not UnitIsFriend("player", "mouseover") and (not A.IsInPvP or Unit("mouseover"):Class() ~= "HUNTER"))
 			)
 		) 
 	then 																																																											-- exception in PvP Hunter 
