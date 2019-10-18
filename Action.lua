@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "11.10.2019"
+local DateTime 						= "18.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -4188,17 +4188,17 @@ local Queue = {
 			getmetatable(Action.Data.Q[1]).__index:SetQueue(self.Temp.SilenceON)
 		end 
 	end, 
-	OnEventToResetNoCombat 	= function(self)
+	OnEventToResetNoCombat 	= function(self, isSilenced)
 		-- ByPass wrong reset events by equip swap during combat
 		if Action.Unit("player"):CombatTime() == 0 then 
-			self.OnEventToReset()
+			self:OnEventToReset(isSilenced)
 		end 
 	end, 
-	OnEventToReset 				= function(self)
+	OnEventToReset 				= function(self, isSilenced)
 		if #Action.Data.Q > 0 then 
 			for i = 1, #Action.Data.Q do 
 				if Action.Data.Q[i] and Action.Data.Q[i]:IsQueued() then 
-					getmetatable(Action.Data.Q[i]).__index:SetQueue(self.Temp.SilenceOFF)
+					getmetatable(Action.Data.Q[i]).__index:SetQueue((isSilenced and self.Temp.SilenceON) or self.Temp.SilenceOFF)
 				end 
 			end 		
 		end 
@@ -4233,6 +4233,10 @@ function Action:QueueValidCheck()
 		end 
 	end 
 	return false 
+end 
+
+function Action.CancelAllQueue()
+	Queue:OnEventToReset(true)
 end 
 
 function Action.CancelAllQueueForMeta(meta)
@@ -9179,7 +9183,7 @@ local function OnInitialize()
 				TMW:Fire("TMW_ONUPDATE_PRE", TMW.time, TMW.Locked)
 				-- FPS Optimization
 				local FPS = Action.GetToggle(1, "FPS")
-				if FPS < 0 then 
+				if not FPS or FPS < 0 then 
 					local Framerate = GetFramerate() or 0
 					if Framerate > 0 and Framerate < 100 then
 						FPS = (100 - Framerate) / 900
