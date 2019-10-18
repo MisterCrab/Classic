@@ -4351,7 +4351,7 @@ function Action:SetQueue(args)
 		self.Queued = not self.Queued
 	end 
 	
-	local priority = (args.Priority and (args.Priority > #Action.Data.Q + 1 and #Action.Data.Q + 1 or args.Priority)) or #Action.Data.Q + 1	
+	local priority = (args.Priority and not Action.IsQueueRunningAuto() and (args.Priority > #Action.Data.Q + 1 and #Action.Data.Q + 1 or args.Priority)) or #Action.Data.Q + 1	
     if not args.Silence then		
 		if self.Queued then 
 			Action.Print(L["TAB"][3]["QUEUED"] .. self:Link() .. L["TAB"][3]["QUEUEPRIORITY"] .. priority .. ". " .. L["TAB"][3]["KEYTOTAL"] .. #Action.Data.Q + 1 .. "]")
