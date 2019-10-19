@@ -71,7 +71,7 @@ f:SetScript("OnUpdate", function(self, elapsed)
     for i = 1, #commonUnits do
 		local GUID = UnitGUID(commonUnits[i])
         if GUID and casters[GUID] and GetUnitSpeed(commonUnits[i]) ~= 0 then
-            CastStop(GUID, "CAST", "FAILED")
+            CastStop(GUID, "CAST", "INTERRUPTED")
 			return 
         end
     end
@@ -82,7 +82,7 @@ f:SetScript("OnUpdate", function(self, elapsed)
 		if nameplateUnit and next(NameplatesGUID) then
 			for guid, unit in pairs(NameplatesGUID) do 
 				if casters[guid] and GetUnitSpeed(unit) ~= 0 then
-					CastStop(guid, "CAST", "FAILED")
+					CastStop(guid, "CAST", "INTERRUPTED")
 					return
 				end 
 			end 
@@ -91,14 +91,14 @@ f:SetScript("OnUpdate", function(self, elapsed)
 
 	for guid, unit in pairs(FriendlyGUIDs) do 
 		if casters[guid] and UnitIsVisible(unit) and GetUnitSpeed(unit) ~= 0 then
-            CastStop(guid, "CAST", "FAILED")
+            CastStop(guid, "CAST", "INTERRUPTED")
 			return 
         end
 	end 
 
 	for guid, unit in pairs(EnemyGUIDs) do 
 		if casters[guid] and UnitIsVisible(unit) and GetUnitSpeed(unit) ~= 0 then
-            CastStop(guid, "CAST", "FAILED")
+            CastStop(guid, "CAST", "INTERRUPTED")
 			return
         end
 	end 
