@@ -134,5 +134,6 @@ end
 -- API: Shared 
 -------------------------------------------------------------------------------
 function A.BossMods_Pulling()
+	-- @return number (remain pulling timer)
 	return A.GetToggle(1, "DBM") and A.DBM_PullTimer() or 0
 end 
