@@ -209,8 +209,8 @@ local L = TMW.L
 
 local Type = TMW.Classes.IconType:New("TheAction - UnitCasting")
 LibStub("AceEvent-3.0"):Embed(Type)
-Type.name = "TheAction - " .. L["ICONMENU_CAST"]
-Type.desc = "TheAction addon handles this icon type for own API to provide functional for check any unit\nThis is more accurate than anything else, you should use that instead of another options"
+Type.name = "[The Action] " .. L["ICONMENU_CAST"]
+Type.desc = "The Action addon handles this icon type for own API to provide functional for check any unit\nThis is more accurate than anything else, you should use that instead of another options"
 Type.menuIcon = "Interface\\Icons\\Temp"
 Type.AllowNoName = true
 Type.usePocketWatch = 1
@@ -448,6 +448,83 @@ function Type:GuessIconTexture(ics)
 end
 
 Type:Register(151)
+
+-------------------------------------------------------------------------------
+-- IconType: TheAction - LossOfControl
+-------------------------------------------------------------------------------
+local INCONTROL 	= 1 -- Inside control 
+local CONTROLLOST 	= 2 -- Out of control  
+
+local TypeLOC = TMW.Classes.IconType:New("TheAction - LossOfControl")
+TypeLOC.name = "[The Action] " .. L["LOSECONTROL_ICONTYPE"]	
+TypeLOC.desc = L["LOSECONTROL_ICONTYPE_DESC"]
+TypeLOC.menuIcon = "Interface\\Icons\\Spell_Shadow_Possession"
+TypeLOC.AllowNoName = true
+TypeLOC.usePocketWatch = 1
+TypeLOC.hasNoGCD = true
+TypeLOC.canControlGroup = true
+
+TypeLOC:UsesAttributes("state")
+TypeLOC:UsesAttributes("start, duration")
+TypeLOC:UsesAttributes("texture")
+
+TypeLOC:RegisterConfigPanel_XMLTemplate(165, "TellMeWhen_IconStates", {
+	[INCONTROL] 	= { text = "|cFF00FF00" .. L["LOSECONTROL_INCONTROL"],   },
+	[CONTROLLOST] 	= { text = "|cFFFF0000" .. L["LOSECONTROL_CONTROLLOST"], },
+})
+
+local function LossOfControlOnUpdate(icon, time)
+	local attributes = icon.attributes
+	local start = attributes.start
+	local duration = attributes.duration
+
+	if time - start > duration then	
+		icon:SetInfo(
+			"state; start, duration",
+			INCONTROL,
+			0, 0
+		)		
+	else
+		icon:SetInfo(
+			"state; start, duration",
+			CONTROLLOST,
+			start, duration
+		)	
+	end
+end
+
+local function LossOfControlOnEvent(icon)	
+	local textureID, duration = A.LossOfControl:GetFrameData()		
+	if duration ~= 0 and textureID ~= 0 then 
+		icon:SetInfo(
+			"texture; state; start, duration",
+			textureID,
+			CONTROLLOST,
+			TMW.time, duration
+		)
+	else 
+		icon:SetInfo(
+			"texture; state; start, duration",
+			icon.FirstTexture,
+			INCONTROL,
+			0, 0
+		)
+	end 
+	icon.NextUpdateTime = 0
+end 
+
+function TypeLOC:Setup(icon)	
+	icon.FirstTexture = GetSpellTexture(ACTION_CONST_PICKPOCKET)
+	icon:SetInfo("texture", icon.FirstTexture)
+	
+	TMW:RegisterCallback("TMW_ACTION_LOSS_OF_CONTROL_UPDATE", LossOfControlOnEvent, icon)
+	
+	icon:SetUpdateMethod("manual")	
+	icon:SetUpdateFunction(LossOfControlOnUpdate)
+	icon:Update()
+end
+
+TypeLOC:Register(103)
 
 -------------------------------------------------------------------------------
 -- Scales

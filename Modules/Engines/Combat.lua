@@ -32,6 +32,7 @@ local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, 
 local InCombatLockdown, CombatLogGetCurrentEventInfo = 
 	  InCombatLockdown, CombatLogGetCurrentEventInfo 
 
+local GetSpellTexture							= TMW.GetSpellTexture
 local GetSpellInfo								= _G.GetSpellInfo
 
 local skipedFirstEnter 							= false 
@@ -580,6 +581,7 @@ local UnitTracker 								= {
 	},
 	isBlink								= {
 		[GetSpellInfo(1953)] = true, 
+		[1953] 				 = true, 
 	},
 	-- OnEvent 
 	UNIT_SPELLCAST_SUCCEEDED			= function(self, SourceGUID, sourceFlags, spellName)
@@ -631,10 +633,8 @@ local UnitTracker 								= {
 	end,
 	RESET_IS_FLYING						= function(self, EVENT, SourceGUID, spellName)
 		-- Makes exception for events with _CREATE _FAILED _START since they are point less to be triggered		
-		if self.Data[SourceGUID] then 
-			if self.Data[SourceGUID][spellName] and self.Data[SourceGUID][spellName].isFlying and (not self.Data[SourceGUID][spellName].blackListCLEU or not self.Data[SourceGUID][spellName].blackListCLEU[EVENT]) and EVENT:match("SPELL") and not EVENT:match("_START") and not EVENT:match("_FAILED") and not EVENT:match("_CREATE") then 
-				self.Data[SourceGUID][spellName].isFlying = false 
-			end 
+		if self.Data[SourceGUID] and self.Data[SourceGUID][spellName] and self.Data[SourceGUID][spellName].isFlying and (not self.Data[SourceGUID][spellName].blackListCLEU or not self.Data[SourceGUID][spellName].blackListCLEU[EVENT]) and not EVENT:match("_START") and not EVENT:match("_FAILED") and not EVENT:match("_CREATE") then 
+			self.Data[SourceGUID][spellName].isFlying = false 			 
 		end 
 	end, 
 }
@@ -643,42 +643,132 @@ local UnitTracker 								= {
 -- Locals: LossOfControl
 -------------------------------------------------------------------------------
 local LossOfControl								= {	
+	FrameOrder									= {
+		[1] 									= {
+			"CYCLONE", "BANISH", "CHARM", "DISORIENT", "FREEZE", "HORROR", "INCAPACITATE", "POLYMORPH", "SAP", "SHACKLE_UNDEAD", "SLEEP", "TURN_UNDEAD", "STUN", "FEAR",
+		},
+		[2]										= {
+			"DISARM", "PACIFYSILENCE", "ROOT", "SILENCE", "SCHOOL_INTERRUPT",
+		},
+		[3]										= {
+			"DAZE", "PACIFY", "POSSESS", "SNARE", "CONFUSE",
+		},
+	},
+	FrameData 									= { Result = 0, TextureID = 0, Order = 0 },
+	FrameDataIndex								= {
+		-- For A.GetToggle(1, "LossOfControlTypes")
+		["PHYSICAL"] 							= 1,
+		["HOLY"] 								= 2,
+		["FIRE"] 								= 3,
+		["NATURE"] 								= 4,
+		["FROST"] 								= 5,
+		["SHADOW"] 								= 6,
+		["ARCANE"] 								= 7,
+		["BANISH"] 								= 8,
+		["CHARM"] 								= 9,
+		["CYCLONE"]								= 10,
+		["DAZE"]								= 11,
+		["DISARM"]								= 12,
+		["DISORIENT"]							= 13,
+		["FREEZE"]								= 14,
+		["HORROR"]								= 15,
+		["INCAPACITATE"]						= 16,
+		["PACIFY"]								= 17,
+		["PACIFYSILENCE"]						= 18, 
+		["POLYMORPH"]							= 19,
+		["POSSESS"]								= 20,
+		["SAP"]									= 21,
+		["SHACKLE_UNDEAD"]						= 22,
+		["SLEEP"]								= 23,
+		["SNARE"]								= 24, 
+		["TURN_UNDEAD"]							= 25, 
+		["ROOT"]								= 26, 
+		["CONFUSE"]								= 27, 
+		["STUN"]								= 28,
+		["SILENCE"]								= 29,
+		["FEAR"]								= 30, 
+	},
+	OnFrameSortData								= function(self)
+		if not A.IsInitialized or A.GetToggle(1, "LossOfControlPlayerFrame") or A.GetToggle(1, "LossOfControlRotationFrame") then 
+			-- in temp all found things and then sort them by duration, don't forget to create toggle in [1] + probably dropdown to select which types track !!!!!!!!
+			local enabledTypes = not A.IsInitialized or A.GetToggle(1, "LossOfControlTypes")
+			
+			local isFound 
+			for i = 1, #self.FrameOrder do 
+				for j = 1, #self.FrameOrder[i] do 
+					local locName = self.FrameOrder[i][j]					
+					if self.Data[locName] then 
+						if locName == "SCHOOL_INTERRUPT" then 
+							for schoolName in pairs(self.Data["SCHOOL_INTERRUPT"]) do 
+								if self.Data[locName][schoolName].Result > self.FrameData.Result and self.Data[locName][schoolName].TextureID ~= 0 and (not A.IsInitialized or enabledTypes[self.FrameDataIndex[schoolName]]) then 
+									self.FrameData.Result 		= self.Data[locName][schoolName].Result
+									self.FrameData.TextureID 	= self.Data[locName][schoolName].TextureID
+									isFound						= true 
+								end 
+							end 
+						else 
+							if self.Data[locName].Result > self.FrameData.Result and self.Data[locName].TextureID ~= 0 and (not A.IsInitialized or enabledTypes[self.FrameDataIndex[locName]]) then 
+								self.FrameData.Result 			= self.Data[locName].Result
+								self.FrameData.TextureID 		= self.Data[locName].TextureID
+								isFound							= true 
+							end 
+						end 
+					end 
+				end 
+				
+				if isFound then 
+					self.FrameData.Order = i
+					break 
+				else 
+					self.FrameData.Order = 0 
+				end 
+			end 
+		else 
+			self.FrameData.Order 		= 0 
+			self.FrameData.Result 		= 0
+			self.FrameData.TextureID 	= 0
+		end 	
+		
+		TMW:Fire("TMW_ACTION_LOSS_OF_CONTROL_UPDATE")
+	end, 	
 	Data 										= {
 		["SCHOOL_INTERRUPT"]					= {
-			["PHYSICAL"] 						= 0,
-			["HOLY"] 							= 0,
-			["FIRE"] 							= 0,
-			["NATURE"] 							= 0,
-			["FROST"] 							= 0,
-			["SHADOW"] 							= 0,
-			["ARCANE"] 							= 0,
+			["PHYSICAL"] 						= { Result = 0, TextureID = 0 },
+			["HOLY"] 							= { Result = 0, TextureID = 0 },
+			["FIRE"] 							= { Result = 0, TextureID = 0 },
+			["NATURE"] 							= { Result = 0, TextureID = 0 },
+			["FROST"] 							= { Result = 0, TextureID = 0 },
+			["SHADOW"] 							= { Result = 0, TextureID = 0 },
+			["ARCANE"] 							= { Result = 0, TextureID = 0 },
 		},	 
-		["BANISH"] 								= { Applied = {}, Result = 0 },
-		["CHARM"] 								= { Applied = {}, Result = 0 },
-		--["CYCLONE"]								= { Applied = {}, Result = 0 },
-		--["DAZE"]								= { Applied = {}, Result = 0 },
-		["DISARM"]								= { Applied = {}, Result = 0 },
-		["DISORIENT"]							= { Applied = {}, Result = 0 },
-		["FREEZE"]								= { Applied = {}, Result = 0 },
-		["HORROR"]								= { Applied = {}, Result = 0 },
-		["INCAPACITATE"]						= { Applied = {}, Result = 0 },
-		--["INTERRUPT"]							= { Applied = {}, Result = 0 },
-		--["PACIFY"]								= { Applied = {}, Result = 0 },
-		--["PACIFYSILENCE"]						= { Applied = {}, Result = 0 }, 
-		["POLYMORPH"]							= { Applied = {}, Result = 0 },
-		--["POSSESS"]								= { Applied = {}, Result = 0 },
-		["SAP"]									= { Applied = {}, Result = 0 },
-		["SHACKLE_UNDEAD"]						= { Applied = {}, Result = 0 },
-		["SLEEP"]								= { Applied = {}, Result = 0 },
-		["SNARE"]								= { Applied = {}, Result = 0 }, 
-		["TURN_UNDEAD"]							= { Applied = {}, Result = 0 }, 
-		["ROOT"]								= { Applied = {}, Result = 0 }, 
-		--["CONFUSE"]								= { Applied = {}, Result = 0 }, 
-		["STUN"]								= { Applied = {}, Result = 0 },
-		["SILENCE"]								= { Applied = {}, Result = 0 },
-		["FEAR"]								= { Applied = {}, Result = 0 }, 
+		["BANISH"] 								= { Applied = {}, Result = 0, TextureID = 0 },
+		["CHARM"] 								= { Applied = {}, Result = 0, TextureID = 0 },
+		--["CYCLONE"]							= { Applied = {}, Result = 0, TextureID = 0 },
+		--["DAZE"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["DISARM"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["DISORIENT"]							= { Applied = {}, Result = 0, TextureID = 0 },
+		["FREEZE"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["HORROR"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["INCAPACITATE"]						= { Applied = {}, Result = 0, TextureID = 0 },
+		--["INTERRUPT"]							= { Applied = {}, Result = 0, TextureID = 0 }, -- NEVER UNCOMMENT THIS LINE !
+		--["PACIFY"]							= { Applied = {}, Result = 0, TextureID = 0 },
+		--["PACIFYSILENCE"]						= { Applied = {}, Result = 0, TextureID = 0 }, 
+		["POLYMORPH"]							= { Applied = {}, Result = 0, TextureID = 0 },
+		--["POSSESS"]							= { Applied = {}, Result = 0, TextureID = 0 },
+		["SAP"]									= { Applied = {}, Result = 0, TextureID = 0 },
+		["SHACKLE_UNDEAD"]						= { Applied = {}, Result = 0, TextureID = 0 },
+		["SLEEP"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["SNARE"]								= { Applied = {}, Result = 0, TextureID = 0 }, 
+		["TURN_UNDEAD"]							= { Applied = {}, Result = 0, TextureID = 0 }, 
+		["ROOT"]								= { Applied = {}, Result = 0, TextureID = 0 }, 
+		--["CONFUSE"]							= { Applied = {}, Result = 0, TextureID = 0 }, 
+		["STUN"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["SILENCE"]								= { Applied = {}, Result = 0, TextureID = 0 },
+		["FEAR"]								= { Applied = {}, Result = 0, TextureID = 0 }, 
 	},
 	Aura										= {
+		-- TEST 
+		[GetSpellInfo(11918)]					= {"STUN", "ROOT"},
 		-- [[ ROOT ]] 
 		-- Entangling Roots
 		[GetSpellInfo(339)]						= "ROOT",
@@ -1119,19 +1209,19 @@ local LossOfControl								= {
 	},
 	Interrupt									= {
 		-- Shield Bash 
-		[GetSpellInfo(72)]						= 6,
+		[GetSpellInfo(72)]						= { Duration = 6, TextureID = 132357 },
 		-- Pummel
-		[GetSpellInfo(6552)]					= 4,
+		[GetSpellInfo(6552)]					= { Duration = 4, TextureID = 132938 },
 		-- Kick
-		[GetSpellInfo(1766)]					= 5,
+		[GetSpellInfo(1766)]					= { Duration = 5, TextureID = 132219 },
 		-- Counterspell
-		[GetSpellInfo(2139)]					= 10,
+		[GetSpellInfo(2139)]					= { Duration = 10, TextureID = 135856 },
 		-- Earth Shock 
-		[GetSpellInfo(8042)]					= 2,
+		[GetSpellInfo(8042)]					= { Duration = 2, TextureID = 136026 },
 		-- Spell Lock
-		[GetSpellInfo(19647)]					= 8,
+		[GetSpellInfo(19647)]					= { Duration = 8, TextureID = 136174 }, -- since we can't get exactly info about enemy talents we will assume it as 8 instead of 6 
 		-- Feral Charge
-		[GetSpellInfo(19675)]					= 4,
+		[GetSpellInfo(19675)]					= { Duration = 4, TextureID = 132183 },
 	},
 	BitBandSchool								= {
 		[0x1]									= "PHYSICAL",
@@ -1143,51 +1233,87 @@ local LossOfControl								= {
 		[0x40]									= "ARCANE",
 	},
 	Enumerate									= function(self, action, aura, ...)
-		local Expiration = 0
+		local Expiration, TextureID = 0, 0
 		if action == "Add" then 
-			local _, Name, expirationTime
+			local _, Name, expirationTime, spellID
 			for j = 1, huge do 
-				Name, _, _, _, _, expirationTime = UnitDebuff("player", j)
+				Name, _, _, _, _, expirationTime, _, _, _, spellID = UnitDebuff("player", j)
 				if not Name then 
 					Expiration = 0
 					break 
 				elseif Name == aura then 
 					Expiration = expirationTime == 0 and huge or expirationTime
+					TextureID  = GetSpellTexture(spellID)
 					break
 				end 
 			end 
 		end 
-		
+			
 		local isTable = type(self.Aura[aura]) == "table"
 		for i = 1, isTable and #self.Aura[aura] or 1 do
 			local locType = isTable and self.Aura[aura][i] or self.Aura[aura]
+			
+			-- Create once reusable table 
+			if not self.Data[locType].Applied[aura] then 
+				self.Data[locType].Applied[aura] = {}
+			end 
+		
 			if Expiration > self.Data[locType].Result then 
 				-- Applied more longer duration than previous
-				self.Data[locType].Result = Expiration
-				self.Data[locType].Applied[aura] = Expiration	
+				self.Data[locType].Result 		= Expiration
+				self.Data[locType].TextureID 	= TextureID
+				self.Data[locType].Applied[aura].Result 	= Expiration	
+				self.Data[locType].Applied[aura].TextureID	= TextureID
 			elseif Expiration == 0 then 
 				-- Removed 
-				self.Data[locType].Applied[aura] = nil
-				
-				-- Recheck if persistent another loss of control and update expirationTime, otherwise 0 if nothing
-				local maxExpiration = 0
-				if next(self.Data[locType].Applied) then 					
-					for k, v in pairs(self.Data[locType].Applied) do 
-						if maxExpiration == 0 or v > maxExpiration then 
-							maxExpiration = v 
-						end 
-					end 					
+				if self.Data[locType].Applied[aura] then 
+					wipe(self.Data[locType].Applied[aura])
 				end 
 				
-				self.Data[locType].Result = maxExpiration				
+				-- Recheck if persistent another loss of control and update expirationTime, otherwise 0 if nothing
+				local maxExpiration, relativeTextureID = 0, 0					
+				for k, v in pairs(self.Data[locType].Applied) do 
+					if maxExpiration == 0 or (next(v) and v.Result > maxExpiration) then 
+						maxExpiration 		= v.Result 	   or 0
+						relativeTextureID 	= v.TextureID  or 0
+					end 
+				end 					 
+				
+				self.Data[locType].Result 		= maxExpiration	
+				self.Data[locType].TextureID 	= relativeTextureID				
 			else	
 				-- Applied more shorter duration if previous is longer 
-				self.Data[locType].Applied[aura] = Expiration
+				self.Data[locType].Applied[aura].Result 	= Expiration
+				self.Data[locType].Applied[aura].TextureID 	= TextureID
 			end 
 		end 
+		
+		self:OnFrameSortData()
 	end, 
 	OnEventInterrupt 							= function(self, spellName, lockSchool) 
-		self.Data["SCHOOL_INTERRUPT"][lockSchool] = TMW.time + self.Interrupt[spellName]
+		self.Data["SCHOOL_INTERRUPT"][lockSchool].Result 	= TMW.time + self.Interrupt[spellName].Duration
+		self.Data["SCHOOL_INTERRUPT"][lockSchool].TextureID = self.Interrupt[spellName].TextureID
+		
+		self:OnFrameSortData()
+	end, 
+	Reset 										= function(self, DestGUID)
+		for k, v in pairs(self.Data) do 
+			if k == "SCHOOL_INTERRUPT" then 
+				for _, v2 in pairs(v) do 
+					v2.Result = 0
+					v2.TextureID = 0
+				end 
+			else 
+				v.Result = 0
+				v.TextureID = 0
+				wipe(v.Applied)
+			end 
+		end 
+		
+		self.FrameData.Order	  = 0 
+		self.FrameData.Result	  = 0 
+		self.FrameData.TextureID  = 0
+		TMW:Fire("TMW_ACTION_LOSS_OF_CONTROL_UPDATE")
 	end, 
 }
 
@@ -1196,11 +1322,17 @@ LossOfControl.OnEvent 							= {
 	SPELL_AURA_APPLIED 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
 	SPELL_AURA_APPLIED_DOSE 					= function(aura) LossOfControl:Enumerate("Add", aura) end, 
 	SPELL_AURA_REFRESH 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
+	SPELL_INTERRUPT								= function(spellName, lockSchool) LossOfControl:OnEventInterrupt(spellName, lockSchool) end,
 	-- Remove 
 	SPELL_AURA_REMOVED							= function(aura) LossOfControl:Enumerate("Remove", aura) end, 
 	--SPELL_AURA_REMOVED_DOSE 					= function(aura) LossOfControl:Enumerate("Remove", aura) end, -- FIX ME: Do we need this?
-	-- Interrupt
-	SPELL_INTERRUPT								= function(spellName, lockSchool) LossOfControl:OnEventInterrupt(spellName, lockSchool) end,
+}
+
+LossOfControl.OnEventReset						= {
+	-- Reset 
+	UNIT_DIED									= function() LossOfControl:Reset() end,
+	UNIT_DESTROYED								= function() LossOfControl:Reset() end,
+	UNIT_DISSIPATES								= function() LossOfControl:Reset() end,
 }
 
 -------------------------------------------------------------------------------
@@ -1235,6 +1367,8 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 				LossOfControl.OnEvent[EVENT](spellName, lockSchool)
 			end 
 		end 
+	elseif LossOfControl.OnEventReset[EVENT] and UnitGUID("player") == DestGUID then 
+		LossOfControl.OnEventReset[EVENT]()
 	end 
 		
 	-- PvP players tracker
@@ -1250,11 +1384,11 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 	end 
 
 	-- Reset isFlying
-	if EVENT == "UNIT_DIED" or EVENT == "UNIT_DESTROYED" then 
+	if EVENT == "UNIT_DIED" or EVENT == "UNIT_DESTROYED" or EVENT == "UNIT_DISSIPATES" then 
 		UnitTracker:UNIT_DIED(DestGUID)
 	else 
 		local firstFive = strsub(EVENT, 1, 5)
-		if firstFive == "SPELL" then 
+		if firstFive == "SPELL" and not UnitTracker.isBlink[spellName] then 
 			UnitTracker:RESET_IS_FLYING(EVENT, SourceGUID, spellName)
 		end 
 	end 
@@ -1262,7 +1396,7 @@ end
 
 local UNIT_SPELLCAST_SUCCEEDED					= function(...)
 	local unitID, _, spellID = ...
-	if unitID == "player" then  
+	if unitID == "player" and not UnitTracker.isBlink[spellID] then  
 		UnitTracker:UNIT_SPELLCAST_SUCCEEDED_PLAYER(unitID, spellID)
 	end 
 end
@@ -1314,6 +1448,8 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				funct
 		end 
 	end 
 end)
+A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_ENTERING_WORLD",				function() LossOfControl:Reset() end)
+A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_ENTERING_BATTLEGROUND",		function() LossOfControl:Reset() end)
 
 -------------------------------------------------------------------------------
 -- API: CombatTracker
@@ -1771,6 +1907,10 @@ A.UnitCooldown 									= {
 		-- unit accepts "arena", "raid", "party", their number 		
 		-- isFriendlyArg, inPvPArg are optional		
 		-- CLEUbl is a table = { ['Event_CLEU'] = true, } which to skip and don't reset by them in fly
+		if type(spellName) == "number" then 
+			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
+		end 
+		
 		if UnitTracker.isBlink[spellName] then 
 			A.Print("[Error] Can't register Blink or Shrimmer because they are already registered. Please use function Action.UnitCooldown:GetBlinkOrShrimmer(unitID)")
 			return 
@@ -1778,10 +1918,6 @@ A.UnitCooldown 									= {
 		
 		local inPvP 	 = inPvPArg 
 		local isFriendly = isFriendlyArg
-		
-		if type(spellName) == "number" then 
-			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
-		end 
 		
 		UnitTracker.isRegistered[spellName] = { isFriendly = isFriendly, inPvP = inPvP, Timer = timer, blackListCLEU = CLEUbl } 	
 	end,
@@ -1963,18 +2099,19 @@ A.UnitCooldown:Register(ACTION_CONST_SPELLID_FREEZING_TRAP, 15, nil, nil, {
 -------------------------------------------------------------------------------
 A.LossOfControl									= {
 	Get											= function(self,  locType, name)
-		-- @return number (remain duration in seconds of LossOfControl)	
+		-- @return number (remain duration in seconds of LossOfControl), number (textureID)
+		-- Note: For external usage (not frame!)
 		if LossOfControl.Data[locType] then 
 			if name then 
 				if LossOfControl.Data[locType][name] then 
-					return math_max(LossOfControl.Data[locType][name] - TMW.time, 0)
+					return math_max(LossOfControl.Data[locType][name].Result - TMW.time, 0), LossOfControl.Data[locType][name].TextureID 
 				end 
 			else 
-				return math_max(LossOfControl.Data[locType].Result - TMW.time, 0)   
+				return math_max(LossOfControl.Data[locType].Result - TMW.time, 0), LossOfControl.Data[locType].TextureID 
 			end 
 		end 
 		
-		return 0	
+		return 0, 0 
 	end, 
 	IsMissed									= function(self, MustBeMissed)
 		-- @return boolean 
@@ -2030,7 +2167,7 @@ A.LossOfControl									= {
 	end,
 	GetExtra 									= {
 		["Dwarf"] 								= {
-			Applied 							= {"SLEEP"}, -- Can be sleepd by  Wyvern Sting 
+			Applied 							= {"SLEEP"}, 
 			Missed 								= {"POLYMORPH", "INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "STUN", "FEAR", "HORROR", "CHARM", "SHACKLE_UNDEAD", "TURN_UNDEAD"},
 		},
 		["Scourge"] 							= {
@@ -2038,9 +2175,46 @@ A.LossOfControl									= {
 			Missed 								= {"INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "STUN", "SHACKLE_UNDEAD", "ROOT"}, 
 		},
 		["Gnome"]	 							= {
-			Applied 							= {"ROOT", "SNARE", "DAZE"}, -- Need summary for: "DAZE",  
+			Applied 							= {"ROOT", "SNARE", "DAZE"}, -- Need summary for: "DAZE" 
 			Missed 								= {"INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "STUN", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "TURN_UNDEAD"},
 		},		
 	},	
+	TestFrameData								= function(self, duration, textureID)
+		-- Note: For test only to simulate conditions on frames. If arguments are omit then will be used for test Shield Bash 
+		LossOfControl.FrameData.Order			= 3
+		LossOfControl.FrameData.Result 			= TMW.time + (duration or 6)
+		LossOfControl.FrameData.TextureID 		= textureID or 132357
+		TMW:Fire("TMW_ACTION_LOSS_OF_CONTROL_UPDATE")
+	end,
+	TestFrameReset								= function(self)
+		LossOfControl:Reset()
+	end,
+	UpdateFrameData 							= function(self)
+		-- Note: Used for manually update frame (in case if checkbox in UI was activaed while loss of control receive)
+		LossOfControl.FrameData.Order			= 0 
+		LossOfControl.FrameData.Result 			= 0
+		LossOfControl.FrameData.TextureID 		= 0
+		LossOfControl:OnFrameSortData()
+	end, 
+	GetFrameData								= function(self)
+		-- @return number (textureID), number (remain duration), number (expirationTime of control)
+		-- Note: Used for frames with sorted by order to display CURRENT high priority loss of control. 0 for both in case if nothing isn't applied 
+		return LossOfControl.FrameData.TextureID, math_max(LossOfControl.FrameData.Result - TMW.time, 0), LossOfControl.FrameData.Result
+	end,
+	GetFrameOrder 								= function(self)
+		-- @return number (priority 1 - heavy, 2 - medium, 3 - light, 0 - no control)		
+		return LossOfControl.FrameData.Order
+	end,
+	IsEnabled									= function(self, frame_type)
+		-- @return boolean 
+		-- Note: Used for frames to determine which should be shown
+		if A.IsInitialized then 
+			if frame_type == "PlayerFrame" then 
+				return A.GetToggle(1, "LossOfControlPlayerFrame")
+			else 
+				return A.GetToggle(1, "LossOfControlRotationFrame")
+			end 
+		end 
+	end,
 }
 

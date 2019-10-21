@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "18.10.2019"
+local DateTime 						= "21.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -39,9 +39,9 @@ local TextStatusBar_UpdateTextStringWithValues =
 	  TextStatusBar_UpdateTextStringWithValues	 	 
 		
 local GameLocale 							= GetLocale()	
+local UIParent								= UIParent
 local C_UI									= _G.C_UI
-local Spell									= _G.Spell 	  								-- ObjectAPI/Spell.lua
-local FindSpellBookSlotBySpellID 			= _G.FindSpellBookSlotBySpellID	   
+local Spell									= _G.Spell 	  								-- ObjectAPI/Spell.lua  
 local CreateFrame 							= _G.CreateFrame	
 local PlaySound								= _G.PlaySound	  
 
@@ -190,6 +190,11 @@ local Localization = {
 				AURADURATIONTOOLTIP = "Shows duration value on default unit frames",
 				AURACCPORTRAIT = "Aura CC Portrait",
 				AURACCPORTRAITTOOLTIP = "Shows portrait of crowd control on the target frame",
+				LOSSOFCONTROLPLAYERFRAME = "Loss Of Control: Player Frame",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Displays the duration of loss of control at the player portrait position",
+				LOSSOFCONTROLROTATIONFRAME = "Loss Of Control: Rotation Frame",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Displays the duration of loss of control at the rotation portrait position (at the center)",
+				LOSSOFCONTROLTYPES = "Loss Of Control: Display Triggers",				
 			},
 			[3] = {
 				HEADBUTTON = "Actions",
@@ -490,6 +495,11 @@ local Localization = {
 				AURADURATIONTOOLTIP = "Показывает продолжительность значений аур на по умолчанию фреймах целей",
 				AURACCPORTRAIT = "Портрет СС ауры",
 				AURACCPORTRAITTOOLTIP = "Показывает портрет ауры цепочки контроля на фрейме цели",
+				LOSSOFCONTROLPLAYERFRAME = "Потеря контроля: Рамка игрока",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Отображает продолжительность потери контроля на портрете игрока",
+				LOSSOFCONTROLROTATIONFRAME = "Потеря контроля: Рамка ротации",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Отображает продолжительность потери контроля на портрете ротации (по центру)",
+				LOSSOFCONTROLTYPES = "Потеря контроля: Отображение Триггеров",	
 			},			
 			[3] = {
 				HEADBUTTON = "Действия",
@@ -790,6 +800,11 @@ local Localization = {
 				AURADURATIONTOOLTIP = "Zeigt die Dauer der Standardeinheiten an",
 				AURACCPORTRAIT = "Aura CC Portrait",
 				AURACCPORTRAITTOOLTIP = "Zeigt ein Porträt der Mengensteuerung auf dem Zielrahmen",
+				LOSSOFCONTROLPLAYERFRAME = "Kontrollverlust: Spieler-Frame",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Zeigt die Dauer des Kontrollverlusts an der Position des Spielerporträts an",
+				LOSSOFCONTROLROTATIONFRAME = "Kontrollverlust: Drehrahmen",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Zeigt die Dauer des Kontrollverlusts an der Position des Rotationsporträts (in der Mitte) an",
+				LOSSOFCONTROLTYPES = "Kontrollverlust: Trigger anzeigen",	
 			},
 			[3] = {
 				HEADBUTTON = "Actions",
@@ -1090,6 +1105,11 @@ local Localization = {
 				AURADURATIONTOOLTIP = "Affiche la valeur de la durée sur les cadres d'unités par défaut",
 				AURACCPORTRAIT = "Portrait Aura CC",
 				AURACCPORTRAITTOOLTIP = "Affiche le portrait du contrôle de la foule sur l'image cible",
+				LOSSOFCONTROLPLAYERFRAME = "Perte de contrôle: cadre du joueur",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Affiche la durée de la perte de contrôle à la position de portrait du joueur",
+				LOSSOFCONTROLROTATIONFRAME = "Perte de contrôle: cadre de rotation",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Affiche la durée de la perte de contrôle à la position portrait en rotation (au centre)",
+				LOSSOFCONTROLTYPES = "Perte de contrôle: déclencheurs d'affichage",		
 			},
 			[3] = {
 				HEADBUTTON = "Actions",
@@ -1389,7 +1409,12 @@ local Localization = {
 				AURADURATION = "Durata dell'aura",
 				AURADURATIONTOOLTIP = "Mostra il valore della durata sui frame delle unità predefiniti",
 				AURACCPORTRAIT = "Ritratto di Aura CC",
-				AURACCPORTRAITTOOLTIP = "Mostra il ritratto del controllo della folla sul riquadro di destinazione",				
+				AURACCPORTRAITTOOLTIP = "Mostra il ritratto del controllo della folla sul riquadro di destinazione",	
+				LOSSOFCONTROLPLAYERFRAME = "Perdita di controllo: Player Frame",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Visualizza la durata della perdita di controllo nella posizione verticale del giocatore",
+				LOSSOFCONTROLROTATIONFRAME = "Perdita di controllo: telaio di rotazione",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Visualizza la durata della perdita di controllo nella posizione verticale di rotazione (al centro)",
+				LOSSOFCONTROLTYPES = "Perdita di controllo: visualizzazione dei trigger",					
 			},
 			[3] = {
 				HEADBUTTON = "Azioni",
@@ -1690,6 +1715,11 @@ local Localization = {
 				AURADURATIONTOOLTIP = "Muestra el valor de duración en fotogramas de unidad predeterminados",
 				AURACCPORTRAIT = "Aura CC Portrait",
 				AURACCPORTRAITTOOLTIP = "Muestra el retrato del control de multitudes en el marco objetivo.",	
+				LOSSOFCONTROLPLAYERFRAME = "Pérdida de control: marco del jugador",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Muestra la duración de la pérdida de control en la posición vertical del jugador",
+				LOSSOFCONTROLROTATIONFRAME = "Pérdida de control: marco de rotación",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Muestra la duración de la pérdida de control en la posición vertical de rotación (en el centro)",
+				LOSSOFCONTROLTYPES = "Pérdida de control: disparadores de pantalla",	
 			},
 			[3] = {
 				HEADBUTTON = "Acciones",
@@ -1993,6 +2023,41 @@ local Factory = {
 		TargetPercentHealth = true,		
 		AuraDuration = true,
 		AuraCCPortrait = true,
+		LossOfControlPlayerFrame = true,
+		LossOfControlRotationFrame = true,
+		LossOfControlTypes = {
+			[1] = true,
+			[2] = true,
+			[3] = true,
+			[4] = true,
+			[5] = true,
+			[6] = true,
+			[7] = true,
+			[8] = true,
+			[9] = true,
+			[10] = true,
+			[11] = true,
+			[12] = true,
+			[13] = true,
+			[14] = true,
+			[15] = true,
+			[16] = true,
+			[17] = true,
+			[18] = true,
+			[19] = true,
+			[20] = true,
+			[21] = true,
+			[22] = true,
+			[23] = true,
+			[24] = true,
+			[25] = true,
+			[26] = true,
+			[27] = true,
+			[28] = true,
+			[29] = true,
+			[30] = true,
+			[31] = true,
+		},
 		AutoTarget = true, 
 		Potion = true, 
 		Racial = true,	
@@ -5923,7 +5988,7 @@ function Action.ToggleMainUI()
 			end)
 			AutoShootCheckBoxUpdate()
 
-			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 360, L["TAB"][tab.name]["PAUSECHECKS"])
+			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 425, L["TAB"][tab.name]["PAUSECHECKS"])
 			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
 			PauseChecksPanel.titlePanel.label:SetFontSize(14)
 			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = PauseChecksPanel.titlePanel.label:GetHeight() + 10 } })			
@@ -6150,7 +6215,83 @@ function Action.ToggleMainUI()
 				Action.Print(L["TAB"][tab.name]["AURADURATION"] .. ": ", TMW.db.profile.ActionDB[tab.name].AuraDuration)
 			end				
 			AuraDurationCheckbox.Identify = { Type = "Checkbox", Toggle = "AuraDuration" }	
-			StdUi:FrameTooltip(AuraDurationCheckbox, L["TAB"][tab.name]["AURADURATIONTOOLTIP"], nil, "TOPLEFT", true)				
+			StdUi:FrameTooltip(AuraDurationCheckbox, L["TAB"][tab.name]["AURADURATIONTOOLTIP"], nil, "TOPLEFT", true)		
+
+			local LossOfControlPlayerFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAME"])
+			LossOfControlPlayerFrame:SetChecked(TMW.db.profile.ActionDB[tab.name].LossOfControlPlayerFrame)
+			function LossOfControlPlayerFrame:OnValueChanged(self, state, value)
+				TMW.db.profile.ActionDB[tab.name].LossOfControlPlayerFrame = not TMW.db.profile.ActionDB[tab.name].LossOfControlPlayerFrame	
+				Action.LossOfControl:UpdateFrameData()				
+				Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAME"] .. ": ", TMW.db.profile.ActionDB[tab.name].LossOfControlPlayerFrame)
+			end				
+			LossOfControlPlayerFrame.Identify = { Type = "Checkbox", Toggle = "LossOfControlPlayerFrame" }	
+			StdUi:FrameTooltip(LossOfControlPlayerFrame, L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAMETOOLTIP"], nil, "TOPRIGHT", true)	
+
+			local LossOfControlRotationFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAME"])
+			LossOfControlRotationFrame:SetChecked(TMW.db.profile.ActionDB[tab.name].LossOfControlRotationFrame)
+			function LossOfControlRotationFrame:OnValueChanged(self, state, value)
+				TMW.db.profile.ActionDB[tab.name].LossOfControlRotationFrame = not TMW.db.profile.ActionDB[tab.name].LossOfControlRotationFrame	
+				Action.LossOfControl:UpdateFrameData()				
+				Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAME"] .. ": ", TMW.db.profile.ActionDB[tab.name].LossOfControlRotationFrame)
+			end				
+			LossOfControlRotationFrame.Identify = { Type = "Checkbox", Toggle = "LossOfControlRotationFrame" }	
+			StdUi:FrameTooltip(LossOfControlRotationFrame, L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAMETOOLTIP"], nil, "TOPLEFT", true)		
+			
+			local LossOfControlTypes = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), Action.Data.theme.dd.height, {
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL0_CAP, value = 1 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL1_CAP, value = 2 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL2_CAP, value = 3 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL3_CAP, value = 4 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL4_CAP, value = 5 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL5_CAP, value = 6 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL6_CAP, value = 7 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_BANISH"], 			value = 8 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_CHARM"],		 	value = 9 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_CYCLONE"], 		value = 10 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_DAZE"], 			value = 11 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_DISARM"], 			value = 12 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_DISORIENT"], 		value = 13 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_FREEZE"], 			value = 14 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_HORROR"],	 		value = 15 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INCAPACITATE"], 	value = 16 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_PACIFY"], 			value = 17 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_PACIFYSILENCE"], 	value = 18 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_POLYMORPH"], 		value = 19 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_POSSESS"], 		value = 20 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SAP"], 			value = 21 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SHACKLE_UNDEAD"], 	value = 22 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SLEEP"], 			value = 23 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SNARE"], 			value = 24 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_TURN_UNDEAD"], 	value = 25 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_ROOT"], 			value = 26 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_CONFUSE"], 		value = 27 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_STUN"], 			value = 28 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SILENCE"], 		value = 29 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_FEAR"], 			value = 30 },
+			}, nil, true)
+			LossOfControlTypes:SetPlaceholder(" -- " .. L["NO"] .. " -- ") 
+			for i = 1, #LossOfControlTypes.optsFrame.scrollChild.items do 
+				LossOfControlTypes.optsFrame.scrollChild.items[i]:SetChecked(TMW.db.profile.ActionDB[tab.name].LossOfControlTypes[i])
+			end 			
+			LossOfControlTypes.OnValueChanged = function(self, value)			
+				for i = 1, #self.optsFrame.scrollChild.items do 					
+					if TMW.db.profile.ActionDB[tab.name].LossOfControlTypes[i] ~= self.optsFrame.scrollChild.items[i]:GetChecked() then
+						TMW.db.profile.ActionDB[tab.name].LossOfControlTypes[i] = self.optsFrame.scrollChild.items[i]:GetChecked()
+						Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLTYPES"] .. " " .. self:FindValueText(i) .. ": ", TMW.db.profile.ActionDB[tab.name].LossOfControlTypes[i])
+					end 				
+				end 	
+				Action.LossOfControl:UpdateFrameData()	
+			end				
+			LossOfControlTypes:RegisterForClicks("LeftButtonUp")
+			LossOfControlTypes:SetScript('OnClick', function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				end
+			end)		
+			LossOfControlTypes.Identify = { Type = "Dropdown", Toggle = "LossOfControlTypes" }			
+			LossOfControlTypes.FontStringTitle = StdUi:FontString(LossOfControlTypes, L["TAB"][tab.name]["LOSSOFCONTROLTYPES"])
+			StdUi:GlueAbove(LossOfControlTypes.FontStringTitle, LossOfControlTypes)
+			LossOfControlTypes.text:SetJustifyH("CENTER")
 			
 			local GlobalOverlay = anchor:AddRow()					
 			GlobalOverlay:AddElement(PvEPvPToggle, { column = 5.5 })			
@@ -6183,10 +6324,12 @@ function Action.ToggleMainUI()
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LetMeCast, TargetCastBar, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(TargetPercentHealth, TargetRealHealth, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(AuraCCPortrait, AuraDurationCheckbox, { column = "even" })
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LossOfControlPlayerFrame, LossOfControlRotationFrame, { column = "even" })
+			PauseChecksPanel:AddRow({ margin = { top = 5 } }):AddElement(LossOfControlTypes)
 			PauseChecksPanel:DoLayout()		
 			-- Add empty space for scrollframe after all elements 
-			anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12 })	
-			--anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12, margin = { top = 10 } })	
+			--anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12 })	
+			anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12, margin = { top = 10 } })	
 			-- Fix StdUi 			
 			-- Lib is not optimized for resize since resizer changes only source parent, this is deep child parent 
 			function anchor:DoLayout()
