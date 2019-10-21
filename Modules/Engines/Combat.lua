@@ -768,7 +768,7 @@ local LossOfControl								= {
 	},
 	Aura										= {
 		-- TEST 
-		[GetSpellInfo(11918)]					= {"STUN", "ROOT"},
+		--[GetSpellInfo(11918)]					= {"STUN", "ROOT"},
 		-- [[ ROOT ]] 
 		-- Entangling Roots
 		[GetSpellInfo(339)]						= "ROOT",
@@ -2179,7 +2179,7 @@ A.LossOfControl									= {
 			Missed 								= {"INCAPACITATE", "DISORIENT", "FREEZE", "SILENCE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "STUN", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "TURN_UNDEAD"},
 		},		
 	},	
-	TestFrameData								= function(self, duration, textureID)
+	--[[TestFrameData								= function(self, duration, textureID)
 		-- Note: For test only to simulate conditions on frames. If arguments are omit then will be used for test Shield Bash 
 		LossOfControl.FrameData.Order			= 3
 		LossOfControl.FrameData.Result 			= TMW.time + (duration or 6)
@@ -2188,7 +2188,7 @@ A.LossOfControl									= {
 	end,
 	TestFrameReset								= function(self)
 		LossOfControl:Reset()
-	end,
+	end,]]
 	UpdateFrameData 							= function(self)
 		-- Note: Used for manually update frame (in case if checkbox in UI was activaed while loss of control receive)
 		LossOfControl.FrameData.Order			= 0 
