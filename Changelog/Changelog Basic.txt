@@ -1,3 +1,6 @@
+[Basic v6]
+Added Loss of Control frames
+
 [Basic v5]
 Added Warrior's and Rogue's AutoShoot support
 Added visual border on visible APL 
