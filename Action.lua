@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "21.10.2019"
+local DateTime 						= "22.10.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -217,7 +217,7 @@ local Localization = {
 				ISQUEUEDALREADY = "is already existing in queue!",
 				QUEUED = "|cff00ff00Queued: |r",
 				QUEUEREMOVED = "|cffff0000Removed from queue: |r",
-				QUEUEPRIORITY = " has priority №",
+				QUEUEPRIORITY = " has priority #",
 				QUEUEBLOCKED = "|cffff0000can't be queued because SetBlocker blocked it!|r",
 				SELECTIONERROR = "|cffff0000You didn't selected row!|r",
 				AUTOHIDDEN = "AutoHide unavailable actions",
@@ -522,7 +522,7 @@ local Localization = {
 				ISQUEUEDALREADY = "уже в состоит в очереди!",
 				QUEUED = "|cff00ff00Установлен в очередь: |r",
 				QUEUEREMOVED = "|cffff0000Удален из очереди: |r",
-				QUEUEPRIORITY = " имеет приоритет №",
+				QUEUEPRIORITY = " имеет приоритет #",
 				QUEUEBLOCKED = "|cffff0000не может быть поставлен в очередь поскольку установлена блокировка!|r",
 				SELECTIONERROR = "|cffff0000Вы не выбрали строку!|r",
 				AUTOHIDDEN = "АвтоСкрытие недоступных действий",
@@ -827,7 +827,7 @@ local Localization = {
 				ISQUEUEDALREADY = "Schon in der Warteschleife drin!",
 				QUEUED = "|cff00ff00Eingereiht: |r",
 				QUEUEREMOVED = "|cffff0000Entfernt aus der Warteschleife: |r",
-				QUEUEPRIORITY = " hat Priorität №",
+				QUEUEPRIORITY = " hat Priorität #",
 				QUEUEBLOCKED = "|cffff0000Kann nicht eingereiht werden das der Spell geblockt ist!|r",
 				SELECTIONERROR = "|cffff0000Du hast nichts ausgewählt!|r",
 				AUTOHIDDEN = "Nicht verfügbare Aktionen automatisch ausblenden",
@@ -1132,7 +1132,7 @@ local Localization = {
 				ISQUEUEDALREADY = "est déjà dans la file d'attente!",
 				QUEUED = "|cff00ff00Mise en attente: |r",
 				QUEUEREMOVED = "|cffff0000Retirer de la file d'attente: |r",
-				QUEUEPRIORITY = " est prioritaire №",
+				QUEUEPRIORITY = " est prioritaire #",
 				QUEUEBLOCKED = "|cffff0000ne peut être mise en attente car le blocage est activé!|r",
 				SELECTIONERROR = "|cffff0000Vous n'avez pas sélectionné de ligne!|r",
 				AUTOHIDDEN = "Masquer automatiquement les actions non disponibles",
@@ -1437,7 +1437,7 @@ local Localization = {
 				ISQUEUEDALREADY = "esiste giá nella coda!",
 				QUEUED = "|cff00ff00Nella Coda: |r",
 				QUEUEREMOVED = "|cffff0000Rimosso dalla Coda: |r",
-				QUEUEPRIORITY = " ha prioritá №",
+				QUEUEPRIORITY = " ha prioritá #",
 				QUEUEBLOCKED = "|cffff0000non può essere in Coda perché é giá bloccato!|r",
 				SELECTIONERROR = "|cffff0000Non hai selezionato una riga!|r",
 				AUTOHIDDEN = "Nascondi automaticamente le azioni non disponibili",
@@ -1742,7 +1742,7 @@ local Localization = {
 				ISQUEUEDALREADY = "ya existe en la cola!",
 				QUEUED = "|cff00ff00Cola: |r",
 				QUEUEREMOVED = "|cffff0000Borrado de la cola: |r",
-				QUEUEPRIORITY = " tiene prioridad №",
+				QUEUEPRIORITY = " tiene prioridad #",
 				QUEUEBLOCKED = "|cffff0000no puede añadirse a la cola porque SetBlocker lo ha bloqueado!|r",
 				SELECTIONERROR = "|cffff0000No has seleccionado una fila!|r",
 				AUTOHIDDEN = "AutoOcultar acciones no disponibles",
@@ -4261,8 +4261,8 @@ local Queue = {
 	end, 
 	OnEventToReset 				= function(self, isSilenced)
 		if #Action.Data.Q > 0 then 
-			for i = 1, #Action.Data.Q do 
-				if Action.Data.Q[i] and Action.Data.Q[i]:IsQueued() then 
+			for i = #Action.Data.Q, 1, -1 do 
+				if Action.Data.Q[i] and Action.Data.Q[i].Queued then 
 					getmetatable(Action.Data.Q[i]).__index:SetQueue((isSilenced and self.Temp.SilenceON) or self.Temp.SilenceOFF)
 				end 
 			end 		
@@ -4307,7 +4307,7 @@ end
 function Action.CancelAllQueueForMeta(meta)
 	local index 			= #Action.Data.Q 
 	if index > 0 then 
-		for i = 1, index do 
+		for i = index, 1, -1 do 
 			if (not Action.Data.Q[i].MetaSlot and (meta == 3 or meta == 4)) or Action.Data.Q[i].MetaSlot == meta then 
 				getmetatable(Action.Data.Q[i]).__index:SetQueue(Queue.Temp.SilenceON)
 			end 
@@ -4392,20 +4392,20 @@ function Action:SetQueue(args)
 	local Identify = GetTableKeyIdentify(self)
 	if self.QueueForbidden or (self.isStance and Action.Player:IsStance(self.isStance)) then 
 		if not args.Silence then 
-			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. " " .. L["TAB"][3]["KEY"] .. printKey)
+			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. printKey)
 		end 
         return 	 
 	-- Let for user allow run blocked actions whenever he wants, anyway why not 
 	--elseif self:IsBlocked() and not self.Queued then 
 		--if not args.Silence then 
-			--Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"] .. " " .. L["TAB"][3]["KEY"] .. printKey)
+			--Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"] .. printKey)
 		--end 
         --return 
 	end
 	
 	if args.Value ~= nil and self.Queued == args.Value then 
 		if not args.Silence then 
-			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISQUEUEDALREADY"] .. " " .. L["TAB"][3]["KEY"] .. printKey)
+			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISQUEUEDALREADY"] .. printKey)
 		end 
 		return 
 	end 
@@ -4416,7 +4416,7 @@ function Action:SetQueue(args)
 		self.Queued = not self.Queued
 	end 
 	
-	local priority = (args.Priority and not Action.IsQueueRunningAuto() and (args.Priority > #Action.Data.Q + 1 and #Action.Data.Q + 1 or args.Priority)) or #Action.Data.Q + 1	
+	local priority = (args.Priority and (args.Auto or not Action.IsQueueRunningAuto()) and (args.Priority > #Action.Data.Q + 1 and #Action.Data.Q + 1 or args.Priority)) or #Action.Data.Q + 1
     if not args.Silence then		
 		if self.Queued then 
 			Action.Print(L["TAB"][3]["QUEUED"] .. self:Link() .. L["TAB"][3]["QUEUEPRIORITY"] .. priority .. ". " .. L["TAB"][3]["KEYTOTAL"] .. #Action.Data.Q + 1 .. "]")
