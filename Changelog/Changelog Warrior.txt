@@ -1,3 +1,9 @@
+[Warrior v4]
+Added Loss of Control frames
+Added condition to prevent actions from passive meta slots if something is already running in queue by Auto argument 
+Changed default state as false on first launch for rage save by HeroicStrike exploit
+Fixed isSafestThreatRotation		- miss typo (mostly seen with SunderArmor when it wasn't used in Tank role)
+
 [Warrior v3]
 Fixed Overpower 					- wasn't perform swing misses properly
 Fixed Bloodthirst					- will bypass option for heroic strike trick rage save 
