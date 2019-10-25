@@ -3,14 +3,18 @@ Name: DRList-1.0
 Description: Diminishing returns database. Fork of DRData-1.0.
 Website: https://www.curseforge.com/wow/addons/drlist-1-0
 Documentation: https://wardz.github.io/DRList-1.0/
-Version: v1.0.7
+Version: v1.1.0
 Dependencies: LibStub
 License: MIT
 ]]
 
+---------------------------------------------------------------------------------------------------------------
+-- THIS LIB IS MODIFIED VERSION OF THE ORIGINAL BY DISARM IN SPELLS AND GetApplicationMax, GetNextDR FUNCTIONS!
+---------------------------------------------------------------------------------------------------------------
+
 --- DRList-1.1
 -- @module DRList-1.1
-local MAJOR, MINOR = "DRList-1.1", 5
+local MAJOR, MINOR = "DRList-1.1", 8
 local Lib = assert(LibStub, MAJOR .. " requires LibStub."):NewLibrary(MAJOR, MINOR)
 if not Lib then return end -- already loaded
 
@@ -33,12 +37,9 @@ L["TAUNTS"] = "Taunts"
 L["FEARS"] = "Fears"
 L["RANDOM_ROOTS"] = "Random roots"
 L["RANDOM_STUNS"] = "Random stuns"
-L["OPENER_STUN"] = "Opener stun" -- Cheap Shot & Pounce
-L["DEATH_COIL"] = GetSpellInfo(6789) or GetSpellInfo(47541)
 L["MIND_CONTROL"] = GetSpellInfo(605)
-L["CHARGE"] = GetSpellInfo(100)
-L["ENTRAPMENT"] = GetSpellInfo(19184) or GetSpellInfo(19387)
 L["FROST_SHOCK"] = GetSpellInfo(8056) or GetSpellInfo(196840)
+L["KIDNEY_SHOT"] = GetSpellInfo(408)
 
 -- luacheck: push ignore 542
 local locale = GetLocale()
@@ -87,7 +88,22 @@ L["SILENCES"] = "Немота"
 L["STUNS"] = "Оглушение"
 L["TAUNTS"] = "Насмешки"
 
-elseif locale == "esES" or locale == "esMX" then
+elseif locale == "esES" then
+    -- Categories
+L["DISARMS"] = "Desarmar"
+L["DISORIENTS"] = "Desorientar"
+L["FEARS"] = "Miedos"
+L["INCAPACITATES"] = "Incapacitar"
+L["KNOCKBACKS"] = "Derribos"
+L["OPENER_STUN"] = "Aturdir"
+L["RANDOM_ROOTS"] = "Raíces aleatorias"
+L["RANDOM_STUNS"] = "Aturdir aleatorio"
+L["ROOTS"] = "Raíces"
+L["SILENCES"] = "Silencios"
+L["STUNS"] = "Aturdimientos"
+L["TAUNTS"] = "Provocaciones"
+
+elseif locale == "esMX" then
     -- Categories
 L["FEARS"] = "Miedos"
 L["KNOCKBACKS"] = "Derribos"
@@ -96,7 +112,22 @@ L["SILENCES"] = "Silencios"
 L["STUNS"] = "Aturdimientos"
 L["TAUNTS"] = "Provocaciones"
 
-elseif locale == "zhCN" or locale == "zhTW" then
+elseif locale == "zhCN" then
+    -- Categories
+L["DISARMS"] = "缴械"
+L["DISORIENTS"] = "迷惑"
+L["FEARS"] = "恐惧"
+L["INCAPACITATES"] = "瘫痪"
+L["KNOCKBACKS"] = "击退"
+L["OPENER_STUN"] = "击晕"
+L["RANDOM_ROOTS"] = "随机定身"
+L["RANDOM_STUNS"] = "随机眩晕"
+L["ROOTS"] = "定身"
+L["SILENCES"] = "沉默"
+L["STUNS"] = "昏迷"
+L["TAUNTS"] = "嘲讽"
+
+elseif locale == "zhTW" then
     -- Categories
 L["FEARS"] = "恐懼"
 L["KNOCKBACKS"] = "擊退"
@@ -149,15 +180,12 @@ Lib.categoryNames = {
         ["stun"] = L.STUNS, -- controlled stun
         ["root"] = L.ROOTS, -- controlled root
         ["disarm"] = L.DISARMS,
-        ["opener_stun"] = L.OPENER_STUN,
         ["random_stun"] = L.RANDOM_STUNS, -- random proc stun, usually short (<3s)
-        ["random_root"] = L.RANDOM_ROOTS,
+        ["random_root"] = L.RANDOM_ROOTS, -- May be removed in the future!
         ["fear"] = L.FEARS,
-        ["death_coil"] = L.DEATH_COIL,
         ["mind_control"] = L.MIND_CONTROL,
         ["frost_shock"] = L.FROST_SHOCK,
-        ["entrapment"] = L.ENTRAPMENT,
-        ["charge"] = L.CHARGE,
+        ["kidney_shot"] = L.KIDNEY_SHOT,
     },
 }
 
@@ -234,8 +262,8 @@ end
 -- For Classic you also get an optional second return value
 -- which is the spell ID of the spell name you passed in.
 -- @tparam number spellID
--- @treturn[1] ?string|nil The category name.
--- @treturn[2] ?number|nil The spell ID. (Classic only)
+-- @treturn[1] string|nil The category name.
+-- @treturn[2] number|nil The spell ID. (Classic only)
 function Lib:GetCategoryBySpellID(spellID)
     if Lib.gameExpansion == "retail" then
         return Lib.spellList[spellID]
@@ -285,7 +313,7 @@ end
 -- Get ApplicationMax
 function Lib:GetApplicationMax(category)
 	local durations = Lib.diminishedDurations[Lib.gameExpansion][category or "default"] or Lib.diminishedDurations[Lib.gameExpansion].default
-	return #durations 
+	return durations and #durations or 0
 end 
 
 do

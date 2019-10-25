@@ -299,6 +299,10 @@ local AuraList = {
         20066, 				-- Repentance				(Paladin)		
 		2637, 				-- Hibernate				(Druid)
 		118, 				-- Polymorph				(Mage)
+		851,				-- Polymorph: Sheep 		(Mage)
+		28270,				-- Polymorph: Cow			(Mage)
+		28272,				-- Polymorph: Pig			(Mage)
+		28271,				-- Polymorph: Turtle		(Mage)
 		1499, 				-- Freezing Trap			(Hunter)
 		19386, 				-- Wyvern Sting   			(Hunter)	
 		19503, 				-- Scatter Shot        		(Hunter)
@@ -308,7 +312,8 @@ local AuraList = {
         5782, 				-- Fear						(Warlock)        
         6358, 				-- Seduction (pet)			(Warlock)                
         5484, 				-- Howl of Terror			(Warlock)
-        8122, 				-- Psychic Scream			(Priest)        
+        8122, 				-- Psychic Scream			(Priest)      
+		9484, 		-- Shackle Undead 			(Priest)			
         -- Rooted CC
         339, 				-- Entangling Roots			(Druid)
         122, 				-- Frost Nova				(Mage)
@@ -386,6 +391,8 @@ local AuraList = {
         --20711, 				-- Spirit of Redemption		(Priest)		
     }, 
     DeffBuffs = {        
+		871,				-- ShieldWall				(Warrior)
+		20230,				-- Retaliation				(Warrior)
 		5277, 				-- Evasion					(Rogue)
 		1022, 				-- Blessing of Protection	(Paladin)
 		22812,				-- Barkskin					(Druid)
@@ -396,7 +403,7 @@ local AuraList = {
         --20711, 				-- Spirit of Redemption		(Priest)		
     },  
 	SmallDeffBuffs = {
-		871,				-- Shield Wall				(Warrior)
+		20594,				-- Stoneform				(Dwarf)
 		6940, 				-- Blessing of Sacrifice	(Paladin)
 	},
     -- Damage buffs / debuffs
@@ -405,7 +412,9 @@ local AuraList = {
         12880, 				-- Enrage (Warrior)
     }, 
     DamageBuffs = {        
-		19135,				-- Avatar					(Warrior)
+		12328,				-- Death Wish 				(Warrior)		
+		1719,				-- Recklessness				(Warrior)
+		13877,				-- Blade Flurry				(Rogue)
 		13750,				-- Adrenaline Rush			(Rogue)
 		19574,				-- Bestial Wrath			(Hunter)
 		11129, 				-- Combustion 				(Mage)
@@ -414,8 +423,10 @@ local AuraList = {
 		20572,				-- Blood Fury				(Orc)
     },
     DamageBuffs_Melee = {        
+		12328,				-- Death Wish 				(Warrior)	
+		1719,				-- Recklessness				(Warrior)
         13750,				-- Adrenaline Rush			(Rogue)
-		19135,				-- Avatar					(Warrior)
+		13877,				-- Blade Flurry				(Rogue)		
     },
     BurstHaste = {
         19372, 				-- Ancient Hysteria 		(Unknown)
@@ -1121,22 +1132,17 @@ A.Unit = PseudoClass({
 		-- drDiminishing is Tick (number: 100 -> 50 -> 25 -> 0) where 0 is fully imun, 100% no imun - can be fully duration CC'ed 
 		-- "taunt" has unique Tick (number: 100 -> 65 -> 42 -> 27 -> 0)
 		--[[ drCat accepts:
-			"root"         
-			"random_root"
-			"stun"      		-- PvE unlocked     
-			"opener_stun"
-			"random_stun"		-- PvE unlocked
-			"disorient"      
-			"disarm" 			-- added in original DRList		   
-			"silence"        
-			"fear"   
-			"incapacitate"   
-			"knockback" 
-			"death_coil"
+			"incapacitate"
+			"silence"
+			"stun"							-- PvE unlocked  
+			"root"
+			"disarm"						-- Added in original DRList	
+			"random_stun"
+			"random_root"					-- May be removed in the future!
+			"fear"
 			"mind_control"
 			"frost_shock"
-			"entrapment"
-			"charge"	
+			"kidney_shot"	
 		]]
 		local unitID 						= self.UnitID 
 		if not A.IsInPvP then 
@@ -1248,22 +1254,17 @@ A.Unit = PseudoClass({
 		-- drDiminishing is Tick (number: 100 -> 50 -> 25 -> 0) where 0 is fully imun, 100% no imun - can be fully duration CC'ed 
 		-- "taunt" has unique Tick (number: 100 -> 65 -> 42 -> 27 -> 0)
 		--[[ drCat accepts:
-			"root"         
-			"random_root"
-			"stun"      		-- PvE unlocked     
-			"opener_stun"
-			"random_stun"		-- PvE unlocked
-			"disorient"      
-			"disarm" 			-- added in original DRList		   
-			"silence"        
-			"fear"   
-			"incapacitate"   
-			"knockback" 
-			"death_coil"
+			"incapacitate"
+			"silence"
+			"stun"							-- PvE unlocked  
+			"root"
+			"disarm"						-- Added in original DRList	
+			"random_stun"
+			"random_root"					-- May be removed in the future!
+			"fear"
 			"mind_control"
 			"frost_shock"
-			"entrapment"
-			"charge"	
+			"kidney_shot"	
 		]]		
 		local unitID 						= self.UnitID
 		return CombatTracker:GetDR(unitID, drCat)

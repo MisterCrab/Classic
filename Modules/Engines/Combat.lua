@@ -1770,22 +1770,17 @@ A.CombatTracker									= {
 	GetDR 										= function(self, unitID, drCat)
 		-- @return Tick (number: 100% -> 0%), Remain (number: 0 -> 18), Application (number: 0 -> 5), ApplicationMax (number: 0 -> 5)
 		--[[ drCat accepts:
-			"root"         
-			"random_root"
-			"stun"      		-- PvE unlocked     
-			"opener_stun"
-			"random_stun"		-- PvE unlocked
-			"disorient"      
-			"disarm" 			-- added in original DRList		   
-			"silence"        
-			"fear"   
-			"incapacitate"   
-			"knockback" 
-			"death_coil"
+			"incapacitate"
+			"silence"
+			"stun"							-- PvE unlocked  
+			"root"
+			"disarm"						-- Added in original DRList	
+			"random_stun"
+			"random_root"					-- May be removed in the future!
+			"fear"
 			"mind_control"
 			"frost_shock"
-			"entrapment"
-			"charge"	
+			"kidney_shot"	
 		]]
 		local GUID 								= UnitGUID(unitID)
 		local Data 								= CombatTracker.Data
