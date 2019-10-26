@@ -26,23 +26,25 @@ A.TeamCache				= {
 	Friendly 			= {
 		Size			= 1,
 		GUIDs			= {},
+		hasShaman		= false,
 	},
 	Enemy 				= {
 		Size 			= 0,
 		GUIDs 			= {},
+		hasShaman 		= false,
 	},
 }
 
-local _G, table, pairs, type, wipe = 
-	  _G, table, pairs, type, wipe
+local _G, table, pairs, type, select, wipe = 
+	  _G, table, pairs, type, select, wipe
 
 local huge 				= math.huge 
 
 local IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData = 
 	  IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData
 
-local UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID = 
-	  UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID
+local UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID, UnitClass = 
+	  UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID, UnitClass
 
 local GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers =  
 	  GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers    
@@ -118,13 +120,15 @@ local function OnEvent(event, ...)
 	
 	-- Update Units 
 	if event == "UPDATE_INSTANCE_INFO" or event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then 
-		-- Wipe Friendly 
+		-- Wipe 
+		A.TeamCache.Friendly.hasShaman = false 
 		for _, v in pairs(A.TeamCache.Friendly) do
 			if type(v) == "table" then 
 				wipe(v)
 			end 
 		end 
 		
+		A.TeamCache.Enemy.hasShaman = false 
 		for _, v in pairs(A.TeamCache.Enemy) do
 			if type(v) == "table" then 
 				wipe(v)
@@ -148,6 +152,9 @@ local function OnEvent(event, ...)
 				local guid 	= UnitGUID(arena)
 				if guid then 
 					A.TeamCache.Enemy.GUIDs[guid] = arena
+					if not A.TeamCache.Enemy.hasShaman and select(2, UnitClass(arena)) == "SHAMAN" then 
+						A.TeamCache.Enemy.hasShaman = true 
+					end 
 				end 
 			end   
 		end          
@@ -164,11 +171,14 @@ local function OnEvent(event, ...)
 		
 		if A.TeamCache.Friendly.Size > 1 and A.TeamCache.Friendly.Type then 
 			for i = 1, A.TeamCache.Friendly.Size do 
-				local member = A.TeamCache.Friendly.Type .. i    
-				local guid 	= UnitGUID(member)
+				local member 	= A.TeamCache.Friendly.Type .. i    
+				local guid 		= UnitGUID(member)
 				if guid then 
 					A.TeamCache.Friendly.GUIDs[guid] = member 
-				end 
+					if not A.TeamCache.Friendly.hasShaman and select(2, UnitClass(member)) == "SHAMAN" then 
+						A.TeamCache.Friendly.hasShaman = true 
+					end 
+				end 								
 			end 
 		end		
 	end 
