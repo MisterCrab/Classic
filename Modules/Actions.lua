@@ -15,8 +15,7 @@ local MultiUnits			= A.MultiUnits
 local EnemyTeam				= A.EnemyTeam
 local FriendlyTeam			= A.FriendlyTeam
 local TriggerGCD			= A.Enum.TriggerGCD
-
-local huge 					= math.huge  	  
+  
 local Pet					= LibStub("PetLibrary")
 --local LibRangeCheck  		= LibStub("LibRangeCheck-2.0")
 local SpellRange			= LibStub("SpellRange-1.0")
@@ -63,10 +62,11 @@ local itemCategory 			= {
 
 local GetNetStats 			= GetNetStats	
 
-local _G, type, next, pairs, select, unpack, table, setmetatable = 	
-	  _G, type, next, pairs, select, unpack, table, setmetatable
-	  
+local _G, type, next, pairs, select, unpack, table, setmetatable, wipe = 	
+	  _G, type, next, pairs, select, unpack, table, setmetatable, wipe
+	  	  
 local maxn					= table.maxn	  
+local huge 					= math.huge  	
 
 -- Spell 
 local Spell					= _G.Spell
@@ -78,11 +78,11 @@ local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSp
 	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown
 
 -- Item 	  
-local IsUsableItem, IsHelpfulItem, IsHarmfulItem 	=
-	  IsUsableItem, IsHelpfulItem, IsHarmfulItem
+local IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem	=
+	  IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem
   
-local GetItemInfo, GetItemIcon, GetItemInfoInstant 	= 
-	  GetItemInfo, GetItemIcon, GetItemInfoInstant	  
+local GetItemInfo, GetItemIcon, GetItemInfoInstant, GetItemSpell = 
+	  GetItemInfo, GetItemIcon, GetItemInfoInstant, GetItemSpell	  
 
 -- Talent	  
 local TalentMap 					= A.TalentMap 
@@ -92,17 +92,10 @@ local GetSpellBookItemName			= GetSpellBookItemName
 local FindSpellBookSlotBySpellID 	= FindSpellBookSlotBySpellID
 
 -- Unit 	  
-local UnitIsUnit 					= UnitIsUnit  	  	 
+local UnitIsUnit, UnitIsPlayer		= UnitIsUnit, UnitIsPlayer
 
--- Player 
---[[
-local GCD_OneSecond 		= {
-	[103] = true, 			-- Feral
-	[259] = true, 			-- Assassination
-	[260] = true, 			-- Outlaw
-	[261] = true, 			-- Subtlety
-}
-]]
+-- Empty 
+local empty1, empty2 				= { 0, -1 }, { 0, 0, 0, 0, 0, 0, 0, 0 } 
 
 -------------------------------------------------------------------------------
 -- Global Cooldown
@@ -190,7 +183,7 @@ local spellpowercache = setmetatable({}, { __index = function(t, v)
 		t[v] = { pwr[1].cost, pwr[1].type }
 		return t[v]
 	end     
-	return { 0, -1 }
+	return empty1
 end })
 
 function A:GetSpellPowerCostCache()
@@ -214,7 +207,6 @@ function A.GetSpellPowerCost(self)
 	else 
 		name = A.GetSpellInfo(self)
 	end 
-	print(self)
 	
 	local pwr = GetSpellPowerCost(name)
 	if pwr and pwr[1] then
@@ -246,11 +238,17 @@ function A.GetSpellDescription(self)
 		return numbers
 	end
 	
-	return { 0, 0, 0, 0, 0, 0, 0, 0 } 
+	return empty2
 end
 A.GetSpellDescription = A.MakeFunctionCachedDynamic(A.GetSpellDescription)
 
 function A:GetSpellCastTime()
+	-- @return number 
+	local _,_,_, castTime = GetSpellInfo(self.ID)
+	return (castTime or 0) / 1000 
+end 
+
+function A:GetSpellCastTimeCache()
 	-- @return number 
 	return (select(4, self:Info()) or 0) / 1000 
 end 
@@ -316,8 +314,8 @@ function A:GetSpellAbsorb(unitID)
 	return CombatTracker:GetAbsorb(unitID or "player", self:Info())
 end 
 
-function A:IsSpellLastGCD()
-	return self:Info() == A.LastPlayerCastName
+function A:IsSpellLastGCD(byID)
+	return (byID and self.ID == A.LastPlayerCastID) or (not byID and self:Info() == A.LastPlayerCastName)
 end 
 
 function A:IsSpellInFlight()
@@ -344,21 +342,8 @@ function A:IsSpellInCasting()
 	return Unit("player"):IsCasting() == self:Info()
 end 
 
-function A:IsSpellLearned()
-	-- @usage A:IsSpellLearned() or A.IsSpellLearned(spellID)
-	-- @return boolean 
-	local ID, Name
-	if type(self) == "table" then 
-		ID = self.ID 
-		Name = self:Info()
-	else 
-		ID = self 
-		Name = A.GetSpellInfo(ID)
-	end	
-	return TalentMap[Name] and TalentMap[Name] > 0 or false 
-end
-
 function A:IsSpellCurrent()
+	-- @return boolean
 	return IsCurrentSpell(self:Info())
 end 
 
@@ -376,7 +361,7 @@ function A:GetTalentRank()
 	-- @return number 
 	local ID, Name
 	if type(self) == "table" then 
-		ID = self.ID 
+		--ID = self.ID 
 		Name = self:Info()
 	else 
 		ID = self 
@@ -384,6 +369,20 @@ function A:GetTalentRank()
 	end	
 	return TalentMap[Name] or 0 
 end 
+
+function A:IsSpellLearned()
+	-- @usage A:IsSpellLearned() or A.IsSpellLearned(spellID)
+	-- @return boolean 
+	local ID, Name
+	if type(self) == "table" then 
+		ID = self.ID 
+		Name = self:Info()
+	else 
+		ID = self 
+		Name = A.GetSpellInfo(ID)
+	end	
+	return TalentMap[Name] and TalentMap[Name] > 0 or false 
+end
 
 -------------------------------------------------------------------------------
 -- Spell Rank 
@@ -549,6 +548,16 @@ function A.DetermineUsableObject(unitID, skipRange, skipLua, skipShouldStop, ski
 	end 
 end 
 
+function A.DetermineIsCurrentObject(...)
+	-- @return object or nil 
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object:IsCurrent() then 
+			return object
+		end 
+	end 
+end 
+
 function A.DetermineCountGCDs(...)
 	-- @return number, count of required summary GCD times to use all in vararg
 	local count = 0
@@ -559,6 +568,47 @@ function A.DetermineCountGCDs(...)
 		end 
 	end 	
 	return count
+end 
+
+function A.DeterminePowerCost(...)
+	-- @return number (required power to use all varargs actions)
+	local total = 0
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object and object:IsReadyToUse(nil, true, true) then 
+			total = total + object:GetSpellPowerCostCache()
+		end 
+	end 
+	return total
+end 
+
+function A.DetermineCooldown(...)
+	-- @return number (required summary cooldown time to use all varargs actions)
+	local total = 0
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object then 
+			total = total + object:GetCooldown()
+		end 
+	end 
+	return total
+end 
+
+function A.DetermineCooldownAVG(...)
+	-- @return number (required AVG cooldown to use all varargs actions)
+	local total, count = 0, 0
+	for i = 1, select("#", ...) do 
+		local object = select(i, ...)
+		if object then 
+			total = total + object:GetCooldown()
+			count = count + 1
+		end 
+	end 
+	if count > 0 then 
+		return total / count
+	else 
+		return 0 
+	end 
 end 
 
 -------------------------------------------------------------------------------
@@ -685,6 +735,19 @@ end
 -------------------------------------------------------------------------------
 -- Item (provided by TMW)
 -------------------------------------------------------------------------------	  
+function A.GetItemDescription(self)
+	-- @usage A:GetItemDescription() or A.GetItemDescription(18)
+	-- @return table 
+	-- Note: It returns correct value only if item holds spell 
+	local _, spellID = GetItemSpell(type(self) == "table" and self.ID or self)
+	if spellID then 
+		return A.GetSpellDescription(spellID)
+	end 
+	
+	return empty2
+end
+A.GetItemDescription = A.MakeFunctionCachedDynamic(A.GetItemDescription)
+
 function A:GetItemCooldown()
 	-- @return number
 	local start, duration, enable = self.Item:GetCooldown()
@@ -707,6 +770,11 @@ function A:IsItemDamager()
 	-- @return boolean 
 	local cat = itemCategory[self.ID]
 	return not cat or (cat ~= "DEFF" and cat ~= "MISC" and cat ~= "CC")
+end 
+
+function A:IsItemCurrent()
+	-- @return boolean
+	return IsCurrentItem(self:Info())
 end 
 
 -- Next works by TMW components
@@ -781,6 +849,12 @@ function A:IsInRange(unitID)
 	end 
 	
 	return self.Item:IsInRange(unitID)
+end 
+
+function A:IsCurrent()
+	-- @return boolean
+	-- Note: Only Spell, Item, Trinket 
+	return (self.Type == "Spell" and self:IsSpellCurrent()) or ((self.Type == "Item" or self.Type == "Trinket") and self:IsItemCurrent()) or false 
 end 
 
 function A:HasRange()
@@ -893,7 +967,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 		end 
 		
 		if  self.Type == "Item" and 
-			self:GetCount() > 0 and 
+			( self:GetCount() > 0 or self:GetEquipped() ) and 
 			self:GetItemCooldown() == 0 and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
 		then
@@ -945,6 +1019,7 @@ end
 
 function A:IsReadyToUse(unitID, skipShouldStop, skipUsable)
 	-- @return boolean 
+	-- Note: unitID is nil here always 
 	return 	not self:IsBlocked() and 
 			not self:IsBlockedByQueue() and 
 			self:IsCastable(nil, true, skipShouldStop, nil, skipUsable)
@@ -967,7 +1042,10 @@ function A:GetSpellInfo()
 	if type(self) == "table" then 
 		ID = self.ID 
 	end
-	return unpack(spellinfocache[ID])
+	
+	if ID then 
+		return unpack(spellinfocache[ID])
+	end 
 end
 
 function A:GetSpellLink()
@@ -975,7 +1053,7 @@ function A:GetSpellLink()
 	if type(self) == "table" then 
 		ID = self.ID 
 	end
-    return GetSpellLink(ID) 
+    return GetSpellLink(ID) or ""
 end 
 
 function A:GetSpellIcon()
@@ -1010,11 +1088,14 @@ function A:GetItemInfo()
 	if type(self) == "table" then 
 		ID = self.ID 
 	end
-	return unpack(iteminfocache[ID])
+	
+	if ID then 
+		return unpack(iteminfocache[ID])
+	end 
 end
 
 function A:GetItemLink()
-    return select(2, self:GetItemInfo()) 
+    return select(2, self:GetItemInfo()) or ""
 end 
 
 function A:GetItemIcon()
@@ -1068,10 +1149,11 @@ function A.Create(attributes)
 			isStance (@number) will check in :GetCooldown cooldown timer by GetShapeshiftFormCooldown function instead of default, only if Type is Spell|SpellSingleColor
 			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
 			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor), only if Type is Spell|SpellSingleColor			
+			isCP (@boolean) is used only for combo points with type Spell|SpellSingleColor to use as condition in Queue core, it's required to be noted manually due specific way of how it work
 			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor 
 			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor
 			Equip1, Equip2 (@function) between which equipments do swap, used in :IsExists method, only if Type is SwapEquip
-			
+						
 		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
 		Otherwise it will interract with additional frame  
 	]]
@@ -1126,6 +1208,8 @@ function A.Create(attributes)
 		s.isTalent = attributes.isTalent
 		-- Stance 
 		s.isStance = attributes.isStance
+		-- Combo Points
+		s.isCP = attributes.isCP
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 
@@ -1135,7 +1219,7 @@ function A.Create(attributes)
 		if type(attributes.useMinRank) == "table" then 
 			table.sort(attributes.useMinRank)
 		end 
-		s.useMinRank = attributes.useMinRank
+		s.useMinRank = attributes.useMinRank		
 	elseif attributes.Type == "SpellSingleColor" then 
 		s = setmetatable(s, {__index = A})	
 		s.Type = "Spell"
@@ -1152,6 +1236,8 @@ function A.Create(attributes)
 		s.isTalent = attributes.isTalent
 		-- Stance 
 		s.isStance = attributes.isStance
+		-- Combo Points
+		s.isCP = attributes.isCP
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 

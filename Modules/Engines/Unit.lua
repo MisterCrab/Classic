@@ -23,11 +23,12 @@ local LibClassicCasterino 			= LibStub("LibClassicCasterino")
 -- To activate it
 LibClassicCasterino.callbacks.OnUsed() 
 
-local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, huge =
-	  _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, math.huge
+local _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, 	  huge, math_floor =
+	  _G, setmetatable, table, unpack, select, next, type, pairs, wipe, tostringall, math.huge, math.floor
 	  
 local CombatLogGetCurrentEventInfo	= _G.CombatLogGetCurrentEventInfo	  
 local GetUnitSpeed					= _G.GetUnitSpeed
+local GetSpellInfo					= _G.GetSpellInfo
 local GetPartyAssignment 			= _G.GetPartyAssignment	  
 local UnitIsUnit, UnitInRaid, UnitInAnyGroup, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible =
@@ -68,7 +69,7 @@ local Cache = {
 		end 
 		
 		if not this.bufer[func] then 
-			this.bufer[func] = setmetatable({}, { __mode == "kv" })
+			this.bufer[func] = setmetatable({}, { __mode = "k" })
 		end
 		
    		return function(...)   
@@ -254,6 +255,7 @@ local AuraList = {
     Disarmed = {
 		676, 				-- Disarm 					(Warrior)
 		14251,				-- Riposte					(Rogue)
+		23365,				-- Dropped Weapon			(Unknown)
 	},
     Rooted = {
 		23694,				-- Improved Hamstring		(Warrior)
@@ -313,7 +315,7 @@ local AuraList = {
         6358, 				-- Seduction (pet)			(Warlock)                
         5484, 				-- Howl of Terror			(Warlock)
         8122, 				-- Psychic Scream			(Priest)      
-		9484, 		-- Shackle Undead 			(Priest)			
+		9484, 				-- Shackle Undead 			(Priest)			
         -- Rooted CC
         339, 				-- Entangling Roots			(Druid)
         122, 				-- Frost Nova				(Mage)
@@ -327,11 +329,15 @@ local AuraList = {
 		6346,				-- Fear Ward				(Priest)
     },
     StunImun = {
-        6615, 				-- Free Action 				
+        6615, 				-- Free Action 				(Free Action Potion)
 		24364,				-- Living Free Action		(Potion)
         1953, 				-- Blink (micro buff)		(Mage)
     },        
-    Freedom = 1044, 		-- Blessing of Freedom		(Paladin)
+    Freedom = {
+		6615, 				-- Free Action 				(Free Action Potion)
+		1044, 				-- Blessing of Freedom		(Paladin)
+		24364,				-- Living Free Action		(Potion)
+	},
     TotalImun = {
 		498, 				-- Divine Protection		(Paladin)
         642, 				-- Divine Shield			(Paladin)		
@@ -376,7 +382,7 @@ local AuraList = {
     -- Speed 
     Speed = {
         2983, 				-- Sprint 					(Rogue)
-        2379, 				-- Speed 					(Rogue)
+        2379, 				-- Speed 					(Swiftness Potion)
         2645, 				-- Ghost Wolf 				(Shaman)
 		1850, 				-- Dash 					(Druid)
 		5118, 				-- Aspect of the Cheetah	(Hunter)       
@@ -396,6 +402,7 @@ local AuraList = {
 		5277, 				-- Evasion					(Rogue)
 		1022, 				-- Blessing of Protection	(Paladin)
 		22812,				-- Barkskin					(Druid)
+		3169,				-- Invulnerability			(Limited Invulnerability Potion)
 		--498, 					-- Divine Protection		(Paladin)
         --642, 					-- Divine Shield			(Paladin)
         --11958, 				-- Ice Block				(Mage)
@@ -537,11 +544,11 @@ A.IsUnitEnemy = A.MakeFunctionCachedDynamic(A.IsUnitEnemy)
 -- API: Unit 
 -------------------------------------------------------------------------------
 local Info = {
-	CacheMoveIn					= setmetatable({}, { __mode == "kv" }),
-	CacheMoveOut				= setmetatable({}, { __mode == "kv" }),
-	CacheMoving 				= setmetatable({}, { __mode == "kv" }),
-	CacheStaying				= setmetatable({}, { __mode == "kv" }),
-	CacheInterrupt 				= setmetatable({}, { __mode == "kv" }),
+	CacheMoveIn					= setmetatable({}, { __mode = "kv" }),
+	CacheMoveOut				= setmetatable({}, { __mode = "kv" }),
+	CacheMoving 				= setmetatable({}, { __mode = "kv" }),
+	CacheStaying				= setmetatable({}, { __mode = "kv" }),
+	CacheInterrupt 				= setmetatable({}, { __mode = "kv" }),
 	SpecIs 						= {
         ["MELEE"] 				= {103, 255, 70, 259, 260, 261, 263, 71, 72, 66, 73},
         ["RANGE"] 				= {102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
@@ -577,6 +584,9 @@ local Info = {
         ["Non Morto"]			= true, 
         ["Renegado"]			= true, 
         ["Нежить"]				= true,  
+		["언데드"]					= true,
+		["亡灵"]				= true,
+		["不死族"]				= true,
 		[""]					= false,		
 	},
 	IsTotem 					= {
@@ -720,12 +730,12 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return UnitIsUnit(unitID, "player") or UnitInRange(unitID)
 	end, "UnitID"),
-	InCC 									= Cache:Pass(function(self)
+	InCC 									= Cache:Pass(function(self, index)
 		-- @return number (time in seconds of remain crownd control)
 		local unitID 						= self.UnitID
 		local value 						= A.Unit(unitID):DeBuffCyclone()
 		if value == 0 then 			
-			for i = 1, #Info.AllCC do 
+			for i = (index or 1), #Info.AllCC do 
 				value = A.Unit(unitID):HasDeBuffs(Info.AllCC[i])
 				if value ~= 0 then 
 					break
@@ -1092,7 +1102,7 @@ A.Unit = PseudoClass({
 
 		local TotalCastTime, CurrentCastTimeSeconds, CurrentCastTimeLeftPercent = 0, 0, 0
 		if unitID == "player" then 
-			TotalCastTime = (select(4, A.GetSpellInfo(argSpellID or spellID)) or 0) / 1000
+			TotalCastTime = (select(4, GetSpellInfo(argSpellID or spellID)) or 0) / 1000
 			CurrentCastTimeSeconds = TotalCastTime
 		end 
 		
@@ -1242,7 +1252,7 @@ A.Unit = PseudoClass({
 		-- @return number (current), number (max)
 		local unitID 						= self.UnitID
 		local current_speed, max_speed 		= GetUnitSpeed(unitID)
-		return math.floor(current_speed / 7 * 100), math.floor(max_speed / 7 * 100)
+		return math_floor(current_speed / 7 * 100), math_floor(max_speed / 7 * 100)
 	end, "UnitGUID"),
 	GetMaxSpeed								= Cache:Pass(function(self) 
 		-- @return number 
@@ -1907,12 +1917,17 @@ A.Unit = PseudoClass({
 		-- @return boolean
 		-- ATTENTION: Instead of retail version this function accepts in arguments now numbers only! Retail has boolean for some of them
 		local unitID 						= self.UnitID
+		
+		if burst ~= nil and type(burst) == "boolean" then 
+			burst = 4
+		end 
 
 		if A.Unit(unitID):IsEnemy() then
 			if TeamCache.Friendly.Type then 
 				for i = 1, TeamCache.Friendly.Size do 
 					local member = TeamCache.Friendly.Type .. i 
-					if  UnitIsUnit(member .. "target", unitID)  
+					if  UnitIsUnit(member .. "target", unitID) 
+					and not UnitIsUnit(member, "player")
 					and ((not isMelee and A.Unit(member):IsDamager()) or (isMelee and A.Unit(member):IsMelee()))
 					and (not burst 		or 	A.Unit(member):HasBuffs("DamageBuffs") >= burst) 
 					and (not deffensive or 	A.Unit(unitID):HasBuffs("DeffBuffs") <= deffensive)
@@ -2002,7 +2017,7 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return 
 		(
-			A.Unit(unitID):IsFocused(true) or 
+			A.Unit(unitID):IsFocused(4) or 
 			(
 				A.Unit(unitID):TimeToDie() < 8 and 
 				A.Unit(unitID):IsFocused() 

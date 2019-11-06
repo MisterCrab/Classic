@@ -41,7 +41,7 @@ local skipedFirstEnter 							= false
 -- Locals: CombatTracker
 -------------------------------------------------------------------------------
 local CombatTracker 							= {
-	Data			 						= {}, -- setmetatable({}, { __mode == "kv" })
+	Data			 						= {}, -- setmetatable({}, { __mode = "kv" })
 	Doubles 								= {
 		[3]  								= "Holy + Physical",
 		[5]  								= "Fire + Physical",
@@ -575,7 +575,7 @@ CombatTracker.OnEventDR							= {
 -- Locals: UnitTracker
 -------------------------------------------------------------------------------
 local UnitTracker 								= {
-	Data 								= setmetatable({}, { __mode == "kv" }),
+	Data 								= setmetatable({}, { __mode = "kv" }),
 	isRegistered 						= {
 		[GetSpellInfo(ACTION_CONST_SPELLID_FREEZING_TRAP)] = true,
 	},
@@ -820,6 +820,8 @@ local LossOfControl								= {
 		[GetSpellInfo(14030)]					= "ROOT",
 		-- Encasing Webs
 		[GetSpellInfo(4962)]					= "ROOT",
+		-- Counterattack
+		[GetSpellInfo(19306)]					= "ROOT",
 		
 		-- [[ SNARE ]]
 		-- Wing Clip
@@ -1040,6 +1042,10 @@ local LossOfControl								= {
 		[GetSpellInfo(16869)]					= "STUN",
 		-- Sacrifice
 		[GetSpellInfo(22651)]					= "STUN",
+		-- Goblin Mortar
+		[GetSpellInfo(13237)]					= "STUN",
+		-- Improved Starfire
+		[GetSpellInfo(16922)]					= "STUN",
 		
 		-- [[ DISARM ]]
 		-- Riposte
@@ -1083,19 +1089,19 @@ local LossOfControl								= {
 		
 		-- [[ FREEZE ]] 
 		-- Freezing Trap Effect
-		[GetSpellInfo(3355)]					= "FREEZE",
+		[GetSpellInfo(3355)]					= {"ROOT", "FREEZE"},
 		-- Freeze
 		[GetSpellInfo(5276)]					= {"STUN", "FREEZE"},
 		
 		-- [[ DISORIENT ]]
 		-- Scatter Shot
-		[GetSpellInfo(19503)]					= "DISORIENT",
+		[GetSpellInfo(19503)]					= {"INCAPACITATE", "DISORIENT"},
 		-- Blind
-		[GetSpellInfo(2094)]					= "DISORIENT",
+		[GetSpellInfo(2094)]					= {"INCAPACITATE", "DISORIENT"},
 		-- Glimpse of Madness
-		[GetSpellInfo(26108)]					= "DISORIENT",
+		[GetSpellInfo(26108)]					= {"INCAPACITATE", "DISORIENT"},
 		-- Ancient Despair
-		[GetSpellInfo(19369)]					= "DISORIENT",
+		[GetSpellInfo(19369)]					= {"INCAPACITATE", "DISORIENT"},
 		
 		-- [[ SILENCE ]]
 		-- Counterspell - Silenced
@@ -1104,6 +1110,8 @@ local LossOfControl								= {
 		[GetSpellInfo(15487)]					= "SILENCE",
 		-- Kick - Silenced
 		[GetSpellInfo(18425)]					= "SILENCE",
+		-- Shield Bash - Silenced
+		[GetSpellInfo(18498)]					= "SILENCE",
 		-- Spell Lock (Felhunter)
 		[GetSpellInfo(24259)]					= "SILENCE",
 		-- Arcane Bomb
@@ -1144,6 +1152,10 @@ local LossOfControl								= {
 		-- [[ FEAR ]]
 		-- Fear
 		[GetSpellInfo(5782)]					= "FEAR",
+		-- Scare Beast
+		[GetSpellInfo(1513)]					= "FEAR",
+		-- Flash Bomb Fear
+		[GetSpellInfo(5134)]					= "FEAR",
 		
 		-- [[ TURN_UNDEAD ]]
 		-- Turn Undead
@@ -1431,14 +1443,14 @@ A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_MAXHEALTH",						CombatTrack
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "COMBAT_LOG_EVENT_UNFILTERED", 		COMBAT_LOG_EVENT_UNFILTERED			) 
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "UNIT_SPELLCAST_SUCCEEDED", 			UNIT_SPELLCAST_SUCCEEDED			)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function()
-	if A.Zone ~= "pvp" and not A.IsInDuel then 
+	if A.Zone ~= "pvp" and not A.IsInDuel and not A.Player:IsStealthed() then 
 		wipe(UnitTracker.Data)
 		wipe(CombatTracker.Data)		
 	end 
 end)
 A.Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_DISABLED", 				function()
 	-- Need leave slow delay to prevent reset Data which was recorded before combat began for flyout spells, otherwise it will cause a bug
-	if A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) > 1.5 and A.Zone ~= "pvp" and not A.IsInDuel then 
+	if A.CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) > 1.5 and A.Zone ~= "pvp" and not A.IsInDuel and not A.Player:IsStealthed() then 
 		wipe(UnitTracker.Data)   		
 		wipe(CombatTracker.Data) 
 	else 
