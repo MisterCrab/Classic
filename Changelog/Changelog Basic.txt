@@ -1,3 +1,9 @@
+[Basic v7]
+Cached all strings (less memory usage)
+Fixed when friendly rotation was used as an enemy 
+Added LimitedInvulnerabilityPotion, LivingActionPotion, RestorativePotion, SwiftnessPotion, Healing Potions (default)
+Added Perception
+
 [Basic v6]
 Added Loss of Control frames
 
