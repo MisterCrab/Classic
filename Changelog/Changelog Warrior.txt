@@ -1,3 +1,16 @@
+[Warrior v5]
+Added toggle in UI below "Rotation" header for use specified potion (default MightyRagePotion)
+Stoneform							- Now functional by using template from Core.lua
+HealingPotion						- Added 
+LimitedInvulnerabilityPotion		- Added 
+LivingActionPotion					- Added 
+RestorativePotion					- Added 
+SwiftnessPotion						- Added 
+Fixed Rend 							- miss typo to use on mouseover (it's only available for target)
+Hamstring 							- added condition to spam it whenever you have friendly shaman in group
+Bloodthirst							- added for late content of Classic when you reach 2K attack power it should be used between Executes (if possible) 
+SunderArmor							- added to track shared debuffs such as ExposeArmor
+
 [Warrior v4]
 Added Loss of Control frames
 Added condition to prevent actions from passive meta slots if something is already running in queue by Auto argument 
