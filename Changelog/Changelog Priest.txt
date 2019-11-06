@@ -1,3 +1,17 @@
+[Priest v10]
+Added toggle in UI for use racials while crown control such as Stoneform and WilloftheForsaken
+Added toggle in UI for use specified potion (default MajorManaPotion)
+ManaPotion							- Fixed wrong element type in ProfileUI which could cause lua error (was checkbox, now it's slider)
+Stoneform							- Now functional by using template from Core.lua
+HealingPotion						- Added 
+LimitedInvulnerabilityPotion		- Added 
+LivingActionPotion					- Added 
+RestorativePotion					- Added 
+SwiftnessPotion						- Added 
+LesserHeal 							- Changed priority to lowest (was caused issues for many people to cast other spells if they are not blocked)
+Trinkets							- Added condition to check combat state in friendly rotation
+PredictHealing						- Added condition to make zero incoming heal per second prediction if not a raid 
+
 [Priest v9]
 Added Loss of Control frames
 
