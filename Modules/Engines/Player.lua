@@ -12,8 +12,8 @@ local A   						= Action
 local InstanceInfo				= A.InstanceInfo
 --local TeamCache				= A.TeamCache
 
-local _G, error, type, pairs, table, next, select, wipe, 	  huge, math_max, math_floor =
-	  _G, error, type, pairs, table, next, select, wipe, math.huge, math.max, math.floor
+local _G, error, type, pairs, table, next, 		huge, math_max =
+	  _G, error, type, pairs, table, next, math.huge, math.max
 
 local Enum 						= _G.Enum 
 local PowerType 				= Enum.PowerType
@@ -33,8 +33,8 @@ local ArcaneChargesPowerType 	= PowerType.ArcaneCharges
 local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
 
-local UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitAttackSpeed, UnitRangedDamage, UnitDamage,  	  UnitAura =
-	  UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitAttackSpeed, UnitRangedDamage, UnitDamage, TMW.UnitAura
+local UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, 	 UnitAura =
+	  UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitRangedDamage, TMW.UnitAura
 
 local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
 	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
@@ -148,11 +148,11 @@ end
 function Data.logBehind(...)
 	local message = ...
 	if message == SPELL_FAILED_NOT_BEHIND then 
-		Data.PlayerBehind = TMW.time
+		Data.PlayerBehind = TMW.time + 2.5
 	end 
 	
 	if message == ERR_PET_SPELL_NOT_BEHIND then 
-		Data.PetBehind = TMW.time
+		Data.PetBehind = TMW.time + 2.5
 	end 
 end 
 
@@ -386,16 +386,14 @@ function A.Player:IsAttacking()
 	return Data.AttackActive
 end 
 
-function A.Player:IsBehind(x)
+function A.Player:IsBehind()
 	-- @return boolean 
-	-- Note: Returns true if player is behind the target since x seconds taken from the last ui message 
-	return TMW.time > Data.PlayerBehind + (x or 2.5)
+	return TMW.time > Data.PlayerBehind
 end 
 
-function A.Player:IsPetBehind(x)
+function A.Player:IsPetBehind()
 	-- @return boolean 
-	-- Note: Returns true if pet is behind the target since x seconds taken from the last ui message 
-	return TMW.time > Data.PetBehind + (x or 2.5)
+	return TMW.time > Data.PetBehind
 end 
 
 function A.Player:IsMounted()
@@ -585,34 +583,6 @@ function A.Player:ReplaceSwingDuration(inv, dur)
 	end 
 end 
 
-function A.Player:GetWeaponMeleeDamage(inv, mod)
-	-- @return number (full average damage), number (average damage per second)
-	-- Note: This is only for white hits, usually to calculate damage taken from spell's tooltip
-	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), nil (both)
-	-- mod is custom modifier which will be applied to UnitAttackSpeed
-	local speed, offhandSpeed = UnitAttackSpeed(self.UnitID)
-	local minDamage, maxDamage, minOffHandDamage, maxOffHandDamage, physicalBonusPos, physicalBonusNeg, percent = UnitDamage(self.UnitID)
-	
-	local main_baseDamage, main_fullDamage, main_damagePerSecond
-	if speed and (not inv or inv == 1 or inv == ACTION_CONST_INVSLOT_MAINHAND) then 
-		main_baseDamage 		= (minDamage + maxDamage) * 0.5
-		main_fullDamage 		= (main_baseDamage + physicalBonusPos + physicalBonusNeg) * percent		
-		main_damagePerSecond	= math_max(main_fullDamage, 1) / (speed * (mod or 1))
-	end
-	
-	local offhandBaseDamage, offhandFullDamage, offhandDamagePerSecond
-	if offhandSpeed and (not inv or inv == 1 or inv == ACTION_CONST_INVSLOT_OFFHAND) then 
-		offhandBaseDamage 		= (minOffHandDamage + maxOffHandDamage) * 0.5
-		offhandFullDamage 		= (offhandBaseDamage + physicalBonusPos + physicalBonusNeg) * percent
-		offhandDamagePerSecond 	= math_max(offhandFullDamage, 1) / (offhandSpeed * (mod or 1))
-	end 
-	
-	local full_damage 	 = (main_fullDamage or 0) + (offhandFullDamage or 0)
-	local per_sec_damage = (main_damagePerSecond or 0) + (offhandDamagePerSecond or 0)
-
-	return full_damage, per_sec_damage
-end 
-
 -- Swap 
 function A.Player:IsSwapLocked()
 	-- @return boolean 
@@ -756,7 +726,7 @@ function A.Player:RegisterWeaponOffHand()
 end 
 
 function A.Player:RegisterWeaponTwoHand()
-	-- Registers to track two hand weapons in bags or equiped 
+	-- Registers to track off hand weapons in bags or equiped 
 	A.Player:AddBag("WEAPON_TWOHAND_1", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H, isEquippableItem = true 		})
 	A.Player:AddBag("WEAPON_TWOHAND_2", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H, isEquippableItem = true 		})
 	A.Player:AddBag("WEAPON_TWOHAND_3", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM, isEquippableItem = true 		})
@@ -767,24 +737,6 @@ function A.Player:RegisterWeaponTwoHand()
 	A.Player:AddInv("WEAPON_TWOHAND_3", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM								})
 	A.Player:AddInv("WEAPON_TWOHAND_4", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H								})
 	A.Player:AddInv("WEAPON_TWOHAND_5", ACTION_CONST_INVSLOT_MAINHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF									})
-end 
-
-function A.Player:RegisterWeaponMainOneHandDagger()
-	-- Registers to track dagger in the main one hand (not two hand) weapon in bags or equiped 
-	A.Player:AddBag("WEAPON_MAINHAND_DAGGER", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER, isEquippableItem = true		})
-	A.Player:AddInv("WEAPON_MAINHAND_DAGGER", 	ACTION_CONST_INVSLOT_MAINHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER								})
-end 
-
-function A.Player:RegisterWeaponMainOneHandSword()
-	-- Registers to track sword in the main one hand (not two hand) weapon in bags or equiped 
-	A.Player:AddBag("WEAPON_MAIN_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, isEquippableItem = true 	})
-	A.Player:AddInv("WEAPON_MAIN_ONE_HAND_SWORD", ACTION_CONST_INVSLOT_MAINHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H							})
-end 
-
-function A.Player:RegisterWeaponOffOneHandSword()
-	-- Registers to track sword in the off one hand weapon in bags or equiped 
-	A.Player:AddBag("WEAPON_OFF_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, isEquippableItem = true 	})
-	A.Player:AddInv("WEAPON_OFF_ONE_HAND_SWORD", 	ACTION_CONST_INVSLOT_OFFHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H							})
 end 
 
 ------------------------------
@@ -872,45 +824,6 @@ function A.Player:HasWeaponTwoHand(isEquiped)
 	end 	
 end 
 
-function A.Player:HasWeaponMainOneHandDagger(isEquiped)
-	-- @return itemID or nil  
-	-- Bag 
-	if not isEquiped then 
-		local bag_dagger = A.Player:GetBag("WEAPON_MAINHAND_DAGGER")
-		return bag_dagger and bag_dagger.itemID or nil 
-	-- Inventory
-	else
-		local inv_dagger = A.Player:GetInv("WEAPON_MAINHAND_DAGGER")
-		return inv_dagger and inv_dagger.itemID or nil 
-	end 
-end 
-
-function A.Player:HasWeaponMainOneHandSword(isEquiped)
-	-- @return itemID or nil 
-	-- Bag 
-	if not isEquiped then 
-		local bag_mainhand = A.Player:GetBag("WEAPON_MAIN_ONE_HAND_SWORD")
-		return bag_mainhand and bag_mainhand.itemID or nil 
-	-- Inventory
-	else		
-		local inv_mainhand = A.Player:GetInv("WEAPON_MAIN_ONE_HAND_SWORD")
-		return inv_mainhand and inv_mainhand.itemID or nil
-	end 	
-end 
-
-function A.Player:HasWeaponOffOneHandSword(isEquiped)
-	-- @return itemID or nil 
-	-- Bag 
-	if not isEquiped then 
-		local bag_offhand = A.Player:GetBag("WEAPON_OFF_ONE_HAND_SWORD")
-		return bag_offhand and bag_offhand.itemID or nil 
-	-- Inventory
-	else		
-		local inv_offhand = A.Player:GetInv("WEAPON_OFF_ONE_HAND_SWORD")
-		return inv_offhand and inv_offhand.itemID or nil
-	end 	
-end 
-
 --------------------------
 --- 0 | Mana Functions ---
 --------------------------
@@ -941,7 +854,7 @@ end
 
 -- mana.regen
 function A.Player:ManaRegen()
-	return math_floor(GetPowerRegen(self.UnitID))
+	return GetPowerRegen(self.UnitID)
 end
 
 -- Mana regen in a cast
@@ -1036,7 +949,7 @@ end
 
 -- focus.regen
 function A.Player:FocusRegen()
-	return math_floor(GetPowerRegen(self.UnitID))
+	return GetPowerRegen(self.UnitID)
 end
 
 -- focus.pct
@@ -1138,7 +1051,7 @@ end
 
 -- energy.regen
 function A.Player:EnergyRegen()
-	return math_floor(GetPowerRegen(self.UnitID), 0)
+	return GetPowerRegen(self.UnitID)
 end
 
 -- energy.pct
@@ -1217,13 +1130,13 @@ end
 --- 4 | Combo Points Functions ---
 ----------------------------------
 -- combo_points.max
-function A.Player:ComboPointsMax()
+function A.Player:ComboPointsMax(unitID)
 	return UnitPowerMax(self.UnitID, ComboPointsPowerType)
 end
 
 -- combo_points
 function A.Player:ComboPoints(unitID)
-	return GetComboPoints(self.UnitID, unitID or "target") 
+	return GetComboPoints(self.UnitID, unitID) -- UnitPower(self.UnitID, ComboPointsPowerType) or 0
 end
 
 -- combo_points.deficit

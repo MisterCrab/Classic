@@ -1,6 +1,7 @@
 local TMW 					= TMW 
 
 local A   					= Action	
+local UnitCooldown			= A.UnitCooldown
 local Unit					= A.Unit 
 local Player				= A.Player 
 local Pet					= LibStub("PetLibrary")
@@ -41,11 +42,6 @@ local GetKeyByRace = {
 	Orc 					= "BloodFury",
 }
 
-local player				= "player"
-local target 				= "target"
-local mouseover				= "mouseover"
-local targettarget			= "targettarget"
-
 -------------------------------------------------------------------------------
 -- Conditions
 -------------------------------------------------------------------------------
@@ -73,23 +69,23 @@ function A.PauseChecks()
 		return ACTION_CONST_PAUSECHECKS_DISABLED
 	end 
 	
-	if 	(A.GetToggle(1, "CheckDeadOrGhost") and Unit(player):IsDead()) or 
+	if 	(A.GetToggle(1, "CheckDeadOrGhost") and Unit("player"):IsDead()) or 
 		(
 			A.GetToggle(1, "CheckDeadOrGhostTarget") and 
 			(
-				(Unit(target):IsDead() and not UnitIsFriend(player, target) and (not A.IsInPvP or Unit(target):Class() ~= "HUNTER")) or 
-				(A.GetToggle(2, mouseover) and Unit(mouseover):IsDead() and not UnitIsFriend(player, mouseover) and (not A.IsInPvP or Unit(mouseover):Class() ~= "HUNTER"))
+				(Unit("target"):IsDead() and not UnitIsFriend("player", "target") and (not A.IsInPvP or Unit("target"):Class() ~= "HUNTER")) or 
+				(A.GetToggle(2, "mouseover") and Unit("mouseover"):IsDead() and not UnitIsFriend("player", "mouseover") and (not A.IsInPvP or Unit("mouseover"):Class() ~= "HUNTER"))
 			)
 		) 
-	then 																																																										-- exception in PvP Hunter 
+	then 																																																											-- exception in PvP Hunter 
 		return ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST
 	end 	
 	
-	if A.GetToggle(1, "CheckMount") and Player:IsMounted() then 																																												-- exception Divine Steed and combat mounted auras
+	if A.GetToggle(1, "CheckMount") and Player:IsMounted() then 																																													-- exception Divine Steed and combat mounted auras
 		return ACTION_CONST_PAUSECHECKS_IS_MOUNTED
 	end 
 
-	if A.GetToggle(1, "CheckCombat") and Unit(player):CombatTime() == 0 and Unit(target):CombatTime() == 0 and not Player:IsStealthed() and A.BossMods_Pulling() == 0 then 																		-- exception Stealthed and DBM pulling event 
+	if A.GetToggle(1, "CheckCombat") and Unit("player"):CombatTime() == 0 and Unit("target"):CombatTime() == 0 and not Player:IsStealthed() and A.BossMods_Pulling() == 0 then 																		-- exception Stealthed and DBM pulling event 
 		return ACTION_CONST_PAUSECHECKS_WAITING
 	end 	
 	
@@ -101,50 +97,47 @@ function A.PauseChecks()
 		return ACTION_CONST_PAUSECHECKS_LOOTFRAME
 	end	
 	
-	if A.GetToggle(1, "CheckEatingOrDrinking") and Unit(player):CombatTime() == 0 and Player:IsStaying() and Unit(player):HasBuffs(FoodAndDrink, true) > 0 then
+	if A.GetToggle(1, "CheckEatingOrDrinking") and Unit("player"):CombatTime() == 0 and Player:IsStaying() and Unit("player"):HasBuffs(FoodAndDrink, true) > 0 then
 		return ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK
 	end	
 end
 A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 
-local Temp = {
-	LivingActionPotionIsMissed		= {"INCAPACITATE", "DISORIENT", "FREEZE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "TURN_UNDEAD"},
-}
-
 -------------------------------------------------------------------------------
 -- API
 -------------------------------------------------------------------------------
-A.Trinket1 							= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			BlockForbidden = true, Desc = "Upper Trinket (/use 13)"														})
-A.Trinket2 							= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			BlockForbidden = true, Desc = "Lower Trinket (/use 14)" 													})
-A.Shoot								= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Wand" 								})
-A.AutoShot							= A.Create({ Type = "Spell", 			ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Hunter's shoot" 						})
-A.HSGreater1						= A.Create({ Type = "Item", 			ID = 5510, 										QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSGreater2						= A.Create({ Type = "Item", 			ID = 19010, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSGreater3						= A.Create({ Type = "Item", 			ID = 19011, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HS1								= A.Create({ Type = "Item", 			ID = 5509, 										QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HS2								= A.Create({ Type = "Item", 			ID = 19008, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HS3								= A.Create({ Type = "Item", 			ID = 19009, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSLesser1							= A.Create({ Type = "Item", 			ID = 5511, 										QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSLesser2							= A.Create({ Type = "Item", 			ID = 19006, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSLesser3							= A.Create({ Type = "Item", 			ID = 19007, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMajor1							= A.Create({ Type = "Item", 			ID = 9421, 										QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMajor2							= A.Create({ Type = "Item", 			ID = 19012, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMajor3							= A.Create({ Type = "Item", 			ID = 19013, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMinor1							= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMinor2							= A.Create({ Type = "Item", 			ID = 19004, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.HSMinor3							= A.Create({ Type = "Item", 			ID = 19005, 									QueueForbidden = true, BlockForbidden = true, 				  Desc = "[6] HealthStone" 						})
-A.DarkRune							= A.Create({ Type = "Item", 			ID = 20520, Texture = 134417,																				  Desc = "[3,4,6] Runes" 						})
-A.DemonicRune						= A.Create({ Type = "Item", 			ID = 12662, Texture = 134417,																				  Desc = "[3,4,6] Runes" 						})
-A.LimitedInvulnerabilityPotion		= A.Create({ Type = "Potion", 			ID = 3387																																					})
-A.LivingActionPotion				= A.Create({ Type = "Potion", 			ID = 20008																																					})
-A.RestorativePotion					= A.Create({ Type = "Potion", 			ID = 9030																																					})
-A.SwiftnessPotion					= A.Create({ Type = "Potion", 			ID = 2459																																					}) -- is situational too much and better make own conditions inside each profile depends on class and situation 
-A.MinorHealingPotion				= A.Create({ Type = "Potion", 			ID = 118																																					})
-A.LesserHealingPotion				= A.Create({ Type = "Potion", 			ID = 858																																					})
-A.HealingPotion						= A.Create({ Type = "Potion", 			ID = 929																																					})
-A.GreaterHealingPotion				= A.Create({ Type = "Potion", 			ID = 1710																																					})
-A.SuperiorHealingPotion				= A.Create({ Type = "Potion", 			ID = 3928																																					})
-A.MajorHealingPotion				= A.Create({ Type = "Potion", 			ID = 13446																																					})
+A.Trinket1 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET1,	 			QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Upper" })
+A.Trinket2 					= A.Create({ Type = "TrinketBySlot", 	ID = ACTION_CONST_INVSLOT_TRINKET2, 			QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Lower" })
+A.Shoot						= A.Create({ Type = "Spell", 			ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Wand" })
+A.AutoShot					= A.Create({ Type = "Spell", 			ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "Hunter's shoot" })
+A.HSGreater1				= A.Create({ Type = "Item", 			ID = 5510, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSGreater2				= A.Create({ Type = "Item", 			ID = 19010, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSGreater3				= A.Create({ Type = "Item", 			ID = 19011, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS1						= A.Create({ Type = "Item", 			ID = 5509, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS2						= A.Create({ Type = "Item", 			ID = 19008, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HS3						= A.Create({ Type = "Item", 			ID = 19009, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser1					= A.Create({ Type = "Item", 			ID = 5511, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser2					= A.Create({ Type = "Item", 			ID = 19006, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSLesser3					= A.Create({ Type = "Item", 			ID = 19007, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor1					= A.Create({ Type = "Item", 			ID = 9421, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor2					= A.Create({ Type = "Item", 			ID = 19012, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMajor3					= A.Create({ Type = "Item", 			ID = 19013, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor1					= A.Create({ Type = "Item", 			ID = 5512, 										QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor2					= A.Create({ Type = "Item", 			ID = 19004, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.HSMinor3					= A.Create({ Type = "Item", 			ID = 19005, 									QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[6] HealthStone" })
+A.DarkRune					= A.Create({ Type = "Item", 			ID = 20520, Texture = 134417,					QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+A.DemonicRune				= A.Create({ Type = "Item", 			ID = 12662, Texture = 134417,					QueueForbidden = true, BlockForbidden = true, Hidden = true, Desc = "[3,4,6] Runes" })
+
+local TempHealthStones 		= { A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1 }
+local function GetHealthStone()
+	-- @return object or nil 
+	for i = 1, #TempHealthStones do 
+		local object = TempHealthStones[i]
+		if object:GetCount() > 0 and object:GetCooldown() == 0 then 
+			return object
+		end 
+	end 
+end 
 
 local function IsShoot(unit)
 	return 	A.PlayerClass ~= "WARRIOR" and A.PlayerClass ~= "ROGUE" and 		-- their shot must be in profile 
@@ -155,138 +148,22 @@ local function IsShoot(unit)
 			)
 end 
 
--- [[ It does set texture inside own return, so the return after this function "then" must be "return true" to keep icon shown ]]
--- Custom Toggles: "Stoneform", "Runes"
-function A.CanUseStoneformDefense(icon)
-	-- @return boolean or nil 
-	-- Note: Requires in ProfileUI [2] configured toggle "Stoneform". "P" attribute  
-	if A.PlayerRace == "Dwarf" then 
-		local Stoneform = A.GetToggle(2, "Stoneform")
-		if Stoneform and Stoneform >= 0 and A[A.PlayerClass].Stoneform:IsRacialReadyP(player) and 
-			(
-				-- Auto 
-				( 	
-					Stoneform >= 100 and 
-					(
-						(
-							not A.IsInPvP and 						
-							Unit(player):TimeToDieX(45) < 4 
-						) or 
-						(
-							A.IsInPvP and 
-							(
-								Unit(player):UseDeff() or 
-								(
-									Unit(player, 5):HasFlags() and 
-									Unit(player):GetRealTimeDMG() > 0 and 
-									Unit(player):IsFocused() 								
-								)
-							)
-						)
-					) 
-				) or 
-				-- Custom
-				(	
-					Stoneform < 100 and 
-					Unit(player):HealthPercent() <= Stoneform
-				)
-			) 
-		then 
-			return A[A.PlayerClass].Stoneform:Show(icon)
-		end 	
-	end
-end 
-
-function A.CanUseStoneformDispel(icon, toggle)
-	-- @return boolean or nil 
-	-- Note: Requires toggles or data from UI tab "Auras"
-	local str_toggle = toggle
-	if not str_toggle then 
-		str_toggle = true 
-	end 
-	if A.PlayerRace == "Dwarf" and A[A.PlayerClass].Stoneform:IsRacialReady(player, true) and (A.AuraIsValid(player, str_toggle, "Poison") or A.AuraIsValid(player, str_toggle, "Bleed") or A.AuraIsValid(player, str_toggle, "Disease")) then 
-		return A[A.PlayerClass].Stoneform:Show(icon)
-	end 	
-end 
-
 function A.CanUseManaRune(icon)
 	-- @return boolean or nil 
-	-- Note: Requires in ProfileUI [2] configured toggle "Runes"
-	if Unit(player):PowerType() == "MANA" and not A.ShouldStop() then 
+	if Unit("player"):PowerType() == "MANA" and not A.ShouldStop() then 
 		local Runes = A.GetToggle(2, "Runes") 
-		if Runes > 0 and Unit(player):Health() > 1100 then 
-			local Rune = A.DetermineUsableObject(player, true, nil, true, nil, A.DarkRune, A.DemonicRune)
+		if Runes > 0 and Unit("player"):Health() > 1100 then 
+			local Rune = (A.DarkRune:GetCount() > 0 and A.DarkRune:GetCooldown() == 0 and A.DarkRune) or (A.DemonicRune:GetCount() > 0 and A.DemonicRune:GetCooldown() == 0 and A.DemonicRune) or nil 
 			if Rune then 			
 				if Runes >= 100 then -- AUTO 
-					if Unit(player):PowerPercent() <= 20 then 
+					if Unit("player"):TimeToDie() <= 9 and Unit("player"):PowerPercent() <= 20 then 
 						return Rune:Show(icon)	
 					end 
-				elseif Unit(player):PowerPercent() <= Rune then 
+				elseif Unit("player"):PowerPercent() <= Rune then 
 					return Rune:Show(icon)								 
 				end 
 			end 
 		end 
-	end 
-end 
-
-function A.CanUseHealingPotion(icon)
-	-- @return boolean or nil
-	local Healthstone = A.GetToggle(1, "HealthStone")  
-	if Healthstone >= 0 then 
-		local healthPotion = A.DetermineUsableObject(player, true, nil, nil, nil, A.MajorHealingPotion, A.SuperiorHealingPotion, A.GreaterHealingPotion, A.HealingPotion, A.LesserHealingPotion, A.MinorHealingPotion)
-		if healthPotion then 
-			if Healthstone >= 100 then -- AUTO 
-				if Unit(player):TimeToDie() <= 9 and Unit(player):HealthPercent() <= 40 then 
-					return healthPotion:Show(icon)
-				end 
-			elseif Unit(player):HealthPercent() <= Healthstone then 
-				return healthPotion:Show(icon)
-			end 
-		end 
-	end 
-	
-	--[[ Leaved it here, might will need later
-	HealingPotionValue						= {
-		[A.MinorHealingPotion.ID]			= A.MinorHealingPotion:GetItemDescription()[1],
-		[A.LesserHealingPotion.ID]			= A.LesserHealingPotion:GetItemDescription()[1],
-		[A.HealingPotion.ID]				= A.HealingPotion:GetItemDescription()[1],
-		[A.GreaterHealingPotion.ID]			= A.GreaterHealingPotion:GetItemDescription()[1],
-		[A.SuperiorHealingPotion.ID]		= A.SuperiorHealingPotion:GetItemDescription()[1],
-		[A.MajorHealingPotion.ID]			= A.MajorHealingPotion:GetItemDescription()[1],
-	}
-	]]
-end 
-
-function A.CanUseLimitedInvulnerabilityPotion(icon)
-	-- @return boolean or nil
-	if A.LimitedInvulnerabilityPotion:IsReady(player) and Unit(player):GetRealTimeDMG(3) > 0 and (Unit(player):IsExecuted() or Unit(player):IsFocused(4, nil, nil, true)) then 
-		return A.LimitedInvulnerabilityPotion:Show(icon)
-	end 
-end 
-
-function A.CanUseLivingActionPotion(icon, inRange)
-	-- @return boolean or nil
-	if A.LivingActionPotion:IsReady(player) and (LoC:Get("STUN") > 1 or (not inRange and (LoC:Get("ROOT") > 1 or (LoC:Get("SNARE") > 0 and Unit(player):GetMaxSpeed() <= 50)))) and LoC:IsMissed(Temp.LivingActionPotionIsMissed) then 
-		return A.LivingActionPotion:Show(icon)
-	end 
-end 
-
-function A.CanUseRestorativePotion(icon, toggle)
-	-- @return boolean or nil
-	-- Note: Requires toggles or data from UI tab "Auras"
-	local str_toggle = toggle
-	if not str_toggle then 
-		str_toggle = true 
-	end 
-	if A.RestorativePotion:IsReady(player) and (A.AuraIsValid(player, str_toggle, "Magic") or A.AuraIsValid(player, str_toggle, "Curse") or A.AuraIsValid(player, str_toggle, "Disease") or A.AuraIsValid(player, str_toggle, "Poison")) then 
-		return A.RestorativePotion:Show(icon)
-	end 
-end 
-
-function A.CanUseSwiftnessPotion(icon, unitID, range)
-	-- @return boolean or nil
-	if A.SwiftnessPotion:IsReady(player) and Player:IsMoving() and Unit(unitID or target):GetRange() >= (range or 10) and Unit(unitID or target):TimeToDieX(35) <= A.GetGCD() * 2 and Unit(player):GetMaxSpeed() <= 120 and Unit(player):GetCurrentSpeed() <= Unit(unitID or target):GetCurrentSpeed() then 
-		return A.SwiftnessPotion:Show(icon)
 	end 
 end 
 
@@ -307,15 +184,13 @@ function A.Rotation(icon)
 	
 	-- [5] Trinket 
 	if meta == 5 then 
-		local result, isApplied 
-		
 		-- Use racial available trinkets if we don't have additional RACIAL_LOC
 		-- Note: Additional RACIAL_LOC is the main reason why I avoid here :AutoRacial (see below 'if isApplied then ')
 		if A.GetToggle(1, "Racial") then 
-			local RacialAction 		= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
-			local RACIAL_LOC 		= LoC.GetExtra[A.PlayerRace]							-- Loss Of Control 
-			if RACIAL_LOC and RacialAction and RacialAction:IsReady(player, true) and RacialAction:IsExists() then 
-				result, isApplied 	= LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, A.PlayerRace == "Dwarf" or A.PlayerRace == "Gnome")
+			local RacialAction 	= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
+			local RACIAL_LOC 	= LoC.GetExtra[A.PlayerRace]							-- Loss Of Control 
+			if RACIAL_LOC and RacialAction and RacialAction:IsReady("player", true) and RacialAction:IsExists() then 
+				local result, isApplied = LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, A.PlayerRace == "Dwarf" or A.PlayerRace == "Gnome")
 				if result then 
 					return RacialAction:Show(icon)
 				end 
@@ -346,7 +221,7 @@ function A.Rotation(icon)
 	-- [6] Passive: @player, @raid1, @arena1 
 	if meta == 6 then 
 		-- Shadowmeld
-		if A[A.PlayerClass].Shadowmeld and A[A.PlayerClass].Shadowmeld:AutoRacial(player) then 
+		if A[A.PlayerClass].Shadowmeld and A[A.PlayerClass].Shadowmeld:AutoRacial("player") then 
 			return A[A.PlayerClass].Shadowmeld:Show(icon)
 		end 
 		
@@ -368,13 +243,13 @@ function A.Rotation(icon)
 			-- Healthstone 
 			local Healthstone = A.GetToggle(1, "HealthStone") 
 			if Healthstone >= 0 then 
-				local HealthStoneObject = A.DetermineUsableObject(player, true, nil, true, nil, A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1)
+				local HealthStoneObject = GetHealthStone()
 				if HealthStoneObject then 			
 					if Healthstone >= 100 then -- AUTO 
-						if Unit(player):TimeToDie() <= 9 and Unit(player):HealthPercent() <= 40 then 
+						if Unit("player"):TimeToDie() <= 9 and Unit("player"):HealthPercent() <= 40 then 
 							return HealthStoneObject:Show(icon)	
 						end 
-					elseif Unit(player):HealthPercent() <= Healthstone then 
+					elseif Unit("player"):HealthPercent() <= Healthstone then 
 						return HealthStoneObject:Show(icon)								 
 					end 
 				end 
@@ -382,9 +257,9 @@ function A.Rotation(icon)
 		end 
 		
 		-- AutoTarget 
-		if A.GetToggle(1, "AutoTarget") and Unit(player):CombatTime() > 0 -- and not A.IamHealer
+		if A.GetToggle(1, "AutoTarget") and Unit("player"):CombatTime() > 0 -- and not A.IamHealer
 			-- No existed or switch in PvE if we accidentally selected out of combat enemy unit  
-			and (not Unit(target):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit(target):CombatTime() == 0 and Unit(target):IsEnemy())) 
+			and (not Unit("target"):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit("target"):CombatTime() == 0 and Unit("target"):IsEnemy())) 
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
 			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, 1) >= 1) or A.Zone == "pvp")
 		then 
@@ -404,18 +279,18 @@ function A.Rotation(icon)
 	
 	-- Save unit for AutoAttack, AutoShoot
 	local unit, useShoot
-	if A.IsUnitEnemy(mouseover) then 
-		unit = mouseover
-	elseif A.IsUnitEnemy(target) then 
-		unit = target
-	elseif A.IsUnitEnemy(targettarget) then 
-		unit = targettarget
+	if A.IsUnitEnemy("mouseover") then 
+		unit = "mouseover"
+	elseif A.IsUnitEnemy("target") then 
+		unit = "target"
+	elseif A.IsUnitEnemy("targettarget") then 
+		unit = "targettarget"
 	end 	
 	
 	-- [3] Single / [4] AoE: AutoAttack
-	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() and Unit(player):IsCastingRemains() == 0 then 
+	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() and Unit("player"):IsCastingRemains() == 0 then 
 		useShoot = IsShoot(unit)
-		if not useShoot and unit ~= targettarget and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
+		if not useShoot and unit ~= "targettarget" and A.GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
 			--if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
 				--return A:Show(icon, ACTION_CONST_AUTOSHOOT)
@@ -423,10 +298,7 @@ function A.Rotation(icon)
 			
 			-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
 			if A.PlayerClass ~= "HUNTER" or not A.GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit) then 
-				-- ByPass Rogue's mechanic
-				if A.PlayerClass ~= "ROGUE" or ((unit ~= mouseover or UnitIsUnit(unit, target)) and Unit(unit):HasDeBuffs("BreakAble") == 0) then 
-					return A:Show(icon, ACTION_CONST_AUTOATTACK)
-				end 
+				return A:Show(icon, ACTION_CONST_AUTOATTACK)
 			end 
 		end 
 	end 

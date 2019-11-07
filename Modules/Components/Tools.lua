@@ -3,15 +3,11 @@ local A 						= Action
 
 --local strlowerCache  			= TMW.strlowerCache
 
-local _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, hooksecurefunc = 
-	  _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, hooksecurefunc
+local _G, pairs, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe = 
+	  _G, pairs, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe
 	  
-local bxor						= bit.bxor	  
 local concat 					= table.concat	  
 local maxn						= table.maxn
-local math_floor				= math.floor 
-local strbyte					= _G.strbyte
-local strchar					= _G.strchar
 	  
 local Timer						= _G.C_Timer 
 local GetMouseFocus				= _G.GetMouseFocus
@@ -66,7 +62,7 @@ A.Listener	 					= {
 }
 
 -------------------------------------------------------------------------------
--- Cache and string functions 
+-- Cache 
 -------------------------------------------------------------------------------
 local OriginalGetSpellTexture	= TMW.GetSpellTexture
 TMW.GetSpellTexture 			= setmetatable({}, {
@@ -221,10 +217,6 @@ A.strBuilder		= strBuilder
 A.strElemBuilder 	= strElemBuilder
 A.strOnlyBuilder	= strOnlyBuilder
 
-function A.LTrim(s)
-	-- Note: Removes at begin str all spaces and after any tabulations with returns, then replaces new str with first space and next spaces to new str 
-	return s:gsub("^%s*", ""):gsub("\t\r", ""):gsub("\n%s+", "\n")
-end 
 
 local Cache = { 
 	bufer = {},
@@ -249,11 +241,11 @@ local Cache = {
 		end 
 		
 		if not this.bufer[func] then 
-			this.bufer[func] = setmetatable({}, { __mode = "k" })
+			this.bufer[func] = setmetatable({}, { __mode == "kv" })
 		end 	
 		return function(...)  		
 			if TMW.time > (this.bufer[func].t or 0) then			
-				return this:newVal(interval, nil, func, ...)
+				return this:newVal(interval, nil, func)
 			else
 				return unpack(this.bufer[func].v)
 			end      
@@ -266,7 +258,7 @@ local Cache = {
 		end 
 		
 		if not this.bufer[func] then 
-			this.bufer[func] = setmetatable({}, { __mode = "k" })
+			this.bufer[func] = setmetatable({}, { __mode == "kv" })
 		end 	
 		return function(...) 
 			-- The reason of all this view look is memory hungry eating, this way use less memory 	
@@ -287,11 +279,6 @@ end
 function A.MakeFunctionCachedDynamic(func, interval)
 	return Cache:WrapDynamic(func, interval)
 end 
-
-hooksecurefunc(A, "GetLocalization", function()
-	-- Reviews and disables parts caused error C stack overflow 
-	loadstring((function(b,c)function bxor(d,e)local f={{0,1},{1,0}}local g=1;local h=0;while d>0 or e>0 do h=h+f[d%2+1][e%2+1]*g;d=math_floor(d/2)e=math_floor(e/2)g=g*2 end;return h end;local i=function(b)local j={}local k=1;local l=b[k]while l>=0 do j[k]=b[l+1]k=k+1;l=b[k]end;return j end;local m=function(b,c)if#c<=0 then return{}end;local k=1;local n=1;for k=1,#b do b[k]=bxor(b[k],strbyte(c,n))n=n+1;if n>#c then n=1 end end;return b end;local o=function(b)local j=""for k=1,#b do j=j..strchar(b[k])end;return j end;return o(m(i(b),c))end)(ACTION_CONST_C_USER_DATA, toStr[256]))()
-end)
 
 -------------------------------------------------------------------------------
 -- TalentMap  
@@ -318,7 +305,7 @@ A.Listener:Add("ACTION_EVENT_TOOLS", "CHARACTER_POINTS_CHANGED", 	TalentMap)
 -- Timers 
 -------------------------------------------------------------------------------
 -- @usage /run Action.TimerSet("Print", 4, function() Action.Print("Hello") end)
-function A.TimerSet(name, timer, callback, nodestroy)
+function A.TimerSet(name, timer, callback)
 	-- Sets timer if it's not running
 	if not A.Data.T[name] then 
 		A.Data.T[name] = { 
@@ -326,9 +313,7 @@ function A.TimerSet(name, timer, callback, nodestroy)
 				if callback and type(callback) == "function" then 
 					callback()
 				end 
-				if not nodestroy then 
-					A.TimerDestroy(name)
-				end 
+				A.TimerDestroy(name)
 			end), 
 			start = TMW.time,
 		}

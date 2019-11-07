@@ -60,7 +60,7 @@ MultiUnits.OnEventCLEU							= function(...)
 		ts = round(ts, 0)
 		-- Create or update 
 		if not MultiUnits.activeUnitCLEU[SourceGUID] then
-			MultiUnits.activeUnitCLEU[SourceGUID] = setmetatable({ TS = ts }, { __mode = "k" })
+			MultiUnits.activeUnitCLEU[SourceGUID] = setmetatable({ TS = ts }, { __mode == "kv" })
 		elseif MultiUnits.activeUnitCLEU[SourceGUID].TS + 1.5 <= ts then
 			MultiUnits.activeUnitCLEU[SourceGUID].TS = ts
 		end 			
@@ -144,7 +144,7 @@ end
 
 function A.MultiUnits.GetBySpell(self, spell, count)
 	-- @return number
-	-- @usage A.MultiUnits:GetBySpell(@number or @table, @number)
+	-- @usage A.MultiUnits:GetBySpell(@number, @number)
 	local total = 0
 	local nameplates = self:GetActiveUnitPlates()	
 	
@@ -168,39 +168,7 @@ function A.MultiUnits.GetBySpell(self, spell, count)
 	
 	return total 	
 end 
-
-function A.MultiUnits.GetBySpellIsFocused(self, unitID, spell, count)
-	-- @return number, namePlateUnitID
-	-- @usage A.MultiUnits:GetBySpellIsFocused(@string, @number or @table, @number)
-	-- Returns count of enemies which have focusing in their target specified unitID 
-	local total, unitNamePlateID = 0, "none"
-	local nameplates = self:GetActiveUnitPlates()	
-	
-	if nameplates then 
-		for unitNamePlateID in pairs(nameplates) do 
-			local inRange
-			if type(spell) == "table" then 
-				if spell:IsInRange(unitNamePlateID) then 
-					inRange = true 
-				end 
-			else
-				if A.IsInRange(spell, unitNamePlateID) then 
-					inRange = true 
-				end 				
-			end 
-			
-			if inRange and UnitIsUnit(unitNamePlateID .. "target", unitID) then 
-				total = total + 1
-			end 
-			
-			if count and total >= count then 
-				break 
-			end 
-		end 
-	end 
-	
-	return total, unitNamePlateID	
-end 
+A.MultiUnits.GetBySpell = A.MakeFunctionCachedDynamic(A.MultiUnits.GetBySpell)
 
 function A.MultiUnits.GetByRange(self, range, count)
 	-- @return number
@@ -368,7 +336,7 @@ A.MultiUnits.GetByRangeAppliedDoTs = A.MakeFunctionCachedDynamic(A.MultiUnits.Ge
 
 function A.MultiUnits.GetByRangeIsFocused(self, unitID, range, count)
 	-- @return number, namePlateUnitID
-	-- @usage A.MultiUnits:GetByRangeIsFocused(@string, @number, @number)
+	-- @usage A.MultiUnits:GetByRange(@string, @number, @number)
 	-- Returns count of enemies which have focusing in their target specified unitID 
 	local total, unitNamePlateID = 0, "none"
 	local nameplates = self:GetActiveUnitPlates()	

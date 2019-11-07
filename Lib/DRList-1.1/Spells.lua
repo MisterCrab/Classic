@@ -290,12 +290,8 @@ else
         [GetSpellInfo(13181)]   = { category = "mind_control", spellID = 13181 },  -- Gnomish Mind Control Cap
         [GetSpellInfo(8056)]    = { category = "frost_shock", spellID = 8056 },    -- Frost Shock
 		
-		-- Missed another staff in Lib:
 		-- Disarms
-        [GetSpellInfo(676)]     = { category = "incapacitate", spellID = 676 },     -- Disarm
-		
-		-- Incapacitates
-		[GetSpellInfo(2094)]	= { category = "incapacitate", spellID = 2094 }, 	-- Blind 
+        [GetSpellInfo(676)]     = { category = "disarm", spellID = 676 },         -- Disarm
     }
 end
 
