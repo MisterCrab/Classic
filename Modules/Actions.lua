@@ -78,7 +78,7 @@ local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSp
 	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown
 
 -- Item 	  
-local IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem	=
+local IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem  =
 	  IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem
   
 local GetItemInfo, GetItemIcon, GetItemInfoInstant, GetItemSpell = 
@@ -1028,6 +1028,20 @@ end
 -------------------------------------------------------------------------------
 -- Misc
 -------------------------------------------------------------------------------
+-- KeyName
+local function tableSearch(self, array)
+	for k, v in pairs(array) do 
+		if type(v) == "table" and self == v then 
+			return k 
+		end 
+	end 
+end 
+
+function A:GetKeyName()
+	-- Returns @nil or @string as key name in the table
+	return tableSearch(self, A[A.PlayerClass]) or tableSearch(self, A)
+end 
+
 -- Spell  
 local spellinfocache = setmetatable({}, { __index = function(t, v)
     local a = { GetSpellInfo(v) }
@@ -1076,11 +1090,11 @@ end
 
 -- Item
 local iteminfocache = setmetatable({}, { __index = function(t, v)	
-    local a = { GetItemInfo(v) }
-    if a[1] then
-        t[v] = a
-    end
-    return a
+	local a = { GetItemInfo(v) }		
+	if a[1] then
+		t[v] = a
+	end
+	return a	
 end })
 
 function A:GetItemInfo()
@@ -1090,7 +1104,7 @@ function A:GetItemInfo()
 	end
 	
 	if ID then 
-		return unpack(iteminfocache[ID])
+		return unpack(iteminfocache[ID]) or self:GetKeyName()
 	end 
 end
 
@@ -1099,7 +1113,7 @@ function A:GetItemLink()
 end 
 
 function A:GetItemIcon()
-	return select(10, self:GetItemInfo())
+	return select(10, self:GetItemInfo()) or select(5, GetItemInfoInstant(self.ID))
 end
 
 function A:GetItemTexture(custom)
