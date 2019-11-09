@@ -5852,7 +5852,7 @@ function Action.ToggleMainUI()
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
 			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineDropDown) 
 			
-			local StopAtBreakAble = StdUi:Checkbox(anchor, L["TAB"][tab.name]["STOPATBREAKABLE"])			
+			local StopAtBreakAble = StdUi:Checkbox(anchor, L["TAB"][tab.name]["STOPATBREAKABLE"], 50)			
 			StopAtBreakAble:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)
 			StopAtBreakAble:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			StopAtBreakAble:SetScript("OnClick", function(self, button, down)	
