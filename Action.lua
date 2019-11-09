@@ -184,7 +184,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Hide rotation modes",
 				DISABLESOUNDS = "Disable sounds",
 				CAMERAMAXFACTOR = "Camera max factor", 
-				ROLETOOLTIP = "Depending on this mode, rotation will work\nAUTO - Defines your role depending on the majority of nested talents in the right tree",
+				ROLETOOLTIP = "Depending on this mode, rotation will work\nAuto - Defines your role depending on the majority of nested talents in the right tree",
 				TOOLS = "Tools:",
 				LETMECASTTOOLTIP = "Auto-dismount and Auto-stand\nIf a spellcast or interaction fails due to being mounted, you will dismount. If it fails due to you sitting down, you will stand up\nLet me cast!",
 				TARGETCASTBAR = "Target CastBar",
@@ -491,7 +491,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Скрыть режимы ротации",
 				DISABLESOUNDS = "Отключить звуки",
 				CAMERAMAXFACTOR = "Макс. отдаление камеры", 
-				ROLETOOLTIP = "В зависимости от этого режима будет работать ротация\nAUTO - Определяет вашу роль в зависимости от большинства вложенных талантов в нужное дерево",
+				ROLETOOLTIP = "В зависимости от этого режима будет работать ротация\nAuto - Определяет вашу роль в зависимости от большинства вложенных талантов в нужное дерево",
 				TOOLS = "Утилиты:",
 				LETMECASTTOOLTIP = "Авто-спешивание и Авто-встать\nЕсли произнесение или взаимодействие невозможно из-за транспорта, то вы будете спешены\nЕсли это невозможно пока вы сидите, то вы встанете\nLet me cast - Позволь мне произнести!",
 				TARGETCASTBAR = "Бар произнесения цели",
@@ -798,7 +798,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Drehmodi ausblenden",
 				DISABLESOUNDS = "Sounds deaktivieren",
 				CAMERAMAXFACTOR = "Kameramaximalfaktor", 
-				ROLETOOLTIP = "Abhängig von diesem Modus funktioniert die Drehung\nAUTO - Definiert Ihre Rolle in Abhängigkeit von der Mehrheit der verschachtelten Talente im rechten Baum",
+				ROLETOOLTIP = "Abhängig von diesem Modus funktioniert die Drehung\nAuto - Definiert Ihre Rolle in Abhängigkeit von der Mehrheit der verschachtelten Talente im rechten Baum",
 				TOOLS = "Werkzeuge: ",				
 				LETMECASTTOOLTIP = "Auto-Dismount und Auto-Stand\nWenn ein Zauber oder eine Interaktion aufgrund eines Reitens fehlschlägt, werden Sie aussteigen. Wenn es fehlschlägt, weil Sie sitzen, werden Sie aufstehen\nLet Me Cast - Lass mich werfen!",
 				TARGETCASTBAR = "Ziel-Cast-Leiste",
@@ -1105,7 +1105,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Masquer les modes de rotation",
 				DISABLESOUNDS = "Désactiver les sons",
 				CAMERAMAXFACTOR = "Facteur max caméra", 
-				ROLETOOLTIP = "En fonction de ce mode, la rotation fonctionnera\nAUTO - Définit votre rôle en fonction de la majorité des talents imbriqués dans le bon arbre",
+				ROLETOOLTIP = "En fonction de ce mode, la rotation fonctionnera\nAuto - Définit votre rôle en fonction de la majorité des talents imbriqués dans le bon arbre",
 				TOOLS = "Outils: ",
 				LETMECASTTOOLTIP = "Démontage automatique et stand automatique\nSi un orthographe ou une interaction échoue en raison de son montage, vous serez démonté. Si vous ne vous assoyez pas, vous vous lèverez.\nLet Me Cast - Laissez-moi jeter!",
 				TARGETCASTBAR = "Cible CastBar",
@@ -1412,7 +1412,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Nascondi le modalità di rotazione",
 				DISABLESOUNDS = "Disabilita i suoni",
 				CAMERAMAXFACTOR = "Fattore massimo della fotocamera", 
-				ROLETOOLTIP = "A seconda di questa modalità, la rotazione funzionerà\nAUTO - Definisce il tuo ruolo in base alla maggior parte dei talenti nidificati nell'albero giusto",
+				ROLETOOLTIP = "A seconda di questa modalità, la rotazione funzionerà\nAuto - Definisce il tuo ruolo in base alla maggior parte dei talenti nidificati nell'albero giusto",
 				TOOLS = "Utensili: ",
 				LETMECASTTOOLTIP = "Auto-smontaggio e Auto-stand\nSe un incantesimo o un'interazione falliscono a causa del montaggio, si smonterà. Se fallisce a causa del fatto che ti siedi, ti alzi\nLet Me Cast - Lasciami lanciare!",
 				TARGETCASTBAR = "Target CastBar",
@@ -1719,7 +1719,7 @@ local Localization = {
 				DISABLEROTATIONMODES = "Ocultar modos de rotación",
 				DISABLESOUNDS = "Desactivar sonidos",
 				CAMERAMAXFACTOR = "Factor máximo de cámara", 
-				ROLETOOLTIP = "Dependiendo de este modo, la rotación funcionará\nAUTO - Define tu rol dependiendo de la mayoría de los talentos anidados en el árbol correcto",
+				ROLETOOLTIP = "Dependiendo de este modo, la rotación funcionará\nAuto - Define tu rol dependiendo de la mayoría de los talentos anidados en el árbol correcto",
 				TOOLS = "Herramientas: ",
 				LETMECASTTOOLTIP = "Desmontaje automático y soporte automático\nSi un hechizo o interacción falla debido a que está montado, desmontarás. Si falla debido a que te sientas, te levantarás\nLet Me Cast - Déjame echar!",
 				TARGETCASTBAR = "Target CastBar",
@@ -5178,6 +5178,7 @@ function Action.ToggleMainUI()
 	if not Action.MainUI and not Action.IsInitialized then 
 		return 
 	end 
+	local profile = TMW.db:GetCurrentProfile()
 	local spec = Action.PlayerClass .. CL
 	if Action.MainUI then 	
 		if Action.MainUI:IsShown() then 
@@ -5847,7 +5848,7 @@ function Action.ToggleMainUI()
 			HE_ToggleFrame.Identify = { Type = "Dropdown", Toggle = "HE_Toggle" }
 			StdUi:FrameTooltip(HE_ToggleFrame, L["TAB"][tab.name]["HEALINGENGINETOOLTIP"], nil, "TOPLEFT", true)
 			HE_ToggleFrame.FontStringTitle = StdUi:FontString(HE_ToggleFrame, "HealingEngine")
-			StdUi:GlueBelow(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
+			StdUi:GlueAbove(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
 			HE_ToggleFrame.text:SetJustifyH("CENTER")			
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
 			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineDropDown) 
@@ -5856,16 +5857,33 @@ function Action.ToggleMainUI()
 			StopAtBreakAble:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)
 			StopAtBreakAble:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			StopAtBreakAble:SetScript("OnClick", function(self, button, down)	
-				if button == "LeftButton" then 
-					TMW.db.profile.ActionDB[tab.name].StopAtBreakAble = not TMW.db.profile.ActionDB[tab.name].StopAtBreakAble
-					self:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
-					Action.Print(L["TAB"][tab.name]["STOPATBREAKABLE"] .. ": ", TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
-				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["STOPATBREAKABLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "StopAtBreakAble", "]] .. L["TAB"][tab.name]["STOPATBREAKABLE"] .. [[: "})]])	
+				if not self.isDisabled then 
+					if button == "LeftButton" then 
+						TMW.db.profile.ActionDB[tab.name].StopAtBreakAble = not TMW.db.profile.ActionDB[tab.name].StopAtBreakAble
+						self:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
+						Action.Print(L["TAB"][tab.name]["STOPATBREAKABLE"] .. ": ", TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
+					elseif button == "RightButton" then 
+						CraftMacro(L["TAB"][tab.name]["STOPATBREAKABLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "StopAtBreakAble", "]] .. L["TAB"][tab.name]["STOPATBREAKABLE"] .. [[: "})]])	
+					end 
 				end 
 			end)
 			StopAtBreakAble.Identify = { Type = "Checkbox", Toggle = "StopAtBreakAble" }
 			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"][tab.name]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
+			local function StopAtBreakAbleCheckboxUpdate()
+				if profile == "[GGL] Rogue" then 
+					if not StopAtBreakAble.isDisabled then 
+						StopAtBreakAble:Disable()
+						StopAtBreakAble:SetChecked(false)
+						if TMW.db.profile.ActionDB[tab.name].StopAtBreakAble then 
+							TMW.db.profile.ActionDB[tab.name].StopAtBreakAble = not TMW.db.profile.ActionDB[tab.name].StopAtBreakAble
+						end 
+					end 
+				elseif StopAtBreakAble.isDisabled then  					
+					StopAtBreakAble:Enable()
+				end 			
+			end 
+			StopAtBreakAble:SetScript("OnShow", StopAtBreakAbleCheckboxUpdate)
+			StopAtBreakAbleCheckboxUpdate()
 			
 			local FPS = StdUi:Slider(anchor, GetWidthByColumn(anchor, 5.8), Action.Data.theme.dd.height, TMW.db.profile.ActionDB[tab.name].FPS, false, -0.01, 1.5)
 			FPS:SetPrecision(2)
@@ -5918,7 +5936,7 @@ function Action.ToggleMainUI()
 
 			local function GetProfileRole()
 				local temp = {}
-				tinsert(temp, { text = "AUTO", value = "AUTO" })
+				tinsert(temp, { text = "Auto", value = "AUTO" })
 				
 				local roles = Action.GetCurrentSpecializationRoles()
 				local isUsed = {}
@@ -6375,7 +6393,7 @@ function Action.ToggleMainUI()
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(Potion, DBMFrame, { column = "even" })			
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(StopCast, HE_AnyRole, { column = "even" })	
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
+			anchor:AddRow({ margin = { top = -5 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, StopAtBreakAble, { column = "even" })
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
