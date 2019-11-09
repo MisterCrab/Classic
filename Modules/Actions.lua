@@ -92,10 +92,32 @@ local GetSpellBookItemName			= GetSpellBookItemName
 local FindSpellBookSlotBySpellID 	= FindSpellBookSlotBySpellID
 
 -- Unit 	  
+local UnitAura						= TMW.UnitAura
 local UnitIsUnit, UnitIsPlayer		= UnitIsUnit, UnitIsPlayer
 
 -- Empty 
 local empty1, empty2 				= { 0, -1 }, { 0, 0, 0, 0, 0, 0, 0, 0 } 
+
+-- Auras
+local IsBreakAbleDeBuff = {}
+do 
+	local tempTable = A.GetAuraList("BreakAble")
+	local tempTableInSkipID = A.GetAuraList("Rooted")
+	for j = 1, #tempTable do 
+		local isRoots 
+		for l = 1, #tempTableInSkipID do 
+			if tempTable[j] == tempTableInSkipID[l] then 
+				isRoots = true 
+				break 
+			end 			
+		end 
+		
+		if not isRoots then 
+			IsBreakAbleDeBuff[GetSpellInfo(tempTable[j])] = true 
+		end 
+	end 
+	tempTable, tempTableInSkipID = nil, nil 
+end 
 
 -------------------------------------------------------------------------------
 -- Global Cooldown
@@ -900,24 +922,37 @@ end
 function A:AbsentImun(unitID, imunBuffs)
 	-- @return boolean 
 	-- Note: Checks for friendly / enemy Imun auras and compares it with remain duration 
-	if not unitID or not A.IsInPvP or UnitIsUnit(unitID, "player") or not UnitIsPlayer(unitID) then 
+	if not unitID or UnitIsUnit(unitID, "player") then 
 		return true 
-	else 
+	else 		
+		local isTable = type(self) == "table"
+		
 		-- Super trick for Queue System, it will save in cache imunBuffs on first entire call by APL and Queue will be allowed to handle cache to compare Imun 
-		if type(self) == "table" and not self.AbsentImunQueueCache and imunBuffs then 
+		if isTable and not self.AbsentImunQueueCache and imunBuffs then 
 			self.AbsentImunQueueCache = imunBuffs
 		end 	
 		
-		local MinDur = type(self) ~= "table" and 0 or self.Type ~= "Spell" and 0 or self:GetSpellCastTime()
+		local MinDur = not isTable and 0 or self.Type ~= "Spell" and 0 or self:GetSpellCastTime()
 		if MinDur > 0 then 
 			MinDur = MinDur + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0)
 		end
 		
-		--if Unit(unitID):DeBuffCyclone() > MinDur then 
-			--return false 
-		--end 
+		if A.GetToggle(1, "StopAtBreakAble") and Unit(unitID):IsEnemy() then 
+			local debuffName, expirationTime, remainTime, _
+			for i = 1, huge do			
+				debuffName, _, _, _, _, expirationTime = UnitAura(unitID, i, "HARMFUL")
+				if not debuffName then
+					break 
+				elseif IsBreakAbleDeBuff[debuffName] then 
+					remainTime = expirationTime == 0 and huge or expirationTime - TMW.time
+					if remainTime > MinDur then 
+						return false 
+					end 
+				end 
+			end 
+		end 
 		
-		if imunBuffs then 
+		if A.IsInPvP and imunBuffs and UnitIsPlayer(unitID) then 
 			if type(imunBuffs) == "table" then 
 				for i = 1, #imunBuffs do 
 					if Unit(unitID):HasBuffs(imunBuffs[i]) > MinDur then 

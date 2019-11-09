@@ -339,6 +339,7 @@ local AuraList = {
 		24364,				-- Living Free Action		(Potion)
 	},
     TotalImun = {
+		710, 				-- Banish 					(Warlock)
 		498, 				-- Divine Protection		(Paladin)
         642, 				-- Divine Shield			(Paladin)		
         11958, 				-- Ice Block				(Mage)
@@ -346,12 +347,12 @@ local AuraList = {
         20711, 				-- Spirit of Redemption		(Priest)
 		17624,				-- Petrification			(Flask of Petrification)
     },
-    DamagePhysImun = {
+    DamagePhysImun = {		
 		1022, 				-- Blessing of Protection	(Paladin)
 		3169,				-- Invulnerability			(Limited Invulnerability Potion)
 		--16621,			-- Self Invulnerability (Invulnerable Mail weapon) -- FIX ME: seems only for swing attacks
 	},
-    DamageMagicImun = 710, 	-- Banish 					(Warlock)
+    DamageMagicImun = {}, 
     CCTotalImun = {},     
     CCMagicImun = 8178,		-- Grounding Totem Effect	(Shaman)
     Reflect = { 

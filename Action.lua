@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "07.11.2019"
+local DateTime 						= "09.11.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -135,6 +135,8 @@ local Localization = {
 				HEALINGENGINEPETSTOOLTIP = "Include in target select player's pets and calculate for heal them\n\nRightClick: Create macro",
 				HEALINGENGINEANYROLE = "HealingEngine any role",
 				HEALINGENGINEANYROLETOOLTIP = "Enable to use member targeting on any your role",
+				STOPATBREAKABLE = "Stop Damage On BreakAble",
+				STOPATBREAKABLETOOLTIP = "Will stop harmful damage on enemies\nIf they have CC such as Polymorph\nIt doesn't cancel auto attack!\n\nRightClick: Create macro",
 				ALL = "All",
 				RAID = "Raid",
 				TANK = "Only Tanks",
@@ -461,6 +463,8 @@ local Localization = {
 				BURSTTOOLTIP = "Everything - По доступности способности\nAuto - Босс или Игрок\nOff - Выключено\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то\nиспользуйте аргумент (АРГУМЕНТ): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Камень здоровья | Зелье исцеления",
 				HEALTHSTONETOOLTIP = "Выставить процент своего здоровья при котором использовать\nЗелье исцеления зависит от вашей вкладки настроек класса для Зелья\nи от того, отображаются ли эти зелья во вкладке Действия\nКамень здоровья имеет общее время восстановления с Зельем исцеления\n\nПравая кнопка мышки: Создать макрос",
+				STOPATBREAKABLE = "Стоп урон на ломающемся контроле",
+				STOPATBREAKABLETOOLTIP = "Остановит вредоносный урон по врагам\nЕсли у них есть CC, например, Превращение\nЭто не отменяет автоатаку!\n\nПравая кнопка мышки: Создать макрос",
 				AUTOATTACK = "Авто Атака",
 				AUTOSHOOT = "Авто Выстрел",	
 				PAUSECHECKS = "Ротация не работает если:",
@@ -745,6 +749,8 @@ local Localization = {
 				HEALINGENGINEPETSTOOLTIP = "Füge die Begleiter des ausgewählten Spielers zum Ziel hinzu und berechne sie, um sie zu heilen.\n\nRechtsklick: Makro erstellen",
 				HEALINGENGINEANYROLE = "HealingEngine irgendeine Rolle",
 				HEALINGENGINEANYROLETOOLTIP = "Aktivieren Sie diese Option, um das Mitglieder-Targeting für jede Ihrer Rollen zu verwenden",
+				STOPATBREAKABLE = "Stoppt den Schaden bei Zerbrechlichkeit",
+				STOPATBREAKABLETOOLTIP = "Verhindert schädlichen Schaden bei Feinden\nWenn sie CC wie Polymorph haben\nDer automatische Angriff wird nicht abgebrochen!\n\nRechtsklick: Makro erstellen",
 				ALL = "Alle",
 				RAID = "Raid",
 				TANK = "Nur Tanks",
@@ -1050,6 +1056,8 @@ local Localization = {
 				HEALINGENGINEPETSTOOLTIP = "Inclut les familier des joueurs et calcule les soins pour eux\n\nClique droit : Créer la macro",
 				HEALINGENGINEANYROLE = "HealingEngine n'importe quel rôle",
 				HEALINGENGINEANYROLETOOLTIP = "Activer l'utilisation du ciblage des membres sur n'importe quel rôle",
+				STOPATBREAKABLE = "Stop Damage On BreakAble",
+				STOPATBREAKABLETOOLTIP = "Arrêtera les dégâts sur les ennemis\nSi ils ont un CC tel que Polymorph\nIl n'annule pas l'attaque automatique!\n\nClique droit : Créer la macro",
 				ALL = "Tout",
 				RAID = "Raid",
 				TANK = "Tanks seulement",
@@ -1355,6 +1363,8 @@ local Localization = {
 				HEALINGENGINEPETSTOOLTIP = "include nella selezione dei bersagli  i pets dei giocatori e considera la loro cura \n\nTastodestro: Crea macro",
 				HEALINGENGINEANYROLE = "HealingEngine qualsiasi ruolo",
 				HEALINGENGINEANYROLETOOLTIP = "Abilita l'utilizzo del targeting per membro su qualsiasi tuo ruolo",
+				STOPATBREAKABLE = "Stop Damage On BreakAble",
+				STOPATBREAKABLETOOLTIP = "Fermerà i danni dannosi ai nemici\nSe hanno CC come Polymorph\nNon annulla l'attacco automatico!\n\nTastodestro: Crea macro",
 				ALL = "Tutti",
 				RAID = "Raid",
 				TANK = "Solo Tank",
@@ -1660,6 +1670,8 @@ local Localization = {
 				HEALINGENGINEPETSTOOLTIP = "Incluída en el target de las pets del jugador y calcula para curarles\n\nClickDerecho: Crear macro",
 				HEALINGENGINEANYROLE = "HealingEngine cualquier papel",
 				HEALINGENGINEANYROLETOOLTIP = "Habilite el uso de la orientación a miembros en cualquier rol",
+				STOPATBREAKABLE = "Detener el daño en el descanso",
+				STOPATBREAKABLETOOLTIP = "Detendrá el daño dañino en los enemigos\nSi tienen CC como Polymorph\nNo cancela el ataque automático!\n\nClickDerecho: Crear macro",
 				ALL = "Todo",
 				RAID = "Raid",
 				TANK = "Solo Tanques",
@@ -2074,6 +2086,7 @@ local Factory = {
 		HE_Toggle = "ALL",
 		HE_Pets = true,		
 		HE_AnyRole = false,
+		StopAtBreakAble = false,
 		FPS = -0.01, 			
 		Trinkets = {
 			[1] = true, 
@@ -5839,6 +5852,21 @@ function Action.ToggleMainUI()
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
 			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineDropDown) 
 			
+			local StopAtBreakAble = StdUi:Checkbox(anchor, L["TAB"][tab.name]["STOPATBREAKABLE"])			
+			StopAtBreakAble:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)
+			StopAtBreakAble:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			StopAtBreakAble:SetScript("OnClick", function(self, button, down)	
+				if button == "LeftButton" then 
+					TMW.db.profile.ActionDB[tab.name].StopAtBreakAble = not TMW.db.profile.ActionDB[tab.name].StopAtBreakAble
+					self:SetChecked(TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
+					Action.Print(L["TAB"][tab.name]["STOPATBREAKABLE"] .. ": ", TMW.db.profile.ActionDB[tab.name].StopAtBreakAble)	
+				elseif button == "RightButton" then 
+					CraftMacro(L["TAB"][tab.name]["STOPATBREAKABLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "StopAtBreakAble", "]] .. L["TAB"][tab.name]["STOPATBREAKABLE"] .. [[: "})]])	
+				end 
+			end)
+			StopAtBreakAble.Identify = { Type = "Checkbox", Toggle = "StopAtBreakAble" }
+			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
+			
 			local FPS = StdUi:Slider(anchor, GetWidthByColumn(anchor, 5.8), Action.Data.theme.dd.height, TMW.db.profile.ActionDB[tab.name].FPS, false, -0.01, 1.5)
 			FPS:SetPrecision(2)
 			FPS:SetScript('OnMouseUp', function(self, button, down)
@@ -6348,7 +6376,7 @@ function Action.ToggleMainUI()
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(StopCast, HE_AnyRole, { column = "even" })	
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, LayoutSpace(anchor), { column = "even" })
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, StopAtBreakAble, { column = "even" })
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	
