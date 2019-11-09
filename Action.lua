@@ -5865,7 +5865,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			StopAtBreakAble.Identify = { Type = "Checkbox", Toggle = "StopAtBreakAble" }
-			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
+			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"][tab.name]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
 			
 			local FPS = StdUi:Slider(anchor, GetWidthByColumn(anchor, 5.8), Action.Data.theme.dd.height, TMW.db.profile.ActionDB[tab.name].FPS, false, -0.01, 1.5)
 			FPS:SetPrecision(2)
