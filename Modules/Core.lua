@@ -307,12 +307,12 @@ function A.Rotation(icon)
 	
 	-- [5] Trinket 
 	if meta == 5 then 
-		local result, isApplied 
+		local result, isApplied, RacialAction
 		
 		-- Use racial available trinkets if we don't have additional RACIAL_LOC
 		-- Note: Additional RACIAL_LOC is the main reason why I avoid here :AutoRacial (see below 'if isApplied then ')
 		if A.GetToggle(1, "Racial") then 
-			local RacialAction 		= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
+			RacialAction 			= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
 			local RACIAL_LOC 		= LoC.GetExtra[A.PlayerRace]							-- Loss Of Control 
 			if RACIAL_LOC and RacialAction and RacialAction:IsReady(player, true) and RacialAction:IsExists() then 
 				result, isApplied 	= LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, A.PlayerRace == "Dwarf" or A.PlayerRace == "Gnome")
