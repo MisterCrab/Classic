@@ -1,2 +1,10 @@
+[Rogue v2] 
+Fixed miss typo which caused wrong behavior to save energy on the next required spender  
+Fixed opener when he forced to use OFF on custom choice 
+Fixed large text in ProfileUI on Russian localization 
+Reduced damage calculation factor (seen when Eviscerate used too early as "finish him" nuke)
+SinisterStrike, Hemorrhage 			- Fixed issue which prevent use Backstub if energy drops below required limit 
+Backstub							- Added additional conditions which helping to determine behind position in PvE 
+
 [Rogue v1]
 Release
