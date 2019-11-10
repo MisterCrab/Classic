@@ -1,3 +1,10 @@
+[Rogue v3] 
+Eviscerate							- Fixed damage math formula 
+Rupture								- Fixed TTD in duel vs Paladin and Warrior now has 6 instead of 16
+Rupture								- Added use vs Rogues in PvP 
+KidneyShot							- Added condition to check Blink cd in PvP vs Mages 
+KidneyShot							- Added condition to use at 3+ CP if remain current CC will went off before build more energy or CP 
+
 [Rogue v2] 
 Fixed miss typo which caused wrong behavior to save energy on the next required spender  
 Fixed opener when he forced to use OFF on custom choice 
