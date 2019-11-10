@@ -1,3 +1,6 @@
+[Warrior v7]
+Disarm								- Fixed bug when not worked for @target @mouseover in PvP
+
 [Warrior v6]
 Stance switch to primary when nothing to do will no longer change stance if you're out of melee, bypassed if available for Intercept in combat even if it's blocked in UI
 Hamstring							- Fixed issue when it was used in PvP while target imuned (caused by missed PvP state check, this option supposed only for PvE "Kiting mobs")
