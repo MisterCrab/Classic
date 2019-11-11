@@ -91,7 +91,19 @@ local function PMultiplierLaunch(...)
 	end
 end
 
-local function RegisterPMultiplier(...)
+local function SpellRegisterError(Spell)
+    local SpellName = GetSpellInfo(Spell)
+    if SpellName then
+        return "You forgot to register the spell: " .. SpellName .. " in PMultiplier handler."
+    else
+        return "You forgot to register the spell object."
+    end
+end
+
+-------------------------------------------------------------------------------
+-- API
+-------------------------------------------------------------------------------	
+function A.RegisterPMultiplier(...)
     local Args = { ... }
     local SelfSpellID = Args[1]
     -- Get the SpellID to check on AURA_APPLIED/AURA_REFRESH, should be specified as first arg or it'll take the current spell object.
@@ -124,40 +136,6 @@ local function RegisterPMultiplier(...)
 ]]
 end
 
-local function SpellRegisterError(Spell)
-    local SpellName = GetSpellInfo(Spell)
-    if SpellName then
-        return "You forgot to register the spell: " .. SpellName .. " in PMultiplier handler."
-    else
-        return "You forgot to register the spell object."
-    end
-end
-
--------------------------------------------------------------------------------
--- Register  
--------------------------------------------------------------------------------	
-if A.PlayerClass == "DRUID" then 
-	A.Listener:Add("ACTION_EVENT_PMULTIPLIER", "PLAYER_SPECIALIZATION_CHANGED", PMultiplierLaunch)
-	PMultiplierLaunch()
-	RegisterPMultiplier( -- Rake dot and action
-		1822,    -- Rake action
-		155722,  -- Rake dot
-		{function ()
-				return Player:IsStealthed() and 2 or 1
-		end},
-		-- BloodtalonsBuff, SavageRoar, TigersFury
-		{145152, 1.2}, {52610, 1.15}, {5217, 1.15}
-	)
-	RegisterPMultiplier(
-		1079, -- Rip action
-		-- BloodtalonsBuff, SavageRoar, TigersFury
-		{145152, 1.2}, {52610, 1.15}, {5217, 1.15}
-	)
-end 
-
--------------------------------------------------------------------------------
--- API
--------------------------------------------------------------------------------	
 -- dot.foo.pmultiplier
 function A.PMultiplier(unitID, SpellID)
     if ListenedSpells[SpellID].PMultiplier then
@@ -180,7 +158,7 @@ function A.Persistent_PMultiplier(SpellID)
 end
 
 --[[
-RegisterPMultiplier( -- Rake dot and action
+A.RegisterPMultiplier( -- Rake dot and action
     1822,
     155722, 
     {function ()
@@ -188,7 +166,7 @@ RegisterPMultiplier( -- Rake dot and action
     end},
     {145152, 1.2}, {52610, 1.15}, {5217, 1.15}
 )
-RegisterPMultiplier(
+A.RegisterPMultiplier(
     1079, -- Rip action
     -- BloodtalonsBuff, SavageRoar, TigersFury
     {145152, 1.2}, {52610, 1.15}, {5217, 1.15}
@@ -198,3 +176,24 @@ A.Persistent_PMultiplier(1822)
 A.PMultiplier("target", 1822)
 ]]
 
+-------------------------------------------------------------------------------
+-- Register  
+-------------------------------------------------------------------------------	
+if A.PlayerClass == "DRUID" then 
+	A.Listener:Add("ACTION_EVENT_PMULTIPLIER", "PLAYER_SPECIALIZATION_CHANGED", PMultiplierLaunch)
+	PMultiplierLaunch()
+	A.RegisterPMultiplier( -- Rake dot and action
+		1822,    -- Rake action
+		155722,  -- Rake dot
+		{function ()
+				return Player:IsStealthed() and 2 or 1
+		end},
+		-- BloodtalonsBuff, SavageRoar, TigersFury
+		{145152, 1.2}, {52610, 1.15}, {5217, 1.15}
+	)
+	A.RegisterPMultiplier(
+		1079, -- Rip action
+		-- BloodtalonsBuff, SavageRoar, TigersFury
+		{145152, 1.2}, {52610, 1.15}, {5217, 1.15}
+	)
+end 
