@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "11.11.2019"
+local DateTime 						= "15.11.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -4575,7 +4575,7 @@ function Action.InterruptIsValid(unitID, list, ignoreToggle)
 			local luaCode = Interrupt and Interrupt.LUA or nil
 			
 			if list:match("TargetMouseover") then
-				if (not Action.GetToggle(4, "TargetMouseoverList") and (not Action.IsInPvP or (Action.Unit(unitID):IsHealer() and TimeToDie(unitID) < 6))) or (Action.InterruptEnabled(list, spellName) and RunLua(luaCode, unitID)) then 
+				if (not Action.GetToggle(4, "TargetMouseoverList") and (not Action.IsInPvP or (Action.Unit(unitID):IsHealer() and Action.Unit(unitID):TimeToDie() < 6))) or (Action.InterruptEnabled(list, spellName) and RunLua(luaCode, unitID)) then 
 					if Interrupt then 
 						return bl_useKick or Interrupt.useKick, bl_useCC or Interrupt.useCC, bl_useRacial or Interrupt.useRacial
 					else
@@ -4763,6 +4763,24 @@ local CompareUnitIDwithUnitName(unitID, unitName)
 end 
 ]]
 
+local MSG = {
+	units = { "raid%d+", "party%d+", "arena%d+", "player", "target" },
+	group = { 
+		{ u = "player", meta = 3 	}, 
+		{ u = "raid1", 	meta = 6 	}, 
+		{ u = "raid2", 	meta = 7	}, 
+		{ u = "raid3", 	meta = 8	}, 
+		{ u = "party1", meta = 6 	}, 
+		{ u = "party2", meta = 7	}, 
+		{ u = "party3", meta = 8	},
+	}, -- Classic has index started from 6 to 8 which provide to support party3
+	arena = {
+		{ u = "arena1", meta = 6 	}, 
+		{ u = "arena2", meta = 7	}, 
+		{ u = "arena3", meta = 8	}, 	
+	},
+	set = {},
+}	
 local function UpdateChat(...)
 	if not Action.IsInitialized then 
 		return 
@@ -4775,97 +4793,99 @@ local function UpdateChat(...)
 	
 	local msg, sname  = ... 
 	msg = msg:lower()
-	for Name in pairs(msgList) do 
-		if msgList[Name].Enabled and msg:match(Name) and (not msgList[Name].Source or msgList[Name].Source == sname) and Action[Action.PlayerClass][msgList[Name].Key] and (not Action.GetToggle(7, "DisableReToggle") or not Action[Action.PlayerClass][msgList[Name].Key]:IsQueued()) then  			
-			local units = { "raid%d+", "party%d+", "arena%d+", "player", "target" }
-			local unit
-			
-			for j = 1, #units do 
-				unit = msg:match(units[j])
-				if unit then 
-					break
-				end 
-			end 
+	for Name, v in pairs(msgList) do 
+		if v.Enabled and msg:match(Name) and (not v.Source or v.Source == sname) then 
+			local Obj = Action[Action.PlayerClass][v.Key] 
+			if Obj and (not Action.GetToggle(7, "DisableReToggle") or not Obj:IsQueued()) then  							
+				wipe(MSG.set)
+				local unit
 				
-			--[[
-			if not msgList[Name].Source then 
-				for j = 1, #units do 
-					unit = msg:match(units[j])
+				for j = 1, #MSG.units do 
+					unit = msg:match(MSG.units[j])
 					if unit then 
 						break
 					end 
 				end 
-			else 
-				if CompareUnitIDwithUnitName("player", sname) then 
-					unit = "player"
-				elseif CompareUnitIDwithUnitName("target", sname) then
-					unit = "target"
-				else 
-					for j = 1, Action.TeamCache.Friendly.Size do 
-						local cUnit = Action.TeamCache.Friendly.Type .. j 
-						if CompareUnitIDwithUnitName(cUnit, sname) then
-							unit = cUnit
-							break 
+					
+				--[[
+				if not v.Source then 
+					for j = 1, #MSG.units do 
+						unit = msg:match(MSG.units[j])
+						if unit then 
+							break
 						end 
 					end 
-					
-					if not unit then 
-						for j = 1, Action.TeamCache.Enemy.Size do 
-							local cUnit = Action.TeamCache.Enemy.Type .. j 
+				else 
+					if CompareUnitIDwithUnitName("player", sname) then 
+						unit = "player"
+					elseif CompareUnitIDwithUnitName("target", sname) then
+						unit = "target"
+					else 
+						for j = 1, Action.TeamCache.Friendly.Size do 
+							local cUnit = Action.TeamCache.Friendly.Type .. j 
 							if CompareUnitIDwithUnitName(cUnit, sname) then
 								unit = cUnit
 								break 
 							end 
-						end 					
+						end 
+						
+						if not unit then 
+							for j = 1, Action.TeamCache.Enemy.Size do 
+								local cUnit = Action.TeamCache.Enemy.Type .. j 
+								if CompareUnitIDwithUnitName(cUnit, sname) then
+									unit = cUnit
+									break 
+								end 
+							end 					
+						end 
 					end 
-				end 
-			end
-			]]			
-			
-			if unit then 
-				if RunLua(msgList[Name].LUA, unit) then 
-					-- Note: Regarding "player" unit here is a lot of profiles which don't support slot 6 and mostly 6 slot is valid for healer which has different @target always 
-					-- Since damager / tank always has @target an enemy then "player" will be applied even if spell will be launched in slot 3-4 
-					if unit:match("raid") then 
-						local raidunits = { { u = "player", meta = Action.IamHealer and 6 or nil }, { u = "party1", meta = 7 }, { u = "party2", meta = 8} }					
-						for j = 1, #raidunits do 
-							if UnitIsUnit(unit, raidunits[j].u) then 							
-								Action.MacroQueue(msgList[Name].Key, { Unit = raidunits[j].u, MetaSlot = raidunits[j].meta })							
-								break 
+				end
+				]]			
+				
+				if unit then 
+					if RunLua(v.LUA, unit) then 
+						-- Note: Regarding "player" unit here is a lot of profiles which don't support slot 6 and mostly 6 slot is valid for healer which has different @target always [Affected Retail only]
+						-- Since damager / tank always has @target an enemy then "player" will be applied even if spell will be launched in slot 3-4 
+						if unit:match("raid") or unit:match("party") then 		
+							if MSG.group[unit] then 
+								MSG.set.Unit = unit
+								MSG.set.MetaSlot = MSG.group[unit].meta 							
+								Action.MacroQueue(v.Key, MSG.set)
+							else 
+								for j = 1, #MSG.group do 
+									if UnitIsUnit(unit, MSG.group[j].u) then 	
+										MSG.set.Unit = MSG.group[j].u
+										MSG.set.MetaSlot = MSG.group[j].meta
+										Action.MacroQueue(v.Key, MSG.set)							
+										break 
+									end 
+								end 			
 							end 
-						end 					
-					elseif unit:match("party") then 
-						if unit == "party1" then 
-							Action.MacroQueue(msgList[Name].Key, { Unit = unit, MetaSlot = 7 })
-						elseif unit == "party2" then
-							Action.MacroQueue(msgList[Name].Key, { Unit = unit, MetaSlot = 8 })
+						elseif unit:match("arena") then
+							if MSG.arena[unit] then 
+								MSG.set.Unit = unit
+								MSG.set.MetaSlot = MSG.arena[unit].meta 							
+								Action.MacroQueue(v.Key, MSG.set)
+							end 
+						elseif unit == "player" then 
+							MSG.set.Unit = "player"
+							Action.MacroQueue(v.Key, MSG.set) 
+						else 
+							MSG.set.Unit = unit 
+							Action.MacroQueue(v.Key, MSG.set)
 						end 
-					elseif unit:match("arena") then 
-						if unit == "arena1" then 
-							Action.MacroQueue(msgList[Name].Key, { Unit = unit, MetaSlot = 6 })
-						elseif unit == "arena2" then 
-							Action.MacroQueue(msgList[Name].Key, { Unit = unit, MetaSlot = 7 })
-						elseif unit == "arena3" then 
-							Action.MacroQueue(msgList[Name].Key, { Unit = unit, MetaSlot = 8 })
-						end 
-					elseif unit == "player" then 
-						Action.MacroQueue(msgList[Name].Key, { Unit = "player" }) -- , MetaSlot = Action.IamHealer and 6 or nil
-					else 
-						Action.MacroQueue(msgList[Name].Key, { Unit = unit })
 					end 
-				end 
-			else
-				if msgList[Name].LUA ~= nil and msgList[Name].LUA ~= "" then 
-					local Key = Action[Action.PlayerClass][msgList[Name].Key]		
-					if Key:HasRange() then
-						unit = (Key:IsHarmful() or (Key:IsHelpful() and (Key.Type == "Spell" or Action.IamHealer)) and "target") or (Key.Type ~= "Spell" and ((not Action.IamHealer and "player") or "target")) or "player"
+				else
+					if v.LUA ~= nil and v.LUA ~= "" and Obj:HasRange() then 
+						unit = ((Obj:IsHarmful() or (Obj:IsHelpful() and (Obj.Type == "Spell" or Action.IamHealer))) and "target") or (Obj.Type ~= "Spell" and ((not Action.IamHealer and "player") or "target")) or "player"
 					end 
-				end 
-			
-				if RunLua(msgList[Name].LUA, unit or "target") then
-					Action.MacroQueue(msgList[Name].Key, { Unit = unit })
-				end 
-			end	
+				
+					if RunLua(v.LUA, unit or "target") then
+						MSG.set.Unit = unit -- or "target"
+						Action.MacroQueue(v.Key, MSG.set)
+					end 
+				end	
+			end 
 		end        
     end  
 end 

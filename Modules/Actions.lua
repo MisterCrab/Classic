@@ -932,7 +932,7 @@ function A:AbsentImun(unitID, imunBuffs)
 			self.AbsentImunQueueCache = imunBuffs
 		end 	
 		
-		local MinDur = not isTable and 0 or self.Type ~= "Spell" and 0 or self:GetSpellCastTime()
+		local MinDur = ((not isTable or self.Type ~= "Spell") and 0) or self:GetSpellCastTime()
 		if MinDur > 0 then 
 			MinDur = MinDur + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0)
 		end
