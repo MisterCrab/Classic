@@ -2045,7 +2045,6 @@ end
 -------------------------------------------------------------------------------
 -- API: FriendlyTeam 
 -------------------------------------------------------------------------------
-
 A.FriendlyTeam = PseudoClass({
 	GetUnitID 								= Cache:Wrap(function(self, range)
 		-- @return string or nil 

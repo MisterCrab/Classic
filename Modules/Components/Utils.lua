@@ -10,8 +10,8 @@ local A   					= Action
 local toStr 				= A.toStr
 local toNum 				= A.toNum
 
-local _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message	= 
-	  _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message
+local _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message, huge	= 
+	  _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message, math.huge
 	  
 local CreateFrame, GetCVar, SetCVar =
 	  CreateFrame, GetCVar, SetCVar
@@ -477,6 +477,10 @@ local function LossOfControlOnUpdate(icon, time)
 	local attributes = icon.attributes
 	local start = attributes.start
 	local duration = attributes.duration
+	
+	if duration >= huge then 
+		duration = select(2, A.LossOfControl:GetFrameData())
+	end 
 
 	if time - start > duration then	
 		icon:SetInfo(

@@ -1251,7 +1251,6 @@ local LossOfControl								= {
 			for j = 1, huge do 
 				Name, _, _, _, _, expirationTime, _, _, _, spellID = UnitDebuff("player", j)
 				if not Name then 
-					Expiration = 0
 					break 
 				elseif Name == aura then 
 					Expiration = expirationTime == 0 and huge or expirationTime
