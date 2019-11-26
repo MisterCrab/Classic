@@ -256,7 +256,7 @@ else
         [GetSpellInfo(5484)]    = { category = "fear", spellID = 5484 },          -- Howl of Terror
         [GetSpellInfo(6358)]    = { category = "fear", spellID = 6358 },          -- Seduction
         [GetSpellInfo(5246)]    = { category = "fear", spellID = 5246 },          -- Intimidating Shout
-        [GetSpellInfo(5134)]    = { category = "fear", spellID = 5134 },          -- Flash Bomb Fear
+        [GetSpellInfo(5134)]    = { category = "fear", spellID = 5134 },          -- Flash Bomb Fear        
 
         -- Random/short roots (TODO: confirm category exists)
         [GetSpellInfo(19229)]   = { category = "random_root", spellID = 19229 },   -- Improved Wing Clip
@@ -292,10 +292,16 @@ else
 		
 		-- Missed another staff in Lib:
 		-- Disarms
-        [GetSpellInfo(676)]     = { category = "incapacitate", spellID = 676 },     -- Disarm
+        [GetSpellInfo(676)]     = { category = "disarm", spellID = 676 },     		-- Disarm
+        [GetSpellInfo(14251)]   = { category = "disarm", spellID = 14251 },     	-- Riposte
+        [GetSpellInfo(23365)]   = { category = "disarm", spellID = 23365 },     	-- Dropped Weapon
 		
 		-- Incapacitates
 		[GetSpellInfo(2094)]	= { category = "incapacitate", spellID = 2094 }, 	-- Blind 
+		[GetSpellInfo(9484)]	= { category = "incapacitate", spellID = 9484 }, 	-- Shackle Undead 
+		
+		-- Turn Undead 
+		[GetSpellInfo(2878)]    = { category = "fear", spellID = 2878 },          	-- Turn Undead
     }
 end
 

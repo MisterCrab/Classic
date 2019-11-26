@@ -5,7 +5,7 @@ Author: d87
 if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
 -- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 24
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 26
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -56,6 +56,7 @@ local castTimeCache = {}
 local castTimeCacheStartTimes = setmetatable({}, { __mode = "v" })
 
 local AIMED_SHOT = GetSpellInfo(19434)
+local MULTI_SHOT = GetSpellInfo(25294)
 local castingAimedShot = false
 local playerGUID = UnitGUID("player")
 
@@ -112,15 +113,20 @@ local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime
     else
         casters[srcGUID] = { castType, spellName, icon, startTime, endTime, spellID }
     end
-
-    --[[if isSrcEnemyPlayer then
-        movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
+--[[
+    if isSrcEnemyPlayer then
+        if spellID ~= 4068 then --Iron Grenade
+            movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
+        end
     end]]
 
     if castType == "CAST" then
-        if srcGUID == playerGUID and spellName == AIMED_SHOT then
+        if srcGUID == playerGUID and (spellName == AIMED_SHOT or spellName == MULTI_SHOT) then
             castingAimedShot = true
             --movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
+            if spellName == MULTI_SHOT then
+                casters[srcGUID][5] = startTime + 500
+            end
             callbacks:Fire("UNIT_SPELLCAST_START", "player")
         end
         FireToUnits("UNIT_SPELLCAST_START", srcGUID)
@@ -299,7 +305,7 @@ function lib:UnitCastingInfo(unit)
     local cast = casters[guid]
     if cast then
         local castType, name, icon, startTimeMS, endTimeMS, spellID = unpack(cast)
-        if castingAimedShot then
+        if castingAimedShot and spellID ~= 25294 then -- Multi-Shot spellID
             local haste = GetRangedHaste(unit)
             local duration = endTimeMS - startTimeMS
             endTimeMS = startTimeMS + duration/haste
@@ -310,7 +316,7 @@ function lib:UnitCastingInfo(unit)
             local duration = endTimeMS - startTimeMS
             endTimeMS = startTimeMS + duration * slowdown
         end
-        
+
         if castType == "CAST" and endTimeMS > GetTime()*1000 then
             local castID = nil
             return name, nil, icon, startTimeMS, endTimeMS, nil, castID, false, spellID
@@ -510,6 +516,7 @@ classCasts = {
     [11605] = 1.5, -- Slam
 
     [20904] = 3, -- Aimed Shot
+    [25294] = 0.5, -- Multi-Shot
     [1002] = 2, -- Eyes of the Beast
     [2641] = 5, -- Dismiss pet
     [982] = 10, -- Revive Pet
@@ -517,6 +524,7 @@ classCasts = {
 
     [8690] = 10, -- Hearthstone
     [4068] = 1, -- Iron Grenade
+    [20589] = 0.5, -- Escape Artist
 
     -- Munts do not generate SPELL_CAST_START
     -- [8394] = 3, -- Striped Frostsaber

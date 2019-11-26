@@ -201,6 +201,7 @@ Lib.categoriesPvE = {
     classic = {
         ["stun"] = L.STUNS,
         ["opener_stun"] = L.OPENER_STUN,
+		["kidney_shot"] = L.KIDNEY_SHOT,
         -- TODO: banish/MC?
     },
 }
