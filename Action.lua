@@ -1,21 +1,23 @@
 --- 
-local DateTime 						= "17.11.2019"
+local DateTime 						= "26.11.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
-local huge	 						= math.huge
-local math_abs						= math.abs
-local math_floor					= math.floor
-local math_log10					= math.log10
-local math_max						= math.max
 
 local StdUi 						= LibStub("StdUi")
 local LibDBIcon	 					= LibStub("LibDBIcon-1.0")
 local LSM 							= LibStub("LibSharedMedia-3.0")
 	  LSM:Register(LSM.MediaType.STATUSBAR, "Flat", [[Interface\Addons\TheAction Classic\Media\Flat]])
 
-local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, hooksecurefunc, wipe,     safecall,    debugprofilestop = 
-	  pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, hooksecurefunc, wipe, TMW.safecall, _G.debugprofilestop_SAFE
+local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe,     safecall,    debugprofilestop = 
+	  pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe, TMW.safecall, _G.debugprofilestop_SAFE
+	  
+local tinsert 						= table.insert 	 
+local huge	 						= math.huge
+local math_abs						= math.abs
+local math_floor					= math.floor
+local math_log10					= math.log10
+local math_max						= math.max 
 
 local GetRealmName, GetExpansionLevel, GetSpecialization, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell = 
 	  GetRealmName, GetExpansionLevel, GetSpecialization, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell
@@ -281,12 +283,14 @@ local Localization = {
 				POISON = "Dispel poisons",
 				DISEASE = "Dispel diseases",
 				CURSE = "Dispel curses",
-				MAGIC = "Dispel magic",
-				MAGICMOVEMENT = "Dispel magic slow/roots",
+				MAGIC = "Dispel magic",				
 				PURGEFRIENDLY = "Purge friendly",
 				PURGEHIGH = "Purge enemy (high priority)",
 				PURGELOW = "Purge enemy (low priority)",
 				ENRAGE = "Expel Enrage",
+				BLESSINGOFPROTECTION = "Blessing of Protection",
+				BLESSINGOFFREEDOM = "Blessing of Freedom",
+				BLESSINGOFSACRIFICE = "Blessing of Sacrifice",
 				ROLE = "Role",
 				ID = "ID",
 				NAME = "Name",
@@ -589,11 +593,13 @@ local Localization = {
 				DISEASE = "Диспел болезней",
 				CURSE = "Диспел проклятий",
 				MAGIC = "Диспел магического",
-				MAGICMOVEMENT = "Диспел магич. замедлений/рут",
 				PURGEFRIENDLY = "Пурж союзников",
 				PURGEHIGH = "Пурж врагов (высокий приоритет)",
 				PURGELOW = "Пурж врагов (низкий приоритет)",
 				ENRAGE = "Снятие исступлений",
+				BLESSINGOFPROTECTION = "Благословение защиты",
+				BLESSINGOFFREEDOM = "Благословение cвободы",
+				BLESSINGOFSACRIFICE = "Благословение жертвенности",
 				ROLE = "Роль",
 				ID = "ID",
 				NAME = "Название",
@@ -896,11 +902,13 @@ local Localization = {
 				DISEASE = "Dispel Krankheiten",
 				CURSE = "Dispel Flüche",
 				MAGIC = "Dispel Magische Effekte",
-				MAGICMOVEMENT = "Dispel Magische verlangsamungen/festhalten",
 				PURGEFRIENDLY = "Purge Partner",
 				PURGEHIGH = "Purge Gegner (Hohe Priorität)",
 				PURGELOW = "Purge Gegner (Geringe Priorität)",
 				ENRAGE = "Entferne Enrage",	
+				BLESSINGOFPROTECTION = "Segen des Schutzes",
+				BLESSINGOFFREEDOM = "Segen der Freiheit",
+				BLESSINGOFSACRIFICE = "Segen der Opferung",
 				ROLE = "Rolle",
 				ID = "ID",
 				NAME = "Name",
@@ -1203,11 +1211,13 @@ local Localization = {
 				DISEASE = "Dispel maladie",
 				CURSE = "Dispel malédiction",
 				MAGIC = "Dispel magique",
-				MAGICMOVEMENT = "Dispel magique ralentissement/roots",
 				PURGEFRIENDLY = "Purge amical",
 				PURGEHIGH = "Purge ennemie (priorité haute)",
 				PURGELOW = "Purge ennemie (priorité basse)",
 				ENRAGE = "Supprimer Enrage",	
+				BLESSINGOFPROTECTION = "Bénédiction de protection",
+				BLESSINGOFFREEDOM = "Bénédiction de liberté",
+				BLESSINGOFSACRIFICE = "Bénédiction de sacrifice",
 				ROLE = "Role",
 				ID = "ID",
 				NAME = "Nom",
@@ -1510,11 +1520,13 @@ local Localization = {
 				DISEASE = "Dissolvi Malattie",
 				CURSE = "Dissolvi Maledizioni",
 				MAGIC = "Dissolvi Magia",
-				MAGICMOVEMENT = "Dissolvi magia rallentamento/radici",
 				PURGEFRIENDLY = "Epura amico",
 				PURGEHIGH = "Epura nemico (alta prioritá)",
 				PURGELOW = "Epura nemico  (bassa prioritá)",
-				ENRAGE = "Expel Enrage",	
+				ENRAGE = "Expel Enrage",
+				BLESSINGOFPROTECTION = "Benedizione della Protezione",
+				BLESSINGOFFREEDOM = "Benedizione della Libertà",
+				BLESSINGOFSACRIFICE = "Benedizione del Sacrificio",				
 				ROLE = "Ruolo",
 				ID = "ID",
 				NAME = "Nome",
@@ -1817,11 +1829,13 @@ local Localization = {
 				DISEASE = "Dispelea enfermedades",
 				CURSE = "Dispelea maldiciones",
 				MAGIC = "Dispelea magias",
-				MAGICMOVEMENT = "Dispelea relentizaciones/raíces",
 				PURGEFRIENDLY = "Purgar amigo",
 				PURGEHIGH = "Purgar enemigo (prioridad alta)",
 				PURGELOW = "Purgar enemigo (prioridad baja)",
 				ENRAGE = "Expel Enrague",	
+				BLESSINGOFPROTECTION = "Bendición de Protección",
+				BLESSINGOFFREEDOM = "Bendición de Libertad",
+				BLESSINGOFSACRIFICE = "Bendición de Sacrificio",	
 				ROLE = "Rol",
 				ID = "ID",
 				NAME = "Nombre",
@@ -1980,6 +1994,8 @@ Action.Data = {
     },
 	RANKCOLOR = {
 		-- Simular to Healing Engine Raid1 and next 
+		[""] = function() return 0, 0, 0, 1.0 end,
+		[0] = function() return 0, 0, 0, 1.0 end,
 		[1] = function() return 0.192157, 0.878431, 0.015686, 1.0 end,
 		[2] = function() return 0.780392, 0.788235, 0.745098, 1.0 end,
 		[3] = function() return 0.498039, 0.184314, 0.521569, 1.0 end,
@@ -2252,7 +2268,7 @@ local GlobalFactory = {
 	minimap = {},
 	[5] = {		
 		PvE = {
-			BlackList = {},
+			BlackList = {},			
 			PurgeFriendly = {
 				-- Mind Control (it's buff)
 				[605] = { canStealOrPurge = true },
@@ -2487,10 +2503,8 @@ local GlobalFactory = {
 				[22274] = {},
 				-- Onyxia: Wild Polymorph
 				[23603] = {},
-				-- Firelords: Soul Burn
-				[19393] = {},
-				-- Ancient Despair
-				[19369] = {},
+				-- Scarlet Monastery Dungeon: Terrify
+				[7399] = {},
 				-- Dominate Mind
 				[20740] = {},
 				-- Immolate
@@ -2545,6 +2559,33 @@ local GlobalFactory = {
 			Frenzy = {
 				-- Frenzy 
 				[19451] = { dur = 1.5 },
+			},
+			BlessingofProtection = {
+				[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+				[21869] = { dur = 6 },   -- Repulsive Gaze
+				[5134] = { dur = 8 },	 -- Flash Bomb
+			},
+			BlessingofFreedom = {
+				[8312] = { dur = 2 },
+				[8346] = { dur = 2 },
+				[13099] = { dur = 2 },
+				[19636] = { dur = 2 },
+				[23414] = { dur = 2 },
+				[6533] = { dur = 2 },
+				[11820] = { dur = 2 },
+				[8377] = { dur = 2 },
+				[113] = { dur = 2 },
+				[8142] = { dur = 2 },
+				[7295] = { dur = 2 },
+				[11264] = { dur = 2 },
+				[12252] = { dur = 2 },
+				[745] = { dur = 2 },
+				[15474] = { dur = 2 },
+				[14030] = { dur = 2 },
+				[19306] = { dur = 2 },
+				[4962] = { dur = 2 },
+			},
+			BlessingofSacrifice = {
 			},
 		},
 		PvP = {
@@ -2700,6 +2741,48 @@ local GlobalFactory = {
 			},
 			Frenzy = {
 			},
+			BlessingofProtection = {
+				-- Disarm 
+				[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+				[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
+				[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+				-- Stunned 
+				--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+				[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+				[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
+				[5530] = { dur = 2.6 },				-- Mace Stun Effect			(Warrior)
+				[12798] = { dur = 2.6 },			-- Revenge Stun				(Warrior)
+				[5211] = { dur = 1.6 },				-- Bash						(Druid)
+				[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+				[19410] = { dur = 2.8 },			-- Improved Concussive Shot	(Hunter)
+				[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+				[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+				--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+				[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
+				[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
+				[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+				-- Disoriented
+				[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 
+				[2094] = { dur = 4.5 }, 			-- Blind					(Rogue)
+				-- Feared 
+				[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+			},
+			BlessingofFreedom = {
+				[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
+				[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+				[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+				[12494] = { dur = 2 },				-- Frostbite				(Mage)	
+				[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+				[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
+				[19229] = { dur = 2 },				-- Improved Wing Clip 		(Hunter)
+				[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+				[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+			},
+			BlessingofSacrifice = {
+				[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+				[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+				[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+			},
 		},
 	},
 }
@@ -2723,7 +2806,7 @@ local function tMerge(default, new, special, nonexistremove)
 				result[k] = {}
 				for KeyLocale, Val in pairs(v) do 					
 					if type(Val) == "table" then 				
-						result[k][KeyLocale] = { Enabled = true, Button = Val.Button, isTotem = Val.isTotem } 
+						result[k][KeyLocale] = { Enabled = true, Button = Val.Button, isTotem = Val.isTotem, LUA = Val.LUA } 
 					end 
 				end 
 			elseif new[k] ~= nil then 
@@ -2878,12 +2961,18 @@ local function DispelPurgeEnrageRemap()
 				Poison = Action.Data.Auras.PvE.Poison,
 				Magic = Action.Data.Auras.PvE.Magic,
 				Disease = Action.Data.Auras.PvE.Disease,
+				BlessingofProtection = Action.Data.Auras.PvE.BlessingofProtection,
+				BlessingofFreedom = Action.Data.Auras.PvE.BlessingofFreedom,
+				BlessingofSacrifice = Action.Data.Auras.PvE.BlessingofSacrifice,
 			},
 			PvP = {
 				BlackList = Action.Data.Auras.PvP.BlackList,
 				Poison = Action.Data.Auras.PvP.Poison,
 				Magic = Action.Data.Auras.PvP.Magic,
 				Disease = Action.Data.Auras.PvP.Disease,
+				BlessingofProtection = Action.Data.Auras.PvP.BlessingofProtection,
+				BlessingofFreedom = Action.Data.Auras.PvP.BlessingofFreedom,
+				BlessingofSacrifice = Action.Data.Auras.PvP.BlessingofSacrifice,
 			},
 		},
 		["PRIEST"] = {
@@ -3366,7 +3455,7 @@ function Action.ToggleRole(fixed, between)
 		Current = Action.Data.TG.Role
 	end 			
 	
-	Action.SetToggle({1, "Role", L["TAB"][5]["ROLE"] .. ": "}, set or fixed or Current)	
+	Action.SetToggle({1, "Role"}, set or fixed or Current)	
 	Action:PLAYER_SPECIALIZATION_CHANGED()	
 	TMW:Fire("TMW_ACTION_ROLE_CHANGED")
 end 
@@ -4483,7 +4572,7 @@ function Action:SetQueue(args)
 			end 
 		end 
 	end
-    table.insert(Action.Data.Q, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot, Auto = args.Auto, Start = TMW.time, CP = args.CP }, { __index = self }))
+    tinsert(Action.Data.Q, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot, Auto = args.Auto, Start = TMW.time, CP = args.CP }, { __index = self }))
 
 	if args.PowerType then 
 		-- Note: we set it as true to use in function Action.IsQueueReady()
@@ -4606,10 +4695,11 @@ end
 
 -- [5] Auras
 -- Note: Toggles  ("UseDispel", "UsePurge", "UseExpelEnrage", "UseExpelFrenzy")  
---		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList")				
+--		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList", 
+--																																	"BlessingofProtection", "BlessingofFreedom", "BlessingofSacrifice")	-- only Paladin 		
 function Action.AuraIsON(Toggle)
 	-- @return boolean 
-	return type(Toggle) == "boolean" or TMW.db.profile.ActionDB[5][Toggle]
+	return (type(Toggle) == "boolean" and Toggle == true) or TMW.db.profile.ActionDB[5][Toggle]
 end 
 
 function Action.AuraGetCategory(Category)
@@ -5532,7 +5622,7 @@ function Action.ToggleMainUI()
 				{ text = "Auto", value = "Auto" },	
 			}
 			for Language in pairs(Localization) do 
-				table.insert(InterfaceLanguages, { text = Language, value = Language })
+				tinsert(InterfaceLanguages, { text = Language, value = Language })
 			end 
 			anchor.InterfaceLanguage = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), Action.Data.theme.dd.height, InterfaceLanguages)         
 			anchor.InterfaceLanguage:SetValue(TMW.db.global.ActionDB.InterfaceLanguage)
@@ -6536,7 +6626,22 @@ function Action.ToggleMainUI()
 							obj:Disable()
 						end 
 					elseif config.E == "Dropdown" then
-						obj = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, math_floor(12 / #Action.Data.ProfileUI[tab.name][row])), config.H or 20, config.OT, nil, config.MULT)
+						-- Get formated by localization in OT
+						local FormatedOT 
+						for p = 1, #config.OT do 
+							if type(config.OT[p].text) == "table" then 
+								FormatedOT = {}
+								for j = 1, #config.OT do 
+									if type(config.OT[j].text) ~= "table" then 
+										tinsert(FormatedOT, config.OT[j])
+									else
+										tinsert(FormatedOT, { text = config.OT[j].text.ANY or config.OT[j].text[CL], value = config.OT[j].value })
+									end 
+								end
+								break 
+							end 
+						end 
+						obj = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, math_floor(12 / #Action.Data.ProfileUI[tab.name][row])), config.H or 20, FormatedOT or config.OT, nil, config.MULT)
 						if config.SetPlaceholder then 
 							obj:SetPlaceholder(config.SetPlaceholder.ANY or config.SetPlaceholder[CL])
 						end 
@@ -6574,6 +6679,7 @@ function Action.ToggleMainUI()
 						end)
 						obj.Identify = { Type = config.E, Toggle = config.DB }
 						obj.FontStringTitle = StdUi:FontString(obj, config.L.ANY or config.L[CL])
+						obj.FontStringTitle:SetJustifyH("CENTER")
 						obj.text:SetJustifyH("CENTER")
 						StdUi:GlueAbove(obj.FontStringTitle, obj)						
 						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)	
@@ -6700,7 +6806,7 @@ function Action.ToggleMainUI()
 					end 
 					
 					if isShown then 
-						table.insert(hasdata, setmetatable({ 
+						tinsert(hasdata, setmetatable({ 
 							Enabled = Enabled, 				
 							Name = v:Info(),
 							Icon = v:Icon(),
@@ -7321,7 +7427,7 @@ function Action.ToggleMainUI()
 						useKickIndex 	= useKickIndex 		and "ON" or "OFF"
 						useCCIndex 		= useCCIndex 		and "ON" or "OFF"
 						useRacialIndex 	= useRacialIndex 	and "ON" or "OFF"
-						table.insert(data, setmetatable({ 									
+						tinsert(data, setmetatable({ 									
 								Name 			= k,
 								Icon 			= select(3, Action.GetSpellInfo(v.ID)),	
 								useKickIndex 	= useKickIndex,
@@ -7714,6 +7820,27 @@ function Action.ToggleMainUI()
 			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])							
 			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 10 } })
 			
+			local function GetCategory()
+				local cct = {		
+					{ text = "BlackList", value = "BlackList" },
+					{ text = L["TAB"][tab.name]["POISON"], value = "Poison" },				
+					{ text = L["TAB"][tab.name]["DISEASE"], value = "Disease" },
+					{ text = L["TAB"][tab.name]["CURSE"], value = "Curse" },				
+					{ text = L["TAB"][tab.name]["MAGIC"], value = "Magic" },			
+					{ text = L["TAB"][tab.name]["PURGEFRIENDLY"], value = "PurgeFriendly" },
+					{ text = L["TAB"][tab.name]["PURGEHIGH"], value = "PurgeHigh" },				
+					{ text = L["TAB"][tab.name]["PURGELOW"], value = "PurgeLow" },
+					{ text = L["TAB"][tab.name]["ENRAGE"], value = "Enrage" },
+					{ text = L["TAB"][tab.name]["USEEXPELFRENZY"], value = "Frenzy" },				
+				}
+				if Action.PlayerClass == "PALADIN" then 
+					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFPROTECTION"], value = "BlessingofProtection" })
+					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFFREEDOM"], value = "BlessingofFreedom" })
+					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFSACRIFICE"], value = "BlessingofSacrifice" })
+				end 
+				return cct
+			end 
+			
 			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 60, L["TAB"][tab.name]["USETITLE"])
 			UsePanel.titlePanel.label:SetFontSize(14)
 			UsePanel.titlePanel.label:SetTextColor(UI_Title:GetTextColor())
@@ -7726,20 +7853,8 @@ function Action.ToggleMainUI()
 			local Mode = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), Action.Data.theme.dd.height, {				
 				{ text = "PvE", value = "PvE" },				
 				{ text = "PvP", value = "PvP" },
-			}, Action.IsInPvP and "PvP" or "PvE")	
-			local Category = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), Action.Data.theme.dd.height, {		
-				{ text = "BlackList", value = "BlackList" },
-				{ text = L["TAB"][tab.name]["POISON"], value = "Poison" },				
-				{ text = L["TAB"][tab.name]["DISEASE"], value = "Disease" },
-				{ text = L["TAB"][tab.name]["CURSE"], value = "Curse" },				
-				{ text = L["TAB"][tab.name]["MAGIC"], value = "Magic" },
-				--{ text = L["TAB"][tab.name]["MAGICMOVEMENT"], value = "MagicMovement" },				
-				{ text = L["TAB"][tab.name]["PURGEFRIENDLY"], value = "PurgeFriendly" },
-				{ text = L["TAB"][tab.name]["PURGEHIGH"], value = "PurgeHigh" },				
-				{ text = L["TAB"][tab.name]["PURGELOW"], value = "PurgeLow" },
-				{ text = L["TAB"][tab.name]["ENRAGE"], value = "Enrage" },
-				{ text = L["TAB"][tab.name]["USEEXPELFRENZY"], value = "Frenzy" },				
-			}, "Magic")	
+			}, Action.IsInPvP and "PvP" or "PvE")			
+			local Category = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), Action.Data.theme.dd.height, GetCategory(), "Magic")	
 			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 140, L["TAB"][tab.name]["CONFIGPANEL"])	
 			ConfigPanel.titlePanel.label:SetFontSize(14)
 			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
@@ -7913,7 +8028,7 @@ function Action.ToggleMainUI()
 					if v.Enabled then 
 						v.Icon = select(3, Action.GetSpellInfo(v.ID))
 						v.RoleLocale = L["TAB"][tab.name][v.Role]
-						table.insert(data, v)
+						tinsert(data, v)
 					end 
 				end
 				return data
@@ -8338,7 +8453,7 @@ function Action.ToggleMainUI()
 				local data = {}
 				for k, v in pairs(TMW.db.profile.ActionDB[tab.name][ModeValue][CategoryValue][GameLocale]) do 
 					if v.Enabled then 
-						table.insert(data, setmetatable({ 
+						tinsert(data, setmetatable({ 
 								Name = k, 				
 								ButtonLocale = L["TAB"][tab.name][v.Button],
 							}, {__index = v}))
@@ -8709,7 +8824,7 @@ function Action.ToggleMainUI()
 				for k, v in pairs(TMW.db.profile.ActionDB[tab.name].msgList) do 
 					if v.Enabled then 
 						if Action[Action.PlayerClass][v.Key] then 
-							table.insert(data, setmetatable({
+							tinsert(data, setmetatable({
 								Enabled = v.Enabled,
 								Key = v.Key,
 								Source = v.Source or "",
