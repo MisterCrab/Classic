@@ -7,8 +7,10 @@ local Pet					= LibStub("PetLibrary")
 local LoC 					= A.LossOfControl
 local MultiUnits			= A.MultiUnits
 
-local _G, select 			= _G, select
+local _G, select, math 		= _G, select, math
+local huge 					= math.huge
 
+local UnitBuff				= UnitBuff
 local UnitIsUnit  			= UnitIsUnit
 local UnitIsFriend			= UnitIsFriend
 
@@ -50,23 +52,36 @@ local targettarget			= "targettarget"
 -- Conditions
 -------------------------------------------------------------------------------
 local FoodAndDrink = {	
-	587, 	-- Conjure Food 
-	18233,	-- Food
-	22734, 	-- Drink
-	29029,	-- Fizzy Energy Drink
-	18140,	-- Blessed Sunfruit Juice
-	23698,	-- Alterac Spring Water
-	23692,	-- Alterac Manna Biscuit
-	24410,	-- Arathi Basin Iron Ration
-	24411,	-- Arathi Basin Enriched Ration 
-	25990, 	-- Graccu's Mince Meat Fruitcake	
-	18124,  -- Blessed Sunfruit
-	24384,	-- Essence Mango
-	26263,	-- Dim Sum (doesn't triggers Food and Drink)
-	26030,	-- Windblossom Berries (doesn't triggers Food and Drink)
-	25691, 	-- Brain Food (unknown what does it exactly trigger)
-	30020,	-- First Aid
+	[587] = true, 	-- Conjure Food 
+	[18233] = true,	-- Food
+	[22734] = true, -- Drink
+	[29029] = true,	-- Fizzy Energy Drink
+	[18140] = true,	-- Blessed Sunfruit Juice
+	[23698] = true,	-- Alterac Spring Water
+	[23692] = true,	-- Alterac Manna Biscuit
+	[24410] = true,	-- Arathi Basin Iron Ration
+	[24411] = true,	-- Arathi Basin Enriched Ration 
+	[25990] = true, -- Graccu's Mince Meat Fruitcake	
+	[18124] = true, -- Blessed Sunfruit
+	[24384] = true,	-- Essence Mango
+	[26263] = true,	-- Dim Sum (doesn't triggers Food and Drink)
+	[26030] = true,	-- Windblossom Berries (doesn't triggers Food and Drink)
+	[25691] = true, -- Brain Food (unknown what does it exactly trigger)
+	[30020] = true,	-- First Aid
 }
+local function IsDrinkingOrEating()
+	-- @return boolean 
+	local auraName
+	for i = 1, huge do 
+		auraName = UnitBuff(player, i, "HELPFUL PLAYER")
+		if not auraName then 
+			break 
+		elseif FoodAndDrink[auraName] then 
+			return true 
+		end 
+	end 
+end 
+
 function A.PauseChecks()  	
 	-- Chat, BindPad, TellMeWhen
 	if ACTIVE_CHAT_EDIT_BOX or (BindPadFrame and BindPadFrame:IsVisible()) or not TMW.Locked then 
@@ -93,7 +108,7 @@ function A.PauseChecks()
 		return ACTION_CONST_PAUSECHECKS_WAITING
 	end 	
 	
-	if A.GetToggle(1, "CheckSpellIsTargeting") and SpellIsTargeting() then
+	if A.GetToggle(1, "CheckSpellIsTargeting") and SpellIsTargeting() and (A.PlayerClass ~= "ROGUE" or Player:IsMoving() or Unit(player):CombatTime() ~= 0) then																				-- exception Classic Rogue only ue mechanic of poison enchants
 		return ACTION_CONST_PAUSECHECKS_SPELL_IS_TARGETING
 	end	
 	
@@ -101,7 +116,7 @@ function A.PauseChecks()
 		return ACTION_CONST_PAUSECHECKS_LOOTFRAME
 	end	
 	
-	if A.GetToggle(1, "CheckEatingOrDrinking") and Unit(player):CombatTime() == 0 and Player:IsStaying() and Unit(player):HasBuffs(FoodAndDrink, true) > 0 then
+	if A.GetToggle(1, "CheckEatingOrDrinking") and Unit(player):CombatTime() == 0 and Player:IsStaying() and IsDrinkingOrEating() then
 		return ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK
 	end	
 end
@@ -386,7 +401,7 @@ function A.Rotation(icon)
 			-- No existed or switch in PvE if we accidentally selected out of combat enemy unit  
 			and (not Unit(target):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit(target):CombatTime() == 0 and Unit(target):IsEnemy())) 
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
-			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, 1) >= 1) or A.Zone == "pvp")
+			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(nil, 1) >= 1) or A.Zone == "pvp")
 		then 
 			return A:Show(icon, ACTION_CONST_AUTOTARGET)			 
 		end 

@@ -478,7 +478,7 @@ local function LossOfControlOnUpdate(icon, time)
 	local start = attributes.start
 	local duration = attributes.duration
 	
-	if duration >= huge then 
+	if duration == huge then 
 		duration = select(2, A.LossOfControl:GetFrameData())
 	end 
 

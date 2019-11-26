@@ -17,7 +17,6 @@ local FriendlyTeam			= A.FriendlyTeam
 local TriggerGCD			= A.Enum.TriggerGCD
   
 local Pet					= LibStub("PetLibrary")
---local LibRangeCheck  		= LibStub("LibRangeCheck-2.0")
 local SpellRange			= LibStub("SpellRange-1.0")
 local IsSpellInRange 		= SpellRange.IsSpellInRange	  
 local SpellHasRange			= SpellRange.SpellHasRange
@@ -62,10 +61,12 @@ local itemCategory 			= {
 
 local GetNetStats 			= GetNetStats	
 
-local _G, type, next, pairs, select, unpack, table, setmetatable, wipe = 	
-	  _G, type, next, pairs, select, unpack, table, setmetatable, wipe
+local _G, type, next, pairs, select, unpack, table, setmetatable, math, wipe = 	
+	  _G, type, next, pairs, select, unpack, table, setmetatable, math, wipe
 	  	  
-local maxn					= table.maxn	  
+local maxn					= table.maxn	
+local tinsert				= table.insert  
+local tsort 				= table.sort
 local huge 					= math.huge  	
 
 -- Spell 
@@ -247,12 +248,12 @@ function A.GetSpellDescription(self)
 		deleted_space 		= deleted_space:gsub("%d+%%", "")
 
 		for value in deleted_space:gmatch("%d+") do
-			table.insert(numbers, toNum[value])
+			tinsert(numbers, toNum[value])
 		end
 		
 		if #numbers > 1 then
-			table.sort(numbers, function (x, y)
-					return x > y
+			tsort(numbers, function(x, y)
+				return x > y
 			end)
 		end 
 		
@@ -683,6 +684,10 @@ local Racial = {
 							MultiUnits:GetByRange(8, 1) >= 1
 						)
 					)	
+		end 
+		
+		if A.PlayerRace == "Gnome" then 
+			return Player:IsStaying() 
 		end 
 
 		-- [NO LOGIC - ALWAYS TRUE] 
@@ -1261,11 +1266,11 @@ function A.Create(attributes)
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 
-			table.sort(attributes.useMaxRank)
+			tsort(attributes.useMaxRank)
 		end 
 		s.useMaxRank = attributes.useMaxRank		 
 		if type(attributes.useMinRank) == "table" then 
-			table.sort(attributes.useMinRank)
+			tsort(attributes.useMinRank)
 		end 
 		s.useMinRank = attributes.useMinRank		
 	elseif attributes.Type == "SpellSingleColor" then 
@@ -1289,11 +1294,11 @@ function A.Create(attributes)
 		-- Rank 
 		s.isRank = attributes.isRank
 		if type(attributes.useMaxRank) == "table" then 
-			table.sort(attributes.useMaxRank)
+			tsort(attributes.useMaxRank)
 		end 
 		s.useMaxRank = attributes.useMaxRank		 
 		if type(attributes.useMinRank) == "table" then 
-			table.sort(attributes.useMinRank)
+			tsort(attributes.useMinRank)
 		end 
 		s.useMinRank = attributes.useMinRank		 
 	elseif attributes.Type == "Trinket" or attributes.Type == "Potion" or attributes.Type == "Item" then 

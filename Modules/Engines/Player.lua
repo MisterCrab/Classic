@@ -392,10 +392,22 @@ function A.Player:IsBehind(x)
 	return TMW.time > Data.PlayerBehind + (x or 2.5)
 end 
 
+function A.Player:IsBehindTime()
+	-- @retun number 
+	-- Note: Returns time since player behind the target 
+	return TMW.time - Data.PlayerBehind
+end 
+
 function A.Player:IsPetBehind(x)
 	-- @return boolean 
 	-- Note: Returns true if pet is behind the target since x seconds taken from the last ui message 
 	return TMW.time > Data.PetBehind + (x or 2.5)
+end 
+
+function A.Player:IsPetBehindTime()
+	-- @return number 
+	-- Note: Returns time since pet behind the target
+	return TMW.time - Data.PetBehind
 end 
 
 function A.Player:IsMounted()

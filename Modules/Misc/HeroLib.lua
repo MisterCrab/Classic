@@ -279,7 +279,7 @@ end
 
 local CachedTargetIsValid 	= Commons.TargetIsValid or Dummy 
 function Commons.TargetIsValid()
-	return CachedTargetIsValid() and (not A.IsInitialized or A.UnitIsEnemy("target"))
+	return CachedTargetIsValid() and (not A.IsInitialized or A.Unit("target"):IsEnemy())
 end 
 
 Commons.UnitIsCycleValid 	= Commons.UnitIsCycleValid or Dummy

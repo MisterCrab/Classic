@@ -68,7 +68,7 @@ function A:CheckInPvP()
     return 
     self.Zone == "pvp" or 
     UnitInBattleground("player") or 
-    ( A.Unit("target"):IsPlayer() and A.Unit("target"):IsEnemy() )
+    ( A.Unit("target"):IsPlayer() and (A.Unit("target"):IsEnemy() or A.Unit("targettarget"):IsEnemy()) )
 end
 
 local LastEvent

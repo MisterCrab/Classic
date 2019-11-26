@@ -278,7 +278,7 @@ CombatTracker.logDamage 						= function(...)
 				Data[DestGUID].spell_value[spellID] = {}
 			end 		
 			Data[DestGUID].spell_value[spellID].Amount 	= (Data[DestGUID].spell_value[spellID].Amount or 0) + Amount
-			Data[DestGUID].spell_value[spellID].TMW 	= TMW.time 
+			Data[DestGUID].spell_value[spellID].TIME 	= TMW.time 
 		end 
 		if spellName then 
 			if not Data[DestGUID].spell_value[spellName] then 
@@ -388,7 +388,7 @@ CombatTracker.logHealing			 			= function(...)
 				Data[DestGUID].spell_value[spellID] = {}
 			end 		
 			Data[DestGUID].spell_value[spellID].Amount 	= (Data[DestGUID].spell_value[spellID].Amount or 0) + Amount
-			Data[DestGUID].spell_value[spellID].TMW 	= TMW.time 
+			Data[DestGUID].spell_value[spellID].TIME 	= TMW.time 
 		end 
 		if spellName then 
 			if not Data[DestGUID].spell_value[spellName] then 
@@ -597,7 +597,8 @@ local UnitTracker 								= {
 			self.Data[SourceGUID][spellName].start 			= TMW.time 
 			self.Data[SourceGUID][spellName].expire 		= TMW.time + self.isRegistered[spellName].Timer 
 			self.Data[SourceGUID][spellName].isFlying 		= true 
-			self.Data[SourceGUID][spellName].blackListCLEU 	= self.isRegistered[spellName].blackListCLEU			
+			self.Data[SourceGUID][spellName].blackListCLEU 	= self.isRegistered[spellName].blackListCLEU	
+			self.Data[SourceGUID][spellName].enemy 			= isEnemy(sourceFlags) 	
 		end
 	end,
 	UNIT_SPELLCAST_SUCCEEDED_PLAYER		= function(self, unitID, spellID)
@@ -1154,8 +1155,6 @@ local LossOfControl								= {
 		[GetSpellInfo(5782)]					= "FEAR",
 		-- Scare Beast
 		[GetSpellInfo(1513)]					= "FEAR",
-		-- Flash Bomb Fear
-		[GetSpellInfo(5134)]					= "FEAR",
 		
 		-- [[ TURN_UNDEAD ]]
 		-- Turn Undead
@@ -1910,7 +1909,6 @@ A.CombatTracker									= {
 -------------------------------------------------------------------------------
 A.UnitCooldown 									= {
 	Register							= function(self, spellName, timer, isFriendlyArg, inPvPArg, CLEUbl)	
-		-- unit accepts "arena", "raid", "party", their number 		
 		-- isFriendlyArg, inPvPArg are optional		
 		-- CLEUbl is a table = { ['Event_CLEU'] = true, } which to skip and don't reset by them in fly
 		if type(spellName) == "number" then 
@@ -1941,8 +1939,14 @@ A.UnitCooldown 									= {
 			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
+		if unit == "any" or unit == "enemy" or unit == "friendly" then 
+			for _, v in pairs(UnitTracker.Data) do 
+				if v[spellname] and v[spellname].expire and (unit == "any" or (unit == "enemy" and v[spellname].enemy) or (unit == "friendly" and not v[spellname].enemy)) then 
+					return v.expire - TMW.time, v.start
+				end 
+			end 
+		elseif unit == "arena" or unit == "raid" or unit == "party" then 
+			for i = 1, (unit == "party" and 4 or huge) do 
 				local unitID = unit .. i
 				local GUID = UnitGUID(unitID)
 				if not GUID then 
@@ -1973,8 +1977,14 @@ A.UnitCooldown 									= {
 			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
+		if unit == "any" or unit == "enemy" or unit == "friendly" then 
+			for _, v in pairs(UnitTracker.Data) do 
+				if v[spellname] and v[spellname].expire and (unit == "any" or (unit == "enemy" and v[spellname].enemy) or (unit == "friendly" and not v[spellname].enemy)) then 
+					return v.expire - v.start
+				end 
+			end 
+		elseif unit == "arena" or unit == "raid" or unit == "party" then 
+			for i = 1, (unit == "party" and 4 or huge) do 
 				local unitID = unit .. i
 				local GUID = UnitGUID(unitID)
 				if not GUID then 
@@ -1997,8 +2007,39 @@ A.UnitCooldown 									= {
 			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
+		if unit == "any" or unit == "enemy" or unit == "friendly" then 
+			for GUID, v in pairs(UnitTracker.Data) do 
+				if v[spellname] and v[spellname].expire and (unit == "any" or (unit == "enemy" and v[spellname].enemy) or (unit == "friendly" and not v[spellname].enemy)) then 
+					if unit == "any" or unit == "enemy" then 
+						if A.Zone ~= "pvp" then 
+							local nameplates = A.MultiUnits:GetActiveUnitPlates()
+							if nameplates then 
+								for unitID in pairs(nameplates) do 
+									if GUID == UnitGUID(unitID) then 
+										return v.expire - v.start
+									end 
+								end 
+							end 
+						else
+							for i = 1, huge do 
+								if GUID == UnitGUID("arena" .. i) then 
+									return v.expire - v.start
+								end 
+							end 
+						end 
+					end 
+					
+					if (unit == "any" or unit == "friendly") and TeamCache.Friendly.Type then 
+						for i = 1, huge do 
+							if GUID == UnitGUID(TeamCache.Friendly.Type .. i) then 
+								return v.expire - v.start
+							end 
+						end 
+					end 
+				end 
+			end 
+		elseif unit == "arena" or unit == "raid" or unit == "party" then 
+			for i = 1, (unit == "party" and 4 or huge) do 
 				local unitID = unit .. i
 				local GUID = UnitGUID(unitID)
 				if not GUID then 
@@ -2014,8 +2055,31 @@ A.UnitCooldown 									= {
 		-- @return number, number, number 
 		-- [1] Current Charges, [2] Current Cooldown, [3] Summary Cooldown     			
 		local charges, cooldown, summary_cooldown = 1, 0, 0  
-		if unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
+		if unit == "any" or unit == "enemy" or unit == "friendly" then 
+			for _, v in pairs(UnitTracker.Data) do 
+				if v.Shrimmer then 
+					charges = 2
+					for i = #v.Shrimmer, 1, -1 do
+						cooldown = v.Shrimmer[i] - TMW.time
+						if cooldown > 0 then
+							charges = charges - 1
+							summary_cooldown = summary_cooldown + cooldown												
+						end            
+					end 
+					break 
+				elseif v.Blink then 
+					cooldown = v.Blink - TMW.time
+					if cooldown <= 0 then 
+						cooldown = 0 
+					else 
+						charges = 0
+						summary_cooldown = cooldown
+					end 
+					break 
+				end 
+			end 
+		elseif unit == "arena" or unit == "raid" or unit == "party" then 
+			for i = 1, (unit == "party" and 4 or huge) do 
 				local unitID = unit .. i
 				local GUID = UnitGUID(unitID)
 				if not GUID then 
@@ -2075,8 +2139,14 @@ A.UnitCooldown 									= {
 			spellName = A.GetSpellInfo and A.GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
+		if unit == "any" or unit == "enemy" or unit == "friendly" then 
+			for _, v in pairs(UnitTracker.Data) do 
+				if v[spellname] and v[spellname].isFlying and (unit == "any" or (unit == "enemy" and v[spellname].enemy) or (unit == "friendly" and not v[spellname].enemy)) then 
+					return true
+				end 
+			end 
+		elseif unit == "arena" or unit == "raid" or unit == "party" then 
+			for i = 1, (unit == "party" and 4 or huge) do 
 				local unitID = unit .. i
 				local GUID = UnitGUID(unitID)
 				if not GUID then 

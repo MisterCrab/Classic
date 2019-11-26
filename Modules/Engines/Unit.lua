@@ -31,9 +31,9 @@ local GetUnitSpeed					= _G.GetUnitSpeed
 local GetSpellInfo					= _G.GetSpellInfo
 local GetPartyAssignment 			= _G.GetPartyAssignment	  
 local UnitIsUnit, UnitInRaid, UnitInAnyGroup, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible =
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
 	  UnitIsUnit, UnitInRaid, UnitInAnyGroup, UnitInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
 local UnitAura 						= TMW.UnitAura	  
 	  
 --local UnitThreatSituation			= function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
@@ -219,6 +219,8 @@ local AuraList = {
 		4066,				-- Small Bronze Bomb
 		4065,				-- Large Copper Bomb
 		4064,				-- Rough Copper Bomb
+		13808,				-- M73 Frag Grenade
+		19769,				-- Thorium Grenade
 	},
     PhysStuned = {
 		7922, 				-- Charge Stun				(Warrior)
@@ -451,14 +453,14 @@ local AuraList = {
     -- Cast Bars
     Reshift = {
         {118, 30}, 			-- Polymorph 				(Mage)
-        {20066, 20}, 		-- Repentance 				(Paladin)
         {19386, 35, 8},		-- Wyvern Sting (8 - 35)	(Hunter)
     },
     Premonition = {
         {118, 30}, 			-- Polymorph 				(Mage)
 		{851, 20},			-- Polymorph: Sheep 		(Mage)
 		{28270, 30},		-- Polymorph: Cow	 		(Mage)
-        {20066, 20}, 		-- Repentance 				(Paladin)
+		{28272, 30},		-- Polymorph: Pig	 		(Mage)
+		{28271, 30},		-- Polymorph: Turtle 		(Mage)
         {24133, 35, 8},		-- Wyvern Sting (8 - 35)	(Hunter)
 		{5782, 20}, 		-- Fear 					(Warlock)        
     },
@@ -1655,7 +1657,7 @@ A.Unit = PseudoClass({
 		local auras 						= 0 
 		
 		for i = 1, ACTION_CONST_AURAS_MAX_LIMIT do			
-			local Name = UnitAura(unitID, i, "HARMFUL")
+			local Name = UnitDebuff(unitID, i)
 			
 			if Name then					
 				auras = auras + 1
