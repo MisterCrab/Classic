@@ -1,2 +1,5 @@
+[Paladin v2]
+Fixed lua error :344: attempt to compare number with nil
+
 [Paladin v1]
 Full release
