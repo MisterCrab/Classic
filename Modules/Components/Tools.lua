@@ -3,10 +3,11 @@ local A 						= Action
 
 --local strlowerCache  			= TMW.strlowerCache
 
-local _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, hooksecurefunc = 
-	  _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, hooksecurefunc
+local _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc = 
+	  _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc
 	  
-local bxor						= bit.bxor	  
+local bxor						= bit.bxor	 
+local insert					= table.insert  
 local concat 					= table.concat	  
 local maxn						= table.maxn
 local math_floor				= math.floor 
@@ -112,7 +113,7 @@ local function strBuilder(s, j)
 	-- String Concatenation
 	local n = maxn(s)
 	if n == 0 or (j and n <= j) then 
-		return 0
+		return toStr[s]
 	else 
 		local t = {}
 		for i = (j or 1), n do
@@ -137,7 +138,7 @@ local bt = {}
 local function strAltBuilder(s, j)
 	local n = maxn(s)
 	if n == 0 or (j and n <= j) then 
-		return 0
+		return toStr[s]
 	else 
 		wipe(bt)
 		
@@ -164,7 +165,7 @@ local function strElemBuilder(replaceFirst, ...)
 	-- String Concatenation
 	local n = select("#", ...)
 	if n == 0 then 
-		return 
+		return  
 	end 
 	
 	wipe(et)
@@ -432,6 +433,13 @@ function A.MouseHasFrame()
     return false
 end
 A.MouseHasFrame = A.MakeFunctionCachedStatic(A.MouseHasFrame)
+
+function A.TableInsertMulti(t, ...)
+	for i = 1, select("#", ...) do 
+		insert(t, select(i, ...))
+	end 
+	return t 
+end 
 
 function round(num, numDecimalPlaces)
     return toNum[string.format("%." .. (numDecimalPlaces or 0) .. "f", num)]
