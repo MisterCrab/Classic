@@ -1,3 +1,16 @@
+[Warrior v8]	
+Removed in some MSG LUA trash check conditions 
+Fixed lua miss typo with EnemyTeam and FriendlyTeam calls 
+SweepingStrikes						- Fixed Queue Base issue when current rage was less than deficit 
+Disarm 								- Added new Queue Base button to queue through combo: Stance Swap -> Bloodrage -> Disarm
+SwapEquip							- Added toggle in UI to hold 1h+shield up while nothing to do
+Perception							- Added invis catcher for duel and wpvp 
+PiercingHowl						- Fixed when it was used on mounted enemies instead of Hamstring
+ThunderClap							- Added imun check on bg 
+SunderArmor							- Reduced minimum required amount of enemies around to cycling through Auto Target (down from > 4 to >= 3)
+DemoralizingShout					- Fixed miss typo with unit count (was caused situation when it was over used at 3+ mobs instead of 7 and in 10 yards, yards were incorrect also)
+DemoralizingShout					- Added additional use priority in APL for solo if role is Tank
+
 [Warrior v7]
 Disarm								- Fixed bug when not worked for @target @mouseover in PvP
 
