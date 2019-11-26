@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "26.11.2019"
+local DateTime 						= "27.11.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -11,7 +11,8 @@ local LSM 							= LibStub("LibSharedMedia-3.0")
 
 local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe,     safecall,    debugprofilestop = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe, TMW.safecall, _G.debugprofilestop_SAFE
-	  
+
+local strconcat						= _G.strconcat  
 local tinsert 						= table.insert 	 
 local huge	 						= math.huge
 local math_abs						= math.abs
@@ -185,6 +186,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Hide class portrait",
 				DISABLEROTATIONMODES = "Hide rotation modes",
 				DISABLESOUNDS = "Disable sounds",
+				HIDEONSCREENSHOT = "Hide on screenshot",
+				HIDEONSCREENSHOTTOOLTIP = "During the screenshot hides all TellMeWhen\nand Action frames, and then shows them back",
 				CAMERAMAXFACTOR = "Camera max factor", 
 				ROLETOOLTIP = "Depending on this mode, rotation will work\nAuto - Defines your role depending on the majority of nested talents in the right tree",
 				TOOLS = "Tools:",
@@ -494,6 +497,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Скрыть классовый портрет",
 				DISABLEROTATIONMODES = "Скрыть режимы ротации",
 				DISABLESOUNDS = "Отключить звуки",
+				HIDEONSCREENSHOT = "Скрывать на скриншоте",
+				HIDEONSCREENSHOTTOOLTIP = "Во время скриншота прячет все фреймы TellMeWhen\nи Action, а после показывает их обратно",
 				CAMERAMAXFACTOR = "Макс. отдаление камеры", 
 				ROLETOOLTIP = "В зависимости от этого режима будет работать ротация\nAuto - Определяет вашу роль в зависимости от большинства вложенных талантов в нужное дерево",
 				TOOLS = "Утилиты:",
@@ -803,6 +808,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Klassenporträt ausblenden",
 				DISABLEROTATIONMODES = "Drehmodi ausblenden",
 				DISABLESOUNDS = "Sounds deaktivieren",
+				HIDEONSCREENSHOT = "Auf dem Screenshot verstecken",
+				HIDEONSCREENSHOTTOOLTIP = "Während des Screenshots werden alle TellMeWhen\nund Action frames ausgeblendet und anschließend wieder angezeigt",
 				CAMERAMAXFACTOR = "Kameramaximalfaktor", 
 				ROLETOOLTIP = "Abhängig von diesem Modus funktioniert die Drehung\nAuto - Definiert Ihre Rolle in Abhängigkeit von der Mehrheit der verschachtelten Talente im rechten Baum",
 				TOOLS = "Werkzeuge: ",				
@@ -1112,6 +1119,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Masquer le portrait de classe",
 				DISABLEROTATIONMODES = "Masquer les modes de rotation",
 				DISABLESOUNDS = "Désactiver les sons",
+				HIDEONSCREENSHOT = "Masquer sur la capture d'écran",
+				HIDEONSCREENSHOTTOOLTIP = "Pendant la capture d'écran, tous les cadres TellMeWhen\net Action sont masqués, puis rediffusés",
 				CAMERAMAXFACTOR = "Facteur max caméra", 
 				ROLETOOLTIP = "En fonction de ce mode, la rotation fonctionnera\nAuto - Définit votre rôle en fonction de la majorité des talents imbriqués dans le bon arbre",
 				TOOLS = "Outils: ",
@@ -1421,6 +1430,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Nascondi ritratto di classe",
 				DISABLEROTATIONMODES = "Nascondi le modalità di rotazione",
 				DISABLESOUNDS = "Disabilita i suoni",
+				HIDEONSCREENSHOT = "Nascondi sullo screenshot",
+				HIDEONSCREENSHOTTOOLTIP = "Durante lo screenshot nasconde tutti i frame TellMeWhen\ne Action, quindi li mostra di nuovo",
 				CAMERAMAXFACTOR = "Fattore massimo della fotocamera", 
 				ROLETOOLTIP = "A seconda di questa modalità, la rotazione funzionerà\nAuto - Definisce il tuo ruolo in base alla maggior parte dei talenti nidificati nell'albero giusto",
 				TOOLS = "Utensili: ",
@@ -1730,6 +1741,8 @@ local Localization = {
 				DISABLEPORTRAITS = "Ocultar retrato de clase",
 				DISABLEROTATIONMODES = "Ocultar modos de rotación",
 				DISABLESOUNDS = "Desactivar sonidos",
+				HIDEONSCREENSHOT = "Ocultar en captura de pantalla",
+				HIDEONSCREENSHOTTOOLTIP = "Durante la captura de pantalla, se ocultan todos los cuadros de TellMeWhen\ny Action, y luego se muestran de nuevo",
 				CAMERAMAXFACTOR = "Factor máximo de cámara", 
 				ROLETOOLTIP = "Dependiendo de este modo, la rotación funcionará\nAuto - Define tu rol dependiendo de la mayoría de los talentos anidados en el árbol correcto",
 				TOOLS = "Herramientas: ",
@@ -2049,6 +2062,7 @@ local Factory = {
 		DisableClassPortraits = false,
 		DisableRotationModes = false,
 		DisableSounds = true,
+		HideOnScreenshot = true,
 		cameraDistanceMaxZoomFactor = true,
 		LetMeCast = true,
 		TargetCastBar = true,
@@ -3681,6 +3695,77 @@ function GetLOS(unitID)
 	end 
 end 
 
+-- [1] HideOnScreenshot
+local ScreenshotHider = {
+	HiddenFrames	  = {},
+	-- OnEvent 
+	OnStart			  = function(self)
+		if Action.IsInitialized then 
+			-- TellMeWhen 
+			for i = 1, huge do 
+				local FrameName = strconcat("TellMeWhen_Group", i)
+				if _G[FrameName] then 
+					if _G[FrameName]:IsShown() then 
+						tinsert(self.HiddenFrames, FrameName)
+						_G[FrameName]:Hide()
+					end 
+				else 
+					break 
+				end 
+			end 	
+			
+			-- UI 
+			if Action.MainUI:IsShown() then 
+				tinsert(self.HiddenFrames, "MainUI")
+				Action.ToggleMainUI()
+			end 
+			
+			if Action.MinimapIsShown() then 
+				tinsert(self.HiddenFrames, "Minimap")
+				Action.ToggleMinimap(false)
+			end 
+			
+			if Action.BlackBackgroundIsShown() then 
+				tinsert(self.HiddenFrames, "BlackBackground")
+				Action.BlackBackgroundSet(false)
+			end 
+		end 
+	end,
+	OnStop			  = function(self)
+		if #self.HiddenFrames > 0 then 
+			for i = 1, #self.HiddenFrames do 
+				if self.HiddenFrames[i] == "MainUI" then 
+					Action.ToggleMainUI()
+				elseif self.HiddenFrames[i] == "Minimap" then 
+					Action.ToggleMinimap(true)
+				elseif self.HiddenFrames[i] == "BlackBackground" then 
+					Action.BlackBackgroundSet(true)	
+				elseif _G[self.HiddenFrames[i]] then 
+					_G[self.HiddenFrames[i]]:Show()
+				end 
+			end 
+			
+			wipe(self.HiddenFrames)
+		end 	
+	end,
+	-- UI 
+	Initialize 		 = function(self, toggle)
+		if toggle then 
+			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED", 	function() self:OnStart() end)
+			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED", 	function() self:OnStop()  end)
+			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED", 	function() self:OnStop()  end)
+		else 
+			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED"		)
+			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED"		)
+			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED"	)
+			self:OnStop()
+		end 
+	end,
+	Reset			= function(self)
+		self:Initialize()
+	end,
+}
+
 -- [1] LetMeCast 
 local LETMECAST = {
 	SitElapsed = 0,
@@ -5271,17 +5356,30 @@ function Action.GetToggle(n, toggle)
 	return bool	
 end 	
 
-function Action.ToggleMinimap()
+function Action.ToggleMinimap(state)
 	if Action.Minimap then 
-		if Action.IsInitialized then 
-			Action.SetToggle({1, "DisableMinimap", L["TAB"][1]["DISABLEMINIMAP"] .. " : "})
-		end
-		if Action.GetToggle(1, "DisableMinimap") then 
-			LibDBIcon:Hide("ActionUI")
-		else 
-			LibDBIcon:Show("ActionUI")
-		end 		
+		if type(state) == "nil" then 
+			if Action.IsInitialized then 
+				Action.SetToggle({1, "DisableMinimap", L["TAB"][1]["DISABLEMINIMAP"] .. " : "})
+			end
+			if Action.GetToggle(1, "DisableMinimap") then 
+				LibDBIcon:Hide("ActionUI")
+			else 
+				LibDBIcon:Show("ActionUI")
+			end 
+		else
+			if state then 
+				LibDBIcon:Show("ActionUI")
+			else 
+				LibDBIcon:Hide("ActionUI")
+			end 
+		end 
 	end 
+end 
+
+function Action.MinimapIsShown()
+	-- @return boolean 
+	return LibDBIcon.objects["ActionUI"] and LibDBIcon.objects["ActionUI"]:IsShown()
 end 
 
 function Action.ToggleMainUI()
@@ -6183,7 +6281,7 @@ function Action.ToggleMainUI()
 			end)
 			AutoShootCheckBoxUpdate()
 
-			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 425, L["TAB"][tab.name]["PAUSECHECKS"])
+			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 450, L["TAB"][tab.name]["PAUSECHECKS"])
 			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
 			PauseChecksPanel.titlePanel.label:SetFontSize(14)
 			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = PauseChecksPanel.titlePanel.label:GetHeight() + 10 } })			
@@ -6311,6 +6409,15 @@ function Action.ToggleMainUI()
 				Action.Print(L["TAB"][tab.name]["DISABLESOUNDS"] .. ": ", TMW.db.profile.ActionDB[tab.name].DisableSounds)
 			end				
 			DisableSounds.Identify = { Type = "Checkbox", Toggle = "DisableSounds" }
+			
+			local HideOnScreenshot = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HIDEONSCREENSHOT"])
+			HideOnScreenshot:SetChecked(TMW.db.profile.ActionDB[tab.name].HideOnScreenshot)
+			function HideOnScreenshot:OnValueChanged(self, state, value)
+				TMW.db.profile.ActionDB[tab.name].HideOnScreenshot = not TMW.db.profile.ActionDB[tab.name].HideOnScreenshot
+				ScreenshotHider:Initialize(TMW.db.profile.ActionDB[tab.name].HideOnScreenshot)
+			end				
+			HideOnScreenshot.Identify = { Type = "Checkbox", Toggle = "HideOnScreenshot" }
+			StdUi:FrameTooltip(HideOnScreenshot, L["TAB"][tab.name]["HIDEONSCREENSHOTTOOLTIP"], nil, "BOTTOMLEFT", true)
 			
 			local cameraDistanceMaxZoomFactor = StdUi:Checkbox(anchor, L["TAB"][tab.name]["CAMERAMAXFACTOR"])
 			cameraDistanceMaxZoomFactor:SetChecked(TMW.db.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor)
@@ -6514,7 +6621,8 @@ function Action.ToggleMainUI()
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableRotationDisplay, DisableBlackBackground, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisablePrint, DisableMinimap, { column = "even" })			
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableClassPortraits, DisableRotationModes, { column = "even" })		
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableSounds, cameraDistanceMaxZoomFactor, { column = "even" })	
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableSounds, HideOnScreenshot, { column = "even" })	
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(cameraDistanceMaxZoomFactor, LayoutSpace(anchor), { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -5 } }):AddElement(Tools)
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LetMeCast, TargetCastBar, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(TargetPercentHealth, TargetRealHealth, { column = "even" })
@@ -9469,6 +9577,9 @@ local function OnInitialize()
 	-- Initialization ReTarget 
 	Re:Initialize()
 	
+	-- Initialization ScreenshotHider
+	ScreenshotHider:Initialize(Action.GetToggle(1, "HideOnScreenshot"))
+	
 	-- Initialization LOS System
 	LineOfSight:Initialize()
 	
@@ -9719,6 +9830,8 @@ function Action:OnInitialize()
 		Action.IsInitialized = nil
 		-- ReTarget 
 		Re:Reset()
+		-- ScreenshotHider
+		ScreenshotHider:Reset()
 		-- LOSInit 
 		LineOfSight:Reset()
 		-- LetMeCast 
