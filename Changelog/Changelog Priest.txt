@@ -1,3 +1,9 @@
+[Priest v11]
+Fixed lua miss typo with EnemyTeam and FriendlyTeam calls 
+Fixed bugs with predict health for different rank healing on AUTO mode 
+Perception							- Added invis catcher for duel and wpvp 
+ShackleUndead						- Fixed DR category 
+
 [Priest v10]
 Added toggle in UI for use racials while crown control such as Stoneform and WilloftheForsaken
 Added toggle in UI for use specified potion (default MajorManaPotion)
