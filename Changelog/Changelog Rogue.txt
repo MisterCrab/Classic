@@ -1,3 +1,23 @@
+[Rogue v4]
+Devs found bug and fixed way which recently worked to mimic click on weapon slot, so instead of click it will open now character window to let user to click it manually 
+Added new toggles for main and off hands for toggle character window
+Added method to replace texture with green color on hand slots in character window to help understand what to click 
+Fixed lua miss typo with EnemyTeam and FriendlyTeam calls 
+Fixed lua error :1415: attempt to perform arithmetic on field 'GetCurrentGCD' (a function value)
+Fixed issue when profile closed instantly some dialog windows
+Fixed issue when custom toggle on opener didn't checked imun buffs such as Ice Block 
+Fixed IsEviscerateProfitableThanSliceandDice, GetEviscerateDamage damage calculation
+Ambush								- Auto opener will no longer try to use it on Warrior and Paladin in PvP (still will able to do if all unavailable as last priority)
+Gouge								- Added buff check for Blink vs Mage as additional trigger, reduced DR to tick 50% (down from 100%)
+Eviscerate							- Added time to die condition to use it additionaly if target will die in less than next gcd with current spining time 
+Perception							- Added invis catcher for duel and wpvp 
+Rupture								- Fixed issue when it was used too early than dying on target (mostly because of warriors with execute in raid, it's breaks ttd)
+Rupture								- Fixed issue when it was used on Ragnaros (he has imun for it)
+Gouge								- Fixed behind conditions (seen when wasn't used to attemp interrupt casts)
+SliceandDice						- Uptime decreased on remain buff duration modifier to 1.4 (down from 1.8)
+SliceandDice						- Now will be used only in melee
+PickPocket							- Added skipping on UI message "no pockets to pick"
+
 [Rogue v3] 
 Eviscerate							- Fixed damage math formula 
 Rupture								- Fixed TTD in duel vs Paladin and Warrior now has 6 instead of 16
