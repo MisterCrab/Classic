@@ -1,3 +1,6 @@
+[Paladin v3]
+Fixed different bugs with Seals
+
 [Paladin v2]
 Fixed lua error :344: attempt to compare number with nil
 
