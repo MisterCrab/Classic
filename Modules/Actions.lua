@@ -986,14 +986,16 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 			return true 				
 		end 
 		
-		if 	self.Type == "Trinket" and 
-			-- This also checks equipment (in idea because slot return ID which we compare)
-			self.ID ~= nil and 
-			( A.Trinket1.ID == self.ID and A.GetToggle(1, "Trinkets")[1] or A.Trinket2.ID == self.ID and A.GetToggle(1, "Trinkets")[2] ) and 
-			self:IsUsable(nil, skipUsable) and 
-			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
-		then
-			return true 
+		if 	self.Type == "Trinket" then 
+			local ID = self.ID		
+			if 	ID ~= nil and 
+				-- This also checks equipment (in idea because slot return ID which we compare)
+				( A.Trinket1.ID == ID and A.GetToggle(1, "Trinkets")[1] or A.Trinket2.ID == ID and A.GetToggle(1, "Trinkets")[2] ) and 
+				self:IsUsable(nil, skipUsable) and 
+				( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
+			then 
+				return true 
+			end 
 		end 
 		
 		if 	self.Type == "Potion" and 

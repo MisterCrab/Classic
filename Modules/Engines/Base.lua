@@ -1,7 +1,8 @@
 -------------------------------------------------------------------------------
 --[[ 
 Global nil-able variables:
-A.Zone				(@string)
+A.Zone				(@string)		"none", "pvp", "arena", "party", "raid", "scenario"
+A.ZoneID			(@number) 		wow.gamepedia.com/UiMapID/Classic
 A.IsInInstance		(@boolean)
 A.TimeStampZone 	(@number)
 A.TimeStampDuel 	(@number)
@@ -35,10 +36,13 @@ A.TeamCache				= {
 	},
 }
 
-local _G, table, pairs, type, select, wipe = 
-	  _G, table, pairs, type, select, wipe
+local _G, table, pairs, type, select, math = 
+	  _G, table, pairs, type, select, math
 
-local huge 				= math.huge 
+local huge 				= math.huge
+local wipe				= _G.wipe 
+local strconcat			= _G.strconcat
+local C_Map				= _G.C_Map 
 
 local IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData = 
 	  IsInRaid, IsInGroup, IsInInstance, RequestBattlefieldScoreData
@@ -48,7 +52,12 @@ local UnitIsUnit, UnitInBattleground, UnitExists, UnitIsFriend, UnitGUID, UnitCl
 
 local GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers =  
 	  GetInstanceInfo, GetNumBattlefieldScores, GetNumGroupMembers    
-	  
+	
+local GetBestMapForUnit = C_Map.GetBestMapForUnit	
+
+local player 			= "player"
+local target 			= "target"
+local targettarget		= "targettarget"
 	  
 -------------------------------------------------------------------------------
 -- Instance, Zone, Mode, Duel, TeamCache
@@ -67,14 +76,14 @@ function A:CheckInPvP()
 	-- @return boolean
     return 
     self.Zone == "pvp" or 
-    UnitInBattleground("player") or 
-    ( A.Unit("target"):IsPlayer() and (A.Unit("target"):IsEnemy() or A.Unit("targettarget"):IsEnemy()) )
+    UnitInBattleground(player) or 
+    ( A.Unit(target):IsPlayer() and (A.Unit(target):IsEnemy() or (A.Unit(targettarget):IsPlayer() and A.Unit(targettarget):IsEnemy())) )
 end
 
 local LastEvent
 local function OnEvent(event, ...)    
 	if event == "PLAYER_TARGET_CHANGED" then 
-		playerTarget = UnitExists("target") and (UnitIsFriend("player", "target") and "targettarget" or "target") or ""
+		playerTarget = UnitExists(target) and (UnitIsFriend(player, target) and targettarget or target) or ""
 	end 
 	
     -- Don't call it several times
@@ -86,6 +95,8 @@ local function OnEvent(event, ...)
 	-- Update IsInInstance, Zone
     A.IsInInstance, A.Zone = IsInInstance()
 	if event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" or event == "ZONE_CHANGED_NEW_AREA" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_ENTERING_BATTLEGROUND" or event == "PLAYER_LOGIN" then 
+		A.ZoneID = GetBestMapForUnit(player) or 0
+		
 		local name, instanceType, difficultyID, _, _, _, _, instanceID, instanceGroupSize = GetInstanceInfo()
 		if name then 
 			A.InstanceInfo.Name 		= name 
@@ -120,7 +131,9 @@ local function OnEvent(event, ...)
 	
 	-- Update Units 
 	if event == "UPDATE_INSTANCE_INFO" or event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LOGIN" then 
-		-- Wipe 
+		local counter = 0
+		
+		-- Wipe Friendly 
 		A.TeamCache.Friendly.hasShaman = false 
 		for _, v in pairs(A.TeamCache.Friendly) do
 			if type(v) == "table" then 
@@ -128,6 +141,7 @@ local function OnEvent(event, ...)
 			end 
 		end 
 		
+		-- Wipe Enemy
 		A.TeamCache.Enemy.hasShaman = false 
 		for _, v in pairs(A.TeamCache.Enemy) do
 			if type(v) == "table" then 
@@ -145,16 +159,24 @@ local function OnEvent(event, ...)
 			A.TeamCache.Enemy.Type = nil 
 		end
 		
-
-		if A.TeamCache.Enemy.Size > 0 then                
-			for i = 1, A.TeamCache.Enemy.Size do 
-				local arena = "arena" .. i
+		
+		if A.TeamCache.Enemy.Size > 0 then    
+			counter = 0
+			for i = 1, huge do 
+				local arena = strconcat("arena", i)
 				local guid 	= UnitGUID(arena)
+				
 				if guid then 
+					counter = counter + 1
+					
 					A.TeamCache.Enemy.GUIDs[guid] = arena
 					if not A.TeamCache.Enemy.hasShaman and select(2, UnitClass(arena)) == "SHAMAN" then 
 						A.TeamCache.Enemy.hasShaman = true 
 					end 
+				end 
+				
+				if counter >= A.TeamCache.Enemy.Size or counter >= 40 then 
+					break 
 				end 
 			end   
 		end          
@@ -170,15 +192,23 @@ local function OnEvent(event, ...)
 		end    
 		
 		if A.TeamCache.Friendly.Size > 1 and A.TeamCache.Friendly.Type then 
-			for i = 1, A.TeamCache.Friendly.Size do 
-				local member 	= A.TeamCache.Friendly.Type .. i    
-				local guid 		= UnitGUID(member)
+			counter = 0
+			for i = 1, huge do 
+				local member = strconcat(A.TeamCache.Friendly.Type, i)  
+				local guid 	 = UnitGUID(member)
+				
 				if guid then 
+					counter = counter + 1
+					
 					A.TeamCache.Friendly.GUIDs[guid] = member 
-					if not A.TeamCache.Friendly.hasShaman and select(2, UnitClass(member)) == "SHAMAN" then 
+					if not A.TeamCache.Friendly.hasShaman and select(2, UnitClass(member)) == "SHAMAN" and A.Unit(member):InParty() then -- Shaman's totems in Classic works only on party group
 						A.TeamCache.Friendly.hasShaman = true 
 					end 
-				end 								
+				end 
+
+				if counter >= A.TeamCache.Friendly.Size or counter >= 40 then 
+					break 
+				end 	
 			end 
 		end		
 	end 
@@ -251,12 +281,12 @@ local function CheckStatus()
 			end
 			-- party excludes player/pet
 			if A.TeamCache.Friendly.Type ~= "raid" then
-				UpdateThreatData("player")
+				UpdateThreatData(player)
 				UpdateThreatData("pet")
 			end
 		-- solo
 		else			
-			UpdateThreatData("player")
+			UpdateThreatData(player)
 			UpdateThreatData("pet")
 		end
 	end
