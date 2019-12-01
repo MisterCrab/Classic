@@ -18,16 +18,20 @@ local TeamCache									= A.TeamCache
 local FriendlyGUIDs								= TeamCache.Friendly.GUIDs
 local DRData 									= LibStub("DRList-1.1")
 
+local _G, type, pairs, setmetatable, table, math, bit = 
+	  _G, type, pairs, setmetatable, table, math, bit
+	  
+local tinsert	  								= table.insert
+local tremove	  								= table.remove
 local huge 										= math.huge 
 local abs 										= math.abs 
-local math_max									= math.max 
-
-local _G, type, pairs, table, strsub, wipe, bitband = 
-	  _G, type, pairs, table, strsub, wipe, bit.band
+local math_max									= math.max
+local bitband									= bit.band
+local wipe 										= _G.wipe
+local strsub									= _G.strsub
 
 local UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff	= 
-	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff
-	  
+	  UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff	  
 	  
 local InCombatLockdown, CombatLogGetCurrentEventInfo = 
 	  InCombatLockdown, CombatLogGetCurrentEventInfo 
@@ -299,12 +303,12 @@ CombatTracker.logDamage 						= function(...)
 	Data[SourceGUID].RealDMG.hits_done = Data[SourceGUID].RealDMG.hits_done + 1 
 	if isPlayer(destFlags) then
 		-- DS (Only Taken)
-		table.insert(Data[DestGUID].DS, {TIME = TMW.time, Amount = Amount})
+		tinsert(Data[DestGUID].DS, {TIME = TMW.time, Amount = Amount})
 		-- Garbage 
 		if TMW.time - Data[DestGUID].DS[1].TIME > 10 then 
 			for i = #Data[DestGUID].DS, 1, -1 do 
 				if TMW.time - Data[DestGUID].DS[i].TIME > 10 then 
-					table.remove(Data[DestGUID].DS, i)
+					tremove(Data[DestGUID].DS, i)
 				end 
 			end 
 		end 
@@ -344,12 +348,12 @@ CombatTracker.logSwing 							= function(...)
 	Data[SourceGUID].RealDMG.hits_done = Data[SourceGUID].RealDMG.hits_done + 1 
 	if isPlayer(destFlags) then 
 		-- DS (Only Taken)
-		table.insert(Data[DestGUID].DS, {TIME = TMW.time, Amount = Amount})
+		tinsert(Data[DestGUID].DS, {TIME = TMW.time, Amount = Amount})
 		-- Garbage 
 		if TMW.time - Data[DestGUID].DS[1].TIME > 10 then 
 			for i = #Data[DestGUID].DS, 1, -1 do 
 				if TMW.time - Data[DestGUID].DS[i].TIME > 10 then 
-					table.remove(Data[DestGUID].DS, i)
+					tremove(Data[DestGUID].DS, i)
 				end 
 			end 
 		end 
