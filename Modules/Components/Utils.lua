@@ -10,8 +10,10 @@ local A   					= Action
 local toStr 				= A.toStr
 local toNum 				= A.toNum
 
-local _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message, huge	= 
-	  _G, assert, select, type, next, ipairs, wipe, hooksecurefunc, message, math.huge
+local _G, assert, error, tostring, select, type, next, ipairs, math, wipe, hooksecurefunc, message = 
+	  _G, assert, error, tostring, select, type, next, ipairs, math, wipe, hooksecurefunc, message
+	  
+local huge 					= math.huge	  
 	  
 local CreateFrame, GetCVar, SetCVar =
 	  CreateFrame, GetCVar, SetCVar
@@ -822,60 +824,68 @@ end
   
 function A.Hide(icon)
 	-- @usage A.Hide(icon)
-	local meta = icon.ID		
-	if meta == 3 and RankSingle.isColored then 
-		RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
-		RankSingle.isColored = nil 
-		TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
-	end 
-	
-	if meta == 4 and RankAoE.isColored then 
-		RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
-		RankAoE.isColored = nil 
-	end 
-	
-	if icon.attributes.state ~= ACTION_CONST_TMW_DEFAULT_STATE_HIDE then 
-		icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
-	end 	
-end 
-
-function A:Show(icon, texture) 
-	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)	
-	-- Sets ranks 
-	local meta = icon.ID
-	if meta == 3 then 
-		if not self.useMaxRank and self.isRank then 
-			if self.isRank ~= RankSingle.isColored then 
-				RankSingle.texture:SetColorTexture(RANKCOLOR[self.isRank]())
-				RankSingle.isColored = self.isRank 
-				TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
-			end 
-		elseif RankSingle.isColored then 
+	if not icon then 
+		error("A.Hide tried to hide nil 'icon'", 2)
+	else 
+		local meta = icon.ID		
+		if meta == 3 and RankSingle.isColored then 
 			RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
 			RankSingle.isColored = nil 
 			TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
 		end 
-	end 
-	
-	if meta == 4 then 
-		if not self.useMaxRank and self.isRank then 
-			if self.isRank ~= RankAoE.isColored then 
-				RankAoE.texture:SetColorTexture(RANKCOLOR[self.isRank]())
-				RankAoE.isColored = self.isRank 
-			end 
-		elseif RankAoE.isColored then 
+		
+		if meta == 4 and RankAoE.isColored then 
 			RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
 			RankAoE.isColored = nil 
-		end 	
+		end 
+		
+		if icon.attributes.state ~= ACTION_CONST_TMW_DEFAULT_STATE_HIDE then 
+			icon:SetInfo("state; texture", ACTION_CONST_TMW_DEFAULT_STATE_HIDE, "")
+		end 
 	end 
-	
-	if texture then 
-		TMWAPI(icon, "texture", texture)
+end 
+
+function A:Show(icon, texture) 
+	-- @usage self:Show(icon) for own texture with color filter or self:Show(icon, textureID)		
+	if not icon then 
+		error((not texture and self:GetKeyName() or tostring(texture)) .. " tried to use Show() method with nil 'icon'", 2)
 	else 
-		TMWAPI(icon, self:Texture())
-	end 		
-	
-	return true 
+		-- Sets ranks 
+		local meta = icon.ID
+		if meta == 3 then 
+			if not self.useMaxRank and self.isRank then 
+				if self.isRank ~= RankSingle.isColored then 
+					RankSingle.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+					RankSingle.isColored = self.isRank 
+					TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
+				end 
+			elseif RankSingle.isColored then 
+				RankSingle.texture:SetColorTexture(0, 0, 0, 1.0)
+				RankSingle.isColored = nil 
+				TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
+			end 
+		end 
+		
+		if meta == 4 then 
+			if not self.useMaxRank and self.isRank then 
+				if self.isRank ~= RankAoE.isColored then 
+					RankAoE.texture:SetColorTexture(RANKCOLOR[self.isRank]())
+					RankAoE.isColored = self.isRank 
+				end 
+			elseif RankAoE.isColored then 
+				RankAoE.texture:SetColorTexture(0, 0, 0, 1.0)
+				RankAoE.isColored = nil 
+			end 	
+		end 
+		
+		if texture then 
+			TMWAPI(icon, "texture", texture)
+		else 
+			TMWAPI(icon, self:Texture())
+		end 		
+		
+		return true 
+	end 
 end 
 
 function A.FrameHasSpell(frame, spellID)
@@ -909,4 +919,21 @@ function A.FrameHasObject(frame, ...)
 			end 
 		end 
 	end 
+end 
+
+-------------------------------------------------------------------------------
+-- TMW PlayerNames fix
+-------------------------------------------------------------------------------
+if TELLMEWHEN_VERSIONNUMBER <= 87303 then -- Classic 87303
+	local NAMES 		= TMW.NAMES
+	local GetNumBattlefieldScores, 	  GetBattlefieldScore = 
+	   _G.GetNumBattlefieldScores, _G.GetBattlefieldScore
+	function NAMES:UPDATE_BATTLEFIELD_SCORE()
+		for i = 1, GetNumBattlefieldScores() do
+			local name, _, _, _, _, _, _, _, _, classToken = GetBattlefieldScore(i)
+			if name and self.ClassColors[classToken] then 
+				self.ClassColoredNameCache[name] = self.ClassColors[classToken] .. name .. "|r"
+			end
+		end
+	end
 end 

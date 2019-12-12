@@ -1,5 +1,5 @@
 --- 
-local DateTime 						= "02.12.2019"
+local DateTime 						= "12.12.2019"
 ---
 local TMW 							= TMW
 local strlowerCache  				= TMW.strlowerCache
@@ -11,8 +11,7 @@ local LSM 							= LibStub("LibSharedMedia-3.0")
 
 local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe,     safecall,    debugprofilestop = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, select, _G, coroutine, table, math, hooksecurefunc, wipe, TMW.safecall, _G.debugprofilestop_SAFE
-
-local strconcat						= _G.strconcat  
+ 
 local tinsert 						= table.insert 	 
 local huge	 						= math.huge
 local math_abs						= math.abs
@@ -3703,7 +3702,7 @@ local ScreenshotHider = {
 		if Action.IsInitialized then 
 			-- TellMeWhen 
 			for i = 1, huge do 
-				local FrameName = strconcat("TellMeWhen_Group", i)
+				local FrameName = "TellMeWhen_Group" .. i
 				if _G[FrameName] then 
 					if _G[FrameName]:IsShown() then 
 						tinsert(self.HiddenFrames, FrameName)
