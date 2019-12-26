@@ -1,3 +1,10 @@
+[Priest v12]
+Improved stopcast overhealing (same way like on Paladin)
+Optimized code for more faster performance
+PredictHeal							- Added GetSpellBonusHealing and HealModifier by HealComm in formul
+PredictHeal							- Fixed issues due difference in API, now it's updated to actual
+PrayerofHealing						- Fixed Auto party members amount if party is not full (if not full then limit to 3+ at least if we have 3+ in group)
+
 [Priest v11]
 Fixed lua miss typo with EnemyTeam and FriendlyTeam calls 
 Fixed bugs with predict health for different rank healing on AUTO mode 
