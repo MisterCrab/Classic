@@ -48,6 +48,7 @@ end)
 -------------------------------------------------------------------------------	  
 local MultiUnits 									= {
 	activeUnitPlates 								= {},
+	activeUnitPlatesAny								= {},
 	activeUnitPlatesGUID 							= {},
 	activeUnitCLEU 									= {},
 	tempEnemies										= {},
@@ -62,7 +63,8 @@ local MultiUnits 									= {
 	},
 }
 
-local MultiUnitsActiveUnitPlates					= MultiUnits.activeUnitPlates
+local MultiUnitsActiveUnitPlates					= MultiUnits.activeUnitPlates -- Only enemies 
+local MultiUnitsActiveUnitPlatesAny					= MultiUnits.activeUnitPlatesAny -- Enemies + Friendly
 local MultiUnitsActiveUnitPlatesGUID				= MultiUnits.activeUnitPlatesGUID
 local MultiUnitsActiveUnitCLEU						= MultiUnits.activeUnitCLEU
 local MultiUnitsTempEnemies							= MultiUnits.tempEnemies
@@ -71,18 +73,22 @@ local MultiUnitsOnEventWipeCLEU						= MultiUnits.onEventWipeCLEU
 -- Nameplates
 MultiUnits.AddNameplate								= function(unitID)
 	if UnitCanAttack(player, unitID) then 
-		MultiUnitsActiveUnitPlates[unitID] = unitID
+		MultiUnitsActiveUnitPlates[unitID] 			= unitID
+		MultiUnitsActiveUnitPlatesAny[unitID] 		= unitID
 		if A.Zone ~= "pvp" then 
 			local GUID 								= UnitGUID(unitID)
 			if GUID then 
 				MultiUnitsActiveUnitPlatesGUID[GUID] = unitID
 			end
 		end 
+	else 
+		MultiUnitsActiveUnitPlatesAny[unitID] = unitID
 	end
 end
 
 MultiUnits.RemoveNameplate							= function(unitID)
     MultiUnitsActiveUnitPlates[unitID] 				= nil 
+	MultiUnitsActiveUnitPlatesAny[unitID]			= nil 
 	if A.Zone ~= "pvp" then 
 		local GUID 									= UnitGUID(unitID)
 		if GUID then 
@@ -93,6 +99,7 @@ end
 
 MultiUnits.OnResetNameplates						= function()
 	wipe(MultiUnitsActiveUnitPlates)
+	wipe(MultiUnitsActiveUnitPlatesAny)
 	wipe(MultiUnitsActiveUnitPlatesGUID)
 end 
 
@@ -176,9 +183,15 @@ A.MultiUnits = {}
 
 -- Nameplates 
 function A.MultiUnits.GetActiveUnitPlates(self)
-	-- @return table (enemy nameplates) or nil
+	-- @return table (enemy nameplates) 
 	-- @usage A.MultiUnits:GetActiveUnitPlates()
 	return MultiUnitsActiveUnitPlates
+end 
+
+function A.MultiUnits.GetActiveUnitPlatesAny(self)
+	-- @return table (enemy + friendly nameplates) 
+	-- @usage A.MultiUnits:GetActiveUnitPlatesAny()
+	return MultiUnitsActiveUnitPlatesAny
 end 
 
 function A.MultiUnits.GetActiveUnitPlatesGUID(self)

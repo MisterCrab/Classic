@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "26.12.2019"
+local DateTime 														= "27.12.2019"
 ---
 local TMW 															= TMW
 local strlowerCache  												= TMW.strlowerCache
@@ -3637,13 +3637,31 @@ local Re = {
 local LineOfSight = {
 	Cache 			= setmetatable({}, { __mode = "kv" }),
 	Timer			= 5,	
+	NamePlateFrame	= setmetatable({}, { __index = function(t, i)
+		if _G["NamePlate" .. i] then 
+			t[i] = _G["NamePlate" .. i]
+			return t[i]
+		end 
+	end }),
 	-- Functions
 	UnitInLOS 		= function(self, unitID, unitGUID)		
-		if not Action.GetToggle(1, "LOSCheck") then 
+		if not Action.GetToggle(1, "LOSCheck") then
 			return false 
 		end 
-		local GUID = unitGUID or UnitGUID(unitID)
-		return GUID and self.Cache[GUID] and TMW.time < self.Cache[GUID]
+
+		if not UnitIsUnit("target", unitID) and A_Unit(unitID):IsNameplateAny() then 
+			-- Not valid for @target
+			for i = 1, huge do 
+				if not self.NamePlateFrame[i] then 
+					break 
+				elseif self.NamePlateFrame[i].UnitFrame.unitExists and UnitIsUnit(self.NamePlateFrame[i].UnitFrame.unit, unitID) then
+					return self.NamePlateFrame[i].UnitFrame:GetEffectiveAlpha() <= 0.4				
+				end 
+			end 
+		else 
+			local GUID = unitGUID or UnitGUID(unitID)
+			return GUID and self.Cache[GUID] and TMW.time < self.Cache[GUID]
+		end 
 	end,
 	Wipe 			= function(self)
 		-- Physical reset 

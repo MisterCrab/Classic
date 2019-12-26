@@ -36,6 +36,7 @@ local TeamCacheEnemy 						= TeamCache.Enemy
 local TeamCacheEnemyIndexToPLAYERs			= TeamCacheEnemy.IndexToPLAYERs
 local TeamCacheEnemyIndexToPETs				= TeamCacheEnemy.IndexToPETs
 local ActiveUnitPlates						= MultiUnits:GetActiveUnitPlates()
+local ActiveUnitPlatesAny					= MultiUnits:GetActiveUnitPlatesAny()
 
 local _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error  =
 	  _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error 
@@ -1087,12 +1088,22 @@ A.Unit = PseudoClass({
 		return UnitExists(unitID)
 	end, "UnitID"),
 	IsNameplate								= Cache:Pass(function(self)  
-		-- @return boolean
+		-- @return boolean, nameplateUnitID or nil 
 		-- Note: Only enemy plates
 		local unitID 						= self.UnitID
 		for nameplateUnit in pairs(ActiveUnitPlates) do 
 			if UnitIsUnit(unitID, nameplateUnit) then 
-				return true 
+				return true, nameplateUnit
+			end 
+		end 
+	end, "UnitID"),
+	IsNameplateAny							= Cache:Pass(function(self)  
+		-- @return boolean, nameplateUnitID or nil 
+		-- Note: Any plates
+		local unitID 						= self.UnitID
+		for nameplateUnit in pairs(ActiveUnitPlatesAny) do 
+			if UnitIsUnit(unitID, nameplateUnit) then 
+				return true, nameplateUnit
 			end 
 		end 
 	end, "UnitID"),
