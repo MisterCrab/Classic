@@ -1,3 +1,11 @@
+[Warrior v9]
+Optimized code for more faster performance
+Fixed visual positions for lowest Queue Base buttons 
+Added more events in CLEU which will more accurate trigger to reset destGUID
+Recklessness						- Added new Queue Base button
+BattleShout							- Added condition to use it in PvP only if MS on cd or not learned or not in melee or enough rage to use both while MS on CD or unit already has MS debuff 
+SunderArmor							- Increased last used timer to make refresh at 5 stacks more often
+
 [Warrior v8]	
 Removed in some MSG LUA trash check conditions 
 Fixed lua miss typo with EnemyTeam and FriendlyTeam calls 
