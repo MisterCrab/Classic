@@ -1,3 +1,11 @@
+[Paladin v4]
+Optimized code for more faster performance
+Fixed probably lua nil table index error in SomeOneCastingOnMeCC for CC casts catching by BoS
+PredictHeal								- Added GetSpellBonusHealing and HealModifier by HealComm in formul
+StopCast								- Improved logic (now doesn't require to check current primary unit if destination was known as unitID) and increased delay to make stop earlier
+SealofRighteousness						- Now replaces SealofCommand if you have Reckoning buff or your weapon faster either equal 3.4 speed 
+SenseUndead								- Fixed issue with reapply tracking 
+
 [Paladin v3]
 Fixed different bugs with Seals
 
