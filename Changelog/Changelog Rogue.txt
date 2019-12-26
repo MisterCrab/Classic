@@ -1,3 +1,12 @@
+[Rogue v5]
+Optimized code for more faster performance
+Fixed lua error ...\AddOns\TheAction Classic\Modules\Engines\Combat.lua:1799: Usage: UnitGUID("unit")
+Fixed lua error 1620: attempt to index a nil value (was missed UI element for Blind units)
+Fixed lua error 991: attempt to call global 'MainHandFrameSetTexture' (a nil value)
+Fixed damage decrease modificator for PvP, it will now changes depends on rotation mode (PvP has 0.4, PvE remains to be 0.1)
+Fixed visual issues, glowing cursor and rest issues for enchant system
+PickPocket							- Removed condition to use on players 
+
 [Rogue v4]
 Devs found bug and fixed way which recently worked to mimic click on weapon slot, so instead of click it will open now character window to let user to click it manually 
 Added new toggles for main and off hands for toggle character window
