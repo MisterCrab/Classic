@@ -1,4 +1,4 @@
-## Interface: 11302
+## Interface: 11303
 ## Title: TellMeWhen |cff00ccff The Action|r
 ## Notes: TellMeWhen What To Show
 ## RequiredDeps: TellMeWhen
@@ -7,14 +7,17 @@
 
 Lib\LibSharedMedia-3.0\lib.xml
 Lib\ForAllIndentsAndPurposes.lua
+Lib\LibBossIDs-1.0.lua
 Lib\LibDBIcon-1.0.lua
 Lib\StdUI\StdUi.xml
 
 # Classic Libs 
 Lib\DRList-1.1\DRList-1.1.xml
+Lib\LibHealComm-4.0\LibHealComm-4.0.xml
 Lib\LibClassicCasterino.lua
 Lib\LibSpellLock.lua
 Lib\LibAuraTypes.lua
+Lib\GetTotemInfo.lua
 # Need for ThreatClassic 
 Lib\AceBucket-3.0\AceBucket-3.0.xml
 Lib\ThreatClassic-1.0\lib.xml
@@ -43,6 +46,7 @@ Modules\Misc\ElvUI.lua
 Modules\Misc\HeroLib.lua
 # Modules\Misc\PMultiplier.lua
 Modules\Misc\LibClassicCasterino Tweaks.lua
+Modules\Misc\LibHealComm Tweaks.lua
 
 Modules\Actions.lua
 Modules\Core.lua

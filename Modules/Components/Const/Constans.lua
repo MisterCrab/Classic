@@ -4,6 +4,7 @@ ACTION_CONST_TMW_DEFAULT_STATE_HIDE 							= TMW.CONST.STATE.DEFAULT_HIDE
 ACTION_CONST_TMW_DEFAULT_STATE_SHOW 							= TMW.CONST.STATE.DEFAULT_SHOW
 
 -- Action 
+ACTION_CONST_ADDON_NAME											= "TheAction Classic"
 ACTION_CONST_CACHE_DISABLE				 						= false 		-- On own risk, it will disable memorize cache but will reduce a lot of memory drive, it's trade-in toggle between CPU and Memory 	(required reload after change)
 ACTION_CONST_CACHE_MEM_DRIVE									= false			-- On own risk, it will unlock remain cache for low CPU demand functions "aka memory killer" 										(doesn't work if ACTION_CONST_CACHE_DISABLE is 'true')
 ACTION_CONST_CACHE_DEFAULT_TIMER 								= 0.01			-- "Tools.lua" offset on cache control 

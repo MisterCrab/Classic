@@ -1,8 +1,16 @@
-local A 					= Action
-local Listener 				= A.Listener
+local A 										= Action
+local Listener 									= A.Listener
 
-local _G, next, wipe 		= 
-	  _G, next, wipe 
+local TeamCache									= A.TeamCache
+local TeamCacheFriendly							= TeamCache.Friendly
+local TeamCacheFriendlyUNITs					= TeamCacheFriendly.UNITs
+local TeamCacheEnemy							= TeamCache.Enemy
+local TeamCacheEnemyUNITs						= TeamCacheEnemy.UNITs
+
+local _G, next		 							= 
+	  _G, next 
+	  
+local wipe										= _G.wipe	  
 	  
 local UnitPlayerControlled, CanInspect, UnitIsUnit, UnitGUID =
 	  UnitPlayerControlled, CanInspect, UnitIsUnit, UnitGUID
@@ -10,24 +18,28 @@ local UnitPlayerControlled, CanInspect, UnitIsUnit, UnitGUID =
 local InspectUnit, GetInventoryItemID, GetItemInfoInstant, GetLocale =
 	  InspectUnit, GetInventoryItemID, GetItemInfoInstant, GetLocale
 	  
-local HideUIPanel			= HideUIPanel	  
+local HideUIPanel								= HideUIPanel	  
 
-local InspectCache 			= {}
+local InspectCache 								= {}
 local IsInspectFrameHooked 
 local UseCloseInspect 
 
 -- This is not fixed by game API on languages which are different than English, it's bring an error
-local GameLocale 			= GetLocale()
-local SetCVar, GetCVar		= SetCVar, GetCVar
+local GameLocale 								= GetLocale()
+local SetCVar, GetCVar							= SetCVar, GetCVar
 local scriptErrors 
-local AllowedLocale			= {
-	enGB 					= true,
-	enUS					= true,
+local AllowedLocale								= {
+	enGB 										= true,
+	enUS										= true,
 }
+
+local function GetGUID(unitID)
+	return (unitID and (TeamCacheFriendlyUNITs[unitID] or TeamCacheEnemyUNITs[unitID])) or UnitGUID(unitID)
+end 
 
 local function UnitInspectItem(unitID, invID)
     if (UnitPlayerControlled(unitID) and CanInspect(unitID) and not UnitIsUnit("player", unitID)) then    
-		local GUID = UnitGUID(unitID)
+		local GUID = GetGUID(unitID)
 		if not GUID then 
 			return 
 		end 
@@ -98,7 +110,7 @@ local function UnitInspectWipe(...)
 	if next(InspectCache) then 
 		local unitID = ... 
 		if unitID then 
-			local GUID = UnitGUID(unitID)
+			local GUID = GetGUID(unitID)
 			if GUID and InspectCache[GUID] then 
 				wipe(InspectCache[GUID])
 			end 
@@ -118,11 +130,10 @@ Listener:Add("ACTION_EVENT_UNIT_INSPECT", "UNIT_INVENTORY_CHANGED",		UnitInspect
 function A.GetUnitItem(unitID, invID, itemClassID, itemSubClassID, itemID, byPassDistance)
 	-- @return boolean or nil 
 	-- Optional: itemClassID, itemSubClassID, itemID, byPassDistance
-	local GUID = UnitGUID(unitID)
+	local GUID = GetGUID(unitID)
 	if GUID then 
 		if InspectCache[GUID] and InspectCache[GUID][invID] and InspectCache[GUID][invID].itemID then 
-			local I = InspectCache[GUID][invID]
-			return (not itemClassID or I.itemClassID == itemClassID) and (not itemSubClassID or I.itemSubClassID == itemSubClassID) and (not itemID or I.itemID == itemID)
+			return (not itemClassID or InspectCache[GUID][invID].itemClassID == itemClassID) and (not itemSubClassID or InspectCache[GUID][invID].itemSubClassID == itemSubClassID) and (not itemID or InspectCache[GUID][invID].itemID == itemID)
 		else
 			local I = UnitInspectItem(unitID, invID)
 			return (byPassDistance and not I and true) or (I and (not itemClassID or I.itemClassID == itemClassID) and (not itemSubClassID or I.itemSubClassID == itemSubClassID) and (not itemID or I.itemID == itemID))
@@ -137,7 +148,7 @@ function A.GetUnitItemInfo(unitID, invID)
 	-- .itemSubClassID
 	-- .itemID
 	-- Optional: itemClassID, itemSubClassID, itemID, byPassDistance
-	local GUID = UnitGUID(unitID)
+	local GUID = GetGUID(unitID)
 	if GUID then 
 		if InspectCache[GUID] and InspectCache[GUID][invID] and InspectCache[GUID][invID].itemID then 
 			return InspectCache[GUID][invID]

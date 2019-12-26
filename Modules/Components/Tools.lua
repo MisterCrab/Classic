@@ -1,15 +1,15 @@
 local TMW 						= TMW
 local A 						= Action
+local ActionTimers 				= A.Data.T
+local GetToggle					= A.GetToggle
 
---local strlowerCache  			= TMW.strlowerCache
-
-local _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc = 
-	  _G, pairs, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc
+local _G, pairs, string, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc = 
+	  _G, pairs, string, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc
 	  
 local bxor						= bit.bxor	 
-local insert					= table.insert  
+local band						= bit.band 	
+local strformat					= string.format
 local concat 					= table.concat	  
-local maxn						= table.maxn
 local math_floor				= math.floor 
 local strbyte					= _G.strbyte
 local strchar					= _G.strchar
@@ -31,8 +31,8 @@ local GetNumTalentTabs, GetNumTalents, GetTalentInfo =
 local listeners 				= {}
 local frame 					= CreateFrame("Frame", "ACTION_EVENT_LISTENER")
 local PassEventOn 				= {
-	ACTION_EVENT_BASE			= true,
-	ACTION_EVENT_THREAT_LIB 	= true,
+	["ACTION_EVENT_BASE"]		= true,
+	["ACTION_EVENT_THREAT_LIB"]	= true,
 }	
 frame:SetScript("OnEvent", function(_, event, ...)
 	if listeners[event] then 
@@ -47,7 +47,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 end)
 
 A.Listener	 					= {
-	Add 						= function(self, name, event, callback)
+	Add 						= function(self, name, event, callback, passEvent)
 		if not listeners[event] then
 			frame:RegisterEvent(event)
 			listeners[event] = {}
@@ -55,16 +55,38 @@ A.Listener	 					= {
 		if not listeners[event][name] then 
 			listeners[event][name] = callback
 		end 
+		if passEvent and not PassEventOn[name] then 
+			PassEventOn[name] = true 
+		end 
 	end,
 	Remove						= function(self, name, event)
 		if listeners[event] then
 			listeners[event][name] = nil
+			if removePassEvent then 
+				PassEventOn[name] = nil 
+			end 
 		end
 	end, 
 	Trigger						= function(self, event, ...)
 		onEvent(nil, event, ...)
 	end,
 }
+
+-------------------------------------------------------------------------------
+-- Remap
+-------------------------------------------------------------------------------
+local A_Unit, ActiveUnitPlates, insertMulti
+
+A.Listener:Add("ACTION_EVENT_TOOLS", "ADDON_LOADED", function(addonName)
+	if addonName == ACTION_CONST_ADDON_NAME then 
+		A_Unit 							= A.Unit 
+		ActiveUnitPlates				= A.MultiUnits:GetActiveUnitPlates()
+		insertMulti						= A.TableInsertMulti
+		
+		A.Listener:Remove("ACTION_EVENT_TOOLS", "ADDON_LOADED")	
+	end 
+end)
+-------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
 -- Cache and string functions 
@@ -109,11 +131,12 @@ local toNum = setmetatable({}, {
 })
 
 local function strBuilder(s, j)
+	-- @usage s (table) [, j (number of start index)]
 	-- Full builder (required memory, for deeph tables)
 	-- String Concatenation
-	local n = maxn(s)
+	local n = #s
 	if n == 0 or (j and n <= j) then 
-		return toStr[s]
+		return toStr[s] -- excepts start index limits either it's associative table which for sure has static address
 	else 
 		local t = {}
 		for i = (j or 1), n do
@@ -136,19 +159,20 @@ end
 
 local bt = {}
 local function strAltBuilder(s, j)
-	local n = maxn(s)
+	-- @usage s (table) [, j (number of start index)]
+	local n = #s
 	if n == 0 or (j and n <= j) then 
-		return toStr[s]
+		return toStr[s] -- excepts start index limits either it's associative table which for sure has static address
 	else 
 		wipe(bt)
 		
 		for i = (j or 1), n do
 			local type = type(s[i])
-			if type == "string" or type == "number" or type == "table" then 
+			if type == "string" or type == "number" then 
 				bt[#bt + 1] = s[i]
 			elseif type == "nil" then 
 				bt[#bt + 1] = type
-			else -- boolean, userdata	
+			else -- boolean, userdata, table
 				bt[#bt + 1] = toStr[s[i]]
 			end 
 		end 
@@ -165,7 +189,7 @@ local function strElemBuilder(replaceFirst, ...)
 	-- String Concatenation
 	local n = select("#", ...)
 	if n == 0 then 
-		return  
+		return
 	end 
 	
 	wipe(et)
@@ -180,7 +204,7 @@ local function strElemBuilder(replaceFirst, ...)
 			elseif type == "nil" then 
 				et[#et + 1] = type
 			elseif type == "table" then 
-				et[#et + 1] = strAltBuilder(select(i, ...), nil)
+				et[#et + 1] = strAltBuilder((select(i, ...)))
 			else -- boolean, userdata	
 				et[#et + 1] = toStr[select(i, ...)]
 			end 
@@ -216,11 +240,38 @@ local function strOnlyBuilder(...)
 	return concat(st) 
 end 
 
+local function strConcatByTable(t, ...)
+	-- @return t (temp re-usable table), string by vararg (...) as (arg, arg, arg, arg, arg)
+	-- Elements as arguments must be number, string or boolean 
+	-- String Concatenation
+	-- Note: This method is better than above methods since it can be used in many loops at same time without reentrancy issues
+	local n = select("#", ...)
+	if n == 0 then 
+		return 
+	end 
+	
+	wipe(t)
+	
+	for i = 1, n do 
+		local type = type(select(i, ...))
+		if type == "string" or type == "number" then
+			t[#t + 1] = select(i, ...)
+		elseif type == "nil" then 
+			t[#t + 1] = type
+		else -- boolean, userdata	
+			t[#t + 1] = toStr[select(i, ...)]
+		end 		 
+	end 	
+	
+	return concat(t)
+end 
+
 A.toStr 			= toStr
 A.toNum 			= toNum
 A.strBuilder		= strBuilder
 A.strElemBuilder 	= strElemBuilder
 A.strOnlyBuilder	= strOnlyBuilder
+A.strConcatByTable	= strConcatByTable
 
 function A.LTrim(s)
 	-- Note: Removes at begin str all spaces and after any tabulations with returns, then replaces new str with first space and next spaces to new str 
@@ -233,14 +284,21 @@ local Cache = {
 	newVal = function(this, interval, keyArg, func, ...)
 		if keyArg then 
 			if not this.bufer[func][keyArg] then 
-				this.bufer[func][keyArg] = {}
+				this.bufer[func][keyArg] = { v = {} }
+			else 
+				wipe(this.bufer[func][keyArg].v)
 			end 		
 			this.bufer[func][keyArg].t = TMW.time + (interval or ACTION_CONST_CACHE_DEFAULT_TIMER) + 0.001  -- Add small delay to make sure what it's not previous corroute              
-			this.bufer[func][keyArg].v = { func(...) }
+			insertMulti(this.bufer[func][keyArg].v, func(...))
 			return unpack(this.bufer[func][keyArg].v)
 		else 
+			if not this.bufer[func].v then 
+				this.bufer[func].v = {}
+			else
+				wipe(this.bufer[func].v)
+			end 
 			this.bufer[func].t = TMW.time + (interval or ACTION_CONST_CACHE_DEFAULT_TIMER) + 0.001
-			this.bufer[func].v = { func(...) }
+			insertMulti(this.bufer[func].v, func(...))
 			return unpack(this.bufer[func].v)
 		end 		
 	end,	
@@ -251,7 +309,7 @@ local Cache = {
 		end 
 		
 		if not this.bufer[func] then 
-			this.bufer[func] = setmetatable({}, { __mode = "k" })
+			this.bufer[func] = {} 
 		end 	
 		return function(...)  		
 			if TMW.time > (this.bufer[func].t or 0) then			
@@ -268,7 +326,7 @@ local Cache = {
 		end 
 		
 		if not this.bufer[func] then 
-			this.bufer[func] = setmetatable({}, { __mode = "k" })
+			this.bufer[func] = {} 
 		end 	
 		return function(...) 
 			-- The reason of all this view look is memory hungry eating, this way use less memory 	
@@ -322,8 +380,8 @@ A.Listener:Add("ACTION_EVENT_TOOLS", "CHARACTER_POINTS_CHANGED", 	TalentMap)
 -- @usage /run Action.TimerSet("Print", 4, function() Action.Print("Hello") end)
 function A.TimerSet(name, timer, callback, nodestroy)
 	-- Sets timer if it's not running
-	if not A.Data.T[name] then 
-		A.Data.T[name] = { 
+	if not ActionTimers[name] then 
+		ActionTimers[name] = { 
 			obj = Timer.NewTimer(timer, function() 
 				if callback and type(callback) == "function" then 
 					callback()
@@ -340,7 +398,7 @@ end
 function A.TimerSetRefreshAble(name, timer, callback)
 	-- Sets timer, if it's running then reset and set again
 	A.TimerDestroy(name)
-	A.Data.T[name] = { 
+	ActionTimers[name] = { 
 		obj = Timer.NewTimer(timer, function() 
 			if callback and type(callback) == "function" then 
 				callback()
@@ -353,14 +411,14 @@ end
 
 function A.TimerGetTime(name)
 	-- @return number 	
-	return A.Data.T[name] and TMW.time - A.Data.T[name].start or 0
+	return ActionTimers[name] and TMW.time - ActionTimers[name].start or 0
 end 
 
 function A.TimerDestroy(name)
 	-- Cancels timer
-	if A.Data.T[name] then 
-		A.Data.T[name].obj:Cancel()
-		A.Data.T[name] = nil 
+	if ActionTimers[name] then 
+		ActionTimers[name].obj:Cancel()
+		ActionTimers[name] = nil 
 	end 
 end
 
@@ -368,14 +426,13 @@ end
 -- Bit Library
 -------------------------------------------------------------------------------
 A.Bit				  			= {}
-local bitband					= bit.band
 
 function A.Bit.isEnemy(Flags)
-	return bitband(Flags, ACTION_CONST_CL_REACTION_HOSTILE) == ACTION_CONST_CL_REACTION_HOSTILE or bitband(Flags, ACTION_CONST_CL_REACTION_NEUTRAL) == ACTION_CONST_CL_REACTION_NEUTRAL
+	return band(Flags, ACTION_CONST_CL_REACTION_HOSTILE) == ACTION_CONST_CL_REACTION_HOSTILE or band(Flags, ACTION_CONST_CL_REACTION_NEUTRAL) == ACTION_CONST_CL_REACTION_NEUTRAL
 end 
 
 function A.Bit.isPlayer(Flags)
-	return bitband(Flags, ACTION_CONST_CL_TYPE_PLAYER) == ACTION_CONST_CL_TYPE_PLAYER or bitband(Flags, ACTION_CONST_CL_CONTROL_PLAYER) == ACTION_CONST_CL_CONTROL_PLAYER
+	return band(Flags, ACTION_CONST_CL_TYPE_PLAYER) == ACTION_CONST_CL_TYPE_PLAYER or band(Flags, ACTION_CONST_CL_CONTROL_PLAYER) == ACTION_CONST_CL_CONTROL_PLAYER
 end
 
 -------------------------------------------------------------------------------
@@ -400,21 +457,18 @@ end
 
 function Utils.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Condition)
 	local TargetCondition = (not Condition or (Condition and Condition("target")))
-	if not A.GetToggle(2, "AoE") then
+	if not GetToggle(2, "AoE") then
 		return TargetCondition
 	else 
 		local BestUnit, BestConditionValue = nil, nil
-		local nameplates = A.MultiUnits:GetActiveUnitPlates()
-		if nameplates then 
-			for CycleUnit in pairs(nameplates) do 
-				if (not Range or A.Unit(CycleUnit):GetRange() <= Range) and ((Condition and Condition(CycleUnit)) or not Condition) and (not BestConditionValue or Utils.CompareThis(TargetIfMode, TargetIfCondition(CycleUnit), BestConditionValue)) then 
-					BestUnit, BestConditionValue = CycleUnit, TargetIfCondition(CycleUnit)
-				end 
-			end 
-			if BestUnit and UnitGUID(BestUnit) == UnitGUID("target") or (TargetCondition and (BestConditionValue == TargetIfCondition("target"))) then 
-				return true 
+		for CycleUnit in pairs(ActiveUnitPlates) do 
+			if (not Range or A_Unit(CycleUnit):GetRange() <= Range) and ((Condition and Condition(CycleUnit)) or not Condition) and (not BestConditionValue or Utils.CompareThis(TargetIfMode, TargetIfCondition(CycleUnit), BestConditionValue)) then 
+				BestUnit, BestConditionValue = CycleUnit, TargetIfCondition(CycleUnit)
 			end 
 		end 
+		if BestUnit and UnitGUID(BestUnit) == UnitGUID("target") or (TargetCondition and (BestConditionValue == TargetIfCondition("target"))) then 
+			return true 
+		end  
 	end 
 end
 
@@ -425,7 +479,7 @@ A.Utils 						= Utils
 -- Misc
 -------------------------------------------------------------------------------
 function A.MouseHasFrame()
-    local focus = A.Unit("mouseover"):IsExists() and GetMouseFocus()
+    local focus = A_Unit("mouseover"):IsExists() and GetMouseFocus()
     if focus then
         local frame = not focus:IsForbidden() and focus:GetName()
         return not frame or (frame and frame ~= "WorldFrame")
@@ -436,13 +490,12 @@ A.MouseHasFrame = A.MakeFunctionCachedStatic(A.MouseHasFrame)
 
 function A.TableInsertMulti(t, ...)
 	for i = 1, select("#", ...) do 
-		insert(t, select(i, ...))
+		t[#t + 1] = (select(i, ...))
 	end 
-	return t 
 end 
 
 function round(num, numDecimalPlaces)
-    return toNum[string.format("%." .. (numDecimalPlaces or 0) .. "f", num)]
+    return toNum[strformat("%." .. (numDecimalPlaces or 0) .. "f", num)]
 end
 
 function tableexist(self)  
@@ -452,8 +505,8 @@ end
 -------------------------------------------------------------------------------
 -- Errors
 -------------------------------------------------------------------------------
-A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_LOGIN", function()
-	local listDisable, toDisable = { "ButtonFacade", "Masque", "Masque_ElvUIesque", "GSE", "Gnome Sequencer Enhanced", "Gnome Sequencer", "AddOnSkins" }
+local listDisable, toDisable = { "ButtonFacade", "Masque", "Masque_ElvUIesque", "GSE", "Gnome Sequencer Enhanced", "Gnome Sequencer", "AddOnSkins", "AuctionFaster" }
+A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_LOGIN", function()	
 	for i = 1, #listDisable do    
 		if IsAddOnLoaded(listDisable[i]) then
 			toDisable = (toDisable or "\n") .. listDisable[i] .. "\n"

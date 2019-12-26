@@ -1,14 +1,17 @@
 -- https://github.com/herotc/hero-lib/blob/HeroLib/Events/PMultiplier.lua
 local TMW 							= TMW
 local A 							= Action 
+local Listener						= A.Listener
 local Player 						= A.Player
 local Unit							= A.Unit 
 
 local error, table, pairs, type 	= 
 	  error, table, pairs, type
+	  
+local tremove						= table.remove	  
 
-local UnitGUID,   GetSpellInfo 		= 
-	  UnitGUID, A.GetSpellInfo
+local UnitGUID, GetSpellInfo 		= 
+	  UnitGUID, GetSpellInfo
 	
 local CombatLogGetCurrentEventInfo 	= CombatLogGetCurrentEventInfo	
 	
@@ -49,7 +52,7 @@ end
 local function PMultiplierLaunch(...)
 	-- Feral 
 	if Unit("player"):HasSpec(103) then 
-		A.Listener:Add("ACTION_EVENT_PMULTIPLIER", "COMBAT_LOG_EVENT_UNFILTERED", function(...)
+		Listener:Add("ACTION_EVENT_PMULTIPLIER", "COMBAT_LOG_EVENT_UNFILTERED", function(...)
 			local _, EVENT, _, SourceGUID, _,_,_, DestGUID, _, _, _, SpellID  = CombatLogGetCurrentEventInfo()
 			
 			-- PMultiplier OnCast Listener
@@ -87,7 +90,7 @@ local function PMultiplierLaunch(...)
 			end 		
 		end)
 	else 
-		A.Listener:Remove("ACTION_EVENT_PMULTIPLIER", "COMBAT_LOG_EVENT_UNFILTERED")
+		Listener:Remove("ACTION_EVENT_PMULTIPLIER", "COMBAT_LOG_EVENT_UNFILTERED")
 	end
 end
 
@@ -110,9 +113,9 @@ function A.RegisterPMultiplier(...)
     local SpellAura = SelfSpellID
     if type(Args[2]) == "number" then
         SpellAura = Args[2]
-        table.remove(Args, 2)
+        tremove(Args, 2)
     end
-    table.remove(Args, 1)
+    tremove(Args, 1)
     
     ListenedAuras[SpellAura] = SelfSpellID
     ListenedSpells[SelfSpellID] = { Buffs = Args, PMultiplier = {} }
@@ -180,7 +183,7 @@ A.PMultiplier("target", 1822)
 -- Register  
 -------------------------------------------------------------------------------	
 if A.PlayerClass == "DRUID" then 
-	A.Listener:Add("ACTION_EVENT_PMULTIPLIER", "PLAYER_SPECIALIZATION_CHANGED", PMultiplierLaunch)
+	Listener:Add("ACTION_EVENT_PMULTIPLIER", "PLAYER_SPECIALIZATION_CHANGED", PMultiplierLaunch)
 	PMultiplierLaunch()
 	A.RegisterPMultiplier( -- Rake dot and action
 		1822,    -- Rake action

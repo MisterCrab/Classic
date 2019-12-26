@@ -7,13 +7,39 @@ local Env 					= CNDT.Env
 local strlowerCache  		= TMW.strlowerCache
 
 local A   					= Action
+local Listener				= A.Listener
+local GetToggle				= A.GetToggle
 local toStr 				= A.toStr
 local toNum 				= A.toNum
+local Print 				= A.Print
 
-local _G, assert, error, tostring, select, type, next, ipairs, math, wipe, hooksecurefunc, message = 
-	  _G, assert, error, tostring, select, type, next, ipairs, math, wipe, hooksecurefunc, message
+local ActionDataColor		= A.Data.C
+
+-------------------------------------------------------------------------------
+-- Remap
+-------------------------------------------------------------------------------
+local A_LossOfControl, A_GetSpellInfo
+
+Listener:Add("ACTION_EVENT_UTILS", "ADDON_LOADED", function(addonName) 
+	if addonName == ACTION_CONST_ADDON_NAME then 
+		A_LossOfControl		= A.LossOfControl
+		A_GetSpellInfo		= A.GetSpellInfo
+		Listener:Remove("ACTION_EVENT_UTILS", "ADDON_LOADED")	
+	end 	
+end)
+-------------------------------------------------------------------------------
+
+local _G, assert, error, tostring, select, type, next, math, wipe, hooksecurefunc, message = 
+	  _G, assert, error, tostring, select, type, next, math, wipe, hooksecurefunc, message
+	  
+local ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE = _G.ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE	  
+local ACTION_CONST_TMW_DEFAULT_STATE_HIDE 				= _G.ACTION_CONST_TMW_DEFAULT_STATE_HIDE	  
+local ACTION_CONST_TMW_DEFAULT_STATE_SHOW 				= _G.ACTION_CONST_TMW_DEFAULT_STATE_SHOW	  
 	  
 local huge 					= math.huge	  
+local strfind				= _G.strfind
+local strmatch				= _G.strmatch	
+local UIParent				= _G.UIParent	
 	  
 local CreateFrame, GetCVar, SetCVar =
 	  CreateFrame, GetCVar, SetCVar
@@ -23,8 +49,8 @@ local GetPhysicalScreenSize = GetPhysicalScreenSize
 local GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo =	
   TMW.GetSpellTexture, GetSpellInfo, CombatLogGetCurrentEventInfo	  
 
-local UnitName, UnitGUID, UnitIsUnit =
-	  UnitName, UnitGUID, UnitIsUnit
+local UnitGUID, UnitIsUnit =
+	  UnitGUID, UnitIsUnit
 	  
 local RANKCOLOR 			= A.Data.RANKCOLOR	
 -- IconType: TheAction - UnitCasting  
@@ -45,11 +71,11 @@ do
         module:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED",
             function()
                 local _, e, _, sourceGuid, _, _, _, _, _, _, _, spellID, spellName = CombatLogGetCurrentEventInfo()
-                if e == "SPELL_CAST_SUCCESS" and sourceGuid == pGUID then
+                if (e == "SPELL_CAST_SUCCESS" or e == "SPELL_MISS") and sourceGuid == pGUID then
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
-                    Env.LastPlayerCastID 	= spellID
+                    --Env.LastPlayerCastID 	= spellID
 					A.LastPlayerCastName	= spellName
-					A.LastPlayerCastID		= spellID
+					--A.LastPlayerCastID	= spellID
                     TMW:Fire("TMW_CNDT_LASTCAST_UPDATED")
                 end
         end)    
@@ -57,7 +83,7 @@ do
         module:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED",
             function(_, unit, _, spellID)
                 if unit == "player" then
-					local spellName			= A.GetSpellInfo and A.GetSpellInfo(spellID) or GetSpellInfo(spellID)
+					local spellName			= A_GetSpellInfo(spellID)
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     Env.LastPlayerCastID 	= spellID
 					A.LastPlayerCastName	= spellName
@@ -100,9 +126,9 @@ if DogTag then
 	DogTag:AddTag("TMW", "ActionBurst", {
         code = function()
 			if A.IsInitialized then 
-				local Toggle = A.GetToggle(1, "Burst") or ""
+				local Toggle = GetToggle(1, "Burst") or ""
 				Toggle = Toggle and Toggle:upper()
-				return Toggle == "EVERYTHING" and ("|c" .. A.Data.C["GREEN"] .. "EVERY|r") or Toggle == "OFF" and ("|c" .. removeLastChar(A.Data.C["RED"]) .. Toggle .. "|r") or ("|c" .. A.Data.C["GREEN"] .. Toggle .. "|r")
+				return Toggle == "EVERYTHING" and ("|c" .. ActionDataColor["GREEN"] .. "EVERY|r") or Toggle == "OFF" and ("|c" .. removeLastChar(ActionDataColor["RED"]) .. Toggle .. "|r") or ("|c" .. ActionDataColor["GREEN"] .. Toggle .. "|r")
 			else 
 				return ""
 			end 
@@ -117,7 +143,7 @@ if DogTag then
 	DogTag:AddTag("TMW", "ActionAoE", {
         code = function()
 			if A.IsInitialized then 
-				return A.GetToggle(2, "AoE") and ("|c" .. A.Data.C["GREEN"] .. "AoE|r") or "|c" .. removeLastChar(A.Data.C["RED"]) .. "AoE|r"
+				return GetToggle(2, "AoE") and ("|c" .. ActionDataColor["GREEN"] .. "AoE|r") or "|c" .. removeLastChar(ActionDataColor["RED"]) .. "AoE|r"
 			else 
 				return ""
 			end 
@@ -143,7 +169,7 @@ if DogTag then
 	-- Taste's 
     DogTag:AddTag("TMW", "ActionModeCD", {
         code = function()            
-			if A.IsInitialized and A.GetToggle(1, "Burst") ~= "Off" then
+			if A.IsInitialized and GetToggle(1, "Burst") ~= "Off" then
 			    return "|cff00ff00CD|r"
 			else 
 				return "|cFFFF0000CD|r"
@@ -157,7 +183,7 @@ if DogTag then
     })
 	DogTag:AddTag("TMW", "ActionModeAoE", {
         code = function()            
-			if A.IsInitialized and A.GetToggle(1, "AoE") then
+			if A.IsInitialized and GetToggle(1, "AoE") then
 			    return "|cff00ff00AoE|r"
 			else 
 				return "|cFFFF0000AoE|r"
@@ -481,7 +507,7 @@ local function LossOfControlOnUpdate(icon, time)
 	local duration = attributes.duration
 	
 	if duration == huge then 
-		duration = select(2, A.LossOfControl:GetFrameData())
+		duration = select(2, A_LossOfControl:GetFrameData())
 	end 
 
 	if time - start > duration then	
@@ -500,7 +526,7 @@ local function LossOfControlOnUpdate(icon, time)
 end
 
 local function LossOfControlOnEvent(icon)	
-	local textureID, duration = A.LossOfControl:GetFrameData()		
+	local textureID, duration = A_LossOfControl:GetFrameData()		
 	if duration ~= 0 and textureID ~= 0 then 
 		icon:SetInfo(
 			"texture; state; start, duration",
@@ -644,21 +670,21 @@ local function UpdateCVAR()
     if GetCVar("Contrast") ~= "50" then 
 		SetCVar("Contrast", 50)
 		if isCheckedOnce then 
-			A.Print("Contrast should be 50")		
+			Print("Contrast should be 50")		
 		end
 	end
 	
     if GetCVar("Brightness") ~= "50" then 
 		SetCVar("Brightness", 50) 
 		if isCheckedOnce then 
-			A.Print("Brightness should be 50")			
+			Print("Brightness should be 50")			
 		end 
 	end
 	
     if GetCVar("Gamma") ~= "1.000000" then 
 		SetCVar("Gamma", "1.000000") 
 		if isCheckedOnce then 
-			A.Print("Gamma should be 1")	
+			Print("Gamma should be 1")	
 		end 
 	end
 	
@@ -680,7 +706,7 @@ local function UpdateCVAR()
 	local AAM = toNum[GetCVar("ffxAntiAliasingMode")]
     if AAM > 2 and AAM ~= 6 then 		
 		SetCVar("ffxAntiAliasingMode", 0) 
-		A.Print("You can't set higher AntiAliasing mode than FXAA or not equal to MSAA 8x")
+		Print("You can't set higher AntiAliasing mode than FXAA or not equal to MSAA 8x")
 	end
 	]]
 	
@@ -692,16 +718,16 @@ local function UpdateCVAR()
     if nameplateMaxDistance and toNum[nameplateMaxDistance] ~= ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE then 
 		SetCVar("nameplateMaxDistance", ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE) 
 		if isCheckedOnce then 
-			A.Print("nameplateMaxDistance " .. nameplateMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
+			Print("nameplateMaxDistance " .. nameplateMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
 		end 
 	end	
 	
-	if A.GetToggle(1, "cameraDistanceMaxZoomFactor") then 
+	if GetToggle(1, "cameraDistanceMaxZoomFactor") then 
 		local cameraDistanceMaxZoomFactor = GetCVar("cameraDistanceMaxZoomFactor")
 		if cameraDistanceMaxZoomFactor ~= "4" then 
 			SetCVar("cameraDistanceMaxZoomFactor", 4) 
 			if isCheckedOnce then 
-				A.Print("cameraDistanceMaxZoomFactor " .. cameraDistanceMaxZoomFactor .. " => " .. 4)	
+				Print("cameraDistanceMaxZoomFactor " .. cameraDistanceMaxZoomFactor .. " => " .. 4)	
 			end 
 		end		
 	end 
@@ -714,7 +740,7 @@ local function UpdateCVAR()
     if GetCVar("nameplateShowEnemies") ~= "1" then
         SetCVar("nameplateShowEnemies", 1) 
 		if isCheckedOnce then 
-			A.Print("Enemy nameplates should be enabled")
+			Print("Enemy nameplates should be enabled")
 		end 
     end		
 	
@@ -742,10 +768,10 @@ local function TrueScaleInit()
 end
 TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETUP_COMPLETE")    
 
-A.Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 	ConsoleUpdate	)
-A.Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 		ConsoleUpdate	)
---A.Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", ConsoleUpdate	)
---A.Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",			UpdateCVAR		)
+Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 		ConsoleUpdate	)
+Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 			ConsoleUpdate	)
+--Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
+--Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",				UpdateCVAR		)
 VideoOptionsFrame:HookScript("OnHide", 							ConsoleUpdate	)
 InterfaceOptionsFrame:HookScript("OnHide", 						UpdateCVAR		)
 
@@ -925,8 +951,8 @@ end
 -- TMW PlayerNames fix
 -------------------------------------------------------------------------------
 if TELLMEWHEN_VERSIONNUMBER <= 87303 then -- Classic 87303
-	local NAMES 		= TMW.NAMES
-	local GetNumBattlefieldScores, 	  GetBattlefieldScore = 
+	local NAMES 											= TMW.NAMES
+	local GetNumBattlefieldScores, 	  GetBattlefieldScore 	= 
 	   _G.GetNumBattlefieldScores, _G.GetBattlefieldScore
 	function NAMES:UPDATE_BATTLEFIELD_SCORE()
 		for i = 1, GetNumBattlefieldScores() do

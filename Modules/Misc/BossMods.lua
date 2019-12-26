@@ -3,11 +3,13 @@ local A	 							= Action
 local DBM 							= DBM
 
 local strlowerCache  				= TMW.strlowerCache
---local toStr 						= A.toStr
 local toNum 						= A.toNum
+local GetToggle						= A.GetToggle
 
-local pairs, type, hooksecurefunc 	= 
-	  pairs, type, hooksecurefunc
+local pairs, type, string, hooksecurefunc 	= 
+	  pairs, type, string, hooksecurefunc
+	  
+local format						= string.format	 	  
 
 local UnitName 						= UnitName
 
@@ -107,7 +109,7 @@ end
 function A.DBM_GetTimer(name)    
 	-- @arg name can be number (spellID) or string (localizated name of the timer)
 	-- @return number: remaining, expirationTime
-    if not A.IsInitialized or not A.GetToggle(1, "DBM") then
+    if not A.IsInitialized or not GetToggle(1, "DBM") then
         return 0, 0
     end
     
@@ -121,7 +123,7 @@ end
 
 function A.DBM_IsEngage()
 	-- @return number: remaining, expirationTime
-    if not A.IsInitialized or not A.GetToggle(1, "DBM") then
+    if not A.IsInitialized or not GetToggle(1, "DBM") then
         return 0, 0
     end
     -- Not tested  
@@ -135,5 +137,5 @@ end
 -------------------------------------------------------------------------------
 function A.BossMods_Pulling()
 	-- @return number (remain pulling timer)
-	return A.GetToggle(1, "DBM") and A.DBM_PullTimer() or 0
+	return GetToggle(1, "DBM") and A.DBM_PullTimer() or 0
 end 

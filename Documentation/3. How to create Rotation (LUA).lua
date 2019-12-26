@@ -253,7 +253,8 @@ For "Shown Main":
 2. Right click on "Condition Icon" make checked "Hide Always"
 3. At the bottom you will see "Conditions" tab, go there and click "+" to add condition "LUA"
 4. Write next code: 
-Action.Rotation(thisobj)
+Action.Rotation(thisobj) -- this is slower than method below 
+Rotation(thisobj)		 -- this is faster method than above since TMW lua has setfenv and this function is linked as pointer to Action.Rotation e.g. Env.Rotation == Action.Rotation but works much faster 
 5. Click and drag itself "Condition Icon" frame to "Shown Main" group and select from opened menu "Add to meta"
 6. Make sure if you moving "Condition Icon" #1 you additing it to "Meta Icon" #1 also in "Shown Main" 
 7. Do same for each "Condition Icon"
