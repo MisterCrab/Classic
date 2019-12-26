@@ -1,3 +1,7 @@
+[Basic v8]
+Optimized code for more faster performance
+Fixed miss typo with EnemyTeam and FriendlyTeam
+
 [Basic v7]
 Cached all strings (less memory usage)
 Fixed when friendly rotation was used as an enemy 
