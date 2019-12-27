@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "27.12.2019"
+local DateTime 														= "28.12.2019"
 ---
 local TMW 															= TMW
 local strlowerCache  												= TMW.strlowerCache
@@ -5478,10 +5478,6 @@ local function failedReturn(n, toggle)
 		
 		if toggle == "DisableMinimap" or toggle == "DisableRotationDisplay" or toggle == "DisableClassPortraits" then 
 			return true
-		end 
-		
-		if toggle == "cameraDistanceMaxZoomFactor" then 			
-			return Action.IsGGLprofile or (TMWdb and TMWdb:GetCurrentProfile():match("GGL") and true)
 		end 
 		
 		if toggle == "Role" then 

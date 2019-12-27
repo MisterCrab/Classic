@@ -589,7 +589,6 @@ end
 local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 442, -1)
 local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 442, -2)
 
-local isShownOnce
 local function UpdateFrames()
     if not TellMeWhen_Group1 or not strfind(strlowerCache(TellMeWhen_Group1.Name), "shown main") then 
         if BlackBackground:IsShown() then
@@ -665,27 +664,20 @@ local function UpdateFrames()
 	end 	
 end
 
-local isCheckedOnce -- Don't display any messages at first time loading (make warnings only with interaction)
 local function UpdateCVAR()
     if GetCVar("Contrast") ~= "50" then 
 		SetCVar("Contrast", 50)
-		if isCheckedOnce then 
-			Print("Contrast should be 50")		
-		end
+		Print("Contrast should be 50")		
 	end
 	
     if GetCVar("Brightness") ~= "50" then 
 		SetCVar("Brightness", 50) 
-		if isCheckedOnce then 
-			Print("Brightness should be 50")			
-		end 
+		Print("Brightness should be 50")			
 	end
 	
     if GetCVar("Gamma") ~= "1.000000" then 
 		SetCVar("Gamma", "1.000000") 
-		if isCheckedOnce then 
-			Print("Gamma should be 1")	
-		end 
+		Print("Gamma should be 1")	
 	end
 	
     if GetCVar("colorblindsimulator") ~= "0" then 
@@ -696,8 +688,7 @@ local function UpdateCVAR()
     if GetCVar("RenderScale") ~= "1" then 
 		SetCVar("RenderScale", 1) 
 	end
-	
-	
+		
     if GetCVar("MSAAQuality") ~= "0" then 
 		SetCVar("MSAAQuality", 0) 
 	end
@@ -717,18 +708,14 @@ local function UpdateCVAR()
 	local nameplateMaxDistance = GetCVar("nameplateMaxDistance")
     if nameplateMaxDistance and toNum[nameplateMaxDistance] ~= ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE then 
 		SetCVar("nameplateMaxDistance", ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE) 
-		if isCheckedOnce then 
-			Print("nameplateMaxDistance " .. nameplateMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
-		end 
+		Print("nameplateMaxDistance " .. nameplateMaxDistance .. " => " .. ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE)	
 	end	
 	
 	if GetToggle(1, "cameraDistanceMaxZoomFactor") then 
 		local cameraDistanceMaxZoomFactor = GetCVar("cameraDistanceMaxZoomFactor")
 		if cameraDistanceMaxZoomFactor ~= "4" then 
 			SetCVar("cameraDistanceMaxZoomFactor", 4) 
-			if isCheckedOnce then 
-				Print("cameraDistanceMaxZoomFactor " .. cameraDistanceMaxZoomFactor .. " => " .. 4)	
-			end 
+			Print("cameraDistanceMaxZoomFactor " .. cameraDistanceMaxZoomFactor .. " => " .. 4)	
 		end		
 	end 
 	
@@ -739,16 +726,12 @@ local function UpdateCVAR()
 	
     if GetCVar("nameplateShowEnemies") ~= "1" then
         SetCVar("nameplateShowEnemies", 1) 
-		if isCheckedOnce then 
-			Print("Enemy nameplates should be enabled")
-		end 
+		Print("Enemy nameplates should be enabled")
     end		
 	
 	if GetCVar("autoSelfCast") ~= "1" then 
 		SetCVar("autoSelfCast", 1)
 	end 
-	
-	isCheckedOnce = true
 end
 
 local function ConsoleUpdate()
@@ -763,17 +746,19 @@ local function TrueScaleInit()
                 UpdateFrames()  
             end
     end)
-    ConsoleUpdate()
+    
+	Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 		ConsoleUpdate	)
+	Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 			ConsoleUpdate	)
+	--Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
+	--Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",				UpdateCVAR		)		
+	VideoOptionsFrame:HookScript("OnHide", 							ConsoleUpdate	)
+	InterfaceOptionsFrame:HookScript("OnHide", 						UpdateCVAR		)
+	TMW:RegisterCallback("TMW_ACTION_IS_INITIALIZED", 				UpdateCVAR		) -- For GetToggle things we have to make post call
+	ConsoleUpdate()
+	
     TMW:UnregisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETUP_COMPLETE")
 end
 TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", TrueScaleInit, "TMW_TEMP_SAFESETUP_COMPLETE")    
-
-Listener:Add("ACTION_EVENT_UTILS", "DISPLAY_SIZE_CHANGED", 		ConsoleUpdate	)
-Listener:Add("ACTION_EVENT_UTILS", "UI_SCALE_CHANGED", 			ConsoleUpdate	)
---Listener:Add("ACTION_EVENT_UTILS", "PLAYER_ENTERING_WORLD", 	ConsoleUpdate	)
---Listener:Add("ACTION_EVENT_UTILS", "CVAR_UPDATE",				UpdateCVAR		)
-VideoOptionsFrame:HookScript("OnHide", 							ConsoleUpdate	)
-InterfaceOptionsFrame:HookScript("OnHide", 						UpdateCVAR		)
 
 function A.BlackBackgroundIsShown()
 	-- @return boolean 
