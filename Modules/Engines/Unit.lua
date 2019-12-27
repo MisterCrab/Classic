@@ -129,7 +129,7 @@ local Cache = {
    		return function(...)   
 			-- The reason of all this view look is memory hungry eating, this way use around 0 memory now
 			local self = ...		
-			local keyArg = strElemBuilder(name == "UnitGUID" and UnitGUID(self.UnitID) or self.UnitID or self.ROLE or name, ...)		
+			local keyArg = strElemBuilder(name == "UnitGUID" and self.UnitID and UnitGUID(self.UnitID) or self.UnitID or self.ROLE or name, ...)		
 
 	        if TMW.time > (this.bufer[func][keyArg] and this.bufer[func][keyArg].t or 0) then
 	            return this:newEl(self.Refresh, keyArg, func, ...)
@@ -2268,6 +2268,14 @@ A.Unit = PseudoClass({
 A.Unit.HasDeBuffs = A.Unit.SortDeBuffs
 
 function A.Unit:New(UnitID, Refresh)
+	if not UnitID then 
+		local error_snippet = debugstack():match("%p%l+%s\"?%u%u%u%s%u%l.*")
+		if error_snippet then 
+			error("Unit.lua Action.Unit():.. was used with 'nil' unitID. Found problem in TMW snippet here:" .. error_snippet, 0)
+		else 
+			error("Unit.lua Action.Unit():.. was used with 'nil' unitID. Failed to find TMW snippet stack error. Below must be shown level of stack 1.", 1)
+		end 		
+	end 
 	self.UnitID 	= UnitID
 	self.Refresh 	= Refresh
 end
@@ -2850,6 +2858,13 @@ end)
 
 Listener:Add("ACTION_EVENT_UNIT", "PLAYER_REGEN_ENABLED", 				function()
 	if A.Zone ~= "pvp" and not A.IsInDuel then 
+		for _, tfunc in pairs(Cache.bufer) do 
+			for keyArg, tkeyArg in pairs(tfunc) do 
+				if TMW.time - tkeyArg.t > 10 then 
+					tfunc[keyArg] = nil 
+				end 
+			end			
+		end 
 		wipe(InfoCacheMoveIn)
 		wipe(InfoCacheMoveOut)
 		wipe(InfoCacheMoving)
@@ -2871,6 +2886,13 @@ end)
 
 TMW:RegisterCallback("TMW_ACTION_ENTERING",								function(event, subevent)
 	if subevent ~= "UPDATE_INSTANCE_INFO" then 
+		for _, tfunc in pairs(Cache.bufer) do 
+			for keyArg, tkeyArg in pairs(tfunc) do 
+				if TMW.time - tkeyArg.t > 10 then 
+					tfunc[keyArg] = nil 
+				end 
+			end			
+		end 
 		wipe(InfoCacheMoveIn)
 		wipe(InfoCacheMoveOut)
 		wipe(InfoCacheMoving)
