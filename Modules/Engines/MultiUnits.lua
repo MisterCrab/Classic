@@ -404,7 +404,7 @@ function A.MultiUnits.GetByRangeIsFocused(self, unitID, range, count)
 	local total = 0
 	local unitNamePlateID
 
-	for namePlateUnitID in pairs(nameplates) do 
+	for namePlateUnitID in pairs(MultiUnitsActiveUnitPlates) do 
 		if UnitIsUnit(namePlateUnitID .. "target", unitID) and (not range or A_Unit(namePlateUnitID):CanInterract(range)) then 
 			total = total + 1
 			unitNamePlateID = namePlateUnitID
