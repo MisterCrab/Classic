@@ -10044,6 +10044,8 @@ function Action:OnInitialize()
 			Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER")	
 		end 
 		
+		ActionHasRunningDB = nil 
+		
 		-- Turn off everything 
 		if Action.MainUI and Action.MainUI:IsShown() then 
 			Action.ToggleMainUI()
