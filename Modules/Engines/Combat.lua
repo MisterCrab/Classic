@@ -44,8 +44,8 @@ local strOnlyBuilder							= A.strOnlyBuilder
 local DRData 									= LibStub("DRList-1.1")
 --
 
-local _G, type, pairs, next, math, bit = 
-	  _G, type, pairs, next, math, bit
+local _G, type, pairs, next, math = 
+	  _G, type, pairs, next, math
 	  
 local huge 										= math.huge 
 local abs 										= math.abs 

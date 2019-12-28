@@ -476,7 +476,7 @@ function A.MultiUnits.GetActiveEnemies(self, timer, skipClear)
 	
 	-- Alternative search by in combat nameplates by range (in case if CLEU went wrong)
 	if total and total <= 0 then 
-		total = self:GetByRangeInCombat(40, 10)
+		total = self:GetByRangeInCombat(nil, 10)
 	end 
 	
 	return total or 0

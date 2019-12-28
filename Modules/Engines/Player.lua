@@ -236,7 +236,7 @@ function Data.logBag()
 						if not DataInfoBags[name] then 
 							DataInfoBags[name] = {} 
 						end 
-						DataInfoBags[name].count 				= GetItemCount(itemID) or 1
+						DataInfoBags[name].count 				= GetItemCount(itemID, nil, true) or 1
 						DataInfoBags[name].itemID				= itemID
 						
 						checked 								= checked + 1
