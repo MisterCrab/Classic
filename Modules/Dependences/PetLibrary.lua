@@ -71,7 +71,7 @@ local TMW 								= TMW
 local A 								= Action
 local Listener							= A.Listener
 local Print								= A.Print
-local Lib 								= LibStub:NewLibrary("PetLibrary", 4)
+local Lib 								= LibStub:NewLibrary("PetLibrary", 5)
 
 -------------------------------------------------------------------------------
 -- Remap
@@ -145,7 +145,7 @@ local Pet 								= {
 	Data								= {},
 	NameErrors							= setmetatable({}, { __mode = "kv" }),
 	UpdateSlots							= function(self)
-		local display_error    
+		local display_error, actionType, id, subType
 		
 		if self.Data[A.PlayerClass] then 
 			for k, v in pairs(self.Data[A.PlayerClass]) do            
@@ -166,7 +166,7 @@ local Pet 								= {
 		end 
 		
 		-- Display errors 
-		if display_error and TMW.time - (self.LastEvent or 0) > 0.1 then 
+		if display_error and not self.disabledErrors and TMW.time - (self.LastEvent or 0) > 0.1 then 
 			wipe(self.NameErrors)			
 			ChatPrint("The following Pet spells are missed on your action bar:")
 			
@@ -229,7 +229,7 @@ local Pet 								= {
 		if not self.CallbackIsInitialized then 
 			--TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 		self.OnEvent) 
 			TMW:RegisterCallback("TMW_ACTION_ENTERING", 							self.OnEvent) 
-			TMW:RegisterCallback("TMW_ACTION_RANK_SPELLS_UPGRADED", 				function() Pet:UpdateSlots() end) 
+			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", 					function() Pet:UpdateSlots() end) 
 			self.CallbackIsInitialized = true 
 		end 
 	end,
@@ -581,7 +581,7 @@ function Lib:IsInRange(spell, unitID)
 	if PetData[A.PlayerClass] then 
 		local ActionBar = PetData[A.PlayerClass][spell] or (type(spell) == "number" and PetData[A.PlayerClass][GetInfoSpell(spell)])
 		return ActionBar and ActionBar > 0 and IsActionInRange(ActionBar, unitID or "target")
-	--else 
+	--elseif not Pet.disabledErrors then  
 		--ChatPrint("[Error] PetLibrary - " .. GetInfoSpell(spell) .. " is not registered")
 	end 
 end 
@@ -630,6 +630,11 @@ function Lib:IsActive(petID, petName, skipIsDead)
 	end 
 end 
 
+function Lib:DisableErrors(state)
+	-- @usage true / false 
+	Pet.disabledErrors = state 
+end 
+
 -------------------------------------------------------------------------------
 -- API - Tracker 
 -------------------------------------------------------------------------------
@@ -638,7 +643,9 @@ function Lib:InitializeTrackerFor(class, customTemplate)
 	-- Note: Once added customTemplate (@table) can't be restored back to default template
 	-- customTemplate accepts main key with subkeys [petID (@number)] = { "name" = @string, "duration" = @number }
 	if not PetCanUseTemplate[class] and not customTemplate then 
-		ChatPrint(class .. " can't initialize pet tracker because it's not listed as available class")
+		if not Pet.disabledErrors then 
+			ChatPrint(class .. " can't initialize pet tracker because it's not listed as available class")
+		end 
 		return 
 	end 
 	Pet:AddToTrackerData(class, customTemplate)
