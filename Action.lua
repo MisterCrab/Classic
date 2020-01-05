@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "29.12.2019"
+local DateTime 														= "06.01.2020"
 ---
 local TMW 															= TMW
 local strlowerCache  												= TMW.strlowerCache
@@ -64,6 +64,11 @@ _G.Action 															= LibStub("AceAddon-3.0"):NewAddon("Action", "AceEvent-
 local Action 														= _G.Action
 Action.PlayerRace 													= select(2, UnitRace("player"))
 Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("player")
+
+-------------------------------------------------------------------------------
+-- Remap
+-------------------------------------------------------------------------------
+local A_Unit
 
 -------------------------------------------------------------------------------
 -- Localization
@@ -9991,7 +9996,11 @@ function OnInitialize()
 	TMW:Fire("TMW_ACTION_IS_INITIALIZED")
 end
 
-function Action:OnInitialize()		
+function Action:OnInitialize()	
+	----------------------------------
+	-- Remap
+	----------------------------------
+	A_Unit = Action.Unit
 	----------------------------------
 	-- Register Slash Commands
 	----------------------------------
