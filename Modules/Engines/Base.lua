@@ -17,7 +17,7 @@ A.TeamCache			(@table) - return cached units + info about friendly and enemy gro
 
 local TMW 									= TMW
 local A   									= Action
-local ThreatLib								= LibStub:GetLibrary("ThreatClassic-1.0") -- Classic only
+local ThreatLib								= LibStub:GetLibrary("LibThreatClassic2") -- Classic only
 local Listener								= A.Listener	
 
 -------------------------------------------------------------------------------

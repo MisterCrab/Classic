@@ -14,13 +14,11 @@ Lib\StdUI\StdUi.xml
 # Classic Libs 
 Lib\DRList-1.1\DRList-1.1.xml
 Lib\LibHealComm-4.0\LibHealComm-4.0.xml
+Lib\LibThreatClassic2\lib.xml
 Lib\LibClassicCasterino.lua
 Lib\LibSpellLock.lua
 Lib\LibAuraTypes.lua
 Lib\GetTotemInfo.lua
-# Need for ThreatClassic 
-Lib\AceBucket-3.0\AceBucket-3.0.xml
-Lib\ThreatClassic-1.0\lib.xml
 
 # First constans!
 Modules\Components\Const\Constans.lua
