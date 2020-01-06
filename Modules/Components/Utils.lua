@@ -948,3 +948,42 @@ if TELLMEWHEN_VERSIONNUMBER <= 87303 then -- Classic 87303
 		end
 	end
 end 
+
+-------------------------------------------------------------------------------
+-- TMW IconConfig.lua attempt to index field 'CurrentTabGroup' (nil value) fix
+-------------------------------------------------------------------------------
+local IE 			= TMW.IE
+local CI 			= TMW.CI
+local PlaySound 	= _G.PlaySound
+function IE:LoadIcon(isRefresh, icon)
+	if icon ~= nil then
+
+		local ic_old = CI.icon
+
+		if type(icon) == "table" then			
+			PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+			IE:SaveSettings()
+			
+			CI.icon = icon
+			
+			if ic_old ~= CI.icon then
+				IE.Pages.IconMain.PanelsLeft.ScrollFrame:SetVerticalScroll(0)
+				IE.Pages.IconMain.PanelsRight.ScrollFrame:SetVerticalScroll(0)
+			end
+
+			IE.TabGroups.ICON:SetChildrenEnabled(true)
+
+		elseif icon == false then
+			CI.icon = nil
+			IE.TabGroups.ICON:SetChildrenEnabled(false)
+
+			if IE.CurrentTabGroup and IE.CurrentTabGroup.identifier == "ICON" then
+				IE.ResetButton:Disable()
+			end
+		end
+
+		TMW:Fire("TMW_CONFIG_ICON_LOADED_CHANGED", CI.icon, ic_old)
+	end
+
+	IE:Load(isRefresh)
+end

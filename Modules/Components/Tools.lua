@@ -505,7 +505,7 @@ end
 -------------------------------------------------------------------------------
 -- Errors
 -------------------------------------------------------------------------------
-local listDisable, toDisable = { "ButtonFacade", "Masque", "Masque_ElvUIesque", "GSE", "Gnome Sequencer Enhanced", "Gnome Sequencer", "AddOnSkins", "AuctionFaster" }
+local listDisable, toDisable = { "ButtonFacade", "Masque", "Masque_ElvUIesque", "GSE", "Gnome Sequencer Enhanced", "Gnome Sequencer", "AddOnSkins" }
 A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_LOGIN", function()	
 	for i = 1, #listDisable do    
 		if IsAddOnLoaded(listDisable[i]) then

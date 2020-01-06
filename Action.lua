@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "06.01.2020"
+local DateTime 														= "07.01.2020"
 ---
 local TMW 															= TMW
 local strlowerCache  												= TMW.strlowerCache
