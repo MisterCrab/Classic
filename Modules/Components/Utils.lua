@@ -952,38 +952,43 @@ end
 -------------------------------------------------------------------------------
 -- TMW IconConfig.lua attempt to index field 'CurrentTabGroup' (nil value) fix
 -------------------------------------------------------------------------------
-local IE 			= TMW.IE
-local CI 			= TMW.CI
-local PlaySound 	= _G.PlaySound
-function IE:LoadIcon(isRefresh, icon)
-	if icon ~= nil then
+Listener:Add("ACTION_EVENT_UTILS_TMW_OPTIONS", "ADDON_LOADED", function(addonName) 
+	if addonName == ACTION_CONST_ADDON_NAME_TMW_OPTIONS then 
+		local IE 			= TMW.IE
+		local CI 			= TMW.CI
+		local PlaySound 	= _G.PlaySound
+		function IE:LoadIcon(isRefresh, icon)
+			if icon ~= nil then
 
-		local ic_old = CI.icon
+				local ic_old = CI.icon
 
-		if type(icon) == "table" then			
-			PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
-			IE:SaveSettings()
-			
-			CI.icon = icon
-			
-			if ic_old ~= CI.icon then
-				IE.Pages.IconMain.PanelsLeft.ScrollFrame:SetVerticalScroll(0)
-				IE.Pages.IconMain.PanelsRight.ScrollFrame:SetVerticalScroll(0)
+				if type(icon) == "table" then			
+					PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+					IE:SaveSettings()
+					
+					CI.icon = icon
+					
+					if ic_old ~= CI.icon then
+						IE.Pages.IconMain.PanelsLeft.ScrollFrame:SetVerticalScroll(0)
+						IE.Pages.IconMain.PanelsRight.ScrollFrame:SetVerticalScroll(0)
+					end
+
+					IE.TabGroups.ICON:SetChildrenEnabled(true)
+
+				elseif icon == false then
+					CI.icon = nil
+					IE.TabGroups.ICON:SetChildrenEnabled(false)
+
+					if IE.CurrentTabGroup and IE.CurrentTabGroup.identifier == "ICON" then
+						IE.ResetButton:Disable()
+					end
+				end
+
+				TMW:Fire("TMW_CONFIG_ICON_LOADED_CHANGED", CI.icon, ic_old)
 			end
 
-			IE.TabGroups.ICON:SetChildrenEnabled(true)
-
-		elseif icon == false then
-			CI.icon = nil
-			IE.TabGroups.ICON:SetChildrenEnabled(false)
-
-			if IE.CurrentTabGroup and IE.CurrentTabGroup.identifier == "ICON" then
-				IE.ResetButton:Disable()
-			end
+			IE:Load(isRefresh)
 		end
-
-		TMW:Fire("TMW_CONFIG_ICON_LOADED_CHANGED", CI.icon, ic_old)
-	end
-
-	IE:Load(isRefresh)
-end
+		Listener:Remove("ACTION_EVENT_UTILS_TMW_OPTIONS", "ADDON_LOADED")	
+	end 	
+end)
