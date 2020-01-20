@@ -71,7 +71,7 @@ local TMW 								= TMW
 local A 								= Action
 local Listener							= A.Listener
 local Print								= A.Print
-local Lib 								= LibStub:NewLibrary("PetLibrary", 7)
+local Lib 								= LibStub:NewLibrary("PetLibrary", 8)
 
 -------------------------------------------------------------------------------
 -- Remap
@@ -233,7 +233,7 @@ local Pet 								= {
 		if not self.CallbackIsInitialized then 
 			--TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 		self.OnEvent) 
 			TMW:RegisterCallback("TMW_ACTION_ENTERING", 							self.OnEvent) 
-			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", 					function() Pet:UpdateSlots() end) 
+			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", 					function() self:UpdateSlots() end) 
 			self.CallbackIsInitialized = true 
 		end 
 	end,
@@ -595,7 +595,7 @@ end
 
 function Lib:IsSpellKnown(spell)
 	-- @return boolean 
-	return IsSpellKnown(spell, true) or (type(spell) == "number" and IsSpellKnown(GetInfoSpell(spell), true)) -- PetData[A.PlayerClass] and PetData[A.PlayerClass][spell] or 
+	return IsSpellKnown(spell, true) -- PetData[A.PlayerClass] and PetData[A.PlayerClass][spell] or 
 end 
 
 function Lib:GetMultiUnitsBySpell(petSpell, units)
