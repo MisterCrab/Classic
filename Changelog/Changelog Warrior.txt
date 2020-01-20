@@ -1,3 +1,10 @@
+[Warrior v10]
+Taunt and MockingBlow				- Fixed issue when used at same time 
+Taunt and MockingBlow				- Added Stuned debuffs check  
+Taunt and MockingBlow				- Added check for exist own target  
+Taunt and MockingBlow				- Added check for casting  
+SunderArmor							- Added as last priority in taunt block if target has not enough threat with applied changes above (skipped if target has max stacks of the debuff or which can't be refreshed)
+
 [Warrior v9]
 Optimized code for more faster performance
 Fixed visual positions for lowest Queue Base buttons 
