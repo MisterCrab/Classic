@@ -91,6 +91,82 @@ local CombatTracker 							= {
 		[65] 								= "Arcane + Physical",
 		[127]								= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",
 	},
+	SchoolDoubles							= {
+		Holy								= {
+			[2]								= "Holy",
+			[3]								= "Holy + Physical",
+			[6]								= "Fire + Holy",
+			[10]							= "Nature + Holy",
+			[18]							= "Frost + Holy",
+			[34]							= "Shadow + Holy",
+			[66]							= "Arcane + Holy",
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",
+		},
+		Fire								= {
+			[4]								= "Fire",
+			[5]								= "Fire + Physical",
+			[6]								= "Fire + Holy",
+			[12]							= "Nature + Fire",
+			[20]							= "Frost + Fire",
+			[28]							= "Frost + Nature + Fire",
+			[36]							= "Shadow + Fire",
+			[68]							= "Arcane + Fire",
+			[124]							= "Arcane + Shadow + Frost + Nature + Fire",
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",			
+		},
+		Nature								= {
+			[8]								= "Nature",
+			[9]								= "Nature + Physical",
+			[10]							= "Nature + Holy",
+			[12]							= "Nature + Fire",
+			[24]							= "Frost + Nature",
+			[28]							= "Frost + Nature + Fire",
+			[40]							= "Shadow + Nature",
+			[72]							= "Arcane + Nature",
+			[124]							= "Arcane + Shadow + Frost + Nature + Fire",
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",
+		},
+		Frost								= {
+			[16]							= "Frost",			
+			[17]							= "Frost + Physical",			
+			[18]							= "Frost + Holy",			
+			[20]							= "Frost + Fire",			
+			[24]							= "Frost + Nature",
+			[28]							= "Frost + Nature + Fire",			
+			[48]							= "Shadow + Frost",			
+			[80]							= "Arcane + Frost",									
+			[124]							= "Arcane + Shadow + Frost + Nature + Fire",									
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",									
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",									
+		},
+		Shadow								= {
+			[32]							= "Shadow",
+			[33]							= "Shadow + Physical",
+			[34]							= "Shadow + Holy",
+			[36]							= "Shadow + Fire",
+			[40]							= "Shadow + Nature",
+			[48]							= "Shadow + Frost",
+			[96]							= "Arcane + Shadow",
+			[124]							= "Arcane + Shadow + Frost + Nature + Fire",
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",
+		},
+		Arcane								= {
+			[64]							= "Arcane",
+			[65]							= "Arcane + Physical",
+			[66]							= "Arcane + Holy",
+			[68]							= "Arcane + Fire",
+			[72]							= "Arcane + Nature",
+			[80]							= "Arcane + Frost",
+			[96]							= "Arcane + Shadow",
+			[124]							= "Arcane + Shadow + Frost + Nature + Fire",
+			[126]							= "Arcane + Shadow + Frost + Nature + Fire + Holy",
+			[127]							= "Arcane + Shadow + Frost + Nature + Fire + Holy + Physical",
+		},
+	},
 	AddToData 								= function(self, GUID, timestamp)
 		if not self.Data[GUID] then
 			self.Data[GUID] 				= {
@@ -136,6 +212,23 @@ local CombatTracker 							= {
 				-- Shared 
 				combat_time 				= timestamp,	
 			}
+			-- Taken damage by @player through specific schools
+			if GUID == GetGUID("player") then 
+				self.Data[GUID].School		= {
+					DMG_dmgTaken_Holy		= 0,
+					DMG_dmgTaken_Holy_LH	= 0,
+					DMG_dmgTaken_Fire		= 0,
+					DMG_dmgTaken_Fire_LH	= 0,
+					DMG_dmgTaken_Nature		= 0,
+					DMG_dmgTaken_Nature_LH	= 0,
+					DMG_dmgTaken_Frost		= 0,
+					DMG_dmgTaken_Frost_LH	= 0,
+					DMG_dmgTaken_Shadow		= 0,
+					DMG_dmgTaken_Shadow_LH	= 0,
+					DMG_dmgTaken_Arcane		= 0,
+					DMG_dmgTaken_Arcane_LH	= 0,
+				}
+			end 
 		else 
 			self.Data[GUID].lastSeen 		= timestamp 
 			if self.Data[GUID].combat_time == 0 then 
@@ -165,6 +258,7 @@ local CombatTracker 							= {
 
 local CombatTrackerData							= CombatTracker.Data
 local CombatTrackerDoubles						= CombatTracker.Doubles
+local CombatTrackerSchoolDoubles				= CombatTracker.SchoolDoubles
 local CombatTrackerCleanTableByTime				= CombatTracker.CleanTableByTime
 local CombatTrackerSummTableByTime				= CombatTracker.SummTableByTime
 
@@ -344,6 +438,71 @@ CombatTracker.logDamage 						= function(...)
 		CombatTrackerData[DestGUID].RealDMG_hits_taken = 0 
 	end 
 	
+	-- School Damage Taken by @player 
+	if CombatTrackerData[DestGUID].School then 
+		-- Reset and clear 
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy		= 0
+		end 
+		
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire		= 0
+		end 
+		
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature		= 0
+		end 
+		
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost		= 0
+		end 
+		
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow		= 0
+		end 
+		
+		if timestamp - CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane_LH > 5 then
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane_LH 	= 0 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane		= 0
+		end 
+		
+		-- Add and log 
+		if CombatTrackerSchoolDoubles.Holy[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Holy + Amount
+		end		
+
+		if CombatTrackerSchoolDoubles.Fire[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Fire + Amount
+		end		
+		
+		if CombatTrackerSchoolDoubles.Nature[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Nature + Amount
+		end	
+		
+		if CombatTrackerSchoolDoubles.Frost[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Frost + Amount
+		end	
+		
+		if CombatTrackerSchoolDoubles.Shadow[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Shadow + Amount
+		end	
+		
+		if CombatTrackerSchoolDoubles.Arcane[school] then 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane_LH 	= timestamp 
+			CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane		= CombatTrackerData[DestGUID].School.DMG_dmgTaken_Arcane + Amount
+		end	
+	end 
+	
 	-- Classic: RealUnitHealth log taken only for out of group 
 	if not TeamCacheFriendlyGUIDs[DestGUID] then 
 		RealUnitHealthDamageTaken[DestGUID] = (RealUnitHealthDamageTaken[DestGUID] or 0) + Amount	
@@ -382,7 +541,7 @@ CombatTracker.logDamage 						= function(...)
 		-- Real Time Damage - Taken       
 		CombatTrackerData[DestGUID].RealDMG_dmgTaken_M = CombatTrackerData[DestGUID].RealDMG_dmgTaken_M + Amount   
 		-- Real Time Damage - Done		
-		CombatTrackerData[SourceGUID].RealDMG_dmgDone_M = CombatTrackerData[SourceGUID].RealDMG_dmgDone_M + Amount
+		CombatTrackerData[SourceGUID].RealDMG_dmgDone_M = CombatTrackerData[SourceGUID].RealDMG_dmgDone_M + Amount				
 	end
 	
 	-- Update last hit time
@@ -1692,6 +1851,7 @@ Frame:SetScript("OnUpdate", function(self, elapsed)
 			if TMW.time - Data.lastSeen > 60 then  
 				CombatTrackerData[GUID] = nil 
 				Data = nil 
+				TMW:Fire("TMW_ACTION_COMBAT_TRACKER_GUID_WIPE", GUID)
 			end 
 			
 			GUID, Data = next(CombatTrackerData,  GUID)
@@ -1891,6 +2051,46 @@ A.CombatTracker									= {
 		end
 		return total, Hits       
 	end,	
+	-- [[ Get School Damage Taken (by @player only) ]]
+	GetSchoolDMG								= function(self, unitID)
+		-- @return number
+		-- [1] Holy 
+		-- [2] Fire 
+		-- [3] Nature 
+		-- [4] Frost 
+		-- [5] Shadow 
+		-- [6] Arcane 
+		local Holy, Fire, Nature, Frost, Shadow, Arcane = 0, 0, 0, 0, 0, 0
+		local combatTime, GUID 					= self:CombatTime(unitID)
+		
+		if combatTime > 0 and CombatTrackerData[GUID].School then
+			local timestamp = TMW.time
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Holy_LH <= 5 then
+				Holy = CombatTrackerData[GUID].School.DMG_dmgTaken_Holy / combatTime
+			end 
+			
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Fire_LH <= 5 then
+				Fire = CombatTrackerData[GUID].School.DMG_dmgTaken_Fire / combatTime
+			end 
+			
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Nature_LH <= 5 then
+				Nature = CombatTrackerData[GUID].School.DMG_dmgTaken_Nature / combatTime
+			end 
+			
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Frost_LH <= 5 then
+				Frost = CombatTrackerData[GUID].School.DMG_dmgTaken_Frost / combatTime
+			end 
+			
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Shadow_LH <= 5 then
+				Shadow = CombatTrackerData[GUID].School.DMG_dmgTaken_Shadow / combatTime
+			end 
+			
+			if timestamp - CombatTrackerData[GUID].School.DMG_dmgTaken_Arcane_LH <= 5 then
+				Arcane = CombatTrackerData[GUID].School.DMG_dmgTaken_Arcane / combatTime
+			end 
+		end 
+		return Holy, Fire, Nature, Frost, Shadow, Arcane
+	end,
 	--[[ Get Spell Amount Taken (if was taken) in the last X seconds ]]
 	GetSpellAmountX								= function(self, unitID, spell, X) 
 		local GUID 								= GetGUID(unitID)    

@@ -11,6 +11,8 @@ local BossMods_Pulling								= A.BossMods_Pulling
 local IsQueueReady									= A.IsQueueReady
 local QueueData										= A.Data.Q
 local ShouldStop									= A.ShouldStop
+local GetCurrentGCD									= A.GetCurrentGCD
+local GetPing										= A.GetPing
 local DetermineUsableObject							= A.DetermineUsableObject
 
 local IsUnitEnemy									= A.IsUnitEnemy
@@ -22,7 +24,7 @@ local MultiUnits									= A.MultiUnits
 local Pet											= LibStub("PetLibrary")
 local LoC_GetExtra									= LoC.GetExtra
 
-local _G, math 										= _G, math
+local _G, math, select								= _G, math, select
 local huge 											= math.huge
 
 local UnitBuff										= _G.UnitBuff
@@ -200,7 +202,7 @@ local function IsShoot(unit)
 			GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
 			(
 				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 	-- :IsReady also checks ammo amount by :IsUsable method
-				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and A.GetCurrentGCD() <= A.GetPing() and (not GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
+				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and GetCurrentGCD() <= GetPing() and (not GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
 			)
 end 
 
@@ -308,7 +310,7 @@ end
 
 function A.CanUseLimitedInvulnerabilityPotion(icon)
 	-- @return boolean or nil
-	if A.LimitedInvulnerabilityPotion:IsReady(player) and Unit(player):GetRealTimeDMG(3) > 0 and (Unit(player):IsExecuted() or Unit(player):IsFocused(4, nil, nil, true)) then 
+	if A.LimitedInvulnerabilityPotion:IsReady(player) and Unit(player):GetRealTimeDMG(3) > 0 and ((A.Role ~= "TANK" and A.IsInInstance and UnitIsUnit(targettarget, player) and select(2, Unit(player):ThreatSituation()) >= 100) or Unit(player):IsExecuted() or Unit(player):IsFocused(4, nil, nil, true)) then 
 		return A.LimitedInvulnerabilityPotion:Show(icon)
 	end 
 end 
@@ -464,18 +466,20 @@ function A.Rotation(icon)
 	-- [3] Single / [4] AoE: AutoAttack
 	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() and Unit(player):IsCastingRemains() == 0 then 
 		useShoot = IsShoot(unit)
-		if not useShoot and unit ~= targettarget and GetToggle(1, "AutoAttack") and (not Player:IsAttacking() or (Pet:IsActive() and not UnitIsUnit("pettarget", unit))) then 
+		if not useShoot and unit ~= targettarget and GetToggle(1, "AutoAttack") and not Player:IsAttacking() then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
 			--if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
 				--return A:Show(icon, ACTION_CONST_AUTOSHOOT)
 			--end 
 			
-			-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
-			if A.PlayerClass ~= "HUNTER" or not GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit) then 
+				-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
+			if 	(A.PlayerClass ~= "HUNTER" or not GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit)) and 
 				-- ByPass Rogue's mechanic
-				if A.PlayerClass ~= "ROGUE" or ((unit ~= mouseover or UnitIsUnit(unit, target)) and Unit(unit):HasDeBuffs("BreakAble") == 0) then 
-					return A:Show(icon, ACTION_CONST_AUTOATTACK)
-				end 
+				(A.PlayerClass ~= "ROGUE" or ((unit ~= mouseover or UnitIsUnit(unit, target)) and Unit(unit):HasDeBuffs("BreakAble") == 0)) and 
+				-- ByPass Warlock's mechanic 
+				(A.PlayerClass ~= "WARLOCK" or Unit(unit):GetRange() <= 5)
+			then 
+				return A:Show(icon, ACTION_CONST_AUTOATTACK)
 			end 
 		end 
 	end 

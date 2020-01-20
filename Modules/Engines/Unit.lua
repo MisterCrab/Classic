@@ -386,8 +386,11 @@ local AuraList = {
 		12328,				-- Death Wish				(Warrior)
 		1719,				-- Recklessness				(Warrior)
         8143, 				-- Tremor Totem 			(Shaman)
-		6346,				-- Fear Ward				(Priest)
+		6346,				-- Fear Ward				(Priest)		
     },
+	FearImunDeBuffs = {
+		704,				-- Curse of Recklessness 	(Warlock)
+	},
     StunImun = {
         6615, 				-- Free Action 				(Free Action Potion)
 		24364,				-- Living Free Action		(Potion)
@@ -433,6 +436,12 @@ local AuraList = {
         10060, 				-- Power Infusion			(Priest)
 		29166,				-- Innervate				(Druid)
 		2645, 				-- Ghost Wolf 				(Shaman)
+		16166, 				-- Elemental Mastery		(Shaman)
+		17730,				-- Major Spellstone			(Warlock)
+		17729,				-- Greater Spellstone		(Warlock)
+		128,				-- Spellstone				(Warlock)
+		18708,				-- Fel Domination			(Warlock)
+		18288,				-- Amplify Curse			(Warlock)		
     },
     SecondPurje = {
         1044, 				-- Blessing of Freedom      (Paladin)  
@@ -698,6 +707,14 @@ function A.IsUnitFriendly(unitID)
 	-- @return boolean
 	if unitID == "mouseover" then 
 		return 	GetToggle(2, unitID) and MouseHasFrame() and not A_Unit(unitID):IsEnemy() 
+	elseif unitID == "targettarget" then
+		return 	GetToggle(2, unitID) and 
+				( not GetToggle(2, "mouseover") or not A_Unit("mouseover"):IsExists() or A_Unit("mouseover"):IsEnemy() ) and 
+				A_Unit("target"):IsEnemy() and
+				not A_Unit(unitID):IsEnemy() and
+				A_Unit(unitID):IsExists() and 
+				-- LOS checking 
+				not UnitInLOS(unitID)	
 	else
 		return 	(
 					not GetToggle(2, "mouseover") or 
@@ -778,6 +795,38 @@ local Info = {
 		["不死族"]				= true,
 		[""]					= false,		
 	},
+	IsDemon						= {
+		["Demon"]				= true,
+		["Dämon"]				= true,
+		["Demonio"]				= true,
+		["Démon"]				= true,
+		["Demone"]				= true,
+		["Demônio"]				= true,
+		["Демон"]				= true,
+		["악마"]					= true,
+		["恶魔"]				= true,
+		["惡魔"]				= true,
+	},
+	IsHumanoid					= {
+		["Humanoid"]			= true,
+		["Humanoide"]			= true,
+		["Humanoïde"]			= true,
+		["Umanoide"]			= true,
+		["Гуманоид"]			= true,
+		["인간형"]					= true,
+		["人型生物"]				= true,
+		["人型生物"]				= true,
+	},	
+	IsElemental					= {
+		["Elemental"]			= true,
+		["Elementar"]			= true,
+		["Élémentaire"]			= true,
+		["Elementale"]			= true,
+		["Элементаль"]			= true,
+		["정령"]					= true,
+		["元素生物"]				= true,
+		["元素生物"]				= true,
+	},
 	IsTotem 					= {
 		["Totem"]				= true,
 		["Tótem"]				= true,
@@ -834,6 +883,9 @@ local InfoClassCanBeMelee 					= Info.ClassCanBeMelee
 local InfoAllCC 							= Info.AllCC
 
 local InfoIsUndead							= Info.IsUndead
+local InfoIsDemon							= Info.IsDemon
+local InfoIsHumanoid						= Info.IsHumanoid
+local InfoIsElemental						= Info.IsElemental
 local InfoIsTotem							= Info.IsTotem
 local InfoIsDummy							= Info.IsDummy
 
@@ -896,6 +948,11 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return UnitClassification(unitID) or str_empty
 	end, "UnitID"),
+	CreatureType							= Cache:Pass(function(self)  
+		-- @return string or empty string  
+		local unitID 						= self.UnitID
+		return UnitCreatureType(unitID) or str_empty
+	end, "UnitID"),
 	InfoGUID 								= Cache:Wrap(function(self, unitGUID)
 		-- @return 
 		-- For players: Player-[server ID]-[player UID] (Example: "Player-970-0002FD64")
@@ -945,7 +1002,7 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return UnitIsUnit(unitID, "player") or UnitInRange(unitID)
 	end, "UnitID"),
-	InCC 									= Cache:Pass(function(self, index)
+	InCC 									= Cache:Wrap(function(self, index)
 		-- @return number (time in seconds of remain crownd control)
 		-- Nill-able: index
 		local unitID 						= self.UnitID
@@ -957,7 +1014,7 @@ A.Unit = PseudoClass({
 			end 
 		end   
 		return 0 
-	end, "UnitID"),	
+	end, "UnitGUID"),	
 	IsEnemy									= Cache:Wrap(function(self, isPlayer)  
 		-- @return boolean
 		-- Nill-able: isPlayer
@@ -1116,6 +1173,14 @@ A.Unit = PseudoClass({
 		-- @return boolean
 		local unitID 						= self.UnitID
 		return UnitIsCharmed(unitID)
+	end, "UnitID"),
+	IsMounted								= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		if UnitIsUnit(unitID, "player")  then 
+			return Player:IsMounted()
+		end 
+		return select(2, self(unitID):GetCurrentSpeed()) >= 200
 	end, "UnitID"),
 	IsMovingOut								= Cache:Pass(function(self, snap_timer)
 		-- @return boolean 
@@ -1396,9 +1461,9 @@ A.Unit = PseudoClass({
 		-- Nill-able: drDiminishing
 		local unitID 						= self.UnitID 
 		if not A.IsInPvP then 
-			return not self(unitID):IsBoss() and InfoControlAbleClassification[self(unitID):Classification()] and (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25))
+			return not self(unitID):IsBoss() and InfoControlAbleClassification[self(unitID):Classification()] and (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
 		else 
-			return not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25)
+			return (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
 		end 
 	end, "UnitID"),
 	IsUndead								= Cache:Pass(function(self)
@@ -1406,6 +1471,24 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID 
 		local unitType 						= UnitCreatureType(unitID) or str_empty
 		return InfoIsUndead[unitType]	       	
+	end, "UnitID"),
+	IsDemon									= Cache:Pass(function(self)
+		-- @return boolean 
+		local unitID 						= self.UnitID 
+		local unitType 						= UnitCreatureType(unitID) or str_empty
+		return InfoIsDemon[unitType]	       	
+	end, "UnitID"),
+	IsHumanoid								= Cache:Pass(function(self)
+		-- @return boolean 
+		local unitID 						= self.UnitID 
+		local unitType 						= UnitCreatureType(unitID) or str_empty
+		return self(unitID):IsPlayer() or InfoIsHumanoid[unitType]	       	
+	end, "UnitID"),
+	IsElemental								= Cache:Pass(function(self)
+		-- @return boolean 
+		local unitID 						= self.UnitID 
+		local unitType 						= UnitCreatureType(unitID) or str_empty
+		return InfoIsElemental[unitType]	       	
 	end, "UnitID"),
 	IsTotem 								= Cache:Pass(function(self)
 		-- @return boolean 
@@ -1418,12 +1501,6 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		local _, _, _, _, _, npc_id 		= self(unitID):InfoGUID()
 		return npc_id and InfoIsDummy[npc_id]
-	end, "UnitID"),
-	IsDummyPvP								= Cache:Pass(function(self)	
-		-- @return boolean 
-		local unitID 						= self.UnitID
-		local _, _, _, _, _, npc_id 		= self(unitID):InfoGUID()
-		return npc_id and InfoIsDummyPvP[npc_id]
 	end, "UnitID"),
 	IsBoss 									= Cache:Pass(function(self)       
 	    -- @return boolean 
@@ -1610,6 +1687,22 @@ A.Unit = PseudoClass({
 			return select(index, CombatTracker:GetHPS(unitID))
 		else
 			return CombatTracker:GetHPS(unitID)
+		end 
+	end, "UnitID"),
+	GetSchoolDMG							= Cache:Pass(function(self, index)
+		-- @return number
+		-- [1] Holy 
+		-- [2] Fire 
+		-- [3] Nature 
+		-- [4] Frost 
+		-- [5] Shadow 
+		-- [6] Arcane 
+		-- Note: By @player only!
+		local unitID 						= self.UnitID
+		if index then 
+			return select(index, CombatTracker:GetSchoolDMG(unitID))
+		else
+			return CombatTracker:GetSchoolDMG(unitID)
 		end 
 	end, "UnitID"),
 	GetSpellAmountX 						= Cache:Pass(function(self, spell, x)
@@ -2080,7 +2173,7 @@ A.Unit = PseudoClass({
 		if caster then 
 			filter = "HELPFUL PLAYER"
 		end 
-		
+
 		local _, spellName, spellID, spellDuration, spellExpirationTime		
 		for i = 1, huge do 
 			spellName, _, _, _, spellDuration, spellExpirationTime, _, _, _, spellID = UnitAura(unitID, i, filter)
@@ -2155,8 +2248,9 @@ A.Unit = PseudoClass({
 
 		if self(unitID):IsEnemy() then
 			if TeamCacheFriendly.Type then 
+				local member
 				for i = 1, TeamCacheFriendly.MaxSize do 
-					local member = TeamCacheFriendlyIndexToPLAYERs[i]
+					member = TeamCacheFriendlyIndexToPLAYERs[i]
 					if  member
 					and not UnitIsUnit(member, "player")
 					and UnitIsUnit(member .. "target", unitID) 					
@@ -2170,11 +2264,23 @@ A.Unit = PseudoClass({
 				end 
 			end 
 		else
-			if TeamCacheEnemy.Type then 
+			local arena
+			if TeamCacheEnemy.Type then 				
 				for i = 1, TeamCacheEnemy.MaxSize do 
-					local arena = TeamCacheEnemyIndexToPLAYERs[i]
+					arena = TeamCacheEnemyIndexToPLAYERs[i]
 					if arena
 					and UnitIsUnit(arena .. "target", unitID) 
+					and ((not isMelee and self(arena):IsDamager()) or (isMelee and self(arena):IsMelee()))
+					and (not burst 		or	self(arena):HasBuffs("DamageBuffs") >= burst) 
+					and (not deffensive or 	self(unitID):HasBuffs("DeffBuffs") <= deffensive)
+					and (not range 		or	self(arena):GetRange() <= range)
+					then 
+						return true 
+					end 
+				end 
+			else 
+				for arena in pairs(ActiveUnitPlates) do  
+					if UnitIsUnit(arena .. "target", unitID) 
 					and ((not isMelee and self(arena):IsDamager()) or (isMelee and self(arena):IsMelee()))
 					and (not burst 		or	self(arena):HasBuffs("DamageBuffs") >= burst) 
 					and (not deffensive or 	self(unitID):HasBuffs("DeffBuffs") <= deffensive)
@@ -2728,6 +2834,48 @@ A.EnemyTeam = PseudoClass({
 		
 		return false, count, arena or str_none 
 	end, "ROLE"),
+	FocusingUnitIDByClasses					= Cache:Wrap(function(self, unitID, stop, range, ...)
+		-- @return boolean, number, who focusing (unitID)
+		-- Nill-able: stop, range
+		local ROLE 							= self.ROLE
+		local count 						= 0 
+		local arena, class
+		
+		if TeamCacheEnemy.Type then
+			for i = 1, TeamCacheEnemy.Size do 
+				arena = TeamCacheEnemyIndexToPLAYERs[i]
+				if arena and UnitIsUnit(arena .. "target", unitID) and CheckUnitByRole(ROLE, arena) and (not range or (A_Unit(arena):GetRange() > 0 and A_Unit(arena):GetRange() <= range)) then 
+					for i = 1, select("#", ...) do 
+						class = select(i, ...)
+						if A_Unit(arena):Class() == class then 
+							count = count + 1 	
+							if not stop or count >= stop then 
+								return true, count, arena 				 						
+							end 
+							break 
+						end 
+					end
+				end 
+			end 					 
+		else
+			for arena in pairs(ActiveUnitPlates) do                 
+				if A_Unit(arena):IsPlayer() and UnitIsUnit(arena .. "target", unitID) and CheckUnitByRole(ROLE, arena) and (not range or (A_Unit(arena):GetRange() > 0 and A_Unit(arena):GetRange() <= range)) then
+					for i = 1, select("#", ...) do 
+						class = select(i, ...)
+						if A_Unit(arena):Class() == class then 
+							count = count + 1 	
+							if not stop or count >= stop then 
+								return true, count, arena 				 						
+							end 
+							break 
+						end 
+					end
+				end         
+			end   
+		end 
+		
+		return false, count, arena or str_none 
+	end, "ROLE"),				
 	-- [[ Without ROLE argument ]] 
 	HasInvisibleUnits 						= Cache:Pass(function(self, checkVisible)
 		-- @return boolean, unitID, unitClass

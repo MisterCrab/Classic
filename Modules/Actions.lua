@@ -104,8 +104,8 @@ local Spell					= _G.Spell
 local IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell =
 	  IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell
 
-local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown = 
-	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown
+local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown, GetSpellAutocast = 
+	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown, GetSpellAutocast
 
 -- Item 	  
 local IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem  =
@@ -128,6 +128,7 @@ local UnitIsUnit, UnitGUID, UnitIsPlayer =
 
 -- Empty 
 local empty1, empty2 				= { 0, -1 }, { 0, 0, 0, 0, 0, 0, 0, 0 } 
+local emptycreate					= {}
 
 -- Auras
 local IsBreakAbleDeBuff = {}
@@ -397,8 +398,20 @@ function A:GetSpellAbsorb(unitID)
 	return CombatTracker:GetAbsorb(unitID or "player", self:Info())
 end 
 
+function A:GetSpellAutocast()
+	-- @return boolean, boolean 
+	-- Returns autocastable, autostate 
+	return GetSpellAutocast(self:Info())
+end 
+
 function A:IsSpellLastGCD(byID)
+	-- @return boolean
 	return (byID and self.ID == A.LastPlayerCastID) or (not byID and self:Info() == A.LastPlayerCastName)
+end 
+
+function A:IsSpellLastCastOrGCD(byID)
+	-- @return boolean
+	return self:IsSpellLastGCD(byID) or self:IsSpellInCasting()
 end 
 
 function A:IsSpellInFlight()
@@ -417,7 +430,7 @@ function A:IsSpellInRange(unitID)
 		ID = self 
 		Name = A_GetSpellInfo(ID)
 	end		
-	return IsSpellInRange(Name, unitID) == 1 or (Pet:IsActive() and Pet:IsInRange(ID, unitID))  
+	return IsSpellInRange(Name, unitID) == 1 or (Pet:IsActive() and Pet:IsInRange(Name, unitID))  -- Classic better make through Name for Pet:IsInRange
 end 
 
 function A:IsSpellInCasting()
@@ -587,6 +600,11 @@ Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_CHANGED", 		A.UpdateSpell
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellBook)
+TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_ADDED", function(callbackEvent, PetID, PetGUID, PetData)
+	if PetData.isMain then 
+		A.UpdateSpellBook()
+	end 
+end)
 
 function A:IsBlockedBySpellBook()
 	-- @return boolean 
@@ -1030,6 +1048,11 @@ function A:AbsentImun(unitID, imunBuffs)
 	end 
 end 
 
+function A:IsBlockedByAny()
+	-- @return boolean
+	return self:IsBlocked() or self:IsBlockedByQueue() or (self.Type == "Spell" and (self:IsBlockedBySpellBook() or (self.isTalent and not self:IsSpellLearned()))) or (self.Type ~= "Spell" and self.Type ~= "SwapEquip" and self:GetCount() == 0 and not self:GetEquipped())
+end 
+
 function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 	-- @return boolean
 	-- Checks toggle, cooldown and range 
@@ -1245,8 +1268,8 @@ end
 -------------------------------------------------------------------------------
 -- UI: Create
 -------------------------------------------------------------------------------
-function A.Create(attributes)
-	--[[@usage: attributes (table)
+function A.Create(arg)
+	--[[@usage: arg (table)
 		Required: 
 			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|ItemBySlot|SwapEquip (TrinketBySlot, ItemBySlot is only in CORE!)
 			ID (@number) 	- spellID | itemID | textureID (textureID only for Type "SwapEquip")
@@ -1270,9 +1293,7 @@ function A.Create(attributes)
 		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
 		Otherwise it will interract with additional frame  
 	]]
-	if not attributes then 
-		local attributes = {}
-	end 	
+	local attributes = arg or emptycreate	
 	local s = {
 		ID = attributes.ID,
 		SubType = attributes.Type,

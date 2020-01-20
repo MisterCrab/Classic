@@ -299,9 +299,13 @@ else
 		-- Incapacitates
 		[GetSpellInfo(2094)]	= { category = "incapacitate", spellID = 2094 }, 	-- Blind 
 		[GetSpellInfo(9484)]	= { category = "incapacitate", spellID = 9484 }, 	-- Shackle Undead 
+		[GetSpellInfo(710)]		= { category = "incapacitate", spellID = 710 }, 	-- Banish
 		
 		-- Turn Undead 
 		[GetSpellInfo(2878)]    = { category = "fear", spellID = 2878 },          	-- Turn Undead
+		
+		-- Stuns 
+		[GetSpellInfo(19482)]   = { category = "stun", spellID = 19482 },   		-- War Stomp (Doomguard pet)
     }
 end
 
