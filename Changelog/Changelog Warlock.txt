@@ -1,2 +1,8 @@
+[Warlock v2]
+Fixed lua error :537 attempt to index field '?' (a number value)
+Added additional condition to don't cast any create stone spell if current
+DrainLife				- Fixed wrong 100 preset for toggle as default
+DrainLife				- Fixed priority of use (now after dots)
+
 [Warlock v1]
 Release
