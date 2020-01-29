@@ -1,3 +1,6 @@
+[Priest v13]
+Fixed lua error 307: 'for' limit must be a number
+
 [Priest v12]
 Improved stopcast overhealing (same way like on Paladin)
 Optimized code for more faster performance
