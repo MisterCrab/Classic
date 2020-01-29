@@ -1,3 +1,9 @@
+[Warlock v3]
+Fixed lua error with toggle "Life Tap On Full Health"
+Fixed some wrong texts in UI
+Added IsSpellInFlight condition to all delayed cast spells
+ShadowBolt				- Added more higher priority to use it when ShadowTrance buff is up
+
 [Warlock v2]
 Fixed lua error :537 attempt to index field '?' (a number value)
 Added additional condition to don't cast any create stone spell if current
