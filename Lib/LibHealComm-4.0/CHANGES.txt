@@ -1,22 +1,51 @@
-tag eadc5eb9f7acfeffbad63b1e8ea2eb3c70e64b76 v1.7.6
+tag f35d886b52bc22993170485bdda1e979368c4527 v1.7.7
 Author:	Azilroka <darktemplar9900@yahoo.com>
-Date:	Sun Jan 5 17:10:55 2020 -0600
+Date:	Wed Jan 15 17:31:21 2020 -0600
 
-commit d41a9be2e83eb55804cb03ac72333c138f0f18d9
+commit 0a9e9b62f9272fa9a28f51e43aed9b19c4b15f42
 Author: Azilroka <darktemplar9900@yahoo.com>
-Date:   Sun Jan 5 17:10:30 2020 -0600
+Date:   Wed Jan 15 17:30:54 2020 -0600
 
-    Fix ToC
+    minor 88
 
-commit 7bc30758064dd80549b8f909804ee14843969961
+commit 346e974ba4d439aa48d5853ffd94a6452953e738
+Author: dev7355608 <dev7355608@gmail.com>
+Date:   Thu Jan 9 21:13:21 2020 +0100
+
+    Update healing modifiers
+    
+    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
+
+commit 346e974ba4d439aa48d5853ffd94a6452953e738
+Author: dev7355608 <dev7355608@gmail.com>
+Date:   Thu Jan 9 21:13:21 2020 +0100
+
+    Update healing modifiers
+    
+    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
+
+commit 0ece24bdfe4c7a1bbfe50bd04aafedd9bfd4ffaa
+Author: dev7355608 <dev7355608@gmail.com>
+Date:   Thu Jan 9 22:09:07 2020 +0100
+
+    Fix Divine Favor
+    
+    UNIT_AURA is fired after UNIT_SPELLCAST_* events and therefore too late
+    if Divine Favor and a healing spell are cast at the same time, in which
+    case hasDivineFavor is still set to nil when Divine Favor should be
+    applied the heal prediction, but is not.
+
+commit 346e974ba4d439aa48d5853ffd94a6452953e738
+Author: dev7355608 <dev7355608@gmail.com>
+Date:   Thu Jan 9 21:13:21 2020 +0100
+
+    Update healing modifiers
+    
+    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
+
+commit a7e7bfb97a617075a63d87a3b85fb2a3aa6dd8b5
 Author: Azilroka <darktemplar9900@yahoo.com>
-Date:   Sun Jan 5 17:08:42 2020 -0600
+Date:   Sun Jan 5 17:12:24 2020 -0600
 
-    Supposed to be this
-
-commit c79b480ca0dc4a4cae0686ce0792876e367eaf90
-Author: Azilroka <darktemplar9900@yahoo.com>
-Date:   Sun Jan 5 17:03:56 2020 -0600
-
-    Callback Handler
+    one too many / but still packages the same
 
