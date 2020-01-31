@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "29.01.2020"
+local DateTime 														= "31.01.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -7137,7 +7137,32 @@ function Action.ToggleMainUI()
 					OnPairs(k, v, ToggleAutoHidden)
 				end
 				return hasdata
-			end
+			end							
+			local function ScrollTableUpdateData()
+				local fspec = Action.PlayerClass .. CL
+				
+				tab.childs[fspec].ScrollTable:SetData(ScrollTableActionsData())
+				tab.childs[fspec].ScrollTable:SortData(tab.childs[fspec].ScrollTable.SORTBY)
+			end 	
+			local function ScrollTableUpdateSelection()
+				local fspec = Action.PlayerClass .. CL
+				
+				local index = tab.childs[fspec].ScrollTable:GetSelection()
+				if not index then 
+					Key:SetText("")
+					Key:ClearFocus() 
+				else 
+					local data = tab.childs[fspec].ScrollTable:GetRow(index)
+					if data then 
+						if data.TableKeyName ~= Key:GetText() then 
+							Key:SetText(data.TableKeyName)
+						end 
+					else 
+						Key:SetText("")
+						Key:ClearFocus() 
+					end 
+				end 
+			end 			
 			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
 				if button == "LeftButton" then		
 					local luaCode = rowData:GetLUA() or ""
@@ -7165,7 +7190,7 @@ function Action.ToggleMainUI()
 					end 
 				end 				
 			end 
-						
+			
 			tab.childs[spec].ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
                 {
                     name = L["TAB"][tab.name]["ENABLED"],
@@ -7247,91 +7272,73 @@ function Action.ToggleMainUI()
 			tab.childs[spec].ScrollTable.defaultrows = { numberOfRows = tab.childs[spec].ScrollTable.numberOfRows, rowHeight = tab.childs[spec].ScrollTable.rowHeight }
             tab.childs[spec].ScrollTable:EnableSelection(true)  
 			tab.childs[spec].ScrollTable:SetScript("OnShow", function(self)			
-				self:SetData(ScrollTableActionsData())	
-				self:SortData(self.SORTBY)
-				
-				local index = self:GetSelection()
-				if not index then 
-					Key:SetText("")
-					Key:ClearFocus() 
-				else 
-					local data = self:GetRow(index)
-					if data then 
-						if data.TableKeyName ~= Key:GetText() then 
-							Key:SetText(data.TableKeyName)
-						end 
-					else 
-						Key:SetText("")
-						Key:ClearFocus() 
-					end 
-				end 
+				ScrollTableUpdateData()
+				ScrollTableUpdateSelection()				
 			end)
-			-- Register callback to refresh table by earned ranks 
-			TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", function()
-				if tab.childs[spec].ScrollTable:IsVisible() and Action.GetToggle(3, "AutoHidden") then 
-					tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())	
-					tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)					
-				end 
-			end)
-			-- AutoHidden update ScrollTable events 
+
+			-- AutoHidden update ScrollTable events 			
 			local EVENTS = {
 				["UNIT_PET"] 						= true,
-				["PLAYER_LEVEL_UP"]					= true,
-				["CHARACTER_POINTS_CHANGED"]		= true,
-				["CONFIRM_TALENT_WIPE"]				= true,
+				--["PLAYER_LEVEL_UP"]				= true,
+				--["CHARACTER_POINTS_CHANGED"]		= true,
+				--["CONFIRM_TALENT_WIPE"]			= true,
 				["BAG_UPDATE_DELAYED"]				= true,
 				["PLAYER_EQUIPMENT_CHANGED"]		= true,
-				["LEARNED_SPELL_IN_TAB"]			= true, 
+				--["LEARNED_SPELL_IN_TAB"]			= true, 
 			}
-			local function EVENTS_INIT() 
+			local function OnCallback()
+				local fspec = Action.PlayerClass .. CL
+				if tab.childs[fspec].ScrollTable:IsVisible() and TMW.time ~= tab.childs[fspec].ScrollTable.ts and Action.GetToggle(tab.name, "AutoHidden") then 
+					tab.childs[fspec].ScrollTable.ts = TMW.time
+					ScrollTableUpdateData()
+					ScrollTableUpdateSelection()
+				end 
+			end 
+				
+			local function EventsAndCallbacksInit() 
 				if Action.GetToggle(tab.name, "AutoHidden") then 
+					-- Registers events 
 					for k in pairs(EVENTS) do 
 						tab.childs[spec].ScrollTable:RegisterEvent(k)
 					end 
+					
+					-- Registers callback (callback fires in the next priority talents -> spellbook)
+					TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
 				else 
+					-- Unregisters events 
 					for k in pairs(EVENTS) do 
 						tab.childs[spec].ScrollTable:UnregisterEvent(k)
 					end 
+					
+					-- Unregisters callback 
+					TMW:UnregisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
 				end 
 			end 	
-			EVENTS_INIT() 
+			EventsAndCallbacksInit() 						
 			tab.childs[spec].ScrollTable.ts = 0
 			tab.childs[spec].ScrollTable:SetScript("OnEvent", function(self, event, ...)
 				if self:IsVisible() and TMW.time ~= self.ts and Action.GetToggle(tab.name, "AutoHidden") and EVENTS[event] then 
-					self.ts = TMW.time 
-					-- Update ScrollTable if pet gone or summoned or swaped
+					self.ts = TMW.time
+					
+					-- Update ScrollTable 
+					-- If pet has been gone or summoned or swaped
 					if event == "UNIT_PET" then 
 						if ... == "player" then 						
-							self:SetData(ScrollTableActionsData())	
-							self:SortData(self.SORTBY)
+							ScrollTableUpdateData()
 						end 
+					-- If items have been updated 
 					else 		
-						self:SetData(ScrollTableActionsData())	
-						self:SortData(self.SORTBY)
+						ScrollTableUpdateData()
 					end 
 					
-					local index = self:GetSelection()
-					if not index then 
-						Key:SetText("")
-						Key:ClearFocus() 
-					else 
-						local data = self:GetRow(index)
-						if data then 
-							if data.TableKeyName ~= Key:GetText() then 
-								Key:SetText(data.TableKeyName)
-							end 
-						else 
-							Key:SetText("")
-							Key:ClearFocus() 
-						end 
-					end 
+					ScrollTableUpdateSelection()
 				end 
 			end)
+			
 			-- If we had return back to this tab then handler will be skipped 
 			if Action.MainUI.RememberTab == tab.name then
-				tab.childs[spec].ScrollTable:SetData(ScrollTableActionsData())
-				tab.childs[spec].ScrollTable:SortData(tab.childs[spec].ScrollTable.SORTBY)				
-				--tab.childs[spec].ScrollTable:SetScript("OnShow", nil)
+				ScrollTableUpdateData()
+				ScrollTableUpdateSelection()
 			end 
 					
 			Key:SetJustifyH("CENTER")
@@ -7359,30 +7366,14 @@ function Action.ToggleMainUI()
 			local AutoHidden = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["AUTOHIDDEN"])		
 			AutoHidden:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoHidden)
 			AutoHidden:RegisterForClicks("LeftButtonUp")
+			AutoHidden.ToggleTable = {tab.name, "AutoHidden", L["TAB"][tab.name]["AUTOHIDDEN"] .. ": "}
 			AutoHidden:SetScript("OnClick", function(self, button, down)
 				if not self.isDisabled then 
 					if button == "LeftButton" then 				
-						local fixedspec = Action.PlayerClass .. CL
-						Action.SetToggle({tab.name, "AutoHidden", L["TAB"][tab.name]["AUTOHIDDEN"] .. ": "})
-						tab.childs[fixedspec].ScrollTable:SetData(ScrollTableActionsData())	
-						tab.childs[fixedspec].ScrollTable:SortData(tab.childs[fixedspec].ScrollTable.SORTBY)	
-						EVENTS_INIT()
-						
-						local index = tab.childs[fixedspec].ScrollTable:GetSelection()
-						if not index then 
-							Key:SetText("")
-							Key:ClearFocus() 
-						else 
-							local data = tab.childs[fixedspec].ScrollTable:GetRow(index)
-							if data then 
-								if data.TableKeyName ~= Key:GetText() then 
-									Key:SetText(data.TableKeyName)
-								end 
-							else 
-								Key:SetText("")
-								Key:ClearFocus() 
-							end 
-						end 						
+						Action.SetToggle(self.ToggleTable)
+						ScrollTableUpdateData()	
+						ScrollTableUpdateSelection()
+						EventsAndCallbacksInit() 						
 					end 
 				end 
 			end)
@@ -7446,8 +7437,8 @@ function Action.ToggleMainUI()
 				end 
 				
 				if not LuaEditor:IsShown() then 
-					local spec = Action.PlayerClass .. CL
-					local index = tab.childs[spec].ScrollTable:GetSelection()				
+					local fspec = Action.PlayerClass .. CL
+					local index = tab.childs[fspec].ScrollTable:GetSelection()				
 					if not index then 
 						Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
 					else 				
@@ -7461,9 +7452,9 @@ function Action.ToggleMainUI()
 			StdUi:GlueLeft(LuaButton.FontStringLUA, LuaButton, 0, 0)
 
 			LuaEditor:HookScript("OnHide", function(self)
-				local spec = Action.PlayerClass .. CL
-				local index = tab.childs[spec].ScrollTable:GetSelection()
-				local data = index and tab.childs[spec].ScrollTable:GetRow(index) or nil
+				local fspec = Action.PlayerClass .. CL
+				local index = tab.childs[fspec].ScrollTable:GetSelection()
+				local data = index and tab.childs[fspec].ScrollTable:GetRow(index) or nil
 				if not self.EditBox.LuaErrors and data then 
 					local luaCode = self.EditBox:GetText()
 					local Identify = GetTableKeyIdentify(data)
@@ -7495,12 +7486,12 @@ function Action.ToggleMainUI()
 				end 
 				
 				if not QLuaEditor:IsShown() then 
-					local spec = Action.PlayerClass .. CL
-					local index = tab.childs[spec].ScrollTable:GetSelection()				
+					local fspec = Action.PlayerClass .. CL
+					local index = tab.childs[fspec].ScrollTable:GetSelection()				
 					if not index then 
 						Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
 					else 			
-						local data = tab.childs[spec].ScrollTable:GetRow(index)
+						local data = tab.childs[fspec].ScrollTable:GetRow(index)
 						if not data:GetQLUA() and (data.QueueForbidden or ((data.Type == "Trinket" or data.Type == "Item") and not GetItemSpell(data.ID))) then 
 							Action.Print(L["DEBUG"] .. data:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. " " .. L["TAB"][3]["KEY"] .. data.TableKeyName .. "]")
 						else 
@@ -7515,9 +7506,9 @@ function Action.ToggleMainUI()
 			StdUi:GlueLeft(QLuaButton.FontStringLUA, QLuaButton, 0, 0)
 
 			QLuaEditor:HookScript("OnHide", function(self)
-				local spec = Action.PlayerClass .. CL
-				local index = tab.childs[spec].ScrollTable:GetSelection()
-				local data = index and tab.childs[spec].ScrollTable:GetRow(index) or nil
+				local fspec = Action.PlayerClass .. CL
+				local index = tab.childs[fspec].ScrollTable:GetSelection()
+				local data = index and tab.childs[fspec].ScrollTable:GetRow(index) or nil
 				if not self.EditBox.LuaErrors and data then 
 					local luaCode = self.EditBox:GetText()
 					local Identify = GetTableKeyIdentify(data)

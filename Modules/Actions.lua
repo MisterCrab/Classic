@@ -488,9 +488,11 @@ local DataIsSpellUnknown = {}
 function A.UpdateSpellBook(isProfileLoad)
 	wipe(DataSpellRanks)
 	wipe(DataIsSpellUnknown)
+	
+	local spellName, spellRank, spellID 
 	-- Search by player book 
 	for i = 1, huge do 
-		local spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+		spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_SPELL)
 		if spellName then 
 			if spellRank and spellRank ~= "" and spellID then 
 				spellRank = spellRank:match("%d+")
@@ -511,7 +513,7 @@ function A.UpdateSpellBook(isProfileLoad)
 	
 	-- Search by pet book
 	for i = 1, huge do 
-		local spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_PET)
+		spellName, spellRank, spellID = GetSpellBookItemName(i, BOOKTYPE_PET)
 		if spellName then 
 			if spellRank and spellRank ~= "" and spellID then 
 				spellRank = spellRank:match("%d+")
@@ -595,11 +597,14 @@ function A.UpdateSpellBook(isProfileLoad)
 	end 
 end 
 
-Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_UP", 			A.UpdateSpellBook)
+--Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_UP", 			A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_CHANGED", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellBook)
-Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellBook)
+--Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellBook)
+TMW:RegisterCallback("TMW_ACTION_TALENT_MAP_UPDATED", function()
+	A.UpdateSpellBook()
+end)
 TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_ADDED", function(callbackEvent, PetID, PetGUID, PetData)
 	if PetData.isMain then 
 		A.UpdateSpellBook()

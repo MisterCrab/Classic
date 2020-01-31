@@ -367,11 +367,12 @@ local function TalentMap()
 			end
 		end
 	end
+	TMW:Fire("TMW_ACTION_TALENT_MAP_UPDATED")
 end
 
 A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_ENTERING_WORLD", 		TalentMap)
 --A.Listener:Add("ACTION_EVENT_TOOLS", "LEARNED_SPELL_IN_TAB", 		TalentMap)
-A.Listener:Add("ACTION_EVENT_TOOLS", "CONFIRM_TALENT_WIPE", 		TalentMap)
+--A.Listener:Add("ACTION_EVENT_TOOLS", "CONFIRM_TALENT_WIPE", 		TalentMap)
 A.Listener:Add("ACTION_EVENT_TOOLS", "CHARACTER_POINTS_CHANGED", 	TalentMap)
 
 -------------------------------------------------------------------------------
