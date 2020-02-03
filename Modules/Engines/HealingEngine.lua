@@ -964,14 +964,14 @@ function A.HealingEngine.GetMembersByMode(MODE)
 	return HealingEngineMembers[mode] 
 end 
 
-function A.HealingEngine.GetBuffsCount(ID, duration, source)
+function A.HealingEngine.GetBuffsCount(ID, duration, source, byID)
 	-- @return number 	
 	-- Only players 
     local total = 0
 
     if #HealingEngineMembersALL > 0 then 
         for i = 1, #HealingEngineMembersALL do
-            if HealingEngineMembersALL[i].isPlayer and A_Unit(HealingEngineMembersALL[i].Unit):HasBuffs(ID, source) > (duration or 0) then
+            if HealingEngineMembersALL[i].isPlayer and A_Unit(HealingEngineMembersALL[i].Unit):HasBuffs(ID, source, byID) > (duration or 0) then
                 total = total + 1
             end
         end
@@ -979,14 +979,14 @@ function A.HealingEngine.GetBuffsCount(ID, duration, source)
     return total 
 end 
 
-function A.HealingEngine.GetDeBuffsCount(ID, duration)
+function A.HealingEngine.GetDeBuffsCount(ID, duration, source, byID)
 	-- @return number 	
 	-- Only players 
     local total = 0
 
     if #HealingEngineMembersALL > 0 then 
         for i = 1, #HealingEngineMembersALL do
-            if HealingEngineMembersALL[i].isPlayer and A_Unit(HealingEngineMembersALL[i].Unit):HasDeBuffs(ID) > (duration or 0) then
+            if HealingEngineMembersALL[i].isPlayer and A_Unit(HealingEngineMembersALL[i].Unit):HasDeBuffs(ID, source, byID) > (duration or 0) then
                 total = total + 1
             end
         end
