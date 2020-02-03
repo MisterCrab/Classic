@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "31.01.2020"
+local DateTime 														= "03.02.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -2852,6 +2852,10 @@ local GlobalFactory = {
 	},
 }
 
+--local GlobalFactoryErased = {
+	-- The table which holds all keys which must be erased from actual db, must be [key] = true construct
+--}
+
 -- Table controlers 	
 local function tMerge(default, new, special, nonexistremove)
 	-- Forced push all keys new > default 
@@ -2943,6 +2947,23 @@ local function tCompare(default, new, upkey, skip)
 	
 	return result 
 end
+
+local function tEraseKeys(default, new)
+	-- Cleans in 'default' table keys which persistent in 'new' table 
+	if new then 
+		for k, v in pairs(new) do 
+			if default[k] then 
+				if type(v) == "table" then 
+					tEraseKeys(default[k], v)
+				else 
+					default[k] = nil 
+					Action.Print(L.DEBUG .. L.TAB[5].HEADBUTTON .. " " .. GetSpellInfo(k) .. " " .. L.RESETED:lower())
+				end 
+			end
+		end 
+	end 
+	return default
+end 
 
 -- TMWdb.global.ActionDB[5] -> TMWdb.profile.ActionDB[5]
 local isDispelCategory = {
@@ -9753,7 +9774,7 @@ function OnInitialize()
 	if not TMWdb.global.ActionDB then 		
 		Action.Print("|cff00cc66ActionDB.global|r " .. L["CREATED"])
 	end
-	TMWdb.global.ActionDB = tCompare(GlobalFactory, TMWdb.global.ActionDB)
+	TMWdb.global.ActionDB = tEraseKeys(tCompare(GlobalFactory, TMWdb.global.ActionDB), GlobalFactoryErased)
 
 	-- to avoid lua errors with calls GetToggle 	
 	ActionHasRunningDB = true 
