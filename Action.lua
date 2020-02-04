@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "03.02.2020"
+local DateTime 														= "04.02.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -5040,8 +5040,9 @@ function Action.AuraIsBlackListed(unitID)
 	-- @return boolean 
 	local Aura, Filter = Action.AuraGetCategory("BlackList")
 	if Aura and next(Aura) then 
+		local _, Name, count, duration, expirationTime, canStealOrPurge, id
 		for i = 1, huge do 
-			local Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
+			Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
 			if Name then
 				if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 
 					local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
@@ -5062,8 +5063,9 @@ function Action.AuraIsValid(unitID, Toggle, Category)
 	if Category ~= "BlackList" and Action.AuraIsON(Toggle) then 
 		local Aura, Filter = Action.AuraGetCategory(Category)
 		if Aura and not Action.AuraIsBlackListed(unitID) then 
+			local _, Name, count, duration, expirationTime, canStealOrPurge, id
 			for i = 1, huge do			
-				local Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
+				Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
 				if Name then					
 					if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 					
 						local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
