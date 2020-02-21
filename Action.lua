@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "04.02.2020"
+local DateTime 														= "21.02.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -94,6 +94,7 @@ local Localization = {
 		MACRO = "Macro",
 		MACROEXISTED = "|cffff0000Macro already existed!|r",
 		MACROLIMIT = "|cffff0000Can't create macro, you reached limit. You need to delete at least one macro!|r",	
+		MACROINCOMBAT = "|cffff0000Can't create macro in combat. You need to leave combat!|r",
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Resize",
 		RESIZE_TOOLTIP = "Click-and-drag to resize",
@@ -407,6 +408,7 @@ local Localization = {
 		MACRO = "Макрос",
 		MACROEXISTED = "|cffff0000Макрос уже существует!|r",
 		MACROLIMIT = "|cffff0000Не удается создать макрос, вы достигли лимита. Удалите хотя бы один макрос!|r",
+		MACROINCOMBAT = "|cffff0000Не удается создать макрос в бою. Вы должны выйти из боя!|r",
 		GLOBALAPI = "API Глобальное: ",	
 		RESIZE = "Изменить размер",
 		RESIZE_TOOLTIP = "Чтобы изменить размер, нажмите и тащите ",	
@@ -719,7 +721,8 @@ local Localization = {
 		RESETED = "Zurückgesetzt",
 		MACRO = "Macro",
 		MACROEXISTED = "|cffff0000Macro bereits vorhanden!|r",
-		MACROLIMIT = "|cffff0000Makrolimit erreicht, lösche vorher eins!|r",	
+		MACROLIMIT = "|cffff0000Makrolimit erreicht, lösche vorher eins!|r",
+		MACROINCOMBAT = "|cffff0000Im Kampf kann kein Makro erstellt werden. Du musst aus dem Kampf herauskommen!|r",	
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Größe ändern",
 		RESIZE_TOOLTIP = "Click-und-bewege um die Größe zu ändern",
@@ -1033,6 +1036,7 @@ local Localization = {
 		MACRO = "Macro",
 		MACROEXISTED = "|cffff0000La macro existe déjà !|r",
 		MACROLIMIT = "|cffff0000Impossible de créer la macro, vous avez atteint la limite. Vous devez supprimer au moins une macro!|r",	
+		MACROINCOMBAT = "|cffff0000Impossible de créer une macro en combat. Vous devez quitter le combat!|r",	
 		GLOBALAPI = "API Globale: ",
 		RESIZE = "Redimensionner",
 		RESIZE_TOOLTIP = "Cliquer et faire glisser pour redimensionner",
@@ -1345,7 +1349,8 @@ local Localization = {
 		RESETED = "Riavviato",
 		MACRO = "Macro",
 		MACROEXISTED = "|cffff0000La Macro esiste gia!|r",
-		MACROLIMIT = "|cffff0000Non posso creare la macro, hai raggiunto il limite. Devi cancellare almeno una macro!|r",	
+		MACROLIMIT = "|cffff0000Non posso creare la macro, hai raggiunto il limite. Devi cancellare almeno una macro!|r",
+		MACROINCOMBAT = "|cffff0000Impossibile creare macro in combattimento. Devi lasciare il combattimento!|r",	
 		GLOBALAPI = "API Globale: ",
 		RESIZE = "Ridimensiona",
 		RESIZE_TOOLTIP = "Seleziona e tracina per ridimensionare",
@@ -1659,6 +1664,7 @@ local Localization = {
 		MACRO = "Macro",
 		MACROEXISTED = "|cffff0000Macro ya existe!|r",
 		MACROLIMIT = "|cffff0000No se puede crear la macro, límite alcanzado. Debes borrar al menos una macro!|r",	
+		MACROINCOMBAT = "|cffff0000No se puede crear macro en combate. Necesitas salir del combate!|r",
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Redimensionar",
 		RESIZE_TOOLTIP = "Click-y-arrastrar para redimensionar",
@@ -2954,7 +2960,9 @@ local function tEraseKeys(default, new)
 		for k, v in pairs(new) do 
 			if default[k] then 
 				if type(v) == "table" then 
-					tEraseKeys(default[k], v)
+					if not v.enabled then 
+						tEraseKeys(default[k], v)
+					end
 				else 
 					default[k] = nil 
 					Action.Print(L.DEBUG .. L.TAB[5].HEADBUTTON .. " " .. GetSpellInfo(k) .. " " .. L.RESETED:lower())
@@ -3264,9 +3272,15 @@ local function CreateResizer(parent)
 	return frame
 end 
 local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
+	if InCombatLockdown() then 
+		Action.Print(L["MACROINCOMBAT"])
+		return 
+	end 
+	
 	if MacroFrame then 
 		MacroFrame.CloseButton:Click()
 	end
+	
 	local numglobal, numperchar = GetNumMacros()	
 	local NumMacros = perCharacter and numperchar or numglobal
 	if (perCharacter and NumMacros >= MAX_CHARACTER_MACROS) or (not perCharacter and NumMacros >= MAX_ACCOUNT_MACROS) then 
@@ -3274,6 +3288,7 @@ local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
 		GameMenuButtonMacros:Click()
 		return 
 	end 
+	
 	Name = strgsub(Name, "\n", " ")
 	for i = 1, MAX_CHARACTER_MACROS + MAX_ACCOUNT_MACROS do 
 		if GetMacroInfo(i) == Name then 
@@ -3282,6 +3297,7 @@ local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
 			return 
 		end 
 	end 
+	
 	CreateMacro(Name, QUESTIONMARK and "INV_MISC_QUESTIONMARK" or GetMacroIcons()[1], not leaveNewLine and strgsub(Macro, "\n", " ") or Macro, perCharacter and 1 or nil)			
 	Action.Print(L["MACRO"] .. " " .. Name .. " " .. L["CREATED"] .. "!")
 	GameMenuButtonMacros:Click()
@@ -4379,7 +4395,7 @@ local UnitHealthTool = {
 		-- set values 
 		local realValue = round(Action.Unit("target"):Health(), 0)
 		if realValue ~= 0 then 
-			parent.RealHealth:SetText(self.AbbreviateNumber(realValue))
+			parent.RealHealth:SetText(self:AbbreviateNumber(realValue))
 		else 
 			parent.RealHealth:SetText("")
 		end 		
@@ -5348,7 +5364,7 @@ function Action.SetToggle(arg, custom)
 		end 
 		
 		bool = TMWdb.global.ActionDB[toggle] 		
-	elseif Factory[n] and Factory[n][toggle] ~= nil then 
+	elseif Factory[n] and Factory[n][toggle] ~= nil and type(Factory[n][toggle]) ~= "table" then 
 		if custom ~= nil then 
 			TMWdb.profile.ActionDB[n][toggle] = custom 	
 		else 
@@ -5362,13 +5378,31 @@ function Action.SetToggle(arg, custom)
 		end
 		return 
 	else 
-		-- Usually only for Dropdown in multi. Logic is simply:
-		-- 1 Create (or refresh) cache of all instances in DB if any is ON (true or with value), then turn all OFF if anything was ON. 
-		-- 2 Or if all OFF then:
-		-- 2.1 If no cache (means all was OFF) then make ON all (next time it will repeat 1 step to create cache)
-		-- 2.2 If cache exist then turn ON from cache 
-		-- /run TMWdb.profile.ActionDB[1].Trinkets.Cache = nil
-		if type(TMWdb.profile.ActionDB[n][toggle]) == "table" then 
+		if custom ~= nil then 
+			if type(custom) == "table" then 
+				for k, v in pairs(custom) do
+					if TMWdb.profile.ActionDB[n][toggle][k] ~= nil and type(TMWdb.profile.ActionDB[n][toggle][k]) == type(v) then 
+						TMWdb.profile.ActionDB[n][toggle][k] = v
+						
+						if not silence and text then 
+							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
+						end 
+					else
+						if not silence then 
+							Action.Print(L["DEBUG"] .. (n or "") .. " " .. (toggle or "") .. " " .. (k or "") .. " = " .. tostring(v) .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle")
+						end
+					end 
+				end 
+			else 
+				TMWdb.profile.ActionDB[n][toggle] = custom 	
+			end 			
+		elseif type(TMWdb.profile.ActionDB[n][toggle]) == "table" then 
+			-- Usually only for Dropdown in multi. Logic is simply:
+			-- 1 Create (or refresh) cache of all instances in DB if any is ON (true or with value), then turn all OFF if anything was ON. 
+			-- 2 Or if all OFF then:
+			-- 2.1 If no cache (means all was OFF) then make ON all (next time it will repeat 1 step to create cache)
+			-- 2.2 If cache exist then turn ON from cache 
+			-- /run TMWdb.profile.ActionDB[1].Trinkets.Cache = nil
 			local anyIsON = false
 			for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do 
 				if TMWdb.profile.ActionDB[n][toggle][k] and k ~= "Cache" and not anyIsON then 
@@ -5386,13 +5420,13 @@ function Action.SetToggle(arg, custom)
 			if anyIsON then 
 				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do
 					if TMWdb.profile.ActionDB[n][toggle][k] and k ~= "Cache" then 
-						if custom ~= nil then 
-							TMWdb.profile.ActionDB[n][toggle][k] = custom
-						else 
+						--if custom ~= nil then 
+							--TMWdb.profile.ActionDB[n][toggle][k] = custom
+						--else 
 							TMWdb.profile.ActionDB[n][toggle][k] = not v
-						end 
+						--end 
 						
-						if text then 
+						if not silence and text then 
 							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
 						end 
 					end 
@@ -5401,7 +5435,7 @@ function Action.SetToggle(arg, custom)
 				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle].Cache) do	
 					if k ~= "Cache" then 
 						TMWdb.profile.ActionDB[n][toggle][k] = v	
-						if text then 
+						if not silence and text then 
 							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
 						end
 					end
@@ -5409,24 +5443,20 @@ function Action.SetToggle(arg, custom)
 			else 
 				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do
 					if k ~= "Cache" then 
-						if custom ~= nil then 
-							TMWdb.profile.ActionDB[n][toggle][k] = custom
-						else 
+						--if custom ~= nil then 
+							--TMWdb.profile.ActionDB[n][toggle][k] = custom
+						--else 
 							TMWdb.profile.ActionDB[n][toggle][k] = not v 
-						end 
+						--end 
 						
-						if text then 
+						if not silence and text then 
 							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
 						end		
 					end
 				end 				
 			end 
 		else 
-			if custom ~= nil then 
-				TMWdb.profile.ActionDB[n][toggle] = custom					
-			else 
-				TMWdb.profile.ActionDB[n][toggle] = not TMWdb.profile.ActionDB[n][toggle]	
-			end 			
+			TMWdb.profile.ActionDB[n][toggle] = not TMWdb.profile.ActionDB[n][toggle]				 			
 		end
 		bool = TMWdb.profile.ActionDB[n][toggle] 
 	end 
@@ -9645,6 +9675,7 @@ function OnInitialize()
 	Action.IsInitialized = nil	
 	Action.IsGGLprofile = profile:match("GGL") and true or false  	-- Don't remove it because this is validance for HealingEngine   	
 	Action.IsBasicProfile = profile == "[GGL] Basic"
+	Action.CurrentProfile = profile
 	
 	----------------------------------
 	-- TMW CORE SNIPPETS FIX

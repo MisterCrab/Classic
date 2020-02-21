@@ -1887,7 +1887,7 @@ A.Unit = PseudoClass({
 	HealthPercent							= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
+		if CombatTracker:UnitHasRealHealth(unitID) then 
 			return UnitHealth(unitID) * 100 / UnitHealthMax(unitID)
 		end 
 	    return UnitHealth(unitID)

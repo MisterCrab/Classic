@@ -5,6 +5,7 @@ local A 										= Action
 local Listener									= A.Listener
 local isEnemy									= A.Bit.isEnemy
 local isPlayer									= A.Bit.isPlayer
+local isPet										= A.Bit.isPet
 local TeamCache									= A.TeamCache
 local TeamCacheFriendly							= TeamCache.Friendly
 local TeamCacheFriendlyUNITs					= TeamCacheFriendly.UNITs
@@ -13,7 +14,7 @@ local TeamCacheFriendlyIndexToPLAYERs			= TeamCacheFriendly.IndexToPLAYERs
 local TeamCacheFriendlyIndexToPETs				= TeamCacheFriendly.IndexToPETs
 local TeamCacheEnemy							= TeamCache.Enemy
 local TeamCacheEnemyUNITs						= TeamCacheEnemy.UNITs
---local TeamCacheEnemyGUIDs						= TeamCacheEnemy.GUIDs
+local TeamCacheEnemyGUIDs						= TeamCacheEnemy.GUIDs
 local TeamCacheEnemyIndexToPLAYERs				= TeamCacheEnemy.IndexToPLAYERs
 --local TeamCacheEnemyIndexToPETs				= TeamCacheEnemy.IndexToPETs
 local skipedFirstEnter 							= false
@@ -40,12 +41,11 @@ end)
 
 -- [[ Classic ]]
 local GetToggle									= A.GetToggle
-local strOnlyBuilder							= A.strOnlyBuilder
 local DRData 									= LibStub("DRList-1.1")
 --
 
-local _G, type, pairs, next, math = 
-	  _G, type, pairs, next, math
+local _G, type, pairs, next, math, tonumber, select = 
+	  _G, type, pairs, next, math, tonumber, select
 	  
 local huge 										= math.huge 
 local abs 										= math.abs 
@@ -53,8 +53,8 @@ local math_max									= math.max
 local wipe 										= _G.wipe
 local strsub									= _G.strsub
 
-local UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff = 
-	  UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitInAnyGroup, UnitDebuff	  
+local UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitDebuff = 
+	  UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitDebuff	  
 	  
 local InCombatLockdown, CombatLogGetCurrentEventInfo = 
 	  InCombatLockdown, CombatLogGetCurrentEventInfo 
@@ -64,6 +64,8 @@ local GetSpellInfo								= _G.GetSpellInfo
 
 local  CreateFrame,    UIParent					= 
 	_G.CreateFrame, _G.UIParent	 
+	
+local GameBuild 								= tonumber((select(2, _G.GetBuildInfo())))		
 
 local function GetGUID(unitID)
 	return (unitID and (TeamCacheFriendlyUNITs[unitID] or TeamCacheEnemyUNITs[unitID])) or UnitGUID(unitID)
@@ -263,7 +265,7 @@ local CombatTrackerCleanTableByTime				= CombatTracker.CleanTableByTime
 local CombatTrackerSummTableByTime				= CombatTracker.SummTableByTime
 
 -- Classic: RealUnitHealth
-local RealUnitHealth 			= {
+local RealUnitHealth 							= {
 	DamageTaken					= {},	-- log damage and healing taken (includes regen as healing only if can be received by events which provide unitID)
 	CachedHealthMax				= {},	-- used to display when unit received damage at pre pared full health 
 	CachedHealthMaxTemprorary 	= {},	-- used to display when unit received damage at any health percentage 
@@ -277,6 +279,33 @@ local RealUnitHealthCachedHealthMaxTemprorary	= RealUnitHealth.CachedHealthMaxTe
 local RealUnitHealthSavedHealthPercent			= RealUnitHealth.SavedHealthPercent
 local RealUnitHealthisHealthWasMaxOnGUID		= RealUnitHealth.isHealthWasMaxOnGUID
 
+local function GameBuildHasRealHealth()
+	-- @return boolean 
+	return GameBuild >= 33302
+end 
+
+local function UnitHasRealHealth(unitID)
+	-- @return boolean 
+	if not unitID then 
+		return true 
+	end 
+	
+	if GameBuildHasRealHealth() then 
+		if A_Unit(unitID):IsEnemy() then 
+			return not A_Unit(unitID):IsPet() and not A_Unit(unitID):IsPlayer()
+		else 
+			return UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") or (not A_Unit(unitID):IsPet() and not A_Unit(unitID):IsPlayer()) or TeamCacheFriendlyGUIDs[GetGUID(unitID) or ""]
+		end 
+	else 
+		return UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") or TeamCacheFriendlyGUIDs[GetGUID(unitID) or ""]
+	end 
+end 
+
+local function DestHasPercentHealth(destGUID, destFlags)
+	-- @return boolean 
+	return not TeamCacheFriendlyGUIDs[destGUID] --and (not GameBuildHasRealHealth() or TeamCacheEnemyGUIDs[destGUID] or isPlayer(destFlags) or isPet(destFlags))
+end 
+
 local function logDefaultGUIDatMaxHealth()
 	if TeamCacheFriendly.Size > 0 and TeamCacheFriendly.Type then 
 		for i = 1, TeamCacheFriendly.MaxSize do		
@@ -287,9 +316,9 @@ local function logDefaultGUIDatMaxHealth()
 			--CombatTracker.logHealthMax(unitPetID)	
 			-- unittarget
 			if unitID then 
-				CombatTracker.logHealthMax(strOnlyBuilder(unitID, "target"))
+				CombatTracker.logHealthMax(unitID .. "target")
 				if unitPetID then 
-					CombatTracker.logHealthMax(strOnlyBuilder(unitPetID, "target"))
+					CombatTracker.logHealthMax(unitPetID .. "target")
 				end 
 			end 
 		end
@@ -306,10 +335,10 @@ local function logDefaultGUIDatMaxHealthMouseover()
 	CombatTracker.logHealthMax("mouseovertarget")
 end 
 
---[[ This Logs the UnitHealthMax (Real) for every unit ]]
+--[[ This Logs the UnitHealthMax (Real) ]]
 CombatTracker.logHealthMax						= function(...)
 	local unitID 	= ...
-	if not unitID or UnitInAnyGroup(unitID) or UnitIsUnit(unitID, "player") or UnitIsUnit(unitID, "pet") then 
+	if UnitHasRealHealth(unitID) then 
 		return 
 	end 
 	
@@ -370,7 +399,9 @@ end
 CombatTracker.logEnvironmentalDamage			= function(...)
 	local timestamp,_,_, SourceGUID,_,_,_, DestGUID,_, destFlags,_,_, Amount = ... -- CombatLogGetCurrentEventInfo()
 	-- Classic: RealUnitHealth log taken
-	RealUnitHealthDamageTaken[DestGUID] = (RealUnitHealthDamageTaken[DestGUID] or 0) + Amount
+	if DestHasPercentHealth(DestGUID, destFlags) then 
+		RealUnitHealthDamageTaken[DestGUID] = (RealUnitHealthDamageTaken[DestGUID] or 0) + Amount
+	end 
 	
 	-- Update last hit time
 	-- Taken 
@@ -504,7 +535,7 @@ CombatTracker.logDamage 						= function(...)
 	end 
 	
 	-- Classic: RealUnitHealth log taken only for out of group 
-	if not TeamCacheFriendlyGUIDs[DestGUID] then 
+	if DestHasPercentHealth(DestGUID, destFlags) then 
 		RealUnitHealthDamageTaken[DestGUID] = (RealUnitHealthDamageTaken[DestGUID] or 0) + Amount	
 	end 
 	
@@ -634,7 +665,7 @@ CombatTracker.logSwing 							= function(...)
 	CombatTrackerData[SourceGUID].DMG_lastHit_done = timestamp
 	
 	-- Classic: RealUnitHealth log taken only for out of group 
-	if not TeamCacheFriendlyGUIDs[DestGUID] then 
+	if DestHasPercentHealth(DestGUID, destFlags) then 
 		RealUnitHealthDamageTaken[DestGUID] = (RealUnitHealthDamageTaken[DestGUID] or 0) + Amount	
 	end 
 	
@@ -693,7 +724,7 @@ CombatTracker.logHealing			 			= function(...)
 	CombatTrackerData[SourceGUID].HPS_heal_lasttime_done = timestamp
 	
 	-- Classic: RealUnitHealth log taken only for out of group 
-	if not TeamCacheFriendlyGUIDs[DestGUID] then 
+	if DestHasPercentHealth(DestGUID, destFlags) then 
 		local compare = (RealUnitHealthDamageTaken[DestGUID] or 0) - Amount
 		if compare <= 0 then 
 			RealUnitHealthDamageTaken[DestGUID] = 0
@@ -1870,7 +1901,7 @@ A.CombatTracker									= {
 	UnitHealthMax								= function(self, unitID)
 		-- @return number (0 in case if unit dead or if it's not recorded by logs)		
 		-- Exception for self because we can self real hp by this func 
-		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then 
+		if UnitHasRealHealth(unitID) then 
 			return UnitHealthMax(unitID)
 		end 
 			
@@ -1896,7 +1927,7 @@ A.CombatTracker									= {
 	UnitHealth									= function(self, unitID)
 		-- @return number (0 in case if unit dead or if it's not recorded by logs)
 		-- Exception for self because we can self real hp by this func 
-		if UnitInAnyGroup(unitID) or UnitIsUnit("player", unitID) or UnitIsUnit("pet", unitID) then  
+		if UnitHasRealHealth(unitID) then  
 			return UnitHealth(unitID)
 		end 
 		
@@ -1905,11 +1936,18 @@ A.CombatTracker									= {
 		-- Unit wiped or not recorded 
 		if not RealUnitHealthDamageTaken[GUID] then 
 			return 0 
-		end 		
+		end 	
 		
 		if RealUnitHealthCachedHealthMax[GUID] then 
 			-- Pre out 
-			local curr_value = RealUnitHealthCachedHealthMax[GUID] - RealUnitHealthDamageTaken[GUID] 
+			local curr_value 
+			if UnitAffectingCombat(unitID) then 
+				-- In combat
+				curr_value = RealUnitHealthCachedHealthMax[GUID] - RealUnitHealthDamageTaken[GUID] 
+			else
+				-- Out of combat 
+				curr_value = UnitHealth(unitID) * RealUnitHealthCachedHealthMax[GUID] / 100
+			end 
 			--print("PRE OUT UnitHealth(", unitID, "): ", curr_value)
 			if curr_value > 0 then 
 				return curr_value
@@ -1920,7 +1958,14 @@ A.CombatTracker									= {
 			--return UnitHealth(unitID) * RealUnitHealthCachedHealthMax[GUID] / UnitHealthMax(unitID)
 		elseif RealUnitHealthCachedHealthMaxTemprorary[GUID] then 
 			-- Post out 
-			local curr_value = RealUnitHealthCachedHealthMaxTemprorary[GUID] - RealUnitHealthDamageTaken[GUID]
+			local curr_value 
+			if UnitAffectingCombat(unitID) then 
+				-- In combat
+				curr_value = RealUnitHealthCachedHealthMaxTemprorary[GUID] - RealUnitHealthDamageTaken[GUID]
+			else 
+				-- Out of combat 
+				curr_value = UnitHealth(unitID) * RealUnitHealthCachedHealthMaxTemprorary[GUID] / 100
+			end 
 			--print("POST POST OUT UnitHealth(", unitID, "): ", curr_value)
 			if curr_value > 0 then 
 				return curr_value
@@ -1940,6 +1985,11 @@ A.CombatTracker									= {
 		end 
 		
 		return 0 
+	end,
+	--[[ Return boolean if unit has real value ]]
+	UnitHasRealHealth							= function(self, unitID)
+		-- @return boolean 
+		return UnitHasRealHealth(unitID)
 	end,
 	--[[ Returns the total ammount of time a unit is in-combat for ]]
 	CombatTime									= function(self, unitID)
