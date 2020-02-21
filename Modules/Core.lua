@@ -24,7 +24,7 @@ local MultiUnits									= A.MultiUnits
 local Pet											= LibStub("PetLibrary")
 local LoC_GetExtra									= LoC.GetExtra
 
-local _G, math, select								= _G, math, select
+local _G, math, type, select, setmetatable			= _G, math, type, select, setmetatable
 local huge 											= math.huge
 
 local UnitBuff										= _G.UnitBuff
@@ -155,6 +155,12 @@ end
 A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
 
 local A_PauseChecks = A.PauseChecks
+
+local GetMetaType = setmetatable({}, { __index = function(t, v)
+	local istype = type(v)
+	t[v] = istype	
+	return istype
+end })
 
 local Temp = {
 	LivingActionPotionIsMissed		= {"INCAPACITATE", "DISORIENT", "FREEZE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "TURN_UNDEAD"},
@@ -347,10 +353,11 @@ function A.Rotation(icon)
 	end 	
 	
 	local meta = icon.ID
+	local metatype = GetMetaType[A[A.PlayerClass][meta] or "nill"]
 	
 	-- [1] CC / [2] Kick 
 	if meta <= 2 then 
-		if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
+		if metatype == "function" and A[A.PlayerClass][meta](icon) then 
 			return true
 		end 
 		return A_Hide(icon)
@@ -374,7 +381,7 @@ function A.Rotation(icon)
 		end	
 		
 		-- Use specialization spell trinkets
-		if type(A[A.PlayerClass][meta]) == "function" and A[A.PlayerClass][meta](icon) then  
+		if metatype == "function" and A[A.PlayerClass][meta](icon) then  
 			return true 			
 		end 		
 		
@@ -449,7 +456,7 @@ function A.Rotation(icon)
     end 
 	
 	-- Hide frames which are not used by profile
-	if not A[A.PlayerClass][meta] then 
+	if metatype ~= "function" then 
 		return A_Hide(icon)
 	end 
 	
@@ -485,7 +492,7 @@ function A.Rotation(icon)
 	end 
 	
 	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
-	if A[A.PlayerClass][meta] and A[A.PlayerClass][meta](icon) then 
+	if A[A.PlayerClass][meta](icon) then 
 		return true 
 	end 
 	

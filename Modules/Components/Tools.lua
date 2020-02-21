@@ -436,6 +436,10 @@ function A.Bit.isPlayer(Flags)
 	return band(Flags, ACTION_CONST_CL_TYPE_PLAYER) == ACTION_CONST_CL_TYPE_PLAYER or band(Flags, ACTION_CONST_CL_CONTROL_PLAYER) == ACTION_CONST_CL_CONTROL_PLAYER
 end
 
+function A.Bit.isPet(Flags)
+	return band(Flags, ACTION_CONST_CL_TYPE_PET) == ACTION_CONST_CL_TYPE_PET
+end
+
 -------------------------------------------------------------------------------
 -- Utils
 -------------------------------------------------------------------------------

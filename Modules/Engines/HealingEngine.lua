@@ -82,7 +82,7 @@ local PR
 -- [[ Classic Paladin Locals ]]
 local BlessingofProtectionUnits, BlessingofSacrificeUnits, BlessingofFreedomUnits, DispelUnits
 
--- [[ Core ]]
+-- [[ Data ]]
 local HealingEngine 					= {
 	IsRunning							= false,
 	QueueOrder							= {},
@@ -116,6 +116,7 @@ local HealingEngine 					= {
 			end 		
 		end,
 	},
+	CustomPerform						= {},
 }
 
 local HealingEngineQueueOrder			= HealingEngine.QueueOrder
@@ -131,6 +132,7 @@ local HealingEngineMembersMOSTLYINCDMG	= HealingEngineMembers.MOSTLYINCDMG
 local HealingEngineFrequency 			= HealingEngine.Frequency
 local HealingEngineFrequencyActual		= HealingEngineFrequency.Actual
 local HealingEngineFrequencyTemp		= HealingEngineFrequency.Temp
+local HealingEngineCustomPerform 		= HealingEngine.CustomPerform
 
 local function CalculateHP(unitID)	
     local incomingheals 				= A_Unit(unitID):GetIncomingHeals()
@@ -159,92 +161,96 @@ end
 
 local function PerformByProfileHP(member, memberhp, membermhp, DMG)
 	-- Enable specific instructions by profile 
-	if A.IsGGLprofile and not A.IsBasicProfile then 
-		if A.PlayerClass == "PRIEST" then 
-			if not PR then 
-				PR = A.PRIEST
-			end 
-			
-			if PR then 
-				if GetToggle(2, "PreParePOWS") and PR.PowerWordShield:IsReady(member, nil, nil, true, nil) and A_Unit(member):HasDeBuffs(PR.WeakenedSoul.ID) == 0 and A_Unit(member):HasBuffs(PR.PowerWordShield.ID) == 0 then 
-					memberhp = 50
-				elseif GetToggle(2, "PrePareRenew") and A_Unit(member):HasBuffs(PR.Renew.ID, true) == 0 then 
-					local Renew = A_DetermineUsableObject(member, nil, nil, true, nil, PR.Renew, PR.Renew9, PR.Renew8, PR.Renew7, PR.Renew6, PR.Renew5, PR.Renew4, PR.Renew3, PR.Renew2, PR.Renew1)
-					if Renew then 
-						memberhp = 50					
-					end 							
+	if not A.IsBasicProfile then 
+		if A.IsGGLprofile then 
+			if A.PlayerClass == "PRIEST" then 
+				if not PR then 
+					PR = A.PRIEST
 				end 
 				
-				-- Dispels
-				if (not A.IsInPvP or not UnitIsUnit(player, member)) and (not HealingEngineQueueOrder.Dispel or A_Unit(member):IsHealer()) then 
-					if ((AuraIsValid(member, "UseDispel", "Magic") or AuraIsValid(member, "UsePurge", "PurgeFriendly")) and PR.DispelMagic:IsReady(member, nil, nil, true))
-					or (A_Unit(member):HasBuffs(PR.AbolishDisease.ID) == 0 and AuraIsValid(member, "UseDispel", "Disease") and (PR.AbolishDisease:IsReady(member, nil, nil, true) or PR.CureDisease:IsReady(member, nil, nil, true)))
-					then 
-						HealingEngineQueueOrder.Dispel = true 
-						if A_Unit(member):IsHealer() then 									
-							if UnitIsUnit(player, member) then 
-								memberhp = memberhp - 25
-							else 
-								memberhp = memberhp - 60	
-							end 
-						else 
-							memberhp = memberhp - 40	
-						end  
-					end 							
-				end 
-			end 
-		end
-
-		if A.PlayerClass == "PALADIN" and A.PALADIN then 
-			-- [#1] Blessing of Protection
-			if not BlessingofProtectionUnits then 
-				BlessingofProtectionUnits = GetToggle(2, "BlessingofProtectionUnits")
-			end 
-			if not HealingEngineQueueOrder.BlessingofProtection and BlessingofProtectionUnits[5] and BlessingofProtectionUnits[4] and A.IsAbleBoP(member, true) then 
-				HealingEngineQueueOrder.BlessingofProtection = true
-				memberhp = memberhp - 60
-			end 
-				
-			-- [#2] Cleanse / Purify
-			if not DispelUnits then 
-				DispelUnits = GetToggle(2, "DispelUnits")
-			end 
-			if not HealingEngineQueueOrder.BlessingofProtection and (not A.IsInPvP or not UnitIsUnit(player, member)) and (not HealingEngineQueueOrder.Dispel or A_Unit(member):IsHealer()) and DispelUnits[5] and DispelUnits[4] and A.IsAbleDispel(member, true) then
-				HealingEngineQueueOrder.Dispel = true 
-				if A_Unit(member):IsHealer() then 									
-					if UnitIsUnit(player, member) then 
-						memberhp = memberhp - 25
-					else 
-						memberhp = memberhp - 60	
+				if PR then 
+					if GetToggle(2, "PreParePOWS") and PR.PowerWordShield:IsReady(member, nil, nil, true, nil) and A_Unit(member):HasDeBuffs(PR.WeakenedSoul.ID) == 0 and A_Unit(member):HasBuffs(PR.PowerWordShield.ID) == 0 then 
+						memberhp = 50
+					elseif GetToggle(2, "PrePareRenew") and A_Unit(member):HasBuffs(PR.Renew.ID, true) == 0 then 
+						local Renew = A_DetermineUsableObject(member, nil, nil, true, nil, PR.Renew, PR.Renew9, PR.Renew8, PR.Renew7, PR.Renew6, PR.Renew5, PR.Renew4, PR.Renew3, PR.Renew2, PR.Renew1)
+						if Renew then 
+							memberhp = 50					
+						end 							
 					end 
-				else 
-					memberhp = memberhp - 40	
-				end  
-			end 
-			
-			-- [#3] Blessing of Sacrifice
-			if not BlessingofSacrificeUnits then 
-				BlessingofSacrificeUnits = GetToggle(2, "BlessingofSacrificeUnits")
-			end 
-			if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.Dispel and BlessingofSacrificeUnits[5] and BlessingofSacrificeUnits[4] and A.IsAbleBoS(member, true) then 
-				HealingEngineQueueOrder.BlessingofSacrifice = true 
-				memberhp = 25
-			end 	
-			
-			-- [#4] Blessing of Freedom		
-			if not BlessingofFreedomUnits then 
-				BlessingofFreedomUnits = GetToggle(2, "BlessingofFreedomUnits")
-			end 
-			if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.BlessingofFreedom and not HealingEngineQueueOrder.Dispel and BlessingofFreedomUnits[5] and BlessingofFreedomUnits[4] and A.IsAbleBoF(member, true) then 
-				HealingEngineQueueOrder.BlessingofFreedom = true 
-				memberhp = 50
-			end 	
+					
+					-- Dispels
+					if (not A.IsInPvP or not UnitIsUnit(player, member)) and (not HealingEngineQueueOrder.Dispel or A_Unit(member):IsHealer()) then 
+						if ((AuraIsValid(member, "UseDispel", "Magic") or AuraIsValid(member, "UsePurge", "PurgeFriendly")) and PR.DispelMagic:IsReady(member, nil, nil, true))
+						or (A_Unit(member):HasBuffs(PR.AbolishDisease.ID) == 0 and AuraIsValid(member, "UseDispel", "Disease") and (PR.AbolishDisease:IsReady(member, nil, nil, true) or PR.CureDisease:IsReady(member, nil, nil, true)))
+						then 
+							HealingEngineQueueOrder.Dispel = true 
+							if A_Unit(member):IsHealer() then 									
+								if UnitIsUnit(player, member) then 
+									memberhp = memberhp - 25
+								else 
+									memberhp = memberhp - 60	
+								end 
+							else 
+								memberhp = memberhp - 40	
+							end  
+						end 							
+					end 
+				end 
+			end
 
-			-- [#5] Blessing Buff 
-			if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.BlessingofFreedom and not HealingEngineQueueOrder.Dispel and not HealingEngineQueueOrder.BlessingBuff and ((A.IsInPvP and GetToggle(2, "BlessingBuffHealingEnginePvP")) or (not A.IsInPvP and GetToggle(2, "BlessingBuffHealingEnginePvE"))) and A.IsAbleBlessingBuff(member, true) then 
-				HealingEngineQueueOrder.BlessingBuff = true 
-				memberhp = memberhp - 10
-			end 			 
+			if A.PlayerClass == "PALADIN" and A.PALADIN then 
+				-- [#1] Blessing of Protection
+				if not BlessingofProtectionUnits then 
+					BlessingofProtectionUnits = GetToggle(2, "BlessingofProtectionUnits")
+				end 
+				if not HealingEngineQueueOrder.BlessingofProtection and BlessingofProtectionUnits[5] and BlessingofProtectionUnits[4] and A.IsAbleBoP(member, true) then 
+					HealingEngineQueueOrder.BlessingofProtection = true
+					memberhp = memberhp - 60
+				end 
+					
+				-- [#2] Cleanse / Purify
+				if not DispelUnits then 
+					DispelUnits = GetToggle(2, "DispelUnits")
+				end 
+				if not HealingEngineQueueOrder.BlessingofProtection and (not A.IsInPvP or not UnitIsUnit(player, member)) and (not HealingEngineQueueOrder.Dispel or A_Unit(member):IsHealer()) and DispelUnits[5] and DispelUnits[4] and A.IsAbleDispel(member, true) then
+					HealingEngineQueueOrder.Dispel = true 
+					if A_Unit(member):IsHealer() then 									
+						if UnitIsUnit(player, member) then 
+							memberhp = memberhp - 25
+						else 
+							memberhp = memberhp - 60	
+						end 
+					else 
+						memberhp = memberhp - 40	
+					end  
+				end 
+				
+				-- [#3] Blessing of Sacrifice
+				if not BlessingofSacrificeUnits then 
+					BlessingofSacrificeUnits = GetToggle(2, "BlessingofSacrificeUnits")
+				end 
+				if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.Dispel and BlessingofSacrificeUnits[5] and BlessingofSacrificeUnits[4] and A.IsAbleBoS(member, true) then 
+					HealingEngineQueueOrder.BlessingofSacrifice = true 
+					memberhp = 25
+				end 	
+				
+				-- [#4] Blessing of Freedom		
+				if not BlessingofFreedomUnits then 
+					BlessingofFreedomUnits = GetToggle(2, "BlessingofFreedomUnits")
+				end 
+				if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.BlessingofFreedom and not HealingEngineQueueOrder.Dispel and BlessingofFreedomUnits[5] and BlessingofFreedomUnits[4] and A.IsAbleBoF(member, true) then 
+					HealingEngineQueueOrder.BlessingofFreedom = true 
+					memberhp = 50
+				end 	
+
+				-- [#5] Blessing Buff 
+				if not HealingEngineQueueOrder.BlessingofProtection and not HealingEngineQueueOrder.BlessingofSacrifice and not HealingEngineQueueOrder.BlessingofFreedom and not HealingEngineQueueOrder.Dispel and not HealingEngineQueueOrder.BlessingBuff and ((A.IsInPvP and GetToggle(2, "BlessingBuffHealingEnginePvP")) or (not A.IsInPvP and GetToggle(2, "BlessingBuffHealingEnginePvE"))) and A.IsAbleBlessingBuff(member, true) then 
+					HealingEngineQueueOrder.BlessingBuff = true 
+					memberhp = memberhp - 10
+				end 			 
+			end 
+		elseif A.IsInitialized and HealingEngineCustomPerform[A.CurrentProfile] then 
+			memberhp = HealingEngineCustomPerform[A.CurrentProfile](member, memberhp, membermhp, DMG)
 		end 
 	end 
 	
@@ -254,6 +260,7 @@ end
 local function OnUpdate(MODE, useActualHP)   
 	local group 				= TeamCacheFriendly.Type
     local ActualHP 				= useActualHP or false
+	wipe(HealingEngineQueueOrder)
 	HealingEngineMembers:Wipe()
 	
     if group ~= "raid" then 
@@ -925,7 +932,64 @@ TMW:RegisterCallback("TMW_ACTION_ENTERING", 									HealingEngineInit)
 --- Members are depend on GetToggle(1, "HE_Pets") variable 
 
 --- Globals
-A.HealingEngine = {}
+A.HealingEngine = { Data = HealingEngine }
+
+--- Data Controller 
+function A.HealingEngine.SortMembers(useActualHP)
+	-- Manual re-sort table 
+	if #HealingEngineMembersALL > 1 then
+		for i = 1, #HealingEngineMembersALL do 
+			HealingEngineMembersMOSTLYINCDMG[#HealingEngineMembersMOSTLYINCDMG + 1]				=	{ Unit = HealingEngineMembersALL[i].Unit, GUID = HealingEngineMembersALL[i].GUID, incDMG = HealingEngineMembersALL[i].incDMG }
+		end 
+        tsort(HealingEngineMembersMOSTLYINCDMG, sort_incDMG)  
+		
+		if not ActualHP then
+			for _, v in pairs(HealingEngineMembers) do 
+				if type(v) == "table" and #v > 1 and v[1].HP then 
+					tsort(v, sort_HP)
+				end 
+			end 		
+        elseif ActualHP then
+			for _, v in pairs(HealingEngineMembers) do 
+				if type(v) == "table" and #v > 1 and v[1].AHP then 
+					tsort(v, sort_AHP)
+				end 
+			end 		
+        end
+	end 
+end 
+
+function A.HealingEngine.SetPerformByProfileHP(func)
+	-- Note: Only for non GGL profiles and Action initializated
+	-- Argument 'func' must be function which will return number (health percent), this function accepts same arguments what will has PerformByProfileHP and fires for each member through enumeration-loop, at the end of loop all members will be sorted by default (refference to A.HealingEngine.SortMembers)
+	-- [1] member is @string refference for unitID 
+	-- [2] memberhp is @number refference for health percent of member 
+	-- [3] membermhp is @number refference for max health non-percent of member 
+	-- [4] DMG is @number refference for Unit(member):GetRealTimeDMG() indicates for real time incoming damage, it has limit 15% of the max health per second and can't be higher
+	-- Usage: 
+	--[[
+		local A 						= Action 
+		local Unit 						= A.Unit
+		local HealingEngine				= A.HealingEngine
+		local HealingEngineQueueOrder 	= HealingEngine.Data.QueueOrder -- this is very useful @table which resets every full enumeration-loop (see example of use below)
+		HealingEngine.SetPerformByProfileHP(
+			function(member, memberhp, membermhp, DMG)
+				if A.PlayerSpec == "PRIEST" then 
+					if not HealingEngineQueueOrder.usePWS and Unit(member):HasBuffs(18, true) == 0 and Unit(member):HasDeBuffs("WeakenedSoul DeBuff") == 0 then 
+						HealingEngineQueueOrder.usePWS = true -- that will skips check :HasBuffs(18, true) for other members and save performance because you can use shield only on one unit per GCD but loop refrehes every ~0.3 sec
+						memberhp = memberhp - 20
+						if memberhp < 40 then 
+							memberhp = 40 
+						end 
+					end 
+				end 
+				
+				return memberhp
+			end 
+		end)
+	]]
+	HealingEngineCustomPerform[A.CurrentProfile] = func 
+end 
 
 --- SetTarget Controller 
 function A.HealingEngine.SetTargetMostlyIncDMG(delay)
@@ -946,7 +1010,7 @@ function A.HealingEngine.SetTarget(unitID, delay)
 		healingTargetDelay 		= TMW.time + (delay or 2)
 		if GUID ~= healingTargetGUID and #HealingEngineMembersALL > 0 then 
 			healingTargetGUID 	= GUID
-			healingTarget		= TeamCacheFriendlyGUIDs[unitID] or unitID
+			healingTarget		= TeamCacheFriendlyGUIDs[GUID] or unitID
 			SetColorTarget(true)
 		end 
 	end 
