@@ -1,3 +1,7 @@
+[Warrior v11]
+Disabled cooldown text and swing pulse animation effects
+Added condition to skip totems as enemy unit around for AoE rotation 
+
 [Warrior v10]
 Taunt and MockingBlow				- Fixed issue when used at same time 
 Taunt and MockingBlow				- Added Stuned debuffs check  
