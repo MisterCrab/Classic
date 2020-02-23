@@ -1,3 +1,7 @@
+[Warlock v4]
+Disabled cooldown text and swing pulse animation effects
+BloodFury				- Fixed to use only if melee attacking
+
 [Warlock v3]
 Fixed lua error with toggle "Life Tap On Full Health"
 Fixed some wrong texts in UI
