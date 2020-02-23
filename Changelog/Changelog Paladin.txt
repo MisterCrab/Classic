@@ -1,3 +1,7 @@
+[Paladin v5]
+Disabled cooldown text and swing pulse animation effects
+Added condition to skip totems as enemy unit around for AoE rotation 
+
 [Paladin v4]
 Optimized code for more faster performance
 Fixed probably lua nil table index error in SomeOneCastingOnMeCC for CC casts catching by BoS
