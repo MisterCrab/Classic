@@ -1,3 +1,7 @@
+[Rogue v6]
+Disabled cooldown text and swing pulse animation effects
+Backstub							- Will now interact with general saving pull energy to provide more accurate use for rest fillers
+
 [Rogue v5]
 Optimized code for more faster performance
 Fixed lua error ...\AddOns\TheAction Classic\Modules\Engines\Combat.lua:1799: Usage: UnitGUID("unit")
