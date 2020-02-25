@@ -71,7 +71,7 @@ local TMW 								= TMW
 local A 								= Action
 local Listener							= A.Listener
 local Print								= A.Print
-local Lib 								= LibStub:NewLibrary("PetLibrary", 8)
+local Lib 								= LibStub:NewLibrary("PetLibrary", 9)
 
 -------------------------------------------------------------------------------
 -- Remap
@@ -547,7 +547,7 @@ end
 -------------------------------------------------------------------------------
 Pet.UNIT_FLAGS							= function(...)
 	if ... == "pet" then 
-		Pet.IsMainDead = not UnitIsDeadOrGhost(...)
+		Pet.IsMainDead = UnitIsDeadOrGhost(...)
 		if Pet.IsMainDead and next(PetTrackerData) then 
 			ClearMainPet()
 		end 

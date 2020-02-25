@@ -1,12 +1,12 @@
 --- 
-local DateTime 														= "23.02.2020"
+local DateTime 														= "26.02.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
 local strlowerCache  												= TMW.strlowerCache
 local TMWdb
 
-local StdUi 														= LibStub("StdUi")
+local StdUi 														= LibStub("StdUi"):NewInstance()
 local LibDBIcon	 													= LibStub("LibDBIcon-1.0")
 local LSM 															= LibStub("LibSharedMedia-3.0")
 	  LSM:Register(LSM.MediaType.STATUSBAR, "Flat", [[Interface\Addons\TheAction Classic\Media\Flat]])
@@ -6469,7 +6469,7 @@ function Action.ToggleMainUI()
 			StdUi:GlueAbove(Burst.FontStringTitle, Burst)	
 			Burst.text:SetJustifyH("CENTER")				
 
-			HealthStone = StdUi:Slider(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, TMWdb.profile.ActionDB[tab.name].HealthStone, false, -1, 100)	
+			local HealthStone = StdUi:Slider(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, TMWdb.profile.ActionDB[tab.name].HealthStone, false, -1, 100)	
 			HealthStone:SetScript('OnMouseUp', function(self, button, down)
 					if button == "RightButton" then 
 						CraftMacro(L["TAB"][tab.name]["HEALTHSTONE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HealthStone", "]] .. L["TAB"][tab.name]["HEALTHSTONE"] .. [[: "}, ]] .. TMWdb.profile.ActionDB[tab.name].HealthStone .. [[)]])	
@@ -10075,7 +10075,7 @@ function Action:OnInitialize()
 		if not L then return end -- If we trying show UI before DB finished load locales 
 		local profile = TMWdb:GetCurrentProfile()
 		if not Action.Data.ProfileEnabled[profile] then 
-			Action.Print(profile .. "  " .. L["NOSUPPORT"])
+			Action.Print(profile .. " " .. L["NOSUPPORT"])
 			return 
 		end 
 		if not input or #input > 0 then 
