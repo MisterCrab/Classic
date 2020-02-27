@@ -1224,14 +1224,17 @@ local iteminfocache = setmetatable({}, { __index = function(t, v)
 	return a	
 end })
 
-function A:GetItemInfo()
-	local ID = self
-	if type(self) == "table" then 
+function A:GetItemInfo(custom)
+	local ID	
+	local isTable = not custom and type(self) == "table"
+	if isTable then 
 		ID = self.ID 
+	else 
+		ID = custom or self 
 	end
 	
 	if ID then 
-		return unpack(iteminfocache[ID]) or self:GetKeyName()
+		return unpack(iteminfocache[ID]) or (isTable and self:GetKeyName())
 	end 
 end
 
@@ -1239,8 +1242,8 @@ function A:GetItemLink()
     return select(2, self:GetItemInfo()) or ""
 end 
 
-function A:GetItemIcon()
-	return select(10, self:GetItemInfo()) or select(5, GetItemInfoInstant(self.ID))
+function A:GetItemIcon(custom)
+	return select(10, self:GetItemInfo(custom)) or select(5, GetItemInfoInstant(custom or self.ID))
 end
 
 function A:GetItemTexture(custom)
@@ -1254,7 +1257,7 @@ function A:GetItemTexture(custom)
 	elseif self.Type == "Potion" then 
 		texture = ACTION_CONST_POTION
 	else 
-		texture = (custom and select(10, self.GetItemInfo(custom))) or self:GetItemIcon()
+		texture = self:GetItemIcon(custom)
 	end
 	
     return "texture", texture
