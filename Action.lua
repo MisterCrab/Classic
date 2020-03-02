@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "27.02.2020"
+local DateTime 														= "02.03.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -25,6 +25,7 @@ local math_min														= math.min
 local strgsub 														= string.gsub 
 local strformat 													= string.format
 local strjoin	 													= string.join
+local strupper														= string.upper
 
 local GetRealmName, GetExpansionLevel, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell, GetSpellInfo, GetNumMacros, GetMacroInfo, GetMacroIcons = 
 	  GetRealmName, GetExpansionLevel, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell, GetSpellInfo, GetNumMacros, GetMacroInfo, GetMacroIcons
@@ -61,6 +62,7 @@ local PlaySound														= _G.PlaySound
 local InCombatLockdown												= _G.InCombatLockdown
 local CombatLogGetCurrentEventInfo									= _G.CombatLogGetCurrentEventInfo
 local IsControlKeyDown												= _G.IsControlKeyDown
+local CopyTable														= _G.CopyTable
 
 _G.Action 															= LibStub("AceAddon-3.0"):NewAddon("Action", "AceEvent-3.0")  
 Env.Action 															= _G.Action
@@ -71,7 +73,7 @@ Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("
 -------------------------------------------------------------------------------
 -- Remap
 -------------------------------------------------------------------------------
-local A_Unit
+local A_Unit, round
 
 -------------------------------------------------------------------------------
 -- Localization
@@ -98,6 +100,8 @@ local Localization = {
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Resize",
 		RESIZE_TOOLTIP = "Click-and-drag to resize",
+		CLOSE = "Close",
+		APPLY = "Apply",
 		SLASH = {
 			LIST = "List of slash commands:",
 			OPENCONFIGMENU = "shows config menu",
@@ -178,6 +182,33 @@ local Localization = {
 				BURSTTOOLTIP = "Everything - On cooldown\nAuto - Boss or Players\nOff - Disabled\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone | Healing Potion",
 				HEALTHSTONETOOLTIP = "Set percent health (HP)\nHealing Potion depends on your tab of the class settings for Potion\nand if these potions shown in Actions tab\nHealthstone has shared cooldown with Healing Potion\n\nRightClick: Create macro",
+				COLORTITLE = "Color Picker",
+				COLORUSE = "Use custom color",
+				COLORUSETOOLTIP = "Switcher between default and custom colors",
+				COLORELEMENT = "Element",
+				COLOROPTION = "Option",
+				COLORPICKER = "Picker",
+				COLORPICKERTOOLTIP = "Click to open setup window for your selected 'Element' > 'Option'\nRight mouse button to move opened window",
+				FONT = "Font",
+				NORMAL = "Normal",
+				DISABLED = "Disabled",
+				HEADER = "Header",
+				SUBTITLE = "Subtitle",
+				TOOLTIP = "Tooltip",
+				BACKDROP = "Backdrop",
+				PANEL = "Panel",
+				SLIDER = "Slider",
+				HIGHLIGHT = "Highlight",
+				BUTTON = "Button",
+				BUTTONDISABLED = "Button Disabled",
+				BORDER = "Border",
+				BORDERDISABLED = "Border Disabled",	
+				PROGRESSBAR = "Progress Bar",
+				COLOR = "Color",
+				BLANK = "Blank",
+				SELECTTHEME = "Select Ready Theme",
+				THEMEHOLDER = "choose theme",
+				BLOODYBLUE = "Bloody Blue",
 				AUTOATTACK = "Auto Attack",
 				AUTOSHOOT = "Auto Shoot",				
 				PAUSECHECKS = "Rotation doesn't work if:",
@@ -411,7 +442,9 @@ local Localization = {
 		MACROINCOMBAT = "|cffff0000Не удается создать макрос в бою. Вы должны выйти из боя!|r",
 		GLOBALAPI = "API Глобальное: ",	
 		RESIZE = "Изменить размер",
-		RESIZE_TOOLTIP = "Чтобы изменить размер, нажмите и тащите ",	
+		RESIZE_TOOLTIP = "Чтобы изменить размер, нажмите и тащите",	
+		CLOSE = "Закрыть",
+		APPLY = "Применить",
 		SLASH = {
 			LIST = "Список слеш команд:",
 			OPENCONFIGMENU = "открыть конфиг меню",
@@ -490,6 +523,33 @@ local Localization = {
 				BURSTTOOLTIP = "Everything - По доступности способности\nAuto - Босс или Игрок\nOff - Выключено\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то\nиспользуйте аргумент (АРГУМЕНТ): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Камень здоровья | Зелье исцеления",
 				HEALTHSTONETOOLTIP = "Выставить процент своего здоровья при котором использовать\nЗелье исцеления зависит от вашей вкладки настроек класса для Зелья\nи от того, отображаются ли эти зелья во вкладке Действия\nКамень здоровья имеет общее время восстановления с Зельем исцеления\n\nПравая кнопка мышки: Создать макрос",
+				COLORTITLE = "Палитра Цветов",
+				COLORUSE = "Использовать пользовательский цвет",
+				COLORUSETOOLTIP = "Переключатель между стандартными и пользовательскими цветами",
+				COLORELEMENT = "Элемент",
+				COLOROPTION = "Опция",
+				COLORPICKER = "Выбиратель цвета",
+				COLORPICKERTOOLTIP = "Нажмите, чтобы открыть окно настройки для выбранного 'Элемент' > 'Параметр'\nПравая кнопка мыши, чтобы переместить открытое окно",
+				FONT = "Шрифт",
+				NORMAL = "Нормальный",
+				DISABLED = "Отключенный",
+				HEADER = "Заголовок",
+				SUBTITLE = "Подзаголовок",
+				TOOLTIP = "Подсказка",
+				BACKDROP = "Фон",
+				PANEL = "Панель",
+				SLIDER = "Ползунок",
+				HIGHLIGHT = "Подсветка",
+				BUTTON = "Кнопка",
+				BUTTONDISABLED = "Кнопка Отключенная",
+				BORDER = "Бордюр",
+				BORDERDISABLED = "Бордюр Отключенный",	
+				PROGRESSBAR = "Индикатор",
+				COLOR = "Цвет",
+				BLANK = "Пустая",
+				SELECTTHEME = "Выбрать Готовую Тему",
+				THEMEHOLDER = "выбрать тему",
+				BLOODYBLUE = "Кроваво-Синий",
 				STOPATBREAKABLE = "Стоп урон на ломающемся контроле",
 				STOPATBREAKABLETOOLTIP = "Остановит вредоносный урон по врагам\nЕсли у них есть CC, например, Превращение\nЭто не отменяет автоатаку!\n\nПравая кнопка мышки: Создать макрос",
 				AUTOATTACK = "Авто Атака",
@@ -726,6 +786,8 @@ local Localization = {
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Größe ändern",
 		RESIZE_TOOLTIP = "Click-und-bewege um die Größe zu ändern",
+		CLOSE = "Schließen",
+		APPLY = "Anwenden",
 		SLASH = {
 			LIST = "Liste der Slash-Befehle:",
 			OPENCONFIGMENU = "Menü Öffnen",
@@ -806,6 +868,33 @@ local Localization = {
 				BURSTTOOLTIP = "Alles - Auf Abklingzeit\nAuto - Boss oder Spieler\nAus - Deaktiviert\nRechtsklick: Makro erstellen\nWenn Sie einen festen Umschaltstatus festlegen möchten, verwenden Sie das Argument in (ARG): 'Alles', 'Auto', 'Aus'",					
 				HEALTHSTONE = "Gesundheitsstein | Heiltrank",
 				HEALTHSTONETOOLTIP = "Wann der GeSu benutzt werden soll!\nDer Heiltrank hängt von der Registerkarte der Klasseneinstellungen für Trank\nab und davon, ob diese Tränke auf der Registerkarte Aktionen angezeigt werden\nGesundheitsstein hat die Abklingzeit mit Heiltrank geteilt\n\nRechtsklick: Makro erstellen",
+				COLORTITLE = "Farbwähler",
+				COLORUSE = "Verwenden Sie eine benutzerdefinierte Farbe",
+				COLORUSETOOLTIP = "Wechseln Sie zwischen Standard- und benutzerdefinierten Farben",
+				COLORELEMENT = "Element",
+				COLOROPTION = "Möglichkeit",
+				COLORPICKER = "Auswahl",
+				COLORPICKERTOOLTIP = "Klicken Sie hier, um das Setup-Fenster für das ausgewählte 'Element'> 'Option' zu öffnen\nRechte Maustaste zum Verschieben des geöffneten Fensters",
+				FONT = "Schriftart",
+				NORMAL = "Normal",
+				DISABLED = "Deaktiviert",
+				HEADER = "Header",
+				SUBTITLE = "Untertitel",
+				TOOLTIP = "Tooltip",
+				BACKDROP = "Hintergrund",
+				PANEL = "Panel",
+				SLIDER = "Schieberegler",
+				HIGHLIGHT = "Markieren",
+				BUTTON = "Taste",
+				BUTTONDISABLED = "Taste Deaktiviert",
+				BORDER = "Rand",
+				BORDERDISABLED = "Rand Deaktiviert",	
+				PROGRESSBAR = "Fortschrittsanzeige",
+				COLOR = "Farbe",
+				BLANK = "Leer",
+				SELECTTHEME = "Wählen Sie Bereites Thema",
+				THEMEHOLDER = "Thema wählen",
+				BLOODYBLUE = "Blutiges Blau",
 				AUTOATTACK = "Automatischer Angriff",
 				AUTOSHOOT = "Automatisches Schießen",	
 				PAUSECHECKS = "Rota funktioniert nicht wenn:",
@@ -1040,6 +1129,8 @@ local Localization = {
 		GLOBALAPI = "API Globale: ",
 		RESIZE = "Redimensionner",
 		RESIZE_TOOLTIP = "Cliquer et faire glisser pour redimensionner",
+		CLOSE = "Fermer",
+		APPLY = "Appliquer",
 		SLASH = {
 			LIST = "Liste des commandes slash:",
 			OPENCONFIGMENU = "Voir le menu de configuration",
@@ -1120,6 +1211,33 @@ local Localization = {
 				BURSTTOOLTIP = "Tout - On cooldown\nAuto - Boss or Joueur\nOff - Désactiver\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule les cooldowns utiliser l'argumment (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Pierre de soin | Potion de guérison",
 				HEALTHSTONETOOLTIP = "Choisisez le pourcentage de vie (HP)\nPotion de guérison dépend des paramètres de votre classe dans Potion\net de leur affichage dans l’onglet Actions\nHealthstone a partagé son temps de recharge avec Potion de guérison\n\nClique droit : Créer la macro",
+				COLORTITLE = "Pipette à couleurs",
+				COLORUSE = "Utiliser une couleur personnalisée",
+				COLORUSETOOLTIP = "Commutateur entre les couleurs par défaut et les couleurs personnalisées",
+				COLORELEMENT = "Élément",
+				COLOROPTION = "Option",
+				COLORPICKER = "Sélecteur",
+				COLORPICKERTOOLTIP = "Cliquez pour ouvrir la fenêtre de configuration de votre 'Élément' > 'Option' sélectionné\nBouton droit de la souris pour déplacer la fenêtre ouverte",
+				FONT = "Police de caractère",
+				NORMAL = "Ordinaire",
+				DISABLED = "Désactivé",
+				HEADER = "Entête",
+				SUBTITLE = "Sous-titre",
+				TOOLTIP = "Info-bulle",
+				BACKDROP = "Toile de fond",
+				PANEL = "Panneau",
+				SLIDER = "Glissière",
+				HIGHLIGHT = "Surligner",
+				BUTTON = "Bouton",
+				BUTTONDISABLED = "Bouton Désactivé",
+				BORDER = "Frontière",
+				BORDERDISABLED = "Frontière Désactivé",	
+				PROGRESSBAR = "Barre de progression",
+				COLOR = "Couleur",
+				BLANK = "Vide",
+				SELECTTHEME = "Sélectionnez le thème prêt",
+				THEMEHOLDER = "choisissez le thème",
+				BLOODYBLUE = "Sanglant Bleu",
 				PAUSECHECKS = "La rotation ne fonction pas, si:",
 				AUTOATTACK = "Attaque automatique",
 				AUTOSHOOT = "Tir automatique",	
@@ -1354,6 +1472,8 @@ local Localization = {
 		GLOBALAPI = "API Globale: ",
 		RESIZE = "Ridimensiona",
 		RESIZE_TOOLTIP = "Seleziona e tracina per ridimensionare",
+		CLOSE = "Vicino",
+		APPLY = "Applicare",
 		SLASH = {
 			LIST = "Lista comandi:",
 			OPENCONFIGMENU = "mostra il menu di configurazione",
@@ -1434,6 +1554,33 @@ local Localization = {
 				BURSTTOOLTIP = "Utilizza Tutto - appena esce dal coll down\nAuto - Boss o Giocatore\nOff - Disabilitata\n\nTastodestro: Crea macro\nSe desidere utilizzare specifici attributi utilizza in (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone | Pozione curativa",
 				HEALTHSTONETOOLTIP = "Seta la percentuale di vita (HP)\nPozione curativa dipende dalle impostazioni della scheda classe per Pozione\ne se queste pozioni sono mostrate nella scheda Azioni\nHealthstone ha condiviso il tempo di recupero con Pozione curativa\n\nTastodestro: Crea macro",
+				COLORTITLE = "Color Picker",
+				COLORUSE = "Usa colore personalizzato",
+				COLORUSETOOLTIP = "Commutazione tra colori predefiniti e personalizzati",
+				COLORELEMENT = "Elemento",
+				COLOROPTION = "Opzione",
+				COLORPICKER = "Picker",
+				COLORPICKERTOOLTIP = "Fare clic per aprire la finestra di configurazione per 'Elemento' selezionato > 'Opzione'\nTasto destro del mouse per spostare la finestra aperta",
+				FONT = "Font",
+				NORMAL = "Normale",
+				DISABLED = "Disabilitato",
+				HEADER = "Intestazione",
+				SUBTITLE = "Sottotitolo",
+				TOOLTIP = "Tooltip",
+				BACKDROP = "Fondale",
+				PANEL = "Pannello",
+				SLIDER = "Slider",
+				HIGHLIGHT = "Evidenziare",
+				BUTTON = "Pulsante",
+				BUTTONDISABLED = "Pulsante Disabilitato",
+				BORDER = "Confine",
+				BORDERDISABLED = "Confine Disabilitato",	
+				PROGRESSBAR = "Barra di avanzamento",
+				COLOR = "Colore",
+				BLANK = "Vuoto",
+				SELECTTHEME = "Seleziona Tema pronto",
+				THEMEHOLDER = "scegli il tema",
+				BLOODYBLUE = "Sanguinoso Blu",
 				AUTOATTACK = "Attacco automatico",
 				AUTOSHOOT = "Scatto automatico",	
 				PAUSECHECKS = "Rotation doesn't work if:",
@@ -1668,6 +1815,8 @@ local Localization = {
 		GLOBALAPI = "API Global: ",
 		RESIZE = "Redimensionar",
 		RESIZE_TOOLTIP = "Click-y-arrastrar para redimensionar",
+		CLOSE = "Cerca",
+		APPLY = "Aplicar",
 		SLASH = {
 			LIST = "Lista de comandos:",
 			OPENCONFIGMENU = "Mostrar menú de configuración",
@@ -1748,6 +1897,33 @@ local Localization = {
 				BURSTTOOLTIP = "Todo - En cooldown\nAuto - Boss o Jugadores\nOff - Deshabilitado\n\nClickDerechohabilitado\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'Everything', 'Auto', 'Off'",					
 				HEALTHSTONE = "Healthstone | Poción curativa",
 				HEALTHSTONETOOLTIP = "Establecer porcentaje de vida (HP)\nPoción curativa depende de la configuración de la pestaña de tu clase para Poción\ny si estas pociones se muestran en la pestaña Acciones\nPiedra de salud ha compartido tiempo de reutilización con Poción de sanación\n\nClickDerecho: Crear macro",
+				COLORTITLE = "Selector de color",
+				COLORUSE = "Usar color personalizado",
+				COLORUSETOOLTIP = "Cambiar entre colores predeterminados y personalizados",
+				COLORELEMENT = "Elemento",
+				COLOROPTION = "Opción",
+				COLORPICKER = "Recogedor",
+				COLORPICKERTOOLTIP = "Haga clic para abrir la ventana de configuración para su 'Elemento'> 'Opción' seleccionado\nBotón derecho del mouse para mover la ventana abierta",
+				FONT = "Fuente",
+				NORMAL = "Normal",
+				DISABLED = "Discapacitado",
+				HEADER = "Encabezamiento",
+				SUBTITLE = "Subtitular",
+				TOOLTIP = "Información sobre herramientas",
+				BACKDROP = "Fondo",
+				PANEL = "Panel",
+				SLIDER = "Control deslizante",
+				HIGHLIGHT = "Realce",
+				BUTTON = "Botón",
+				BUTTONDISABLED = "Botón Discapacitado",
+				BORDER = "Frontera",
+				BORDERDISABLED = "Frontera Discapacitado",	
+				PROGRESSBAR = "Barra de progreso",
+				COLOR = "Color",
+				BLANK = "Blanco",
+				SELECTTHEME = "Seleccionar Tema Listo",
+				THEMEHOLDER = "escoge un tema",
+				BLOODYBLUE = "Sangriento Azul",
 				AUTOATTACK = "Auto ataque",
 				AUTOSHOOT = "Disparo automático",	
 				PAUSECHECKS = "La rotación no funciona si:",
@@ -1965,14 +2141,24 @@ local Localization = {
 		},
 	},
 }
-setmetatable(Localization[GameLocale], { __index = Localization[CL] })
+do 
+	local function CreateRoutineToENG(t, mirror)
+		-- This need to prevent any text blanks caused by missed keys 
+		for k, v in pairs(t) do 
+			if k ~= "enUS" and type(v) == "table" then 
+				local index = Localization[k] and mirror or mirror[k]
+				setmetatable(v, { __index = index })
+				CreateRoutineToENG(v, index)
+			end 
+		end 
+	end 
+	CreateRoutineToENG(Localization, Localization.enUS)
+end 
 
 function Action.GetLocalization()
 	-- @return table localized with current language of interface 
 	CL = TMWdb and TMWdb.global.ActionDB and TMWdb.global.ActionDB.InterfaceLanguage ~= "Auto" and Localization[TMWdb.global.ActionDB.InterfaceLanguage] and TMWdb.global.ActionDB.InterfaceLanguage or next(Localization[GameLocale]) and GameLocale or "enUS"
 	L = Localization[CL]
-	-- This need to prevent any errors caused by missed keys 
-	setmetatable(L, { __index = Localization["enUS"] })
 	return L
 end 
 
@@ -2110,6 +2296,37 @@ local Factory = {
 		DisableRotationModes = false,
 		DisableSounds = true,
 		HideOnScreenshot = true,
+		ColorPickerUse = false,
+		ColorPickerElement = "backdrop",
+		ColorPickerOption = "panel",
+		ColorPickerConfig = { 
+			-- All tables must be empty
+			font = {
+				color = {
+					normal = {},
+					disabled = {},
+					header = {},
+					subtitle = {}, 	-- custom (not implement in StdUi)
+					tooltip = {},	-- custom (not implement in StdUi)
+				},
+			},
+			backdrop = {
+				panel = {},
+				slider = {},
+				highlight = {},
+				button = {},
+				buttonDisabled = {},
+				border = {},
+				borderDisabled = {},
+			},
+			progressBar = {
+				color = {},					
+			},
+			highlight = {
+				color = {},
+				blank = {},
+			},
+		},	
 		cameraDistanceMaxZoomFactor = true,
 		LetMeCast = true,
 		TargetCastBar = true,
@@ -3227,7 +3444,7 @@ local function ShowTooltip(parent, show, ID, Type)
 end
 local function LayoutSpace(parent)
 	-- Util for EasyLayout to create "space" in row since it support only elements
-	return StdUi:FontString(parent, '')
+	return StdUi:Subtitle(parent, '')
 end 
 local function GetWidthByColumn(parent, col, offset)
 	-- Util for EasyLayout to provide correctly width for dropdown menu since lib has bug to properly resize it 
@@ -3319,13 +3536,403 @@ local function SetProperlyScale()
 		Action.MainUI:SetScale(1)
 	end 	
 end 
+
+-------------------------------------------------------------------------------
+-- UI: ColorPicker - Container
+-------------------------------------------------------------------------------
+local ColorPicker 						= {
+	Themes								= {
+		BloodyBlue						= {
+			["progressBar"] = {
+				["color"] = {
+					["a"] = 0.5,
+					["r"] = 1,
+					["g"] = 0.8313725490196078,
+					["b"] = 0.788235294117647,
+				},
+			},
+			["font"] = {
+				["color"] = {
+					["normal"] = {
+						["a"] = 1,
+						["b"] = 1,
+						["g"] = 0.8117647058823529,
+						["r"] = 0.3294117647058824,
+					},
+					["subtitle"] = {
+						["a"] = 1,
+						["b"] = 0.7803921568627451,
+						["g"] = 0.6078431372549019,
+						["r"] = 0.4549019607843137,
+					},
+					["disabled"] = {
+						["a"] = 1,
+						["b"] = 0.1843137254901961,
+						["g"] = 0.1843137254901961,
+						["r"] = 0.1843137254901961,
+					},
+					["header"] = {
+						["a"] = 1,
+						["b"] = 1,
+						["g"] = 0.9137254901960784,
+						["r"] = 0.1058823529411765,
+					},
+					["tooltip"] = {
+						["a"] = 1,
+						["b"] = 0.7803921568627451,
+						["g"] = 0.6078431372549019,
+						["r"] = 0.4549019607843137,
+					},
+				},
+			},
+			["highlight"] = {
+				["color"] = {
+					["a"] = 0.4,
+					["r"] = 1,
+					["g"] = 0,
+					["b"] = 0.1803921568627451,
+				},
+				["blank"] = {
+					["a"] = 0,
+					["r"] = 0,
+					["g"] = 0,
+					["b"] = 0,
+				},
+			},
+			["backdrop"] = {
+				["panel"] = {
+					["a"] = 0.8,
+					["r"] = 0,
+					["g"] = 0.01568627450980392,
+					["b"] = 0.1098039215686275,
+				},
+				["highlight"] = {
+					["a"] = 0.5,
+					["r"] = 0.192156862745098,
+					["g"] = 0.4823529411764706,
+					["b"] = 0.4980392156862745,
+				},
+				["border"] = {
+					["a"] = 1,
+					["r"] = 0.2627450980392157,
+					["g"] = 0.01176470588235294,
+					["b"] = 0.04313725490196078,
+				},
+				["button"] = {
+					["a"] = 1,
+					["r"] = 0.1294117647058823,
+					["g"] = 0.00392156862745098,
+					["b"] = 0.01568627450980392,
+				},
+				["buttonDisabled"] = {
+					["a"] = 1,
+					["r"] = 0.07058823529411765,
+					["g"] = 0.0196078431372549,
+					["b"] = 0.02352941176470588,
+				},
+				["borderDisabled"] = {
+					["a"] = 1,
+					["r"] = 0.09411764705882353,
+					["g"] = 0.1098039215686275,
+					["b"] = 0.1058823529411765,
+				},
+				["slider"] = {
+					["a"] = 1,
+					["r"] = 0.02352941176470588,
+					["g"] = 0.03529411764705882,
+					["b"] = 0.1490196078431373,
+				},
+			},
+		},
+	},
+	Cache 								= {}, 										-- Stores default StdUi colors 	
+	StdUiObjects						= CopyTable(Factory[1].ColorPickerConfig),	-- Stores objects as key and function as value. It doesn't cache 'highlight' because his data receives with real time by OnEnter handler
+	strupperCache 						= setmetatable({}, {
+		--__mode = "kv",
+		__index = function(t, i)
+			if not i then return end
+			local o
+			if type(i) == "number" then
+				o = i
+			else
+				o = strupper(i)
+			end
+			t[i] = o
+			return o
+		end,
+		__call = function(t, i)
+			return t[i]
+		end,
+	}),
+	tReplaceRGBA						= function(self, inT, fromT)
+		-- @return nil 
+		-- Replaces values for equal keys in 'inT' table from 'fromT' table without create new 
+		for k, v in pairs(fromT) do 
+			inT[k] = v
+		end 
+	end,
+	tEqualRGBA							= function(self, x, y)
+		-- @return boolean 
+		return x.r == y.r and x.g == y.g and x.b == y.b and x.a == y.a
+	end,
+	tFindByOption						= function(self, t, option)
+		-- @return table or nil 
+		-- Usage: 
+		-- 't' table in which do search i.e. StdUi.config[element]
+		-- 'option' string i.e. StdUi.config[element][option] or StdUi.config[element] > color > normal (option)
+		if t[option] then 
+			return t[option]
+		else 
+			for k, v in pairs(t) do 
+				if type(v) == "table" then  
+					return self:tFindByOption(v, option)
+				end 
+			end 
+		end 
+	end,
+	HasRGBA								= function(self, t)
+		return t.r and t.g and t.b and t.a and true  
+	end,
+	MakeCache 							= function(self)
+		if not next(self.Cache) then 
+			local function CopyStdUiColors(toT, fromT, checkT)
+				for k, v in pairs(fromT) do 
+					if type(v) == "table" then 
+						if self:HasRGBA(v) then 
+							toT[k] = CopyTable(v)
+						elseif checkT[k] then 
+							toT[k] = {}
+							CopyStdUiColors(toT[k], v, checkT[k])
+						end 
+					end 
+				end 
+			end 
+			CopyStdUiColors(self.Cache, StdUi.config, Factory[1].ColorPickerConfig)
+		end 
+	end,
+	MakeColors 							= function(self, t, element)
+		-- Used for everything
+		-- @usage: ColorPicker:MakeColors([t, element])
+		-- Note: 
+		--		 't' is manual color table i.e. self.Cache to reset 
+		-- 		 'element' is a first level passthrough key i.e. font (element) > color > normal (option)
+		for k, v in pairs(t or TMWdb.profile.ActionDB[1].ColorPickerConfig) do 
+			if self:HasRGBA(v) then 			
+				self:MakeOn(element, k, v)
+			elseif next(v) then 
+				self:MakeColors(v, element or k)
+			end 			 
+		end 
+	end,	
+	SetElementsIn						= function(self, t)
+		-- @return t 
+		-- Formates 't' table to create dropdown 'Element'
+		if #t > 0 then 
+			wipe(t)
+		end 
+		
+		for k in pairs(Factory[1].ColorPickerConfig) do 
+			local upLetters = self.strupperCache[k]			
+			t[#t + 1] = { text = L["TAB"][1][upLetters] or k, value = k }
+		end 
+		
+		return t
+	end,
+	SetOptionsIn						= function(self, t, element, search)
+		-- @return t 
+		-- Formates 't' table to create dropdown 'Option'
+		-- @usage: ColorPicker:SetOptionsIn(t, element) 
+		if not search and #t > 0 then 
+			wipe(t)
+		end 
+		
+		for k, v in pairs(search or Factory[1].ColorPickerConfig[element]) do 
+			if not next(v) or self:HasRGBA(v) then 
+				local upLetters = self.strupperCache[k]
+				t[#t + 1] = { text = L["TAB"][1][upLetters] or k, value = k }
+			else 
+				self:SetOptionsIn(t, element, v)
+			end 
+		end 
+		
+		return t
+	end,
+	SetThemesIn							= function(self, t)
+		-- @return t 
+		-- Formates 't' table to create dropdown 'Theme'
+		if #t > 0 then 
+			wipe(t)
+		end 
+		
+		for k in pairs(self.Themes) do 
+			local upLetters = self.strupperCache[k]			
+			t[#t + 1] = { text = L["TAB"][1][upLetters] or k, value = k }
+		end 
+		
+		return t
+	end,
+	ResetColors							= function(self)
+		-- Used for everything 
+		self:MakeColors(self.Cache)
+		self.wasChanged = nil 
+	end, 
+	MakeOn								= function(self, element, option, t)
+		-- Used for target apply to custom 
+		-- @usage: ColorPicker:MakeOn(element, option[, t])
+		local tStdUiConfig 		= self:tFindByOption(StdUi.config[element], option)
+		local tCurrentConfig 	= t or self:tFindByOption(TMWdb.profile.ActionDB[1].ColorPickerConfig[element], option)
+		
+		if self:HasRGBA(tCurrentConfig) and not self:tEqualRGBA(tStdUiConfig, tCurrentConfig) then 
+			self:tReplaceRGBA(tStdUiConfig, tCurrentConfig)
+			
+			-- Refresh already created frames 
+			local objects = self:tFindByOption(self.StdUiObjects[element], option)
+			if objects and next(objects) then 
+				for obj, method in pairs(objects) do 										
+					obj[method](obj, tStdUiConfig.r, tStdUiConfig.g, tStdUiConfig.b, tStdUiConfig.a)
+					
+					-- Refresh highlight 
+					obj.origBackdropBorderColor = nil 
+					if obj.target then 
+						obj.target.origBackdropBorderColor = nil 
+					end 					
+				end 
+			end 
+			
+			self.wasChanged = true
+		end 
+	end,
+	ResetOn								= function(self, element, option)
+		-- Used for target reset to default 
+		-- @usage: ColorPicker:ResetOn(element, option)		
+		self:MakeOn(element, option, self:tFindByOption(self.Cache[element], option))
+	end,
+	Initialize							= function(self)
+		self:MakeCache()
+		if Action.GetToggle(1, "ColorPickerUse") then 
+			self:MakeColors()
+		elseif self.wasChanged then 
+			self:ResetColors()
+		end 
+		
+		-- Fix StdUi bug with tab buttons, they become in disabled state 
+		if tabFrame then 
+			local selectedTab = tabFrame:GetSelectedTab()
+			for _, tab in ipairs(tabFrame.tabs) do
+				if tab.button and selectedTab ~= tab then
+					tab.button:Enable()
+				end 
+			end 
+		end 
+	end,
+}
+
+do 
+	-- Inserts in StdUi.config missed but required parts 
+	local f = CreateFrame("Frame")
+	f.subtitle = f:CreateFontString(nil, StdUi.config.font.strata, "GameFontNormal")
+	local r, g, b = f.subtitle:GetTextColor()
+	StdUi.config.font.color.subtitle 	= { r = r, g = g, b = b, a = 1 }
+	StdUi.config.font.color.tooltip 	= { r = r, g = g, b = b, a = 1 } -- Equal to 'subtitle'
+
+	function StdUi:Subtitle(parent, text, inherit)
+		-- This is special envelope indicates that created fontString is subtitle
+		local fs = StdUi:FontString(parent, text, inherit)
+		if fs.SetTextColor then 
+			if not ColorPicker.StdUiObjects.font.color.subtitle[fs] then 
+				ColorPicker.StdUiObjects.font.color.subtitle[fs] = "SetTextColor"
+			end 
+			local c = StdUi.config.font.color.subtitle
+			fs:SetTextColor(c.r, c.g, c.b, c.a)
+		end 
+		return fs 
+	end 
+end 
+
+hooksecurefunc(StdUi, "SetTextColor", function(self, fontString, colorType)
+	if fontString.SetTextColor then 
+		colorType = colorType or "normal"	
+		if colorType == "disabled" then 
+			-- Remove from all enabled objects  	
+			for k, v in pairs(ColorPicker.StdUiObjects.font.color) do 
+				if k ~= colorType then 
+					v[fontString] = nil 
+				end 
+			end 							
+		else 
+			-- Remove from all disabled objects  
+			ColorPicker.StdUiObjects.font.color[colorType][fontString] 	= nil 
+		end 
+		
+		if colorType == "header" then 
+			-- Remove doubles 
+			ColorPicker.StdUiObjects.font.color.normal[fontString] 		= nil 	
+		end 
+		
+		if not ColorPicker.StdUiObjects.font.color[colorType][fontString] then 			
+			ColorPicker.StdUiObjects.font.color[colorType][fontString] 	= "SetTextColor"
+		end 	
+	end 
+end)
+
+hooksecurefunc(StdUi, "HighlightButtonTexture", function(self, button)
+	hooksecurefunc(button, "SetHighlightTexture", function(self, texObj)
+		if texObj then 
+			if not ColorPicker.StdUiObjects.highlight.color[texObj] then 
+				ColorPicker.StdUiObjects.highlight.color[texObj] = "SetColorTexture" 
+			end 
+		elseif self.highlightTexture then 
+			ColorPicker.StdUiObjects.highlight.color[self.highlightTexture] = nil 
+		end 
+	end)
+end)
+
+hooksecurefunc(StdUi, "ApplyBackdrop", function(self, frame, type, border, insets)
+	local isProgressBar = type == nil and border == nil and insets == nil and frame:GetObjectType() == "StatusBar"
+	
+	if isProgressBar then 
+		if not ColorPicker.StdUiObjects.progressBar.color[frame] then 
+			ColorPicker.StdUiObjects.progressBar.color[frame] 		= "SetStatusBarColor"
+		end 
+	else 		
+		type 	= type 	 or "button"
+		border 	= border or "border"
+	
+		if type == "buttonDisabled" or border == "borderDisabled" then 
+			-- Remove from all enabled objects  	
+			ColorPicker.StdUiObjects.backdrop.button[frame] 		= nil 	
+			ColorPicker.StdUiObjects.backdrop.border[frame] 		= nil 	
+		else 
+			-- Remove from all disabled objects 
+			ColorPicker.StdUiObjects.backdrop.buttonDisabled[frame] = nil 
+			ColorPicker.StdUiObjects.backdrop.borderDisabled[frame] = nil 
+		end 
+		
+		if not ColorPicker.StdUiObjects.backdrop[type][frame] then 
+			ColorPicker.StdUiObjects.backdrop[type][frame]	 		= "SetBackdropColor"
+		end 
+		
+		if not ColorPicker.StdUiObjects.backdrop[border][frame] then 
+			ColorPicker.StdUiObjects.backdrop[border][frame]  		= "SetBackdropBorderColor"
+		end 	
+	end 
+end)
+
 hooksecurefunc(StdUi, "FrameTooltip", function(self, owner)
 	-- StdUi v3 added a lot of bugs with tooltips, this code supposed to fix them 
 	owner.stdUiTooltip:SetParent(UIParent)
 	owner.stdUiTooltip:SetFrameStrata("TOOLTIP")
 	owner.stdUiTooltip:SetClampedToScreen(true)
-	local _, oldHeight = owner.stdUiTooltip.text:GetFont()
-	owner.stdUiTooltip.text:SetFontSize(oldHeight * 1.05)
+	local fs = owner.stdUiTooltip.text
+	local _, oldHeight = fs:GetFont()
+	fs:SetFontSize(oldHeight * 1.05) -- Classic used 1.05
+	
+	-- This is part of Color Picker 
+	if not ColorPicker.StdUiObjects.font.color.tooltip[fs] then 
+		ColorPicker.StdUiObjects.font.color.tooltip[fs] = "SetTextColor"
+		local c = StdUi.config.font.color.tooltip
+		fs:SetTextColor(c.r, c.g, c.b, c.a)
+	end 
 end)
 
 -------------------------------------------------------------------------------
@@ -3374,7 +3981,7 @@ local function CreateLuaEditor(parent, title, w, h, editTT)
 	LuaWindow.UseBracketMatch = StdUi:Checkbox(LuaWindow, L["TAB"]["BRACKETMATCH"])
 	StdUi:GlueTop(LuaWindow.UseBracketMatch, LuaWindow, 15, -15, "LEFT")
 	
-	LuaWindow.LineNumber = StdUi:FontString(LuaWindow, "")
+	LuaWindow.LineNumber = StdUi:Subtitle(LuaWindow, "")
 	LuaWindow.LineNumber:SetFontSize(14)
 	StdUi:GlueTop(LuaWindow.LineNumber, LuaWindow, 0, -30)
 	
@@ -3469,6 +4076,13 @@ local function CreateLuaEditor(parent, title, w, h, editTT)
 		end
 		LuaWindow.LineNumber:SetText(line)
 	end)	
+	
+	-- Set manual black color (if enabled custom Color Picker)
+	LuaWindow.EditBox:HookScript("OnShow", function(self)
+		if Action.GetToggle(1, "ColorPickerUse") then 
+			self.panel:SetBackdropColor(0, 0, 0, 1)
+		end 
+	end)
 	
 	-- Close handlers 		
 	LuaWindow.closeBtn:SetScript("OnClick", function(self) 
@@ -5693,9 +6307,9 @@ function Action.ToggleMainUI()
 			end 
 		end)
 		
-		Action.MainUI.PDateTime = StdUi:FontString(Action.MainUI, TMWdb:GetCurrentProfile() .. "\n" .. (Action.Data.ProfileUI.DateTime or ""))
+		Action.MainUI.PDateTime = StdUi:Subtitle(Action.MainUI, TMWdb:GetCurrentProfile() .. "\n" .. (Action.Data.ProfileUI.DateTime or ""))
 		Action.MainUI.PDateTime:SetJustifyH("RIGHT")
-		Action.MainUI.GDateTime = StdUi:FontString(Action.MainUI, L["GLOBALAPI"] .. DateTime)	
+		Action.MainUI.GDateTime = StdUi:Subtitle(Action.MainUI, L["GLOBALAPI"] .. DateTime)	
 		Action.MainUI.GDateTime:SetJustifyH("RIGHT")
 		StdUi:GlueBefore(Action.MainUI.PDateTime, Action.MainUI.closeBtn, -5, 0)
 		StdUi:GlueBelow(Action.MainUI.GDateTime, Action.MainUI.PDateTime, 0, 0, "RIGHT")
@@ -5718,11 +6332,11 @@ function Action.ToggleMainUI()
 		Action.MainUI.ResetQuestion:SetScript("OnDragStop", nil)
 		Action.MainUI.ResetQuestion:SetScript("OnReceiveDrag", nil)
 		
-		Action.MainUI.CheckboxSaveActions = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEACTIONS"])
-		Action.MainUI.CheckboxSaveInterrupt = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEINTERRUPT"])			
-		Action.MainUI.CheckboxSaveDispel = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEDISPEL"])
-		Action.MainUI.CheckboxSaveMouse	= StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMOUSE"])	
-		Action.MainUI.CheckboxSaveMSG = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMSG"])
+		Action.MainUI.CheckboxSaveActions = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEACTIONS"], 250)
+		Action.MainUI.CheckboxSaveInterrupt = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEINTERRUPT"], 250)			
+		Action.MainUI.CheckboxSaveDispel = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEDISPEL"], 250)
+		Action.MainUI.CheckboxSaveMouse	= StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMOUSE"], 250)	
+		Action.MainUI.CheckboxSaveMSG = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMSG"], 250)
 		
 		Action.MainUI.Yes = StdUi:Button(Action.MainUI.ResetQuestion, 150, 35, L["YES"])		
 		StdUi:GlueBottom(Action.MainUI.Yes, Action.MainUI.ResetQuestion, 20, 20, "LEFT")
@@ -5926,7 +6540,7 @@ function Action.ToggleMainUI()
 		
 		local anchor = GetAnchor(tab, spec)
 		
-		local UI_Title = StdUi:FontString(anchor, tab.title)
+		local UI_Title = StdUi:Subtitle(anchor, tab.title)
 		UI_Title:SetFont(UI_Title:GetFont(), 15)
         StdUi:GlueTop(UI_Title, anchor, 0, -10)
 		if not StdUi.config.font.color.yellow then 
@@ -5934,7 +6548,7 @@ function Action.ToggleMainUI()
 			StdUi.config.font.color.yellow = { r = colored[1], g = colored[2], b = colored[3], a = colored[4] }
 		end 
 		
-		local UI_Separator = StdUi:FontString(anchor, '')
+		local UI_Separator = StdUi:Subtitle(anchor, '')
         StdUi:GlueBelow(UI_Separator, UI_Title, 0, -5)
 		
 		-- We should leave "OnShow" handlers because user can swap language, otherwise in performance case better remove it 		
@@ -5956,7 +6570,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			StdUi:FrameTooltip(PvEPvPToggle, L["TAB"][tab.name]["PVEPVPTOGGLETOOLTIP"], nil, "TOPRIGHT", true)
-			PvEPvPToggle.FontStringTitle = StdUi:FontString(PvEPvPToggle, L["TAB"][tab.name]["PVEPVPTOGGLE"])
+			PvEPvPToggle.FontStringTitle = StdUi:Subtitle(PvEPvPToggle, L["TAB"][tab.name]["PVEPVPTOGGLE"])
 			StdUi:GlueAbove(PvEPvPToggle.FontStringTitle, PvEPvPToggle)
 			
 			local PvEPvPresetbutton = StdUi:SquareButton(anchor, PvEPvPToggle:GetHeight(), PvEPvPToggle:GetHeight(), "DELETE")
@@ -5980,17 +6594,24 @@ function Action.ToggleMainUI()
 			anchor.InterfaceLanguage.OnValueChanged = function(self, val)                				
 				TMWdb.global.ActionDB.InterfaceLanguage = val				
 				Action.GetLocalization()						
-				Action.MainUI.AllReset.text = StdUi:ButtonLabel(Action.MainUI.AllReset, L["TAB"]["RESETBUTTON"])
+				Action.MainUI.AllReset.text:SetText(L["TAB"]["RESETBUTTON"])
 				StdUi:ButtonAutoWidth(Action.MainUI.AllReset)
 				Action.MainUI.GDateTime:SetText(L["GLOBALAPI"] .. DateTime)
 				Action.MainUI.ResetQuestion.titlePanel.label:SetText(L["TAB"]["RESETQUESTION"])
-				Action.MainUI.Yes.text = StdUi:ButtonLabel(Action.MainUI.Yes, L["YES"])
-				Action.MainUI.No.text = StdUi:ButtonLabel(Action.MainUI.No, L["NO"])
+				Action.MainUI.Yes.text:SetText(L["YES"])
+				Action.MainUI.No.text:SetText(L["NO"])
 				Action.MainUI.CheckboxSaveActions:SetText(L["TAB"]["SAVEACTIONS"])
 				Action.MainUI.CheckboxSaveInterrupt:SetText(L["TAB"]["SAVEINTERRUPT"])
 				Action.MainUI.CheckboxSaveDispel:SetText(L["TAB"]["SAVEDISPEL"])
 				Action.MainUI.CheckboxSaveMouse:SetText(L["TAB"]["SAVEMOUSE"])
 				Action.MainUI.CheckboxSaveMSG:SetText(L["TAB"]["SAVEMSG"])
+				
+				if StdUi.colorPickerFrame then 
+					StdUi.colorPickerFrame.okButton.text:SetText(L["APPLY"])
+					StdUi.colorPickerFrame.cancelButton.text:SetText(L["CLOSE"])
+					StdUi.colorPickerFrame.resetButton.text:SetText(L["RESET"])
+				end 
+				
 				tabFrame.tabs[1].title = L["TAB"][1]["HEADBUTTON"]
 				tabFrame.tabs[3].title = L["TAB"][3]["HEADBUTTON"]
 				tabFrame.tabs[4].title = L["TAB"][4]["HEADBUTTON"]
@@ -6057,7 +6678,7 @@ function Action.ToggleMainUI()
 				Action.ToggleMainUI()	
 			end			
 			anchor.InterfaceLanguage.Identify = { Type = "Dropdown", Toggle = "InterfaceLanguage" }
-			anchor.InterfaceLanguage.FontStringTitle = StdUi:FontString(anchor.InterfaceLanguage, L["TAB"][tab.name]["CHANGELANGUAGE"])
+			anchor.InterfaceLanguage.FontStringTitle = StdUi:Subtitle(anchor.InterfaceLanguage, L["TAB"][tab.name]["CHANGELANGUAGE"])
 			StdUi:GlueAbove(anchor.InterfaceLanguage.FontStringTitle, anchor.InterfaceLanguage)
 			anchor.InterfaceLanguage.text:SetJustifyH("CENTER")															
 			
@@ -6075,7 +6696,7 @@ function Action.ToggleMainUI()
 			end)
 			AutoTarget.Identify = { Type = "Checkbox", Toggle = "AutoTarget" }			
 			StdUi:FrameTooltip(AutoTarget, L["TAB"][tab.name]["AUTOTARGETTOOLTIP"], nil, "TOPRIGHT", true)		
-			AutoTarget.FontStringTitle = StdUi:FontString(AutoTarget, L["TAB"][tab.name]["CHARACTERSECTION"])
+			AutoTarget.FontStringTitle = StdUi:Subtitle(AutoTarget, L["TAB"][tab.name]["CHARACTERSECTION"])
 			StdUi:GlueAbove(AutoTarget.FontStringTitle, AutoTarget)
 			
 			local Potion = StdUi:Checkbox(anchor, L["TAB"][tab.name]["POTION"])		
@@ -6153,7 +6774,7 @@ function Action.ToggleMainUI()
 			end)
 			ReTarget.Identify = { Type = "Checkbox", Toggle = "ReTarget" }
 			StdUi:FrameTooltip(ReTarget, L["TAB"][tab.name]["RETARGET"], nil, "TOPRIGHT", true)
-			ReTarget.FontStringTitle = StdUi:FontString(ReTarget, L["TAB"][tab.name]["PVPSECTION"])
+			ReTarget.FontStringTitle = StdUi:Subtitle(ReTarget, L["TAB"][tab.name]["PVPSECTION"])
 			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)						
 			
 			local LosSystem = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSYSTEM"])
@@ -6171,7 +6792,7 @@ function Action.ToggleMainUI()
 			end)
 			LosSystem.Identify = { Type = "Checkbox", Toggle = "LOSCheck" }				
 			StdUi:FrameTooltip(LosSystem, L["TAB"][tab.name]["LOSSYSTEMTOOLTIP"], nil, "TOPLEFT", true)
-			LosSystem.FontStringTitle = StdUi:FontString(LosSystem, L["TAB"][tab.name]["SYSTEMSECTION"])
+			LosSystem.FontStringTitle = StdUi:Subtitle(LosSystem, L["TAB"][tab.name]["SYSTEMSECTION"])
 			StdUi:GlueAbove(LosSystem.FontStringTitle, LosSystem)								
 			
 			local DBMFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DBM"])
@@ -6308,7 +6929,7 @@ function Action.ToggleMainUI()
 			end 
 			HE_ToggleFrame.Identify = { Type = "Dropdown", Toggle = "HE_Toggle" }
 			StdUi:FrameTooltip(HE_ToggleFrame, L["TAB"][tab.name]["HEALINGENGINETOOLTIP"], nil, "TOPLEFT", true)
-			HE_ToggleFrame.FontStringTitle = StdUi:FontString(HE_ToggleFrame, "HealingEngine")
+			HE_ToggleFrame.FontStringTitle = StdUi:Subtitle(HE_ToggleFrame, "HealingEngine")
 			StdUi:GlueAbove(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
 			HE_ToggleFrame.text:SetJustifyH("CENTER")			
 			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
@@ -6362,7 +6983,7 @@ function Action.ToggleMainUI()
 				FPS.FontStringTitle:SetText(L["TAB"][tab.name]["FPS"] .. ": |cff00ff00" .. (value < 0 and "AUTO" or (value .. L["TAB"][tab.name]["FPSSEC"])))
 			end
 			StdUi:FrameTooltip(FPS, L["TAB"][tab.name]["FPSTOOLTIP"], nil, "TOPRIGHT", true)	
-			FPS.FontStringTitle = StdUi:FontString(anchor, L["TAB"][tab.name]["FPS"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].FPS < 0 and "AUTO" or (TMWdb.profile.ActionDB[tab.name].FPS .. L["TAB"][tab.name]["FPSSEC"])))
+			FPS.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tab.name]["FPS"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].FPS < 0 and "AUTO" or (TMWdb.profile.ActionDB[tab.name].FPS .. L["TAB"][tab.name]["FPSSEC"])))
 			StdUi:GlueAbove(FPS.FontStringTitle, FPS)					
 			
 			local Trinkets = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, {
@@ -6390,7 +7011,7 @@ function Action.ToggleMainUI()
 					end
 			end)		
 			Trinkets.Identify = { Type = "Dropdown", Toggle = "Trinkets" }			
-			Trinkets.FontStringTitle = StdUi:FontString(Trinkets, L["TAB"][tab.name]["TRINKETS"])
+			Trinkets.FontStringTitle = StdUi:Subtitle(Trinkets, L["TAB"][tab.name]["TRINKETS"])
 			StdUi:FrameTooltip(Trinkets, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)
 			StdUi:GlueAbove(Trinkets.FontStringTitle, Trinkets)
 			Trinkets.text:SetJustifyH("CENTER")		
@@ -6432,7 +7053,7 @@ function Action.ToggleMainUI()
 			end)		
 			Role.Identify = { Type = "Dropdown", Toggle = "Role" }	
 			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPLEFT", true)
-			Role.FontStringTitle = StdUi:FontString(Role, L["TAB"][5]["ROLE"])
+			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][5]["ROLE"])
 			StdUi:GlueAbove(Role.FontStringTitle, Role)	
 			Role.text:SetJustifyH("CENTER")				
 			TMW:RegisterCallback("TMW_ACTION_ROLE_CHANGED", function() 
@@ -6465,7 +7086,7 @@ function Action.ToggleMainUI()
 			end)		
 			Burst.Identify = { Type = "Dropdown", Toggle = "Burst" }	
 			StdUi:FrameTooltip(Burst, L["TAB"][tab.name]["BURSTTOOLTIP"], nil, "TOPLEFT", true)
-			Burst.FontStringTitle = StdUi:FontString(Burst, L["TAB"][tab.name]["BURST"])
+			Burst.FontStringTitle = StdUi:Subtitle(Burst, L["TAB"][tab.name]["BURST"])
 			StdUi:GlueAbove(Burst.FontStringTitle, Burst)	
 			Burst.text:SetJustifyH("CENTER")				
 
@@ -6482,7 +7103,7 @@ function Action.ToggleMainUI()
 				self.FontStringTitle:SetText(L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value >= 100 and "|cff00ff00AUTO|r" or value))
 			end
 			StdUi:FrameTooltip(HealthStone, L["TAB"][tab.name]["HEALTHSTONETOOLTIP"], nil, "TOPLEFT", true)	
-			HealthStone.FontStringTitle = StdUi:FontString(anchor, L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].HealthStone < 0 and "|cffff0000OFF|r" or TMWdb.profile.ActionDB[tab.name].HealthStone >= 100 and "|cff00ff00AUTO|r" or TMWdb.profile.ActionDB[tab.name].HealthStone))
+			HealthStone.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].HealthStone < 0 and "|cffff0000OFF|r" or TMWdb.profile.ActionDB[tab.name].HealthStone >= 100 and "|cff00ff00AUTO|r" or TMWdb.profile.ActionDB[tab.name].HealthStone))
 			StdUi:GlueAbove(HealthStone.FontStringTitle, HealthStone)
 			
 			local AutoAttack = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOATTACK"])			
@@ -6533,7 +7154,277 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			AutoShootCheckBoxUpdate()
+			
+			local Color 		= { 
+				Title 			= StdUi:Subtitle(anchor, L["TAB"][tab.name]["COLORTITLE"]),
+				Elements 		= {}, 	-- Stores static array like table for 'Element' dropdown 
+				Options 		= {},	-- Stores dynamic array like table for 'Option' dropdown depends on 'Element' choice
+				Themes			= {},	-- Stores static array like table for 'Theme' dropdown
+				SetupStates 	= function(self)
+					-- Switches between enabled and disabled 
+					if not TMWdb.profile.ActionDB[tab.name].ColorPickerUse then -- don't touch
+						self.Picker:Disable()
+						self.Element:Disable()
+						self.Option:Disable()
+						self.Theme:Disable()	
+						self.ThemeApplyButton:Disable()
+						-- Set back manual custom backdrop color 
+						Action.MainUI.ResetQuestion:SetBackdropColor(0, 0, 0, 1)
+					else
+						self.Picker:Enable()
+						self.Element:Enable()
+						self.Option:Enable()
+						self.Theme:Enable()
+						self.Theme:OnValueChanged(self.Theme:GetValue()) -- to enable 'ThemeApplyButton' if necessary
+						self:SetupPicker()
+					end 					
+				end,	
+				SetupPicker		= function(self)
+					local e, o	= self.Element:GetValue(), self.Option:GetValue()
+					local c 	= ColorPicker:tFindByOption(StdUi.config[e], o)		
+					
+					-- Switches color of checkbox 
+					self.Picker:SetColor(c)
+					-- Switches color of Color Frame 
+					if StdUi.colorPickerFrame and StdUi.colorPickerFrame:IsVisible() then 
+						StdUi.colorPickerFrame:SetColorRGBA(c.r or 1, c.g or 1, c.b or 1, c.a or 1)
+						StdUi.colorPickerFrame.oldTexture:SetVertexColor(c.r or 1, c.g or 1, c.b or 1, c.a or 1)
+					end 					
+				end,					
+			}				
+			
+			Color.Title:SetAllPoints()			
+			Color.Title:SetJustifyH('MIDDLE')
+			Color.Title:SetFontSize(14)
 
+			Color.UseColor = StdUi:Checkbox(anchor, L["TAB"][tab.name]["COLORUSE"])
+			Color.UseColor:SetChecked(TMWdb.profile.ActionDB[tab.name].ColorPickerUse)
+			Color.UseColor.OnValueChanged = function(self, state, value)
+				TMWdb.profile.ActionDB[tab.name].ColorPickerUse = state		
+				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLORUSE"] .. ": ", state)
+				ColorPicker:Initialize()
+				Color:SetupStates()
+
+				-- Hide color frame 
+				if self.stdUi.colorPickerFrame and self.stdUi.colorPickerFrame:IsVisible() then 
+					self.stdUi.colorPickerFrame:Hide()
+				end 
+			end	
+			Color.UseColor.Identify = { Type = "Checkbox", Toggle = "ColorPickerUse" }
+			StdUi:FrameTooltip(Color.UseColor, L["TAB"][tab.name]["COLORUSETOOLTIP"], nil, "TOPRIGHT", true)
+			
+			Color.Picker = StdUi:ColorInput(anchor, L["TAB"][tab.name]["COLORPICKER"])
+			Color.Picker.prevRGBA = {} -- Stores previous state of color with alpha (associative table)
+			Color.Picker.okCallback = function(cpf)
+				wipe(Color.Picker.prevRGBA)
+				Color.Picker:SetColor(cpf:GetColor())
+				
+				Color.currentTheme = nil 
+				if Color.ThemeApplyButton.isDisabled then 
+					local currentTheme = Color.Theme:GetValue()
+					if ColorPicker.Themes[currentTheme] then 
+						Color.ThemeApplyButton:Enable()
+					end
+				end
+			end 
+			Color.Picker.cancelCallback	= function()
+				if next(Color.Picker.prevRGBA) then 
+					Color.Picker:SetColor(Color.Picker.prevRGBA)
+					wipe(Color.Picker.prevRGBA)
+				end 
+			end
+			Color.Picker:HookScript("OnClick", function(self)
+				if self.isDisabled then 
+					return 
+				end 
+				
+				if not self.stdUi.colorPickerFrame.isModified then 
+					-- Make move able  
+					self.stdUi.colorPickerFrame:SetMovable(true)
+					self.stdUi.colorPickerFrame:EnableMouse(true)
+					self.stdUi.colorPickerFrame:RegisterForDrag("RightButton")
+					self.stdUi.colorPickerFrame:SetScript("OnDragStart", self.stdUi.colorPickerFrame.StartMoving)
+					self.stdUi.colorPickerFrame:SetScript("OnDragStop", function(this)
+						this:StopMovingOrSizing()
+						this.xOfs, this.yOfs = select(4, this:GetPoint())
+					end)
+					self.stdUi.colorPickerFrame:SetClampedToScreen(true)
+					
+					-- Create reset button 
+					self.stdUi.colorPickerFrame.resetButton = StdUi:Button(self.stdUi.colorPickerFrame, self.stdUi.colorPickerFrame.cancelButton:GetWidth(), self.stdUi.colorPickerFrame.cancelButton:GetHeight(), L["RESET"])
+					self.stdUi.colorPickerFrame.resetButton:RegisterForClicks("LeftButtonUp")
+					self.stdUi.colorPickerFrame.resetButton:SetScript("OnClick", function(this, button, down)
+						if not this.isDisabled then
+							local e, o = TMWdb.profile.ActionDB[tab.name].ColorPickerElement, TMWdb.profile.ActionDB[tab.name].ColorPickerOption -- don't touch 
+							ColorPicker:ResetOn(e, o)	
+							self.stdUi.colorPickerFrame:SetColor(ColorPicker:tFindByOption(ColorPicker.Cache[e], o))							
+						end 
+					end)
+					StdUi:GlueAbove(self.stdUi.colorPickerFrame.resetButton, self.stdUi.colorPickerFrame.cancelButton, 0, 5)
+										
+					-- Since StdUi used as new instance hooksecurefunc doesn't work on thigs used directly inside lib
+					-- Add to StdUiObjects OK / Cancel buttons   
+					self.stdUi:ApplyBackdrop(self.stdUi.colorPickerFrame.okButton)					
+					self.stdUi:SetTextColor(self.stdUi.colorPickerFrame.okButton.text, "normal")
+					self.stdUi.colorPickerFrame.okButton.text:SetText(L["APPLY"])
+					self.stdUi:ApplyBackdrop(self.stdUi.colorPickerFrame.cancelButton)					
+					self.stdUi:SetTextColor(self.stdUi.colorPickerFrame.cancelButton.text, "normal")
+					self.stdUi.colorPickerFrame.cancelButton.text:SetText(L["CLOSE"])									
+					
+					-- Create hook to hide with main UI
+					Action.MainUI:HookScript("OnHide", function(this)
+						if self.stdUi.colorPickerFrame:IsVisible() then 
+							self.stdUi.colorPickerFrame:Hide()
+						end 
+					end)
+					
+					self.stdUi.colorPickerFrame.isModified = true
+				end 								
+				
+				if not self.isLocalHooked then 
+					-- Just part of code to make in real time view changes 
+					self.temp = {} -- Temporary table for r,g,b,a since StdUi has recreate table return for :GetColor			
+					
+					self.stdUi.colorPickerFrame:HookScript("OnColorSelect", function(this)
+						if this:IsVisible() then 
+							self.temp.r, self.temp.g, self.temp.b, self.temp.a = this:GetColorRGBA()
+							self:OnValueChanged(self.temp)					
+						end 
+					end)
+					
+					self.isLocalHooked 	= true 
+				end 
+				
+				self.stdUi.colorPickerFrame.okCallback = self.okCallback
+				self.stdUi.colorPickerFrame.cancelCallback = self.cancelCallback
+				-- Remember previous color + alpha states 
+				if not next(self.prevRGBA) then  
+					self.prevRGBA.r, self.prevRGBA.g, self.prevRGBA.b, self.prevRGBA.a = self.color.r or 1, self.color.g or 1, self.color.b or 1, self.color.a or 1
+				end 
+				
+				-- Move to saved last position 
+				if self.stdUi.colorPickerFrame.xOfs and self.stdUi.colorPickerFrame.yOfs then 
+					self.stdUi.colorPickerFrame:SetPoint("CENTER", self.stdUi.colorPickerFrame.xOfs, self.stdUi.colorPickerFrame.yOfs)
+				end 
+			end)
+			Color.Picker.OnValueChanged = function(self, v)  
+				if not self.isDisabled then 
+					local e, o 			= Color.Element:GetValue(), Color.Option:GetValue()
+					local t 			= ColorPicker:tFindByOption(TMWdb.profile.ActionDB[tab.name].ColorPickerConfig[e], o)
+					t.r, t.g, t.b, t.a 	= v.r, v.g, v.b, v.a
+					ColorPicker:MakeOn(e, o, v)										
+				end 
+			end
+			-- We don't use Identify here since pointless with dropdowns 
+			StdUi:FrameTooltip(Color.Picker, L["TAB"][tab.name]["COLORPICKERTOOLTIP"], nil, "TOPLEFT", true)
+			
+			Color.Element = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, ColorPicker:SetElementsIn(Color.Elements))		
+			Color.Element:SetValue(TMWdb.profile.ActionDB[tab.name].ColorPickerElement)
+			Color.Element.OnValueChanged = function(self, val)      
+				TMWdb.profile.ActionDB[tab.name].ColorPickerElement = val 
+				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLORELEMENT"] .. ": ", val)				
+				
+				-- Change table structure for 'Option' dropdown and resize height
+				Color.Option:SetOptions(ColorPicker:SetOptionsIn(Color.Options, val))				
+				
+				-- Refresh current selection if it's not equal 
+				-- Note: We must do this instead of fixed set because :SetValue will always fire print 
+				local current_value = Color.Option:GetValue()
+				local equal_value 
+				for _, v in ipairs(Color.Options) do 
+					if current_value == v.value then 
+						equal_value = true 
+						break 
+					end 
+				end 
+				if not equal_value then 
+					Color.Option:SetValue(Color.Options[1].value)
+					--Color:SetupPicker() -- will be fired through OnValueChanged of 'Option' dropdown 
+				else 
+					Color:SetupPicker()
+				end 								
+			end
+			Color.Element:RegisterForClicks("LeftButtonUp")
+			Color.Element:SetScript("OnClick", function(self, button, down)
+				if not self.isDisabled then 
+					self:ToggleOptions()
+				end 
+			end)		
+			Color.Element.Identify = { Type = "Dropdown", Toggle = "ColorPickerElement" }	
+			Color.Element.FontStringTitle = StdUi:Subtitle(Color.Element, L["TAB"][tab.name]["COLORELEMENT"])
+			StdUi:GlueAbove(Color.Element.FontStringTitle, Color.Element)	
+			Color.Element.text:SetJustifyH("CENTER")	
+			
+			Color.Option = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, ColorPicker:SetOptionsIn(Color.Options, Color.Element:GetValue()))		
+			Color.Option:SetValue(TMWdb.profile.ActionDB[tab.name].ColorPickerOption)
+			Color.Option.OnValueChanged = function(self, val)                
+				TMWdb.profile.ActionDB[tab.name].ColorPickerOption = val 				
+				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLOROPTION"] .. ": ", TMWdb.profile.ActionDB[tab.name].ColorPickerOption)
+				
+				-- Refresh RGBA of checkbox and color frame
+				Color:SetupPicker()
+			end
+			Color.Option:RegisterForClicks("LeftButtonUp")
+			Color.Option:SetScript("OnClick", function(self, button, down)
+				if not self.isDisabled then 
+					self:ToggleOptions()
+				end 
+			end)		
+			Color.Option.Identify = { Type = "Dropdown", Toggle = "ColorPickerOption" }	
+			Color.Option.FontStringTitle = StdUi:Subtitle(Color.Option, L["TAB"][tab.name]["COLOROPTION"])
+			StdUi:GlueAbove(Color.Option.FontStringTitle, Color.Option)	
+			Color.Option.text:SetJustifyH("CENTER")
+			
+			Color.Theme = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 9), ActionDatatheme.dd.height, ColorPicker:SetThemesIn(Color.Themes))	
+			Color.Theme:SetPlaceholder(L["TAB"][tab.name]["THEMEHOLDER"])
+			Color.Theme.OnValueChanged = function(self, val) 
+				if not self.isDisabled then 
+					if Color.currentTheme == val then 
+						if not Color.ThemeApplyButton.isDisabled then 
+							Color.ThemeApplyButton:Disable()
+						end 
+					else
+						if Color.ThemeApplyButton.isDisabled then 
+							Color.ThemeApplyButton:Enable()
+						end 
+					end 
+				end 
+			end
+			Color.Theme:RegisterForClicks("LeftButtonUp")
+			Color.Theme:SetScript("OnClick", function(self, button, down)
+				if not self.isDisabled then 
+					self:ToggleOptions()
+				end 
+			end)		
+			Color.Theme.FontStringTitle = StdUi:Subtitle(Color.Theme, L["TAB"][tab.name]["SELECTTHEME"])
+			StdUi:GlueAbove(Color.Theme.FontStringTitle, Color.Theme)	
+			Color.Theme.text:SetJustifyH("CENTER")
+			
+			Color.ThemeApplyButton = StdUi:Button(anchor, GetWidthByColumn(anchor, 2), ActionDatatheme.dd.height, L["APPLY"])
+			Color.ThemeApplyButton:RegisterForClicks("LeftButtonUp")
+			Color.ThemeApplyButton:SetScript("OnClick", function(self, button, down)
+				if not self.isDisabled then 		
+					local currentTheme = Color.Theme:GetValue()
+					if ColorPicker.Themes[currentTheme] then 						
+						-- Apply selected theme 
+						ColorPicker:MakeColors(ColorPicker.Themes[currentTheme])
+
+						-- Save selected theme to db 
+						TMWdb.profile.ActionDB[tab.name].ColorPickerConfig = tMerge(TMWdb.profile.ActionDB[tab.name].ColorPickerConfig, ColorPicker.Themes[currentTheme])
+						
+						-- Refresh rest  
+						Color:SetupPicker()
+						wipe(Color.Picker.prevRGBA)
+						Color.currentTheme = currentTheme
+						self:Disable()						
+					end 
+				end 
+			end)
+			Color.ThemeApplyButton:Disable()
+			
+			Color:SetupStates()
+			Color:SetupPicker()			
+			
 			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 450, L["TAB"][tab.name]["PAUSECHECKS"])
 			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
 			PauseChecksPanel.titlePanel.label:SetFontSize(14)
@@ -6844,13 +7735,13 @@ function Action.ToggleMainUI()
 				end
 			end)		
 			LossOfControlTypes.Identify = { Type = "Dropdown", Toggle = "LossOfControlTypes" }			
-			LossOfControlTypes.FontStringTitle = StdUi:FontString(LossOfControlTypes, L["TAB"][tab.name]["LOSSOFCONTROLTYPES"])
+			LossOfControlTypes.FontStringTitle = StdUi:Subtitle(LossOfControlTypes, L["TAB"][tab.name]["LOSSOFCONTROLTYPES"])
 			StdUi:GlueAbove(LossOfControlTypes.FontStringTitle, LossOfControlTypes)
 			LossOfControlTypes.text:SetJustifyH("CENTER")
 			
 			local GlobalOverlay = anchor:AddRow()					
 			GlobalOverlay:AddElement(PvEPvPToggle, { column = 5.35 })			
-			GlobalOverlay:AddElement(LayoutSpace(anchor), { column = 0.55 })	
+			GlobalOverlay:AddElement(LayoutSpace(anchor), { column = 0.65 })	
 			GlobalOverlay:AddElement(anchor.InterfaceLanguage, { column = 6 })			
 			anchor:AddRow({ margin = { top = 10 } }):AddElements(ReTarget, Trinkets, { column = "even" })			
 			anchor:AddRow():AddElements(Role, Burst, { column = "even" })			
@@ -6863,6 +7754,12 @@ function Action.ToggleMainUI()
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(StopCast, HE_AnyRole, { column = "even" })	
 			anchor:AddRow({ margin = { top = -5 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, StopAtBreakAble, { column = "even" })
+			anchor:AddRow():AddElements(Color.Title, { column = "even" })	
+			anchor:AddRow({ margin = { top = -10 } }):AddElements(Color.UseColor, Color.Picker, { column = "even" })	
+			anchor:AddRow():AddElements(Color.Element, Color.Option, { column = "even" })	
+			local ThemeRow = anchor:AddRow({ margin = { top = 5 }})
+			ThemeRow:AddElement(Color.Theme, { column = 9 })
+			ThemeRow:AddElement(Color.ThemeApplyButton, { column = 3})
 			anchor:AddRow():AddElement(PauseChecksPanel)		
 			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	
@@ -6958,7 +7855,7 @@ function Action.ToggleMainUI()
 							end 
 						end)
 						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
-						--obj.FontStringTitle = StdUi:FontString(obj, config.L.ANY or config.L[CL])
+						--obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[CL])
 						--StdUi:GlueAbove(obj.FontStringTitle, obj)
 						if config.isDisabled then 
 							obj:Disable()
@@ -7041,7 +7938,7 @@ function Action.ToggleMainUI()
 							end
 						end)
 						obj.Identify = { Type = config.E, Toggle = config.DB }
-						obj.FontStringTitle = StdUi:FontString(obj, config.L.ANY or config.L[CL])
+						obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[CL])
 						obj.FontStringTitle:SetJustifyH("CENTER")
 						obj.text:SetJustifyH("CENTER")
 						StdUi:GlueAbove(obj.FontStringTitle, obj)						
@@ -7082,7 +7979,7 @@ function Action.ToggleMainUI()
 							self.FontStringTitle:SetText(ONOFF(value))
 						end
 						obj.Identify = { Type = config.E, Toggle = config.DB }						
-						obj.FontStringTitle = StdUi:FontString(obj, ONOFF(TMWdb.profile.ActionDB[tab.name][config.DB]))
+						obj.FontStringTitle = StdUi:Subtitle(obj, ONOFF(TMWdb.profile.ActionDB[tab.name][config.DB]))
 						obj.FontStringTitle:SetJustifyH("CENTER")						
 						StdUi:GlueAbove(obj.FontStringTitle, obj)						
 						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)						
@@ -7129,10 +8026,10 @@ function Action.ToggleMainUI()
 			
 			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 50 } })	
 			local QLuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height - 3, "QLUA")
-			QLuaButton.FontStringLUA = StdUi:FontString(QLuaButton, ActionDatatheme.off)
+			QLuaButton.FontStringLUA = StdUi:Subtitle(QLuaButton, ActionDatatheme.off)
 			local QLuaEditor = CreateLuaEditor(tab.childs[spec], "QUEUE " .. L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height - 3, "LUA")
-			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, ActionDatatheme.off)
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			local Key = StdUi:SimpleEditBox(tab.childs[spec], 50, ActionDatatheme.dd.height, "")							
 						
@@ -7395,7 +8292,7 @@ function Action.ToggleMainUI()
 			end 
 					
 			Key:SetJustifyH("CENTER")
-			Key.FontString = StdUi:FontString(Key, L["TAB"]["KEY"]) 
+			Key.FontString = StdUi:Subtitle(Key, L["TAB"]["KEY"]) 
 			Key:SetScript("OnTextChanged", function(self)
 				local index = tab.childs[spec].ScrollTable:GetSelection()				
 				if not index then 
@@ -7622,7 +8519,7 @@ function Action.ToggleMainUI()
 			local TargetMouseoverList = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["TARGETMOUSEOVERLIST"])
 			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, ActionDatatheme.off)
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			local Add = StdUi:Button(tab.childs[spec], InputBox:GetWidth(), 25, L["TAB"][tab.name]["ADD"])
 			local Remove = StdUi:Button(tab.childs[spec], InputBox:GetWidth(), 25, L["TAB"][tab.name]["REMOVE"])					
@@ -7867,7 +8764,7 @@ function Action.ToggleMainUI()
 				CheckboxsUpdate()				
 			end	
 			StdUi:FrameTooltip(InterruptUnits, L["TAB"][tab.name]["INTERRUPTTOOLTIP"], nil, "TOP", true)		
-			InterruptUnits.FontStringTitle = StdUi:FontString(InterruptUnits, L["TAB"][tab.name]["INTERRUPTFRONTSTRINGTITLE"])
+			InterruptUnits.FontStringTitle = StdUi:Subtitle(InterruptUnits, L["TAB"][tab.name]["INTERRUPTFRONTSTRINGTITLE"])
 			StdUi:GlueAbove(InterruptUnits.FontStringTitle, InterruptUnits)	
 			InterruptUnits.text:SetJustifyH("CENTER")			
 
@@ -7992,12 +8889,12 @@ function Action.ToggleMainUI()
 				ShowTooltip(self, false)
 			end)
 			InputBox.val = ""
-			InputBox.FontStringTitle = StdUi:FontString(InputBox, L["TAB"][tab.name]["INPUTBOXTITLE"])			
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTBOXTITLE"])			
 			StdUi:FrameTooltip(InputBox, L["TAB"][tab.name]["INPUTBOXTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)		
 
 			How.text:SetJustifyH("CENTER")	
-			How.FontStringTitle = StdUi:FontString(How, L["TAB"]["HOW"])
+			How.FontStringTitle = StdUi:Subtitle(How, L["TAB"]["HOW"])
 			StdUi:FrameTooltip(How, L["TAB"]["HOWTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(How.FontStringTitle, How)	
 			How:HookScript("OnClick", function()
@@ -8215,7 +9112,7 @@ function Action.ToggleMainUI()
 			StdUi:EasyLayout(ConfigPanel, { gutter = 0, padding = { top = 40 } })
 			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, ActionDatatheme.off)
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			local Role = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, {				
 				{ text = L["TAB"][tab.name]["ANY"], value = "ANY" },				
@@ -8489,7 +9386,7 @@ function Action.ToggleMainUI()
 			Mode.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end	
-			Mode.FontStringTitle = StdUi:FontString(Mode, L["TAB"][tab.name]["MODE"])
+			Mode.FontStringTitle = StdUi:Subtitle(Mode, L["TAB"][tab.name]["MODE"])
 			StdUi:GlueAbove(Mode.FontStringTitle, Mode)	
 			Mode.text:SetJustifyH("CENTER")	
 			Mode:HookScript("OnClick", ClearAllEditBox)
@@ -8497,13 +9394,13 @@ function Action.ToggleMainUI()
 			Category.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end				
-			Category.FontStringTitle = StdUi:FontString(Category, L["TAB"][tab.name]["CATEGORY"])			
+			Category.FontStringTitle = StdUi:Subtitle(Category, L["TAB"][tab.name]["CATEGORY"])			
 			StdUi:GlueAbove(Category.FontStringTitle, Category)	
 			Category.text:SetJustifyH("CENTER")													
 			Category:HookScript("OnClick", ClearAllEditBox)
 								
 			Role.text:SetJustifyH("CENTER")
-			Role.FontStringTitle = StdUi:FontString(Role, L["TAB"][tab.name]["ROLE"])
+			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][tab.name]["ROLE"])
 			Role:HookScript("OnClick", ClearAllEditBox)			
 			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
 			StdUi:GlueAbove(Role.FontStringTitle, Role)	
@@ -8528,7 +9425,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			local Font = strgsub(strgsub(L["TAB"][tab.name]["DURATION"], "\n", ""), "-", "")
-			Duration.FontStringTitle = StdUi:FontString(Duration, Font)			
+			Duration.FontStringTitle = StdUi:Subtitle(Duration, Font)			
 			StdUi:FrameTooltip(Duration, L["TAB"][tab.name]["DURATIONTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(Duration.FontStringTitle, Duration)	
 						
@@ -8548,7 +9445,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			local Font = strgsub(L["TAB"][tab.name]["STACKS"], "\n", "")
-			Stack.FontStringTitle = StdUi:FontString(Stack, Font)			
+			Stack.FontStringTitle = StdUi:Subtitle(Stack, Font)			
 			StdUi:FrameTooltip(Stack, L["TAB"][tab.name]["STACKSTOOLTIP"], nil, "TOPLEFT", true)
 			StdUi:GlueAbove(Stack.FontStringTitle, Stack)				
 
@@ -8602,7 +9499,7 @@ function Action.ToggleMainUI()
 				ShowTooltip(self, false)
 			end)
 			InputBox.val = ""
-			InputBox.FontStringTitle = StdUi:FontString(InputBox, L["TAB"][4]["INPUTBOXTITLE"])			
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][4]["INPUTBOXTITLE"])			
 			StdUi:FrameTooltip(InputBox, L["TAB"][4]["INPUTBOXTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
 			
@@ -8740,7 +9637,7 @@ function Action.ToggleMainUI()
 			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
 			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, ActionDatatheme.off)
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"][tab.name]["LUATOOLTIP"])
 			local Button = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, {				
 				{ text = L["TAB"][tab.name]["LEFT"], value = "LEFT" },				
@@ -8874,7 +9771,7 @@ function Action.ToggleMainUI()
 			Mode.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end	
-			Mode.FontStringTitle = StdUi:FontString(Mode, L["TAB"][5]["MODE"])
+			Mode.FontStringTitle = StdUi:Subtitle(Mode, L["TAB"][5]["MODE"])
 			StdUi:GlueAbove(Mode.FontStringTitle, Mode)	
 			Mode.text:SetJustifyH("CENTER")	
 			Mode:HookScript("OnClick", function()
@@ -8884,7 +9781,7 @@ function Action.ToggleMainUI()
 			Category.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end				
-			Category.FontStringTitle = StdUi:FontString(Category, L["TAB"][5]["CATEGORY"])			
+			Category.FontStringTitle = StdUi:Subtitle(Category, L["TAB"][5]["CATEGORY"])			
 			StdUi:GlueAbove(Category.FontStringTitle, Category)	
 			Category.text:SetJustifyH("CENTER")													
 			Category:HookScript("OnClick", function()
@@ -8920,12 +9817,12 @@ function Action.ToggleMainUI()
 			InputBox:SetScript("OnEscapePressed", function()
 				InputBox:ClearFocus()
 			end)
-			InputBox.FontStringTitle = StdUi:FontString(InputBox, L["TAB"][tab.name]["INPUTTITLE"])			
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTTITLE"])			
 			StdUi:FrameTooltip(InputBox, L["TAB"][4]["INPUTBOXTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
 			
 			How.text:SetJustifyH("CENTER")	
-			How.FontStringTitle = StdUi:FontString(How, L["TAB"]["HOW"])
+			How.FontStringTitle = StdUi:Subtitle(How, L["TAB"]["HOW"])
 			StdUi:FrameTooltip(How, L["TAB"]["HOWTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(How.FontStringTitle, How)	
 			How:HookScript("OnClick", function()
@@ -9087,7 +9984,7 @@ function Action.ToggleMainUI()
 			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
 			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
 			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:FontString(LuaButton, ActionDatatheme.off)
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
 			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])						
 			local Key = StdUi:SimpleEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 20, "") 
 			local Source = StdUi:SimpleEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 20, "") 
@@ -9285,7 +10182,7 @@ function Action.ToggleMainUI()
 				self:ClearFocus() 
             end)						
 			Macro:SetJustifyH("CENTER")
-			Macro.FontString = StdUi:FontString(Macro, L["TAB"][tab.name]["MACRO"])
+			Macro.FontString = StdUi:Subtitle(Macro, L["TAB"][tab.name]["MACRO"])
 			StdUi:GlueAbove(Macro.FontString, Macro) 
 			StdUi:FrameTooltip(Macro, L["TAB"][tab.name]["MACROTOOLTIP"], nil, "TOP", true)			
 			
@@ -9296,7 +10193,7 @@ function Action.ToggleMainUI()
 				self:ClearFocus()
 			end)
 			Key:SetJustifyH("CENTER")
-			Key.FontString = StdUi:FontString(Key, L["TAB"][tab.name]["KEY"])
+			Key.FontString = StdUi:Subtitle(Key, L["TAB"][tab.name]["KEY"])
 			StdUi:GlueAbove(Key.FontString, Key)	
 			StdUi:FrameTooltip(Key, L["TAB"][tab.name]["KEYTOOLTIP"], nil, "TOPRIGHT", true)	
 
@@ -9307,7 +10204,7 @@ function Action.ToggleMainUI()
 				self:ClearFocus()
 			end)
 			Source:SetJustifyH("CENTER")
-			Source.FontString = StdUi:FontString(Source, L["TAB"][tab.name]["SOURCE"])
+			Source.FontString = StdUi:Subtitle(Source, L["TAB"][tab.name]["SOURCE"])
 			StdUi:GlueAbove(Source.FontString, Source)	
 			StdUi:FrameTooltip(Source, L["TAB"][tab.name]["SOURCETOOLTIP"], nil, "TOPLEFT", true)
 
@@ -9328,7 +10225,7 @@ function Action.ToggleMainUI()
 			InputBox:SetScript("OnEscapePressed", function(self)
 				self:ClearFocus()
 			end)
-			InputBox.FontStringTitle = StdUi:FontString(InputBox, L["TAB"][tab.name]["INPUTTITLE"])						
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTTITLE"])						
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
 			StdUi:FrameTooltip(InputBox, L["TAB"][tab.name]["INPUTTOOLTIP"], nil, "TOP", true)			
 			
@@ -9837,6 +10734,9 @@ function OnInitialize()
 		TMWdb.profile.ActionDB[1].Potion = false 
 	end 
 	
+	-- Initialization ColorPicker 
+	ColorPicker:Initialize()
+	
 	-- Initialization ReTarget 
 	Re:Initialize()
 	
@@ -10067,7 +10967,8 @@ function Action:OnInitialize()
 	----------------------------------
 	-- Remap
 	----------------------------------
-	A_Unit = Action.Unit
+	A_Unit 	= Action.Unit	-- Unit.lua
+	round 	= _G.round		-- Tools.lua
 	----------------------------------
 	-- Register Slash Commands
 	----------------------------------
@@ -10153,7 +11054,8 @@ function Action:OnInitialize()
 				end)
 			end 
 		end 		
-		OnInitialize()			
+		OnInitialize()	
+		TMW:Fire("TMW_ACTION_ON_PROFILE_POST") -- No assigned callbacks on Classic
 	end
 	TMW:RegisterCallback("TMW_ON_PROFILE", OnSwap)
 	TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", OnInitialize, "ACTION_TMW_SAFESETUP_COMPLETE")	
