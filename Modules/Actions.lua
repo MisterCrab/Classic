@@ -370,7 +370,11 @@ end
 function A:GetSpellChargesFullRechargeTime()
 	-- @return number
 	local _, _, _, duration = GetSpellCharges(self:Info())
-	return duration and self:GetSpellChargesMax() - self:GetSpellChargesFrac() * duration or 0
+	if duration then 
+		return (self:GetSpellChargesMax() - self:GetSpellChargesFrac()) * duration
+	else 
+		return 0
+	end 
 end 
 
 function A:GetSpellTimeSinceLastCast()
