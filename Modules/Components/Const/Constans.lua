@@ -3,6 +3,7 @@ local dir														= [[Interface\AddOns\TheAction Classic\Media\]]
 ACTION_CONST_TMW_DEFAULT_STATE_HIDE 							= TMW.CONST.STATE.DEFAULT_HIDE
 ACTION_CONST_TMW_DEFAULT_STATE_SHOW 							= TMW.CONST.STATE.DEFAULT_SHOW
 ACTION_CONST_ADDON_NAME_TMW_OPTIONS								= "TellMeWhen Options"
+ACTION_CONST_ADDON_NAME_TMW										= "TellMeWhen"
 
 -- Action 
 ACTION_CONST_ADDON_NAME											= "TheAction Classic"

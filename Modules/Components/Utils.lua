@@ -953,10 +953,13 @@ end
 -- TMW IconConfig.lua attempt to index field 'CurrentTabGroup' (nil value) fix
 -------------------------------------------------------------------------------
 Listener:Add("ACTION_EVENT_UTILS_TMW_OPTIONS", "ADDON_LOADED", function(addonName) 
-	if addonName == ACTION_CONST_ADDON_NAME_TMW_OPTIONS then 
+	if addonName == ACTION_CONST_ADDON_NAME_TMW_OPTIONS or addonName == ACTION_CONST_ADDON_NAME_TMW then 
 		local IE 			= TMW.IE
 		local CI 			= TMW.CI
 		local PlaySound 	= _G.PlaySound
+		if not IE or not CI then 
+			return 
+		end 
 		function IE:LoadIcon(isRefresh, icon)
 			if icon ~= nil then
 
