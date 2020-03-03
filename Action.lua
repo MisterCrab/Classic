@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "02.03.2020"
+local DateTime 														= "03.03.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -8228,7 +8228,7 @@ function Action.ToggleMainUI()
 
 			-- AutoHidden update ScrollTable events 			
 			local EVENTS = {
-				["UNIT_PET"] 						= true,
+				--["UNIT_PET"] 						= true,
 				--["PLAYER_LEVEL_UP"]				= true,
 				--["CHARACTER_POINTS_CHANGED"]		= true,
 				--["CONFIRM_TALENT_WIPE"]			= true,
