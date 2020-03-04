@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "03.03.2020"
+local DateTime 														= "04.03.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -8342,7 +8342,7 @@ function Action.ToggleMainUI()
 					if button == "LeftButton" then 
 						data:SetBlocker()						
 					elseif button == "RightButton" then 						
-						CraftMacro("Block: " .. data.TableKeyName, [[#showtip ]] .. data:Info() .. "\n" .. [[/run Action.MacroBlocker("]] .. data.TableKeyName .. [[")]], 1, true, true)	
+						CraftMacro("Block: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroBlocker("]] .. data.TableKeyName .. [[")]], 1, true, true)	
 					end
 				end 
 			end)			         
@@ -8366,7 +8366,7 @@ function Action.ToggleMainUI()
 						if button == "LeftButton" then 	
 							Action.MacroQueue(data.TableKeyName, { Priority = 1 })							
 						elseif button == "RightButton" then 						
-							CraftMacro("Queue: " .. data.TableKeyName, [[#showtip ]] .. data:Info() .. "\n" .. [[/run Action.MacroQueue("]] .. data.TableKeyName .. [[", { Priority = 1 })]], 1, true, true)	
+							CraftMacro("Queue: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroQueue("]] .. data.TableKeyName .. [[", { Priority = 1 })]], 1, true, true)	
 						end
 					end 
 				end 
