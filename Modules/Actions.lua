@@ -277,7 +277,7 @@ A.GetSpellPowerCost = A.MakeFunctionCachedDynamic(A.GetSpellPowerCost)
 
 local str_null 			= ""
 local str_comma			= ","
-local str_point			= "."
+local str_point			= "%."
 local pattern_gmatch 	= "%f[%d]%d[.,%d]*%f[%D]"
 local pattern_gsubspace	= "%s"
 local descriptioncache 	= setmetatable({}, { __index = function(t, v)
