@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "04.03.2020"
+local DateTime 														= "09.03.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -7052,7 +7052,7 @@ function Action.ToggleMainUI()
 					end
 			end)		
 			Role.Identify = { Type = "Dropdown", Toggle = "Role" }	
-			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
 			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][5]["ROLE"])
 			StdUi:GlueAbove(Role.FontStringTitle, Role)	
 			Role.text:SetJustifyH("CENTER")				

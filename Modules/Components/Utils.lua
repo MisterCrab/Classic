@@ -37,7 +37,7 @@ local ACTION_CONST_TMW_DEFAULT_STATE_HIDE 				= _G.ACTION_CONST_TMW_DEFAULT_STAT
 local ACTION_CONST_TMW_DEFAULT_STATE_SHOW 				= _G.ACTION_CONST_TMW_DEFAULT_STATE_SHOW	  
 	  
 local huge 					= math.huge	  
-local strfind				= _G.strfind
+local strfind				= _G.strfind	  
 local strmatch				= _G.strmatch	
 local UIParent				= _G.UIParent	
 	  
