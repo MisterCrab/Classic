@@ -933,6 +933,18 @@ function A.FrameHasObject(frame, ...)
 end 
 
 -------------------------------------------------------------------------------
+-- TMW Help Frame
+-------------------------------------------------------------------------------
+Listener:Add("ACTION_EVENT_UTILS_TMW_HELP", "ADDON_LOADED", function(addonName) 
+	if addonName == ACTION_CONST_ADDON_NAME_TMW_OPTIONS or addonName == ACTION_CONST_ADDON_NAME_TMW then 
+		_G.TellMeWhen_IconEditor.Pages.Help:HookScript("OnShow", function(self)
+			self:Hide()
+		end)
+		Listener:Remove("ACTION_EVENT_UTILS_TMW_HELP", "ADDON_LOADED")
+	end 
+end)
+
+-------------------------------------------------------------------------------
 -- TMW PlayerNames fix
 -------------------------------------------------------------------------------
 if TELLMEWHEN_VERSIONNUMBER <= 87303 then -- Classic 87303
