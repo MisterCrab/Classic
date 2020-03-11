@@ -883,11 +883,13 @@ local function SetColorTarget(isForced)
     ]]
 end
 
-local function UpdateLOS()
+local function UpdateLOS(onUpdate)
 	if A.IsInitialized and A_Unit("target"):IsExists() and not A_IsUnitFriendly("mouseover") then
 		GetLOS("target")
 	end 
-	ClearHealingTarget()
+	if not onUpdate then 
+		ClearHealingTarget()
+	end
 end
 
 local function WipeFrequencyActual()
@@ -914,7 +916,7 @@ local function HealingEngineInit()
 						SetColorTarget()   
 					end 
 					
-					UpdateLOS() 
+					UpdateLOS(true) 
 					
 					self.elapsed = 0
 				end			
