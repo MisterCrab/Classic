@@ -51,6 +51,10 @@ local ACTION_CONST_PAUSECHECKS_SPELL_IS_TARGETING	= _G.ACTION_CONST_PAUSECHECKS_
 local ACTION_CONST_PAUSECHECKS_LOOTFRAME			= _G.ACTION_CONST_PAUSECHECKS_LOOTFRAME
 local ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK		= _G.ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK
 
+local MACRO											-- nil 
+local BINDPAD 										= _G.BindPadFrame
+local WIM											= _G.WIM
+
 local ClassPortaits 								= {
 	["WARRIOR"] 									= ACTION_CONST_PORTRAIT_WARRIOR,
 	["PALADIN"] 									= ACTION_CONST_PORTRAIT_PALADIN,
@@ -83,6 +87,28 @@ local targettarget									= "targettarget"
 -------------------------------------------------------------------------------
 -- Conditions
 -------------------------------------------------------------------------------
+local function MacroFrameIsVisible()
+	-- @return boolean 
+	if MACRO then 
+		return MACRO:IsVisible()
+	else 
+		MACRO = _G.MacroFrame
+	end 
+end 
+
+local function BindPadFrameIsVisible()
+	-- @return boolean 
+	return BINDPAD and BINDPAD:IsVisible()
+end 
+
+local WIM_ChatFrames = setmetatable({}, { __index = function(t, i)
+	local f = _G["WIM3_msgFrame" .. i .. "MsgBox"]
+	if f then 
+		t[i] = f
+	end 
+	return f
+end })
+
 local FoodAndDrink 									= {	
 	[GetSpellInfo(587)] 							= true, -- Conjure Food 
 	[GetSpellInfo(18233)] 							= true,	-- Food
@@ -115,10 +141,21 @@ local function IsDrinkingOrEating()
 end 
 
 function A.PauseChecks()  	
-	-- Chat, BindPad, TellMeWhen
-	if ACTIVE_CHAT_EDIT_BOX or (BindPadFrame and BindPadFrame:IsVisible()) or not TMW.Locked then 
+	-- Chat, Macro, BindPad, TellMeWhen
+	if _G.ACTIVE_CHAT_EDIT_BOX or MacroFrameIsVisible() or BindPadFrameIsVisible() or not TMW.Locked then 
 		return ACTION_CONST_PAUSECHECKS_DISABLED
 	end 
+	
+	-- Wim Messanger
+	if WIM then 
+		for i = 1, huge do 
+			if not WIM_ChatFrames[i] then 
+				break 
+			elseif WIM_ChatFrames[i]:IsVisible() and WIM_ChatFrames[i]:HasFocus() then 
+				return ACTION_CONST_PAUSECHECKS_DISABLED
+			end 
+		end 
+	end  
 	
 	if 	(GetToggle(1, "CheckDeadOrGhost") and Unit(player):IsDead()) or 
 		(
