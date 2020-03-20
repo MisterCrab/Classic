@@ -479,7 +479,7 @@ function A.Rotation(icon)
 		-- AutoTarget 
 		if GetToggle(1, "AutoTarget") and Unit(player):CombatTime() > 0 -- and not A.IamHealer
 			-- No existed or switch in PvE if we accidentally selected out of combat enemy unit  
-			and (not Unit(target):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit(target):CombatTime() == 0 and Unit(target):IsEnemy())) 
+			and (not Unit(target):IsExists() or (A.Zone ~= "none" and not A.IsInPvP and Unit(target):CombatTime() == 0 and Unit(target):IsEnemy() and Unit(target):HealthPercent() >= 100)) 
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
 			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(nil, 1) >= 1) or A.Zone == "pvp")
 		then 
