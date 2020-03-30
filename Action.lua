@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "20.03.2020"
+local DateTime 														= "31.03.2020"
 ---
 local TMW 															= TMW
 local Env 															= TMW.CNDT.Env
@@ -41,8 +41,8 @@ local DoEmote, Dismount, CancelShapeshiftForm 						=
 	  DoEmote, Dismount, CancelShapeshiftForm
 	    
 -- AuraDuration 
-local SetPortraitToTexture, CooldownFrame_Set, TargetFrame_ShouldShowDebuffs, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition,    DebuffTypeColor =
-	  SetPortraitToTexture, CooldownFrame_Set, TargetFrame_ShouldShowDebuffs, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition, _G.DebuffTypeColor
+local SetPortraitToTexture, CooldownFrame_Set, ShowBossFrameWhenUninteractable, TargetFrame_ShouldShowDebuffs, TargetFrame_Update, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition,    DebuffTypeColor =
+	  SetPortraitToTexture, CooldownFrame_Set, ShowBossFrameWhenUninteractable, TargetFrame_ShouldShowDebuffs, TargetFrame_Update, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition, _G.DebuffTypeColor
 	  
 -- UnitHealthTool
 local TextStatusBar_UpdateTextStringWithValues 						=
@@ -69,6 +69,7 @@ Env.Action 															= _G.Action
 local Action 														= _G.Action
 Action.PlayerRace 													= select(2, UnitRace("player"))
 Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("player")
+Action.StdUi 														= StdUi										-- Note: For custom lua snippets use 
 
 -------------------------------------------------------------------------------
 -- Remap
@@ -3523,7 +3524,6 @@ local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
 	Action.Print(L["MACRO"] .. " " .. Name .. " " .. L["CREATED"] .. "!")
 	GameMenuButtonMacros:Click()
 end
-Action.CraftMacro = CraftMacro
 local function GetActionTableByKey(key)
 	-- @return table or nil 
 	-- Note: Returns table object which can be used to pass methods by specified key 
@@ -3540,6 +3540,14 @@ local function SetProperlyScale()
 		Action.MainUI:SetScale(1)
 	end 	
 end 
+
+-- Note: For custom lua snippets use 
+Action.ConvertSpellNameToID 			= ConvertSpellNameToID
+Action.LayoutSpace						= LayoutSpace
+Action.GetWidthByColumn					= GetWidthByColumn
+Action.CreateResizer					= CreateResizer
+Action.CraftMacro 						= CraftMacro
+Action.GetActionTableByKey				= GetActionTableByKey
 
 -------------------------------------------------------------------------------
 -- UI: ColorPicker - Container
@@ -4963,7 +4971,15 @@ local AuraDuration = {
 	LibAuraTypes			= LibStub("LibAuraTypes"),
 	LibSpellLocks			= LibStub("LibSpellLocks"),
 	TurnOnAuras				= function(self)
-		TargetFrame_Update(_G["TargetFrame"])
+		local tFrame = _G["TargetFrame"]
+		if not InCombatLockdown() then 
+			TargetFrame_Update(tFrame)
+		elseif not ( not UnitExists(tFrame.unit) and not ShowBossFrameWhenUninteractable(tFrame.unit) ) then 
+			TargetFrame_UpdateAuras(tFrame)
+			if ( tFrame.portrait ) then
+				tFrame.portrait:SetAlpha(1.0)
+			end
+		end 
 		self:TargetFrameHook()	
 	end,
 	TurnOffAuras			= function(self)
@@ -5271,13 +5287,13 @@ local AuraDuration = {
 		
 		self.LibSpellLocks.RegisterCallback(Action, "UPDATE_INTERRUPT", function(event, guid)
 			if Action.IsInitialized and self.IsEnabled and UnitGUID("target") == guid then
-				TargetFrame_UpdateAuras(TargetFrame)
+				TargetFrame_UpdateAuras(_G["TargetFrame"])
 			end
 		end)
 
 		local originalPortrait = _G["TargetFramePortrait"]
 
-		local auraCD = CreateFrame("Cooldown", "AuraDurationsPortraitAura", TargetFrame, "CooldownFrameTemplate")
+		local auraCD = CreateFrame("Cooldown", "AuraDurationsPortraitAura", _G["TargetFrame"], "CooldownFrameTemplate")
 		auraCD:SetFrameStrata("BACKGROUND")
 		auraCD:SetDrawEdge(false)
 		auraCD:SetReverse(true)
@@ -8600,10 +8616,9 @@ function Action.ToggleMainUI()
 				["PLAYER_EQUIPMENT_CHANGED"]		= true,
 				--["LEARNED_SPELL_IN_TAB"]			= true, 
 			}
-			local function OnCallback()
-				local fspec = Action.PlayerClass .. CL
-				if tab.childs[fspec].ScrollTable:IsVisible() and TMW.time ~= tab.childs[fspec].ScrollTable.ts and Action.GetToggle(tab.name, "AutoHidden") then 
-					tab.childs[fspec].ScrollTable.ts = TMW.time
+			tab.childs[spec].ScrollTable.OnCallback = function()
+				if tab.childs[spec] and tab.childs[spec].ScrollTable and tab.childs[spec].ScrollTable:IsVisible() and TMW.time ~= tab.childs[spec].ScrollTable.ts and Action.GetToggle(tab.name, "AutoHidden") then 
+					tab.childs[spec].ScrollTable.ts = TMW.time
 					ScrollTableUpdateData()
 					ScrollTableUpdateSelection()
 				end 
@@ -8617,7 +8632,7 @@ function Action.ToggleMainUI()
 					end 
 					
 					-- Registers callback (callback fires in the next priority talents -> spellbook)
-					TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
+					TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", tab.childs[spec].ScrollTable.OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
 				else 
 					-- Unregisters events 
 					for k in pairs(EVENTS) do 
@@ -8625,7 +8640,7 @@ function Action.ToggleMainUI()
 					end 
 					
 					-- Unregisters callback 
-					TMW:UnregisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
+					TMW:UnregisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", tab.childs[spec].ScrollTable.OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
 				end 
 			end 	
 			EventsAndCallbacksInit() 						
