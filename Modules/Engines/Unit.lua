@@ -1569,7 +1569,7 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		for unit in pairs(ActiveUnitPlates) do
 			local ThreatSituation 		= self(unitID):ThreatSituation() -- cacheed defaultly own target 
-			if ((A.IsInPvP and UnitIsUnit(unitID, unit .. "target")) or (not A.IsInPvP and ThreatSituation >= 3)) and (not range or self(unitID):CanInterract(range)) then 
+			if ((A.IsInPvP and UnitIsUnit(unitID, unit .. "target")) or (not A.IsInPvP and ThreatSituation >= 3)) and (not range or self(unit .. "target"):CanInterract(range)) then 
 				return true  
 			end
 		end       

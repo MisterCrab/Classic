@@ -41,7 +41,7 @@ end)
 
 -- [[ Classic ]]
 local GetToggle									= A.GetToggle
-local DRData 									= LibStub("DRList-1.1")
+local DRData 									= LibStub("DRList-1.0")
 --
 
 local _G, type, pairs, next, math, tonumber, select = 
