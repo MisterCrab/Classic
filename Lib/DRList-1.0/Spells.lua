@@ -1,4 +1,4 @@
-local Lib = LibStub and LibStub("DRList-1.1")
+local Lib = LibStub and LibStub("DRList-1.0")
 
 if Lib.gameExpansion == "retail" then
 
@@ -194,7 +194,7 @@ if Lib.gameExpansion == "retail" then
 
 else
 
-    -- Spell list for Classic patch 1.13.2 (** Work in progress, a lot is unconfirmed **)
+    -- Spell list for Classic (WIP)
     -- In Classic the spell ID payload is gone from the combat log, so we need the key here to be
     -- spell name instead. We also provide spell ID in the table value so it's possible to retrieve
     -- for example spell icon using GetSpellTexture(spellID) later on. (These functions only accept
@@ -204,7 +204,6 @@ else
         [GetSpellInfo(339)]     = { category = "root", spellID = 339 },      -- Entangling Roots
         [GetSpellInfo(19306)]   = { category = "root", spellID = 19306 },    -- Counterattack
         [GetSpellInfo(122)]     = { category = "root", spellID = 122 },      -- Frost Nova
-        [GetSpellInfo(8377)]    = { category = "root", spellID = 8377 },     -- Earthgrab (Totem)
     --  [GetSpellInfo(13099)]   = { category = "root", spellID = 13099 },    -- Net-o-Matic (These doesn't seem to DR here, maybe only with itself?)
     --  [GetSpellInfo(8312)]    = { category = "root", spellID = 8312 },     -- Trap
 
@@ -256,24 +255,25 @@ else
         [GetSpellInfo(5484)]    = { category = "fear", spellID = 5484 },          -- Howl of Terror
         [GetSpellInfo(6358)]    = { category = "fear", spellID = 6358 },          -- Seduction
         [GetSpellInfo(5246)]    = { category = "fear", spellID = 5246 },          -- Intimidating Shout
-        [GetSpellInfo(5134)]    = { category = "fear", spellID = 5134 },          -- Flash Bomb Fear        
+        [GetSpellInfo(5134)]    = { category = "fear", spellID = 5134 },          -- Flash Bomb Fear
 
         -- Random/short roots (TODO: confirm category exists)
         [GetSpellInfo(19229)]   = { category = "random_root", spellID = 19229 },   -- Improved Wing Clip
         [GetSpellInfo(23694)]   = { category = "random_root", spellID = 23694 },   -- Improved Hamstring
         [GetSpellInfo(27868)]   = { category = "random_root", spellID = 27868 },   -- Freeze (Item proc and set bonus)
 
-        -- Random/short stuns
+        -- Random/short stuns (TODO: confirm category exists)
         [GetSpellInfo(16922)]   = { category = "random_stun", spellID = 16922 },   -- Improved Starfire
         [GetSpellInfo(19410)]   = { category = "random_stun", spellID = 19410 },   -- Improved Concussive Shot
         [GetSpellInfo(12355)]   = { category = "random_stun", spellID = 12355 },   -- Impact
         [GetSpellInfo(20170)]   = { category = "random_stun", spellID = 20170 },   -- Seal of Justice Stun
-        [GetSpellInfo(15269)]   = { category = "random_stun", spellID = 15269 },   -- Blackout
+        --[GetSpellInfo(15269)]   = { category = "random_stun", spellID = 15269 }, -- Blackout
         [GetSpellInfo(18093)]   = { category = "random_stun", spellID = 18093 },   -- Pyroclasm
         [GetSpellInfo(12798)]   = { category = "random_stun", spellID = 12798 },   -- Revenge Stun
         [GetSpellInfo(5530)]    = { category = "random_stun", spellID = 5530 },    -- Mace Stun Effect (Mace Specialization)
         [GetSpellInfo(15283)]   = { category = "random_stun", spellID = 15283 },   -- Stunning Blow (Weapon Proc)
         [GetSpellInfo(56)]      = { category = "random_stun", spellID = 56 },      -- Stun (Weapon Proc)
+        [GetSpellInfo(21152)]   = { category = "random_stun", spellID = 21152 },   -- Earthshaker (Weapon Proc)
 
         -- Silences (TODO: confirm category exists)
         [GetSpellInfo(18469)]   = { category = "silence", spellID = 18469 },      -- Counterspell - Silenced
@@ -289,23 +289,6 @@ else
         [GetSpellInfo(605)]     = { category = "mind_control", spellID = 605 },    -- Mind Control
         [GetSpellInfo(13181)]   = { category = "mind_control", spellID = 13181 },  -- Gnomish Mind Control Cap
         [GetSpellInfo(8056)]    = { category = "frost_shock", spellID = 8056 },    -- Frost Shock
-		
-		-- Missed another staff in Lib:
-		-- Disarms
-        [GetSpellInfo(676)]     = { category = "disarm", spellID = 676 },     		-- Disarm
-        [GetSpellInfo(14251)]   = { category = "disarm", spellID = 14251 },     	-- Riposte
-        [GetSpellInfo(23365)]   = { category = "disarm", spellID = 23365 },     	-- Dropped Weapon
-		
-		-- Incapacitates
-		[GetSpellInfo(2094)]	= { category = "incapacitate", spellID = 2094 }, 	-- Blind 
-		[GetSpellInfo(9484)]	= { category = "incapacitate", spellID = 9484 }, 	-- Shackle Undead 
-		[GetSpellInfo(710)]		= { category = "incapacitate", spellID = 710 }, 	-- Banish
-		
-		-- Turn Undead 
-		[GetSpellInfo(2878)]    = { category = "fear", spellID = 2878 },          	-- Turn Undead
-		
-		-- Stuns 
-		[GetSpellInfo(19482)]   = { category = "stun", spellID = 19482 },   		-- War Stomp (Doomguard pet)
     }
 end
 

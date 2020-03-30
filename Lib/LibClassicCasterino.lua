@@ -4,8 +4,7 @@ Author: d87
 --]================]
 if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
--- This lib is modified by The Action
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 26
+local MAJOR, MINOR = "LibClassicCasterino", 555 -- 30
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -19,8 +18,8 @@ local callbacks = lib.callbacks
 
 lib.casters = lib.casters or {} -- setmetatable({}, { __mode = "v" })
 local casters = lib.casters
---[[
-lib.movecheckGUIDs = lib.movecheckGUIDs or {}
+
+--[[lib.movecheckGUIDs = lib.movecheckGUIDs or {}
 local movecheckGUIDs = lib.movecheckGUIDs
 local MOVECHECK_TIMEOUT = 4]]
 
@@ -91,14 +90,21 @@ local makeCastUID = function(guid, spellName)
 end
 
 local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime, isSrcEnemyPlayer )
+    -- This cast time can't be used reliably because it's changing depending on player's own haste
     local _, _, icon, castTime = GetSpellInfo(spellID)
+    if castType == "CAST" then
+        local knownCastDuration = classCasts[spellID]
+        if knownCastDuration then
+            castTime = knownCastDuration*1000
+        end
+    end
     if castType == "CHANNEL" then
         local channelDuration = classChannelsByAura[spellID] or classChannelsByCast[spellID]
         castTime = channelDuration*1000
-        local decreased = talentDecreased[spellID]
-        if decreased then
-            castTime = castTime - decreased
-        end
+    end
+    local decreased = talentDecreased[spellID]
+    if decreased then
+        castTime = castTime - decreased
     end
     if overrideCastTime then
         castTime = overrideCastTime
@@ -113,9 +119,9 @@ local function CastStart(srcGUID, castType, spellName, spellID, overrideCastTime
     else
         casters[srcGUID] = { castType, spellName, icon, startTime, endTime, spellID }
     end
---[[
-    if isSrcEnemyPlayer then
-        if spellID ~= 4068 then --Iron Grenade
+
+   --[[ if isSrcEnemyPlayer then
+        if not (spellID == 4068 or spellID == 19769) then -- Iron Grenade, Thorium Grenade
             movecheckGUIDs[srcGUID] = MOVECHECK_TIMEOUT
         end
     end]]
@@ -257,9 +263,14 @@ function f:COMBAT_LOG_EVENT_UNFILTERED(event)
 end
 
 local castTimeIncreases = {
-    [1714] = 1.6,    -- Curse of Tongues (60%)
-    [5760] = 1.6,    -- Mind-Numbing Poison (60%)
-    [1098] = 1.3,    -- Enslave Demon
+    [1714] = 1.5,    -- Curse of Tongues (Rank 1) (50%)
+    [11719] = 1.6,   -- Curse of Tongues (Rank 2) (60%)
+    [5760] = 1.4,    -- Mind-Numbing Poison (Rank 1) (40%)
+    [8692] = 1.5,    -- Mind-Numbing Poison (Rank 2) (50%)
+    [11398] = 1.6,   -- Mind-Numbing Poison (Rank 3) (60%)
+    [1098] = 1.3,    -- Enslave Demon (Rank 1) (30%)
+    [11725] = 1.3,   -- Enslave Demon (Rank 2) (30%)
+    [11726] = 1.3,   -- Enslave Demon (Rank 3) (30%)
 }
 local attackTimeDecreases = {
     [6150] = 1.3,    -- Quick Shots/ Imp Aspect of the Hawk (Aimed)
@@ -524,6 +535,7 @@ classCasts = {
 
     [8690] = 10, -- Hearthstone
     [4068] = 1, -- Iron Grenade
+    [19769] = 1, -- Thorium Grenade
     [20589] = 0.5, -- Escape Artist
 
     -- Munts do not generate SPELL_CAST_START

@@ -12,7 +12,7 @@ Lib\LibDBIcon-1.0.lua
 Lib\StdUI\StdUi.xml
 
 # Classic Libs 
-Lib\DRList-1.1\DRList-1.1.xml
+Lib\DRList-1.0\DRList-1.0.xml
 Lib\LibHealComm-4.0\LibHealComm-4.0.xml
 Lib\LibThreatClassic2\lib.xml
 Lib\LibClassicCasterino.lua
@@ -43,8 +43,9 @@ Modules\Misc\BossMods.lua
 Modules\Misc\ElvUI.lua
 Modules\Misc\HeroLib.lua
 # Modules\Misc\PMultiplier.lua
-Modules\Misc\LibClassicCasterino Tweaks.lua
-Modules\Misc\LibHealComm Tweaks.lua
+Modules\Misc\DRList.lua
+Modules\Misc\LibHealComm.lua
+Modules\Misc\LibClassicCasterino.lua
 
 Modules\Actions.lua
 Modules\Core.lua

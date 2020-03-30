@@ -3,18 +3,14 @@ Name: DRList-1.0
 Description: Diminishing returns database. Fork of DRData-1.0.
 Website: https://www.curseforge.com/wow/addons/drlist-1-0
 Documentation: https://wardz.github.io/DRList-1.0/
-Version: v1.1.0
+Version: v1.1.2
 Dependencies: LibStub
 License: MIT
 ]]
 
----------------------------------------------------------------------------------------------------------------
--- THIS LIB IS MODIFIED VERSION OF THE ORIGINAL BY DISARM IN SPELLS AND GetApplicationMax, GetNextDR FUNCTIONS!
----------------------------------------------------------------------------------------------------------------
-
---- DRList-1.1
--- @module DRList-1.1
-local MAJOR, MINOR = "DRList-1.1", 8
+--- DRList-1.0
+-- @module DRList-1.0
+local MAJOR, MINOR = "DRList-1.0", 10
 local Lib = assert(LibStub, MAJOR .. " requires LibStub."):NewLibrary(MAJOR, MINOR)
 if not Lib then return end -- already loaded
 
@@ -95,7 +91,6 @@ L["DISORIENTS"] = "Desorientar"
 L["FEARS"] = "Miedos"
 L["INCAPACITATES"] = "Incapacitar"
 L["KNOCKBACKS"] = "Derribos"
-L["OPENER_STUN"] = "Aturdir"
 L["RANDOM_ROOTS"] = "Raíces aleatorias"
 L["RANDOM_STUNS"] = "Aturdir aleatorio"
 L["ROOTS"] = "Raíces"
@@ -119,7 +114,6 @@ L["DISORIENTS"] = "迷惑"
 L["FEARS"] = "恐惧"
 L["INCAPACITATES"] = "瘫痪"
 L["KNOCKBACKS"] = "击退"
-L["OPENER_STUN"] = "击晕"
 L["RANDOM_ROOTS"] = "随机定身"
 L["RANDOM_STUNS"] = "随机眩晕"
 L["ROOTS"] = "定身"
@@ -179,7 +173,6 @@ Lib.categoryNames = {
         ["silence"] = L.SILENCES,
         ["stun"] = L.STUNS, -- controlled stun
         ["root"] = L.ROOTS, -- controlled root
-        ["disarm"] = L.DISARMS,
         ["random_stun"] = L.RANDOM_STUNS, -- random proc stun, usually short (<3s)
         ["random_root"] = L.RANDOM_ROOTS, -- May be removed in the future!
         ["fear"] = L.FEARS,
@@ -200,9 +193,7 @@ Lib.categoriesPvE = {
 
     classic = {
         ["stun"] = L.STUNS,
-        ["opener_stun"] = L.OPENER_STUN,
-		["kidney_shot"] = L.KIDNEY_SHOT,
-        -- TODO: banish/MC?
+        ["kidney_shot"] = L.KIDNEY_SHOT,
     },
 }
 
@@ -300,22 +291,11 @@ function Lib:GetNextDR(diminished, category)
     local durations = Lib.diminishedDurations[Lib.gameExpansion][category or "default"]
     if not durations and Lib.categoryNames[Lib.gameExpansion][category] then
         -- Redirect to default when "stun", "root" etc is passed
-        durations = Lib.diminishedDurations[Lib.gameExpansion]["default"]		
+        durations = Lib.diminishedDurations[Lib.gameExpansion]["default"]
     end
 
-	for i = 1, #durations do
-		if diminished > durations[i] then
-			return durations[i], i, #durations
-		end
-	end
-	return 0, #durations, #durations -- means full DR applied by max of max applications 
+    return durations and durations[diminished] or 0
 end
-
--- Get ApplicationMax
-function Lib:GetApplicationMax(category)
-	local durations = Lib.diminishedDurations[Lib.gameExpansion][category or "default"] or Lib.diminishedDurations[Lib.gameExpansion].default
-	return durations and #durations or 0
-end 
 
 do
     local next = _G.next
