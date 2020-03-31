@@ -1,51 +1,10 @@
-tag f35d886b52bc22993170485bdda1e979368c4527 v1.7.7
+tag c992abb23bd7b0025089884bb0d3e280b3c71e2b v1.7.9
 Author:	Azilroka <darktemplar9900@yahoo.com>
-Date:	Wed Jan 15 17:31:21 2020 -0600
+Date:	Sun Feb 9 10:56:40 2020 -0600
 
-commit 0a9e9b62f9272fa9a28f51e43aed9b19c4b15f42
+commit 36a6274214ea6f782a552a030f60a3062cd4c9da
 Author: Azilroka <darktemplar9900@yahoo.com>
-Date:   Wed Jan 15 17:30:54 2020 -0600
+Date:   Sun Feb 9 10:56:27 2020 -0600
 
-    minor 88
-
-commit 346e974ba4d439aa48d5853ffd94a6452953e738
-Author: dev7355608 <dev7355608@gmail.com>
-Date:   Thu Jan 9 21:13:21 2020 +0100
-
-    Update healing modifiers
-    
-    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
-
-commit 346e974ba4d439aa48d5853ffd94a6452953e738
-Author: dev7355608 <dev7355608@gmail.com>
-Date:   Thu Jan 9 21:13:21 2020 +0100
-
-    Update healing modifiers
-    
-    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
-
-commit 0ece24bdfe4c7a1bbfe50bd04aafedd9bfd4ffaa
-Author: dev7355608 <dev7355608@gmail.com>
-Date:   Thu Jan 9 22:09:07 2020 +0100
-
-    Fix Divine Favor
-    
-    UNIT_AURA is fired after UNIT_SPELLCAST_* events and therefore too late
-    if Divine Favor and a healing spell are cast at the same time, in which
-    case hasDivineFavor is still set to nil when Divine Favor should be
-    applied the heal prediction, but is not.
-
-commit 346e974ba4d439aa48d5853ffd94a6452953e738
-Author: dev7355608 <dev7355608@gmail.com>
-Date:   Thu Jan 9 21:13:21 2020 +0100
-
-    Update healing modifiers
-    
-    Add Power Infusion; remove Wound Poison because it is not percent-based in Classic.
-
-commit a7e7bfb97a617075a63d87a3b85fb2a3aa6dd8b5
-Author: Azilroka <darktemplar9900@yahoo.com>
-Date:   Sun Jan 5 17:12:24 2020 -0600
-
-    one too many / but still packages the same
+    minor 89
 
