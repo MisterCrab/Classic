@@ -29,9 +29,10 @@ local EngagedBosses					= A.BossMods.EngagedBosses
 -------------------------------------------------------------------------------
 local DBM_GetTimeRemaining, DBM_GetTimeRemainingBySpellID
 if DBM then 
-	A.BossMods.HasDBM 				= true 
-	DBM_TIMER_PULL					= strlowerCache[_G.DBM_CORE_TIMER_PULL or _G.DBM_CORE_L.TIMER_PULL] -- Old DBM versions have DBM_CORE_TIMER_PULL
 	local Timers, TimersBySpellID 	= {}, {}
+	
+	A.BossMods.HasDBM 				= true 
+	DBM_TIMER_PULL					= strlowerCache[_G.DBM_CORE_TIMER_PULL or _G.DBM_CORE_L.TIMER_PULL] -- Old DBM versions have DBM_CORE_TIMER_PULL	
 	
 	DBM:RegisterCallback("DBM_TimerStart", function(_, id, text, timerRaw, icon, timerType, spellid, colorId)
 		-- Older versions of DBM return this value as a string:
@@ -127,11 +128,12 @@ end
 -- Locals BigWigs 
 -------------------------------------------------------------------------------
 local BigWigs_GetTimeRemaining
-if BigWigsLoader then 
-	A.BossMods.HasBigWigs 	= true 
-	BIGWIGS_TIMER_PULL		= strlowerCache[_G.BigWigsAPI:GetLocale("BigWigs: Plugins").pull]
+if BigWigsLoader then 	
 	SlashCmdList.BigWigs()
 	SlashCmdList.BigWigs()	
+	
+	A.BossMods.HasBigWigs 	= true 	
+	BIGWIGS_TIMER_PULL		= strlowerCache[_G.BigWigsAPI:GetLocale("BigWigs: Plugins").pull]
 	
 	local Timers, owner = {}, {}
 	local function stop(module, text)
