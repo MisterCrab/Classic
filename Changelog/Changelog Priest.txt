@@ -1,3 +1,23 @@
+[Priest v15]
+Removed retired interrupt groups
+Upgraded code for synchronization with new interrupt system 
+Upgraded code for synchronization with new healing system:
+* DispelMagic / AbolishDisease / CureDisease is Dispel
+* PowerWordShield is Shields
+* Renew is HoTs
+* PrayerofSpirit / DivineSpirit / PrayerofFortitude / PowerWordFortitude / PrayerofShadowProtection / ShadowProtection / FearWard is Utils
+Added casting internal latency, should help to fix double re-casting DoTs
+Fixed passive rotation, was performing wrong start index 
+Fixed a lot of miss typo in the code 
+Minor optimized code
+Increased dying phase window of healing, added only in combat condition 
+Changed rotation priority order in the healing spells, improved healing rotation 
+HealingEngine 						- Toggles PreParePOWS and PrePareRenew now sorts units by lowest real health percent, so order of applying will go from lowest to highest by health units
+HealingEngine 						- Fixed toggle PrePareRenew when it was stopped on unit if RenewOnlyTank toggle was enabled
+Berserking							- Fixed condition (2) with miss typo on GetHealthFrequency
+Re-written Prediction 				- Sync with healing engine predict settings, HP spell sliders will do health limit function instead of required forced health
+UI 									- Re-anchored main frame to make it easier drag able without open deep settings
+
 [Priest v14]
 Fixed lua error 371: Unit.lua Action.Unit():.. was used with 'nil' unitID
 
