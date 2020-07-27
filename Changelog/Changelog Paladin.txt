@@ -1,3 +1,16 @@
+[Paladin v6]
+Upgraded code for synchronization with new interrupt system 
+Upgraded code for synchronization with new healing system:
+* Cleanse / Purify is Dispel
+* Blessing of Protection is Shields
+* Blessing of Sacrifice is HoTs
+* Blessing of Freedom / Blessing Buff is Utils
+Fixed CancelBuff miss typo
+Re-written Prediction 					- Sync with healing engine predict settings, HP spell sliders will do health limit function instead of required forced health
+Deffensives 							- Fixed usage while DivineShield or DivineProtection is up
+Auras									- Reworked logic, added in logic shadow/fire/frost damage as counter, fixed re-switch bugs, changed priority order
+UI 										- Re-anchored main frame to make it easier drag able without open deep settings
+
 [Paladin v5]
 Disabled cooldown text and swing pulse animation effects
 Added condition to skip totems as enemy unit around for AoE rotation 
