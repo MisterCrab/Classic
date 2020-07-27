@@ -125,7 +125,9 @@ local healingTargetDelay 				= 0
 local healingTargetDelayByEvent			= false 
 
 local frame 							= _G.CreateFrame("Frame", "TargetColor", _G.UIParent)
-frame:SetBackdrop(nil)
+if _G.BackdropTemplateMixin == nil then -- Only expac less than Shadowlands
+	frame:SetBackdrop(nil)
+end 
 frame:SetFrameStrata("TOOLTIP")
 frame:SetToplevel(true)
 frame:SetSize(1, 1)

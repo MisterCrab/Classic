@@ -578,7 +578,9 @@ TypeLOC:Register(103)
 -- Scales
 -------------------------------------------------------------------------------
 local BlackBackground 	= CreateFrame("Frame", nil, UIParent)
-BlackBackground:SetBackdrop(nil)
+if _G.BackdropTemplateMixin == nil then -- Only expac less than Shadowlands
+	BlackBackground:SetBackdrop(nil)
+end 
 BlackBackground:SetFrameStrata("HIGH")
 BlackBackground:SetSize(736, 30)
 BlackBackground:SetPoint("TOPLEFT", 0, 12) 
