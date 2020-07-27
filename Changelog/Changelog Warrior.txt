@@ -1,3 +1,12 @@
+[Warrior v13]
+Upgraded code for synchronization with new interrupt system 
+Fixed CancelBuff miss typo  
+UI 									- Re-anchored main frame to make it easier drag able without open deep settings
+
+[Warrior v12]
+Cleave 								- Now will be forced if HeroicStrike is blocked by Set Blocker
+ShieldBlock							- Added slider in UI to control use by health percent
+
 [Warrior v11]
 Disabled cooldown text and swing pulse animation effects
 Added condition to skip totems as enemy unit around for AoE rotation 
