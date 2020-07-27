@@ -1,3 +1,27 @@
+[Rogue v8]
+Removed retired interrupt groups
+Upgraded code for synchronization with new interrupt system 
+UI 												- Re-anchored main frame to make it easier drag able without open deep settings
+
+[Rogue v7]
+Fixed UI display for poison's enchant name
+Removed UI paperdoll colors and db
+Added secured frame to perform restricted environment for poison apply without click on paperdoll 
+Fixed bug with double re-casting enchant
+Fixed texture bug with Crippling Poison II
+Ambush											- Added missed condition to check dagger equipped in the main hand for selected Opener as Ambush
+Backstub										- Added missed condition to check dagger equipped in the main hand for selected Opener as Backstub
+Fillers (SinisterStrike, Hemorrhage)			- Fixed incorrect usage in PvP mode if character has equipped dagger in main hand due trying to cast instead Backstub
+Distract										- Added new usage in PvP when you're rooted and target is casting 
+Sap												- Added check for already applied debuff
+Sap 											- Added in SapUnits toggle the @target and @mouseover destination unitIDs
+Blind 											- Added in BlindUnitsPvP toggle the @target and @mouseover destination unitIDs
+Vanish											- Added new toggle use if you have specific auras (slow, roots) with relative category in Auras tab 
+Vanish											- Added check for reagent 
+Vanish 											- Added condition to check Faerie Fire and Flare (only defensive use)
+Stealth 										- Added condition to check Faerie Fire and Flare
+ExposeArmor										- Fixed time to die timer which obvious caused issues to cast it on bosses and players (down from >=30 to >=13 condition)
+
 [Rogue v6]
 Disabled cooldown text and swing pulse animation effects
 Backstub							- Will now interact with general saving pull energy to provide more accurate use for rest fillers
