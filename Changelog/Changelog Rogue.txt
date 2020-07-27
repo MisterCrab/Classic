@@ -1,3 +1,6 @@
+[Rogue v9]
+Fixed lua error "SapUnits" attemp to index nil 
+
 [Rogue v8]
 Removed retired interrupt groups
 Upgraded code for synchronization with new interrupt system 
