@@ -1,3 +1,11 @@
+[Warlock v6]
+Removed retired interrupt groups
+Upgraded code for synchronization with new BossMods
+Upgraded code for synchronization with new interrupt system 
+Added casting internal latency, should help to fix double re-casting DoTs and summon pet
+DemonicSacrifice		- Added condition to check for last used time
+UI 						- Re-anchored main frame to make it easier drag able without open deep settings
+
 [Warlock v5]
 CreateHealthstone		- Fixed miss typo between Major and Minor IDs which caused bug to recast it over and over again 
 CreateHealthstone		- Added additional condition to prevent create new health stone if in the bag exist higher rank
