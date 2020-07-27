@@ -4,7 +4,7 @@ if not StdUi then
 	return
 end
 
-local module, version = 'EditBox', 7;
+local module, version = 'EditBox', 9;
 if not StdUi:UpgradeNeeded(module, version) then return end;
 
 local pairs = pairs;
@@ -106,9 +106,9 @@ end
 function StdUi:SearchEditBox(parent, width, height, placeholderText)
 	local editBox = self:SimpleEditBox(parent, width, height, '');
 
-	self:ApplyPlaceholder(editBox, placeholderText, [[Interface\Common\UI-Searchbox-Icon]]);
-
 	editBox:SetScript('OnTextChanged', SearchEditBoxOnTextChanged);
+	
+	self:ApplyPlaceholder(editBox, placeholderText, [[Interface\Common\UI-Searchbox-Icon]]);
 
 	return editBox;
 end
@@ -248,8 +248,12 @@ local MoneyBoxMethods = {
 	end;
 };
 
-function StdUi:MoneyBox(parent, width, height, text, validator)
-	validator = validator or self.Util.moneyBoxValidator;
+function StdUi:MoneyBox(parent, width, height, text, validator, excludeCopper)
+	if excludeCopper then
+		validator = validator or self.Util.moneyBoxValidatorExC;
+	else
+		validator = validator or self.Util.moneyBoxValidator;
+	end
 
 	local editBox = self:EditBox(parent, width, height, text, validator);
 	editBox.stdUi = self;
@@ -335,6 +339,7 @@ end
 function StdUi:MultiLineBox(parent, width, height, text)
 	local editBox = CreateFrame('EditBox');
 	local widget = self:ScrollFrame(parent, width, height, editBox);
+	editBox.stdUi = self;
 
 	local scrollFrame = widget.scrollFrame;
 	scrollFrame.editBox = editBox;

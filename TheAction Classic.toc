@@ -1,4 +1,4 @@
-## Interface: 11303
+## Interface: 11305
 ## Title: TellMeWhen |cff00ccff The Action|r
 ## Notes: TellMeWhen What To Show
 ## RequiredDeps: TellMeWhen
@@ -29,6 +29,7 @@ Modules\Components\Enum\TriggerGCD.lua
 Modules\Components\Tools.lua
 Modules\Components\Utils.lua
 
+Modules\Dependences\MacroLibrary.lua
 Modules\Dependences\PetLibrary.lua
 
 Modules\Engines\Base.lua
@@ -43,6 +44,7 @@ Modules\Misc\BossMods.lua
 Modules\Misc\ElvUI.lua
 Modules\Misc\HeroLib.lua
 # Modules\Misc\PMultiplier.lua
+Modules\Misc\PrevSpell.lua 
 Modules\Misc\DRList.lua
 Modules\Misc\LibHealComm.lua
 Modules\Misc\LibClassicCasterino.lua

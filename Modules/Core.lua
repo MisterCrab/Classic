@@ -1,13 +1,15 @@
-local TMW 											= TMW 
+local _G, math, pairs, type, select, setmetatable	= _G, math, pairs, type, select, setmetatable
+
+local TMW 											= _G.TMW 
 local CNDT 											= TMW.CNDT
 local Env 											= CNDT.Env
 
-local A   											= Action	
+local A   											= _G.Action	
+local CONST 										= A.Const
 local A_Hide 										= A.Hide
 local Create 										= A.Create
 local GetToggle										= A.GetToggle
 local AuraIsValid									= A.AuraIsValid
-local BossMods_Pulling								= A.BossMods_Pulling
 local IsQueueReady									= A.IsQueueReady
 local QueueData										= A.Data.Q
 local ShouldStop									= A.ShouldStop
@@ -15,6 +17,7 @@ local GetCurrentGCD									= A.GetCurrentGCD
 local GetPing										= A.GetPing
 local DetermineUsableObject							= A.DetermineUsableObject
 
+local BossMods										= A.BossMods
 local IsUnitEnemy									= A.IsUnitEnemy
 local Unit											= A.Unit 
 local Player										= A.Player 
@@ -24,7 +27,6 @@ local MultiUnits									= A.MultiUnits
 local Pet											= LibStub("PetLibrary")
 local LoC_GetExtra									= LoC.GetExtra
 
-local _G, math, type, select, setmetatable			= _G, math, type, select, setmetatable
 local huge 											= math.huge
 
 local UnitBuff										= _G.UnitBuff
@@ -36,35 +38,22 @@ local SpellIsTargeting								= _G.SpellIsTargeting
 local IsMouseButtonDown								= _G.IsMouseButtonDown
 --local IsPlayerAttacking							= _G.IsPlayerAttacking
 local HasWandEquipped								= _G.HasWandEquipped
-
-local ACTION_CONST_STOPCAST							= _G.ACTION_CONST_STOPCAST
-local ACTION_CONST_AUTOTARGET						= _G.ACTION_CONST_AUTOTARGET
-local ACTION_CONST_AUTOATTACK						= _G.ACTION_CONST_AUTOATTACK
-local ACTION_CONST_AUTOSHOOT						= _G.ACTION_CONST_AUTOSHOOT
-local ACTION_CONST_LEFT								= _G.ACTION_CONST_LEFT
-local ACTION_CONST_RIGHT							= _G.ACTION_CONST_RIGHT
-local ACTION_CONST_PAUSECHECKS_DISABLED 			= _G.ACTION_CONST_PAUSECHECKS_DISABLED
-local ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST		= _G.ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST
-local ACTION_CONST_PAUSECHECKS_IS_MOUNTED			= _G.ACTION_CONST_PAUSECHECKS_IS_MOUNTED
-local ACTION_CONST_PAUSECHECKS_WAITING				= _G.ACTION_CONST_PAUSECHECKS_WAITING
-local ACTION_CONST_PAUSECHECKS_SPELL_IS_TARGETING	= _G.ACTION_CONST_PAUSECHECKS_SPELL_IS_TARGETING
-local ACTION_CONST_PAUSECHECKS_LOOTFRAME			= _G.ACTION_CONST_PAUSECHECKS_LOOTFRAME
-local ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK		= _G.ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK
+local HasFullControl								= _G.HasFullControl
 
 local MACRO											-- nil 
 local BINDPAD 										= _G.BindPadFrame
 local WIM											= _G.WIM
 
 local ClassPortaits 								= {
-	["WARRIOR"] 									= ACTION_CONST_PORTRAIT_WARRIOR,
-	["PALADIN"] 									= ACTION_CONST_PORTRAIT_PALADIN,
-	["HUNTER"] 										= ACTION_CONST_PORTRAIT_HUNTER,
-	["ROGUE"] 										= ACTION_CONST_PORTRAIT_ROGUE,
-	["PRIEST"] 										= ACTION_CONST_PORTRAIT_PRIEST,
-	["SHAMAN"]	 									= ACTION_CONST_PORTRAIT_SHAMAN, 		-- Custom because it making conflict with Bloodlust
-	["MAGE"] 										= ACTION_CONST_PORTRAIT_MAGE,
-	["WARLOCK"] 									= ACTION_CONST_PORTRAIT_WARLOCK,
-	["DRUID"] 										= ACTION_CONST_PORTRAIT_DRUID,
+	["WARRIOR"] 									= CONST.PORTRAIT_WARRIOR,
+	["PALADIN"] 									= CONST.PORTRAIT_PALADIN,
+	["HUNTER"] 										= CONST.PORTRAIT_HUNTER,
+	["ROGUE"] 										= CONST.PORTRAIT_ROGUE,
+	["PRIEST"] 										= CONST.PORTRAIT_PRIEST,
+	["SHAMAN"]	 									= CONST.PORTRAIT_SHAMAN, 		-- Custom because it making conflict with Bloodlust
+	["MAGE"] 										= CONST.PORTRAIT_MAGE,
+	["WARLOCK"] 									= CONST.PORTRAIT_WARLOCK,
+	["DRUID"] 										= CONST.PORTRAIT_DRUID,
 }
 
 local GetKeyByRace 									= {
@@ -143,7 +132,7 @@ end
 function A.PauseChecks()  	
 	-- Chat, Macro, BindPad, TellMeWhen
 	if _G.ACTIVE_CHAT_EDIT_BOX or MacroFrameIsVisible() or BindPadFrameIsVisible() or not TMW.Locked then 
-		return ACTION_CONST_PAUSECHECKS_DISABLED
+		return CONST.PAUSECHECKS_DISABLED
 	end 
 	
 	-- Wim Messanger
@@ -152,7 +141,7 @@ function A.PauseChecks()
 			if not WIM_ChatFrames[i] then 
 				break 
 			elseif WIM_ChatFrames[i]:IsVisible() and WIM_ChatFrames[i]:HasFocus() then 
-				return ACTION_CONST_PAUSECHECKS_DISABLED
+				return CONST.PAUSECHECKS_DISABLED
 			end 
 		end 
 	end  
@@ -166,27 +155,27 @@ function A.PauseChecks()
 			)
 		) 
 	then 																																																										-- exception in PvP Hunter 
-		return ACTION_CONST_PAUSECHECKS_DEAD_OR_GHOST
+		return CONST.PAUSECHECKS_DEAD_OR_GHOST
 	end 	
 	
 	if GetToggle(1, "CheckMount") and Player:IsMounted() then 																																												-- exception Divine Steed and combat mounted auras
-		return ACTION_CONST_PAUSECHECKS_IS_MOUNTED
+		return CONST.PAUSECHECKS_IS_MOUNTED
 	end 
 
-	if GetToggle(1, "CheckCombat") and Unit(player):CombatTime() == 0 and Unit(target):CombatTime() == 0 and not Player:IsStealthed() and BossMods_Pulling() == 0 then 																		-- exception Stealthed and DBM pulling event 
-		return ACTION_CONST_PAUSECHECKS_WAITING
+	if GetToggle(1, "CheckCombat") and Unit(player):CombatTime() == 0 and Unit(target):CombatTime() == 0 and not Player:IsStealthed() and BossMods:GetPullTimer() == 0 then 																		-- exception Stealthed and DBM pulling event 
+		return CONST.PAUSECHECKS_WAITING
 	end 	
 	
 	if GetToggle(1, "CheckSpellIsTargeting") and SpellIsTargeting() and (A.PlayerClass ~= "ROGUE" or Player:IsMoving() or Unit(player):CombatTime() ~= 0) then																				-- exception Classic Rogue only ue mechanic of poison enchants
-		return ACTION_CONST_PAUSECHECKS_SPELL_IS_TARGETING
+		return CONST.PAUSECHECKS_SPELL_IS_TARGETING
 	end	
 	
 	if GetToggle(1, "CheckLootFrame") and _G.LootFrame:IsShown() then
-		return ACTION_CONST_PAUSECHECKS_LOOTFRAME
+		return CONST.PAUSECHECKS_LOOTFRAME
 	end	
 	
 	if GetToggle(1, "CheckEatingOrDrinking") and Unit(player):CombatTime() == 0 and Player:IsStaying() and IsDrinkingOrEating() then
-		return ACTION_CONST_PAUSECHECKS_IS_EAT_OR_DRINK
+		return CONST.PAUSECHECKS_IS_EAT_OR_DRINK
 	end	
 end
 A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
@@ -208,8 +197,8 @@ local TempLivingActionPotionIsMissed = Temp.LivingActionPotionIsMissed
 -------------------------------------------------------------------------------
 -- API
 -------------------------------------------------------------------------------
-A.Trinket1 							= Create({ Type = "TrinketBySlot", 		ID = ACTION_CONST_INVSLOT_TRINKET1,	 			BlockForbidden = true, Desc = "Upper Trinket (/use 13)"														})
-A.Trinket2 							= Create({ Type = "TrinketBySlot", 		ID = ACTION_CONST_INVSLOT_TRINKET2, 			BlockForbidden = true, Desc = "Lower Trinket (/use 14)" 													})
+A.Trinket1 							= Create({ Type = "TrinketBySlot", 		ID = CONST.INVSLOT_TRINKET1,	 				BlockForbidden = true, Desc = "Upper Trinket (/use 13)"														})
+A.Trinket2 							= Create({ Type = "TrinketBySlot", 		ID = CONST.INVSLOT_TRINKET2, 					BlockForbidden = true, Desc = "Lower Trinket (/use 14)" 													})
 A.Shoot								= Create({ Type = "Spell", 				ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Wand" 								})
 A.AutoShot							= Create({ Type = "Spell", 				ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Hunter's shoot" 						})
 A.HSGreater1						= Create({ Type = "Item", 				ID = 5510, 										QueueForbidden = true, Desc = "[6] HealthStone" 															})
@@ -448,14 +437,14 @@ function A.Rotation(icon)
 		-- Cursor 
 		if A.GameTooltipClick and not IsMouseButtonDown("LeftButton") and not IsMouseButtonDown("RightButton") then 			
 			if A.GameTooltipClick == "LEFT" then 
-				return A:Show(icon, ACTION_CONST_LEFT)			 
+				return A:Show(icon, CONST.LEFT)			 
 			elseif A.GameTooltipClick == "RIGHT" then 
-				return A:Show(icon, ACTION_CONST_RIGHT)
+				return A:Show(icon, CONST.RIGHT)
 			end 
 		end 
 		
 		-- ReTarget 
-		if A.Zone == "pvp" and A:GetTimeSinceJoinInstance() >= 30 and A.LastTarget and not A.LastTargetIsExists then  
+		if A.Zone == "pvp" and A:GetTimeSinceJoinInstance() >= 30 and A.LastTargetTexture and not A.LastTargetIsExists then  
 			return A:Show(icon, A.LastTargetTexture)
 		end 
 		
@@ -483,7 +472,7 @@ function A.Rotation(icon)
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
 			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(nil, 1) >= 1) or A.Zone == "pvp")
 		then 
-			return A:Show(icon, ACTION_CONST_AUTOTARGET)			 
+			return A:Show(icon, CONST.AUTOTARGET)			 
 		end 
 	end 
 	
@@ -508,12 +497,12 @@ function A.Rotation(icon)
 	end 	
 	
 	-- [3] Single / [4] AoE: AutoAttack
-	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() and Unit(player):IsCastingRemains() == 0 then 
+	if unit and (meta == 3 or meta == 4) and not Player:IsStealthed() and Unit(player):IsCastingRemains() == 0 and HasFullControl() then 
 		useShoot = IsShoot(unit)
 		if not useShoot and unit ~= targettarget and GetToggle(1, "AutoAttack") and not Player:IsAttacking() then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
 			--if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
-				--return A:Show(icon, ACTION_CONST_AUTOSHOOT)
+				--return A:Show(icon, CONST.AUTOSHOOT)
 			--end 
 			
 				-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
@@ -523,7 +512,7 @@ function A.Rotation(icon)
 				-- ByPass Warlock's mechanic 
 				(A.PlayerClass ~= "WARLOCK" or Unit(unit):GetRange() <= 5)
 			then 
-				return A:Show(icon, ACTION_CONST_AUTOATTACK)
+				return A:Show(icon, CONST.AUTOATTACK)
 			end 
 		end 
 	end 
@@ -535,7 +524,7 @@ function A.Rotation(icon)
 	
 	-- [3] Single / [4] AoE: AutoShoot
 	if useShoot and (meta == 3 or meta == 4) then 
-		return A:Show(icon, ACTION_CONST_AUTOSHOOT)
+		return A:Show(icon, CONST.AUTOSHOOT)
 	end 
 	
 	-- [3] Set Class Portrait
@@ -547,4 +536,24 @@ function A.Rotation(icon)
 end 
 
 -- setfenv will make working it way faster as lua condition for TMW frames 
-Env.Rotation = A.Rotation 
+do 
+	local vType
+	for k, v in pairs(A) do 
+		vType = type(v)
+		if (vType == "table" or vType == "function") and _G[k] == nil and Env[k] == nil then 
+			Env[k] = v
+		end		
+	end 
+end 
+--[[
+CNDT.EnvMeta.__index = function(t, v)		
+	if _G[v] ~= nil then 	
+		return _G[v]
+	else		
+		local vType = type(A[v])
+		if vType == "table" or vType == "function" then 
+			t[v] = A[v]
+		end 
+		return A[v]
+	end 
+end]]

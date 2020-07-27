@@ -1,6 +1,9 @@
-HeroRotation					= HeroRotation or {}
-local Cache 					= HeroCache
-local HL 						= HeroLib
+local _G, pairs, loadstring, select, math, string =		
+	  _G, pairs, loadstring, select, math, string
+
+HeroRotation					= _G.HeroRotation or {}
+local Cache 					= _G.HeroCache
+local HL 						= _G.HeroLib
 local HR 						= HeroRotation 
 
 if not HL then 
@@ -16,15 +19,23 @@ local Item 						= HL.Item
 -- Lua
 local mathmin 					= math.min
 local stringlower	 			= string.lower
-local strsplit 					= strsplit
+local strsplit 					= _G.strsplit
 
-local TMW 						= TMW 
+local TMW 						= _G.TMW 
 local GetSpellTexture			= TMW.GetSpellTexture
-local A 						= Action
+
+local A 						= _G.Action
+local Unit						= A.Unit	
 local MultiUnits				= A.MultiUnits
-local UnitGUID					= UnitGUID
-local pairs, loadstring, select =		
-	  pairs, loadstring, select
+local ActiveNameplates			= MultiUnits:GetActiveUnitPlates()
+local BurstIsON					= A.BurstIsON
+local GetToggle					= A.GetToggle
+local InterruptIsValid			= A.InterruptIsValid
+
+local UnitGUID					= _G.UnitGUID
+
+local isClassic					= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC
+local owner						= isClassic and "PlayerClass" or "PlayerSpec"
  
 -------------------------------------------------------------------------------
 -- Core 
@@ -35,13 +46,13 @@ function A:HeroCreate()
 	if HL then 
 		local S, I = {}, {}
 		for k, v in pairs(self) do 
-			if v.Type:match("Spell") or v.SubType == "HeartOfAzeroth" then 
+			if v.Type:match("Spell") or (not isClassic and v.SubType == "HeartOfAzeroth") then 
 				S[k] = Spell(v.ID)
 				-- Push identificator for 'The Action'
 				S[k].KEY = k
 			end 
 			
-			if v.Type:match("Item") or v.Type == "Potion" or v.Type == "Trinket" then 
+			if v.Type:match("Item") or v.Type == "Potion" or v.Type:match("Trinket") then 
 				I[k] = Item(v.ID)
 				-- Push identificator for 'The Action'
 				I[k].KEY = k
@@ -97,8 +108,8 @@ local Null	= function() end
 local ObjKey = function(Object)
 	if A.IsInitialized and Object and Object.KEY and IsHooked[Object.KEY] then 
 		for meta, frame in pairs(IsHooked[Object.KEY]) do
-			if A[A.PlayerSpec] and A[A.PlayerSpec][meta] and A[A.PlayerSpec][Object.KEY] then 
-				A[A.PlayerSpec][Object.KEY]:Show(loadstring("return " .. frame)())
+			if A[A[owner]] and A[A[owner]][meta] and A[A[owner]][Object.KEY] then 
+				A[A[owner]][Object.KEY]:Show(loadstring("return " .. frame)())
 				-- /run local a = assert(loadstring("return TellMeWhen_Group4_Icon4"))(); print(a)
 				-- /dump loadstring("return TellMeWhen_Group4_Icon4")()
 			end 
@@ -117,14 +128,15 @@ function HR.Cast(Object, OffGCD, DisplayStyle)
 end 
 
 local CachedCastQueue = HR.CastQueue or Dummy 
+local CacheQueueSet = { Silence = true, Priority = 1 }
 function HR.CastQueue(...)
 	CachedCastQueue(...)
 	if A.IsInitialized then 
 		local args = { ... }
 		for i = 1, #args do 
 			if args[i].KEY and IsHooked[args[i].KEY] then 			
-				if A[A.PlayerSpec] and A[A.PlayerSpec][args[i].KEY] and not A[A.PlayerSpec][args[i].KEY]:IsQueued() then 
-					A[A.PlayerSpec][args[i].KEY]:SetQueue({ Silence = true, Priority = 1 })
+				if A[A[owner]] and A[A[owner]][args[i].KEY] and not A[A[owner]][args[i].KEY]:IsQueued() then 
+					A[A[owner]][args[i].KEY]:SetQueue(CacheQueueSet)
 				end 
 			end 
 		end 
@@ -141,8 +153,8 @@ function HR.CastCycle(Object, Range, Condition)
 		if HR.AoEON() then
 			local BestUnit = nil
 			local TargetGUID = UnitGUID("target")
-			for _, CycleUnit in pairs(MultiUnits:GetActiveUnitPlates() or {}) do
-				if (not range or A.Unit(CycleUnit):GetRange() <= range) and UnitGUID(CycleUnit) ~= TargetGUID and Condition(CycleUnit) then
+			for _, CycleUnit in pairs(ActiveNameplates) do
+				if (not range or Unit(CycleUnit):GetRange() <= range) and UnitGUID(CycleUnit) ~= TargetGUID and Condition(CycleUnit) then
 					HR.CastLeftNameplate(CycleUnit, Object)
 					return true 
 				end
@@ -159,8 +171,8 @@ function HR.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Conditi
 	end	
 	if HR.AoEON() then
 		local BestUnit, BestConditionValue = nil, nil
-		for _, CycleUnit in pairs(MultiUnits:GetActiveUnitPlates() or {}) do
-			if (not range or A.Unit(CycleUnit):GetRange() <= range) and ((Condition and Condition(CycleUnit)) or not Condition) and (not BestConditionValue or Utils.CompareThis(TargetIfMode, TargetIfCondition(CycleUnit), BestConditionValue)) then
+		for _, CycleUnit in pairs(ActiveNameplates) do
+			if (not range or Unit(CycleUnit):GetRange() <= range) and ((Condition and Condition(CycleUnit)) or not Condition) and (not BestConditionValue or Utils.CompareThis(TargetIfMode, TargetIfCondition(CycleUnit), BestConditionValue)) then
 				BestUnit, BestConditionValue = CycleUnit, TargetIfCondition(CycleUnit)
 			end
 		end
@@ -200,8 +212,7 @@ end
 -- Get if the CDs are enabled.
 function HR.CDsON(unit)
 	if A.IsInitialized then 
-		local unit = unit or "target"
-		return A.BurstIsON(unit)
+		return BurstIsON(unit or "target")
 	end 
 	
 	return HeroRotationCharDB and HeroRotationCharDB.Toggles[1]
@@ -210,7 +221,7 @@ end
 -- Get if the AoE is enabled.
 function HR.AoEON()
 	if A.IsInitialized then 
-		return A.GetToggle(2, "AoE")
+		return GetToggle(2, "AoE")
 	end 
 	
 	return HeroRotationCharDB and HeroRotationCharDB.Toggles[2]
@@ -222,7 +233,7 @@ if HL then
 	
 	-- Connect it with 'The Action' by SetBlocker, SetQueue and custom LUA (+ toggles for Potion, Trinkets, HeartOfAzeroth)
 	local function ActionAPI(Object)
-		return not A.IsInitialized or (A[A.PlayerSpec] and A[A.PlayerSpec][Object.KEY] and A[A.PlayerSpec][Object.KEY]:IsReady())
+		return not A.IsInitialized or (A[A[owner]] and A[A[owner]][Object.KEY] and A[A[owner]][Object.KEY]:IsReady())
 	end 
 	
 	-- Spells 
@@ -269,7 +280,7 @@ if not HR.Commons then
 	function Commons.AoEToggleEnemiesUpdate ()
 		if not HR.AoEON() or AoEInsensibleUnit[Target:NPCID()] then
 			for Key, Value in pairs(Cache.EnemiesCount) do
-				Cache.EnemiesCount[Key] = math.min(1, Cache.EnemiesCount[Key]);
+				Cache.EnemiesCount[Key] = mathmin(1, Cache.EnemiesCount[Key]);
 			end
 		end
 	end	
@@ -279,20 +290,21 @@ end
 
 local CachedTargetIsValid 	= Commons.TargetIsValid or Dummy 
 function Commons.TargetIsValid()
-	return CachedTargetIsValid() and (not A.IsInitialized or A.Unit("target"):IsEnemy())
+	return CachedTargetIsValid() and (not A.IsInitialized or Unit("target"):IsEnemy())
 end 
 
 Commons.UnitIsCycleValid 	= Commons.UnitIsCycleValid or Dummy
 Commons.CanDoTUnit		 	= Commons.CanDoTUnit or Dummy 
 
 local CachedInterrupt 	 	= Commons.Interrupt
+local CacheInterruptTable 	= {"KickImun", "TotalImun"}
 function Commons.Interrupt(Range, Spell, Setting, StunSpells) 
 	-- Note: HeroRotations need little bit tweak with it by adding this func with "if Commons.Interrupt(args) then return end" 
 	if not A.IsInitialized then 
 		return CachedInterrupt(Range, Spell, Setting, StunSpells) 
 	else 	
-		local Kick, CC = A.InterruptIsValid("target", "TargetMouseover")  
-		if ((not StunSpells and Kick) or (StunSpells and CC)) and (not Range or A.Unit("target"):GetRange() <= Range) and (not Spell or (Spell.KEY and IsHooked[Spell.KEY] and A[A.PlayerSpec][Spell.KEY] and A[A.PlayerSpec][Spell.KEY]:IsReady("target"))) and A.Unit("target"):CanInterrupt(true, {"KickImun", "TotalImun"}) then 
+		local Kick, CC = InterruptIsValid("target", "Main")  
+		if ((not StunSpells and Kick) or (StunSpells and CC)) and (not Range or Unit("target"):GetRange() <= Range) and (not Spell or (Spell.KEY and IsHooked[Spell.KEY] and A[A[owner]][Spell.KEY] and A[A[owner]][Spell.KEY]:IsReady("target"))) and Unit("target"):CanInterrupt(true, CacheInterruptTable) then 
 			return HR.Cast(Spell)
 		end 
 	end

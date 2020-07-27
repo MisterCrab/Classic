@@ -1,14 +1,19 @@
-local TMW 						= TMW
+local _G, error, type, pairs, next, select, math =
+	  _G, error, type, pairs, next, select, math
+	  
+local TMW 						= _G.TMW
 local CNDT						= TMW.CNDT 
 local Env 						= CNDT.Env
 local SwingTimers 				= TMW.COMMON.SwingTimerMonitor.SwingTimers
 
-local A   						= Action	
+local A   						= _G.Action	
+local CONST 					= A.Const
 local Listener					= A.Listener
---local InstanceInfo			= A.InstanceInfo
+local toNum 					= A.toNum
 
-local _G, error, type, pairs, next, select, math =
-	  _G, error, type, pairs, next, select, math
+local TeamCache					= A.TeamCache
+local TeamCacheFriendly 		= TeamCache.Friendly
+local TeamCacheFriendlyUNITs	= TeamCacheFriendly.UNITs
 	  
 local wipe 						= _G.wipe 
 local huge 						= math.huge 
@@ -35,26 +40,35 @@ local FuryPowerType 			= PowerType.Fury
 local PainPowerType				= PowerType.Pain
 
 local GetSpellInfo				= _G.GetSpellInfo
+local InCombatLockdown			= _G.InCombatLockdown  
+local issecure					= _G.issecure
 
-local UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitAttackSpeed, UnitRangedDamage, UnitDamage,  	  UnitAura =
-	  UnitLevel, UnitPower, UnitPowerMax, UnitStagger, UnitAttackSpeed, UnitRangedDamage, UnitDamage, TMW.UnitAura
+local 	 UnitLevel,    UnitPower, 	 UnitPowerMax, 	  UnitStagger, 	  UnitAttackSpeed, 	  UnitRangedDamage,    UnitDamage,     UnitAura =
+	  _G.UnitLevel, _G.UnitPower, _G.UnitPowerMax, _G.UnitStagger, _G.UnitAttackSpeed, _G.UnitRangedDamage, _G.UnitDamage, TMW.UnitAura
 
-local GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints =
-	  GetPowerRegen, GetShapeshiftForm, GetCritChance, GetHaste, GetComboPoints
+local 	 GetPowerRegen,    GetShapeshiftForm, 	 GetCritChance,    GetHaste, 	GetComboPoints =
+	  _G.GetPowerRegen, _G.GetShapeshiftForm, _G.GetCritChance, _G.GetHaste, _G.GetComboPoints
 	  
-local IsEquippedItem, IsStealthed, IsMounted, IsFalling, IsSwimming, IsSubmerged = 	  
-	  IsEquippedItem, IsStealthed, IsMounted, IsFalling, IsSwimming, IsSubmerged
+local 	 IsEquippedItem, 	IsStealthed, 	IsMounted, 	  IsFalling, 	IsSwimming,    IsSubmerged = 	  
+	  _G.IsEquippedItem, _G.IsStealthed, _G.IsMounted, _G.IsFalling, _G.IsSwimming, _G.IsSubmerged
 	  
-local CancelUnitBuff, CancelSpellByName =
-	  CancelUnitBuff, CancelSpellByName
+local 	 CancelUnitBuff, 	CancelSpellByName, 	  CombatLogGetCurrentEventInfo =
+	  _G.CancelUnitBuff, _G.CancelSpellByName, _G.CombatLogGetCurrentEventInfo
 	  
 -- Bags / Inventory
-local GetContainerNumSlots, GetContainerItemID, GetInventoryItemID, GetItemInfoInstant, GetItemCount, IsEquippableItem =	  
-	  GetContainerNumSlots, GetContainerItemID, GetInventoryItemID, GetItemInfoInstant, GetItemCount, IsEquippableItem
+local 	 GetContainerNumSlots, 	  GetContainerItemID, 	 GetInventoryItemID, 	GetItemInfoInstant,    GetItemCount, 	IsEquippableItem =	  
+	  _G.GetContainerNumSlots, _G.GetContainerItemID, _G.GetInventoryItemID, _G.GetItemInfoInstant, _G.GetItemCount, _G.IsEquippableItem
 	  
 -- Classic GetTotemInfo
-local GetTotemInfo 				= LibStub("LibTotemInfo-1.0").GetTotemInfo	  
-local GetTotemTimeLeft			= LibStub("LibTotemInfo-1.0").GetTotemTimeLeft	  
+local gameVersion				= toNum[select(2, _G.GetBuildInfo())]
+local GetTotemInfo, GetTotemTimeLeft
+if gameVersion <= 11303 then 
+	GetTotemInfo 				= LibStub("LibTotemInfo-1.0").GetTotemInfo	  
+	GetTotemTimeLeft			= LibStub("LibTotemInfo-1.0").GetTotemTimeLeft	  
+else 
+	GetTotemInfo				= _G.GetTotemInfo
+	GetTotemTimeLeft			= _G.GetTotemTimeLeft
+end 
 	  	  	  
 -------------------------------------------------------------------------------
 -- Remap
@@ -62,7 +76,7 @@ local GetTotemTimeLeft			= LibStub("LibTotemInfo-1.0").GetTotemTimeLeft
 local A_Unit, A_GetPing, A_GetGCD, A_GetCurrentGCD, A_GetSpellPowerCost, A_GetSpellPowerCostCache, A_GetSpellInfo
 
 Listener:Add("ACTION_EVENT_PLAYER", "ADDON_LOADED", function(addonName)
-	if addonName == ACTION_CONST_ADDON_NAME then 
+	if addonName == CONST.ADDON_NAME then 
 		A_Unit						= A.Unit		
 		A_GetPing					= A.GetPing
 		A_GetGCD					= A.GetGCD
@@ -109,6 +123,8 @@ local Data = {
 			1066,					-- Aquatic Form
 		},
 	},
+	AuraBuffUnitCount = {},
+	AuraDeBuffUnitCount = {},
 	-- Shoot 
 	AutoShootActive = false, 
 	AutoShootNextTick = 0,
@@ -134,12 +150,38 @@ local Data = {
 
 local DataAuraStealthed				= Data.AuraStealthed
 local DataAuraOnCombatMounted		= Data.AuraOnCombatMounted
+local DataAuraBuffUnitCount			= Data.AuraBuffUnitCount
+local DataAuraDeBuffUnitCount		= Data.AuraDeBuffUnitCount
 local DataCheckItems				= Data.CheckItems
 local DataCountItems				= Data.CountItems
 local DataCheckBags					= Data.CheckBags
 local DataInfoBags					= Data.InfoBags
 local DataCheckInv					= Data.CheckInv
 local DataInfoInv					= Data.InfoInv
+
+function Data.logAura(...)
+	local _, EVENT, _, SourceGUID, _, _, _, DestGUID, _, _, _, _, spellName, _, auraType = CombatLogGetCurrentEventInfo() 
+	if EVENT == "SPELL_AURA_APPLIED" and SourceGUID == TeamCacheFriendlyUNITs.player then 
+		if auraType == "DEBUFF" then 
+			DataAuraDeBuffUnitCount[spellName] 	= (DataAuraDeBuffUnitCount[spellName] or 0) + 1
+		else
+			DataAuraBuffUnitCount[spellName] 	= (DataAuraBuffUnitCount[spellName] or 0) 	+ 1
+		end 
+	end 
+	
+	if EVENT == "SPELL_AURA_REMOVED" and SourceGUID == TeamCacheFriendlyUNITs.player then 
+		if auraType == "DEBUFF" then 
+			DataAuraDeBuffUnitCount[spellName] 	= math_max((DataAuraDeBuffUnitCount[spellName] or 0) - 1, 0)
+		else 
+			DataAuraBuffUnitCount[spellName] 	= math_max((DataAuraBuffUnitCount[spellName] or 0) 	- 1, 0)
+		end 
+	end 
+end 
+
+function Data.wipeAura()
+	wipe(DataAuraBuffUnitCount)	
+	wipe(DataAuraDeBuffUnitCount)	
+end 
 
 function Data.OnItemsUpdate()
 	for tier_name, items in pairs(DataCheckItems) do 
@@ -271,7 +313,7 @@ function Data.logInv()
 				end 
 			end 
 		else
-			for i = 1, ACTION_CONST_INVSLOT_LAST_EQUIPPED do 
+			for i = 1, CONST.INVSLOT_LAST_EQUIPPED do 
 				itemID = GetInventoryItemID("player", i)
 				if itemID then 
 					_, _, _, itemEquipLoc, _, itemClassID, itemSubClassID 	= GetItemInfoInstant(itemID)
@@ -302,6 +344,9 @@ Listener:Add("ACTION_EVENT_PLAYER", "PLAYER_STOPPED_MOVING", function()
 		Data.TimeStampStaying = TMW.time 
 	end 
 end)
+
+Listener:Add("ACTION_EVENT_PLAYER_AURA", "COMBAT_LOG_EVENT_UNFILTERED", 	Data.logAura)
+Listener:Add("ACTION_EVENT_PLAYER_AURA", "PLAYER_ENTERING_WORLD", 			Data.wipeAura)
 
 Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "START_AUTOREPEAT_SPELL", 		Data.logAutoShootON)
 Listener:Add("ACTION_EVENT_PLAYER_SHOOT", "STOP_AUTOREPEAT_SPELL", 			Data.logAutoShootOFF)
@@ -508,21 +553,75 @@ function A.Player:CastCostCache()
 	return castName and A_GetSpellPowerCostCache(spellID) or 0
 end 
 
+-- Auras 
 function A.Player:CancelBuff(buffName)
 	-- @return nil 
-	for i = 1, huge do			
-		local Name = UnitAura("player", i, "HELPFUL PLAYER")
-		if Name then	
-			if Name == buffName then 
-				CancelUnitBuff("player", i, "HELPFUL PLAYER")
-				if A_Unit("player"):CombatTime() == 0 then 
-					CancelSpellByName(buffName)
+	if not InCombatLockdown() or issecure() then 
+		CancelSpellByName(buffName)	
+		--[[
+		for i = 1, huge do			
+			local Name = UnitAura("player", i, "HELPFUL PLAYER")
+			if Name then	
+				if Name == buffName then 
+					CancelUnitBuff("player", i, "HELPFUL PLAYER")								
 				end 
+			else 
+				break 
 			end 
-		else 
-			break 
+		end ]]
+	end
+end 
+
+function A.Player:GetBuffsUnitCount(...)
+	-- @return number 
+	-- Returns how much units are applied by buffs in vararg
+	-- ... accepts spellID and spellName 
+	local counter = 0
+	
+	local aura, auraType
+	for i = 1, select("#", ...) do 
+		aura = select(i, ...)
+		
+		auraType = type(aura) 
+		if auraType == "number" then 
+			aura = A_GetSpellInfo(aura)
+		elseif auraType == "table" then 
+			aura = aura:Info()
+		end 
+		
+		aura = DataAuraBuffUnitCount[aura]
+		if aura and aura > 0 then 
+			counter = counter + 1
 		end 
 	end 
+
+	return counter
+end 
+
+function A.Player:GetDeBuffsUnitCount(...)
+	-- @return number 
+	-- Returns how much units are applied by buffs in vararg
+	-- ... accepts spellID, spellName and action object 
+	local counter = 0
+	
+	local aura, auraType
+	for i = 1, select("#", ...) do 
+		aura = select(i, ...)
+		
+		auraType = type(aura) 
+		if auraType == "number" then 
+			aura = A_GetSpellInfo(aura)
+		elseif auraType == "table" then 
+			aura = aura:Info()
+		end 
+		
+		aura = DataAuraDeBuffUnitCount[aura]
+		if aura and aura > 0 then 
+			counter = counter + 1
+		end 
+	end 
+	
+	return counter
 end 
 
 -- Classic: Totems 
@@ -533,12 +632,13 @@ function A.Player:GetTotemInfo(i)
 	--     spellid - int, the totem's spell id.
 	--     rank    - int (1 to 8) or nil, the rank of the totem spell.
 	--               nil indicates that there is no rank for this totem.
+	-- These return values are valid until 1.13.4 game version, after it uses default API
 	return GetTotemInfo(i)
 end 
 
 function A.Player:GetTotemTimeLeft(i)
 	-- @return: number (timeLeft = GetTotemTimeLeft(1 through 4))
-	-- From: <https://github.com/SwimmingTiger/LibTotemInfo/issues/2>
+	-- Example: <https://github.com/SwimmingTiger/LibTotemInfo/issues/2>
 	return GetTotemTimeLeft(i)
 end 
 
@@ -578,16 +678,16 @@ function A.Player:GetSwing(inv)
 	-- @return number (time in seconds of the swing for each slot)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
-		inv = ACTION_CONST_INVSLOT_MAINHAND
+		inv = CONST.INVSLOT_MAINHAND
 	elseif inv == 2 then 
-		inv = ACTION_CONST_INVSLOT_OFFHAND
+		inv = CONST.INVSLOT_OFFHAND
 	elseif inv == 3 then
-		inv = ACTION_CONST_INVSLOT_RANGED
+		inv = CONST.INVSLOT_RANGED
 	elseif inv == 4 then 
-		local inv1, inv2 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND)
+		local inv1, inv2 = Env.SwingDuration(CONST.INVSLOT_MAINHAND), Env.SwingDuration(CONST.INVSLOT_OFFHAND)
 		return math_max(inv1, inv2)
 	elseif inv == 5 then 
-		local inv1, inv2, inv3 = Env.SwingDuration(ACTION_CONST_INVSLOT_MAINHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_OFFHAND), Env.SwingDuration(ACTION_CONST_INVSLOT_RANGED)
+		local inv1, inv2, inv3 = Env.SwingDuration(CONST.INVSLOT_MAINHAND), Env.SwingDuration(CONST.INVSLOT_OFFHAND), Env.SwingDuration(CONST.INVSLOT_RANGED)
 		return math_max(inv1, inv2, inv3)
 	end 
 	
@@ -598,16 +698,16 @@ function A.Player:GetSwingMax(inv)
 	-- @return number (max duration taken from the last swing)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
-		inv = ACTION_CONST_INVSLOT_MAINHAND
+		inv = CONST.INVSLOT_MAINHAND
 	elseif inv == 2 then 
-		inv = ACTION_CONST_INVSLOT_OFFHAND
+		inv = CONST.INVSLOT_OFFHAND
 	elseif inv == 3 then
-		inv = ACTION_CONST_INVSLOT_RANGED
+		inv = CONST.INVSLOT_RANGED
 	elseif inv == 4 then 
-		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		local inv1, inv2 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND		
 		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0)
 	elseif inv == 5 then 
-		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		local inv1, inv2, inv3 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND, CONST.INVSLOT_RANGED
 		return math_max(SwingTimers[inv1] and SwingTimers[inv1].duration or 0, SwingTimers[inv2] and SwingTimers[inv2].duration or 0, SwingTimers[inv3] and SwingTimers[inv3].duration or 0)
 	end 
 	
@@ -618,16 +718,16 @@ function A.Player:GetSwingStart(inv)
 	-- @return number (start stamp taken from the last swing)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
-		inv = ACTION_CONST_INVSLOT_MAINHAND
+		inv = CONST.INVSLOT_MAINHAND
 	elseif inv == 2 then 
-		inv = ACTION_CONST_INVSLOT_OFFHAND
+		inv = CONST.INVSLOT_OFFHAND
 	elseif inv == 3 then
-		inv = ACTION_CONST_INVSLOT_RANGED
+		inv = CONST.INVSLOT_RANGED
 	elseif inv == 4 then 
-		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		local inv1, inv2 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND		
 		return math_max(SwingTimers[inv1] and SwingTimers[inv1].startTime or 0, SwingTimers[inv2] and SwingTimers[inv2].startTime or 0)
 	elseif inv == 5 then 
-		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		local inv1, inv2, inv3 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND, CONST.INVSLOT_RANGED
 		return math_max(SwingTimers[inv1] and SwingTimers[inv1].startTime or 0, SwingTimers[inv2] and SwingTimers[inv2].startTime or 0, SwingTimers[inv3] and SwingTimers[inv3].startTime or 0)
 	end 
 	
@@ -637,13 +737,13 @@ end
 function A.Player:ReplaceSwingDuration(inv, dur)
 	-- @usage A.Player:ReplaceSwingDuration(1, 2.6)
 	if inv == 1 then 
-		inv = ACTION_CONST_INVSLOT_MAINHAND
+		inv = CONST.INVSLOT_MAINHAND
 	elseif inv == 2 then 
-		inv = ACTION_CONST_INVSLOT_OFFHAND
+		inv = CONST.INVSLOT_OFFHAND
 	elseif inv == 3 then
-		inv = ACTION_CONST_INVSLOT_RANGED
+		inv = CONST.INVSLOT_RANGED
 	elseif inv == 4 then 
-		local inv1, inv2 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND		
+		local inv1, inv2 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND		
 		
 		if SwingTimers[inv1] then 
 			SwingTimers[inv1].duration = dur
@@ -654,7 +754,7 @@ function A.Player:ReplaceSwingDuration(inv, dur)
 		end
 		return
 	elseif inv == 5 then 
-		local inv1, inv2, inv3 = ACTION_CONST_INVSLOT_MAINHAND, ACTION_CONST_INVSLOT_OFFHAND, ACTION_CONST_INVSLOT_RANGED
+		local inv1, inv2, inv3 = CONST.INVSLOT_MAINHAND, CONST.INVSLOT_OFFHAND, CONST.INVSLOT_RANGED
 		if SwingTimers[inv1] then 
 			SwingTimers[inv1].duration = dur
 		end 
@@ -683,14 +783,14 @@ function A.Player:GetWeaponMeleeDamage(inv, mod)
 	local minDamage, maxDamage, minOffHandDamage, maxOffHandDamage, physicalBonusPos, physicalBonusNeg, percent = UnitDamage(self.UnitID)
 	
 	local main_baseDamage, main_fullDamage, main_damagePerSecond
-	if speed and (not inv or inv == 1 or inv == ACTION_CONST_INVSLOT_MAINHAND) then 
+	if speed and (not inv or inv == 1 or inv == CONST.INVSLOT_MAINHAND) then 
 		main_baseDamage 		= (minDamage + maxDamage) * 0.5
 		main_fullDamage 		= (main_baseDamage + physicalBonusPos + physicalBonusNeg) * percent		
 		main_damagePerSecond	= math_max(main_fullDamage, 1) / (speed * (mod or 1))
 	end
 	
 	local offhandBaseDamage, offhandFullDamage, offhandDamagePerSecond
-	if offhandSpeed and (not inv or inv == 1 or inv == ACTION_CONST_INVSLOT_OFFHAND) then 
+	if offhandSpeed and (not inv or inv == 1 or inv == CONST.INVSLOT_OFFHAND) then 
 		offhandBaseDamage 		= (minOffHandDamage + maxOffHandDamage) * 0.5
 		offhandFullDamage 		= (offhandBaseDamage + physicalBonusPos + physicalBonusNeg) * percent
 		offhandDamagePerSecond 	= math_max(offhandFullDamage, 1) / (offhandSpeed * (mod or 1))
@@ -740,8 +840,7 @@ end
 
 function A.Player:HasTier(tier, count)
 	-- @return boolean 
-	-- Set Bonuses are disabled in Challenge Mode (Diff = 8) and in MoP: Proving Grounds (InstanceID = 1148, ZoneID = 480)
-	return self:GetTier(tier) >= count -- and InstanceInfo.difficultyID ~= 8 and InstanceInfo.ID ~= 1148 
+	return self:GetTier(tier) >= count 
 end 
 
 -- Bags 
@@ -830,7 +929,7 @@ end
 function A.Player:RegisterShield()
 	-- Registers to track shields in bags or equiped 
 	self:AddBag("SHIELD", 														{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, 	isEquippableItem = true 	})
-	self:AddInv("SHIELD", 			ACTION_CONST_INVSLOT_OFFHAND, 				{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD 									})
+	self:AddInv("SHIELD", 			CONST.INVSLOT_OFFHAND, 						{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD 									})
 end 
 
 function A.Player:RegisterWeaponOffHand()
@@ -840,7 +939,7 @@ function A.Player:RegisterWeaponOffHand()
 	self:AddBag("WEAPON_OFFHAND_3", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, 	isEquippableItem = true 	})
 	self:AddBag("WEAPON_OFFHAND_4", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_UNARMED, 	isEquippableItem = true		})
 	self:AddBag("WEAPON_OFFHAND_5", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER, 	isEquippableItem = true		})
-	self:AddInv("WEAPON_OFFHAND", 	ACTION_CONST_INVSLOT_OFFHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON 																		})
+	self:AddInv("WEAPON_OFFHAND", 	CONST.INVSLOT_OFFHAND, 						{ itemClassID = LE_ITEM_CLASS_WEAPON 																		})
 end 
 
 function A.Player:RegisterWeaponTwoHand()
@@ -850,29 +949,29 @@ function A.Player:RegisterWeaponTwoHand()
 	self:AddBag("WEAPON_TWOHAND_3", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM, 	isEquippableItem = true 	})
 	self:AddBag("WEAPON_TWOHAND_4", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H, 	isEquippableItem = true		})
 	self:AddBag("WEAPON_TWOHAND_5", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF, 	isEquippableItem = true		})
-	self:AddInv("WEAPON_TWOHAND_1", ACTION_CONST_INVSLOT_MAINHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H									})
-	self:AddInv("WEAPON_TWOHAND_2", ACTION_CONST_INVSLOT_MAINHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H								})
-	self:AddInv("WEAPON_TWOHAND_3", ACTION_CONST_INVSLOT_MAINHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM								})
-	self:AddInv("WEAPON_TWOHAND_4", ACTION_CONST_INVSLOT_MAINHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H								})
-	self:AddInv("WEAPON_TWOHAND_5", ACTION_CONST_INVSLOT_MAINHAND, 				{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF									})
+	self:AddInv("WEAPON_TWOHAND_1", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H									})
+	self:AddInv("WEAPON_TWOHAND_2", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H								})
+	self:AddInv("WEAPON_TWOHAND_3", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_POLEARM								})
+	self:AddInv("WEAPON_TWOHAND_4", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD2H								})
+	self:AddInv("WEAPON_TWOHAND_5", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF									})
 end 
 
 function A.Player:RegisterWeaponMainOneHandDagger()
 	-- Registers to track dagger in the main one hand (not two hand) weapon in bags or equiped 
 	self:AddBag("WEAPON_MAINHAND_DAGGER", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER, 	isEquippableItem = true		})
-	self:AddInv("WEAPON_MAINHAND_DAGGER", 		ACTION_CONST_INVSLOT_MAINHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER								})
+	self:AddInv("WEAPON_MAINHAND_DAGGER", 		CONST.INVSLOT_MAINHAND, 		{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER								})
 end 
 
 function A.Player:RegisterWeaponMainOneHandSword()
 	-- Registers to track sword in the main one hand (not two hand) weapon in bags or equiped 
 	self:AddBag("WEAPON_MAIN_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, 	isEquippableItem = true 	})
-	self:AddInv("WEAPON_MAIN_ONE_HAND_SWORD", 	ACTION_CONST_INVSLOT_MAINHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
+	self:AddInv("WEAPON_MAIN_ONE_HAND_SWORD", 	CONST.INVSLOT_MAINHAND, 		{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
 end 
 
 function A.Player:RegisterWeaponOffOneHandSword()
 	-- Registers to track sword in the off one hand weapon in bags or equiped 
 	self:AddBag("WEAPON_OFF_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, 	isEquippableItem = true 	})
-	self:AddInv("WEAPON_OFF_ONE_HAND_SWORD", 	ACTION_CONST_INVSLOT_OFFHAND, 	{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
+	self:AddInv("WEAPON_OFF_ONE_HAND_SWORD", 	CONST.INVSLOT_OFFHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
 end 
 
 ------------------------------
@@ -1579,6 +1678,10 @@ end
 --- Predicted Resource Map ---
 ------------------------------
 A.Player.PredictedResourceMap = {
+	-- Health 
+	[-2] = function() return A.Player:Health() end,
+	-- Generic 
+	[-1] = function() return 100 end,
 	-- Mana
 	[0] = function() return A.Player:ManaP() end,
 	-- Rage

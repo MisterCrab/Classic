@@ -1,24 +1,24 @@
-local A 										= Action
+local _G, next		 							= 
+	  _G, next
+	  
+local A 										= _G.Action
 local Listener 									= A.Listener
 
 local TeamCache									= A.TeamCache
 local TeamCacheFriendly							= TeamCache.Friendly
 local TeamCacheFriendlyUNITs					= TeamCacheFriendly.UNITs
 local TeamCacheEnemy							= TeamCache.Enemy
-local TeamCacheEnemyUNITs						= TeamCacheEnemy.UNITs
-
-local _G, next		 							= 
-	  _G, next 
+local TeamCacheEnemyUNITs						= TeamCacheEnemy.UNITs 
 	  
 local wipe										= _G.wipe	  
 	  
-local UnitPlayerControlled, CanInspect, UnitIsUnit, UnitGUID =
-	  UnitPlayerControlled, CanInspect, UnitIsUnit, UnitGUID
+local 	 UnitPlayerControlled, 	  CanInspect, 	 UnitIsUnit, 	UnitGUID =
+	  _G.UnitPlayerControlled, _G.CanInspect, _G.UnitIsUnit, _G.UnitGUID
 
-local InspectUnit, GetInventoryItemID, GetItemInfoInstant, GetLocale =
-	  InspectUnit, GetInventoryItemID, GetItemInfoInstant, GetLocale
+local 	 InspectUnit, 	 GetInventoryItemID, 	GetItemInfoInstant,    GetLocale =
+	  _G.InspectUnit, _G.GetInventoryItemID, _G.GetItemInfoInstant, _G.GetLocale
 	  
-local HideUIPanel								= HideUIPanel	  
+local HideUIPanel								= _G.HideUIPanel	  
 
 local InspectCache 								= {}
 local IsInspectFrameHooked 
@@ -26,7 +26,7 @@ local UseCloseInspect
 
 -- This is not fixed by game API on languages which are different than English, it's bring an error
 local GameLocale 								= GetLocale()
-local SetCVar, GetCVar							= SetCVar, GetCVar
+local SetCVar, GetCVar							= _G.SetCVar, _G.GetCVar
 local scriptErrors 
 local AllowedLocale								= {
 	enGB 										= true,

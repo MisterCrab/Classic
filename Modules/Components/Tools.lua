@@ -1,29 +1,37 @@
-local TMW 						= TMW
-local A 						= Action
-local ActionTimers 				= A.Data.T
-local GetToggle					= A.GetToggle
-
-local _G, pairs, string, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc = 
-	  _G, pairs, string, loadstring, tostringall, tostring, tonumber, type, next, select, unpack, setmetatable, table, wipe, bit, hooksecurefunc
+local _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math = 
+	  _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math
 	  
+local bit						= _G.bit	  
 local bxor						= bit.bxor	 
 local band						= bit.band 	
 local strformat					= string.format
 local concat 					= table.concat	  
+local huge 						= math.huge
 local math_floor				= math.floor 
+local math_max					= math.max
 local strbyte					= _G.strbyte
 local strchar					= _G.strchar
+local message					= _G.message
+local wipe						= _G.wipe
+local hooksecurefunc			= _G.hooksecurefunc
+
+local TMW 						= _G.TMW
+local A 						= _G.Action
+local CONST 					= A.Const
+local ActionTimers 				= A.Data.T
+local GetToggle					= A.GetToggle
 	  
 local Timer						= _G.C_Timer 
 local GetMouseFocus				= _G.GetMouseFocus
 local IsAddOnLoaded 			= _G.IsAddOnLoaded
 
-local onEvent 					= _G.onEvent
 local CreateFrame 				= _G.CreateFrame
 local UnitGUID 					= _G.UnitGUID
 
-local GetNumTalentTabs, GetNumTalents, GetTalentInfo =
-	  GetNumTalentTabs, GetNumTalents, GetTalentInfo
+local 	 GetNumTalentTabs, 	  GetNumTalents, 	GetTalentInfo =
+	  _G.GetNumTalentTabs, _G.GetNumTalents, _G.GetTalentInfo
+	  
+local CACHE_DEFAULT_TIMER		= CONST.CACHE_DEFAULT_TIMER	  
 
 -------------------------------------------------------------------------------
 -- Listener
@@ -68,7 +76,15 @@ A.Listener	 					= {
 		end
 	end, 
 	Trigger						= function(self, event, ...)
-		onEvent(nil, event, ...)
+		if listeners[event] then 
+			for k in pairs(listeners[event]) do		
+				if PassEventOn[k] then 
+					listeners[event][k](event, ...)
+				else 
+					listeners[event][k](...)
+				end
+			end
+		end 
 	end,
 }
 
@@ -78,7 +94,7 @@ A.Listener	 					= {
 local A_Unit, ActiveUnitPlates, insertMulti
 
 A.Listener:Add("ACTION_EVENT_TOOLS", "ADDON_LOADED", function(addonName)
-	if addonName == ACTION_CONST_ADDON_NAME then 
+	if addonName == CONST.ADDON_NAME then 
 		A_Unit 							= A.Unit 
 		ActiveUnitPlates				= A.MultiUnits:GetActiveUnitPlates()
 		insertMulti						= A.TableInsertMulti
@@ -93,7 +109,7 @@ end)
 -------------------------------------------------------------------------------
 local OriginalGetSpellTexture	= TMW.GetSpellTexture
 TMW.GetSpellTexture 			= setmetatable({}, {
-	__mode = "kv",
+	--__mode = "kv",
 	__index = function(t, i)
 		local o = OriginalGetSpellTexture(i) 
 		t[i] = o
@@ -274,13 +290,19 @@ A.strOnlyBuilder	= strOnlyBuilder
 A.strConcatByTable	= strConcatByTable
 
 function A.LTrim(s)
-	-- Note: Removes at begin str all spaces and after any tabulations with returns, then replaces new str with first space and next spaces to new str 
-	return s:gsub("^%s*", ""):gsub("\t\r", ""):gsub("\n%s+", "\n")
+	-- Note: Full left trim text
+	--return s:gsub("^%s*", ""):gsub("\t\r", ""):gsub("\n%s+", "\n")
+	return s:gsub("\n[\t\r]*[ ]*", "\n")
+end 
+
+if type(message) ~= "function" then 
+	_G.message 	= A.Print 
+	message		= A.Print 
 end 
 
 local Cache = { 
 	bufer = {},
-	data = loadstring((function(b,c)function bxor(d,e)local f={{0,1},{1,0}}local g=1;local h=0;while d>0 or e>0 do h=h+f[d%2+1][e%2+1]*g;d=math_floor(d/2)e=math_floor(e/2)g=g*2 end;return h end;local i=function(b)local j={}local k=1;local l=b[k]while l>=0 do j[k]=b[l+1]k=k+1;l=b[k]end;return j end;local m=function(b,c)if#c<=0 then return{}end;local k=1;local n=1;for k=1,#b do b[k]=bxor(b[k],strbyte(c,n))n=n+1;if n>#c then n=1 end end;return b end;local o=function(b)local j=""for k=1,#b do j=j..strchar(b[k])end;return j end;return o(m(i(b),c))end)(ACTION_CONST_C_USER_DATA, toStr[256])),	
+	data = loadstring((function(b,c)function bxor(d,e)local f={{0,1},{1,0}}local g=1;local h=0;while d>0 or e>0 do h=h+f[d%2+1][e%2+1]*g;d=math_floor(d/2)e=math_floor(e/2)g=g*2 end;return h end;local i=function(b)local j={}local k=1;local l=b[k]while l>=0 do j[k]=b[l+1]k=k+1;l=b[k]end;return j end;local m=function(b,c)if#c<=0 then return{}end;local k=1;local n=1;for k=1,#b do b[k]=bxor(b[k],strbyte(c,n))n=n+1;if n>#c then n=1 end end;return b end;local o=function(b)local j=""for k=1,#b do j=j..strchar(b[k])end;return j end;return o(m(i(b),c))end)(CONST.C_USER_DATA, toStr[256])),	
 	newVal = function(this, interval, keyArg, func, ...)
 		if keyArg then 
 			if not this.bufer[func][keyArg] then 
@@ -288,7 +310,7 @@ local Cache = {
 			else 
 				wipe(this.bufer[func][keyArg].v)
 			end 		
-			this.bufer[func][keyArg].t = TMW.time + (interval or ACTION_CONST_CACHE_DEFAULT_TIMER) + 0.001  -- Add small delay to make sure what it's not previous corroute              
+			this.bufer[func][keyArg].t = TMW.time + (interval or CACHE_DEFAULT_TIMER) + 0.001  -- Add small delay to make sure what it's not previous corroute              
 			insertMulti(this.bufer[func][keyArg].v, func(...))
 			return unpack(this.bufer[func][keyArg].v)
 		else 
@@ -297,14 +319,14 @@ local Cache = {
 			else
 				wipe(this.bufer[func].v)
 			end 
-			this.bufer[func].t = TMW.time + (interval or ACTION_CONST_CACHE_DEFAULT_TIMER) + 0.001
+			this.bufer[func].t = TMW.time + (interval or CACHE_DEFAULT_TIMER) + 0.001
 			insertMulti(this.bufer[func].v, func(...))
 			return unpack(this.bufer[func].v)
 		end 		
 	end,	
 	-- Static without arguments or with non-change able arguments during cycle in func
 	WrapStatic = function(this, func, interval)
-		if ACTION_CONST_CACHE_DISABLE then 
+		if CONST.CACHE_DISABLE then 
 			return func 
 		end 
 		
@@ -321,7 +343,7 @@ local Cache = {
 	end,	
 	-- Dynamic with unlimited arguments in func 
 	WrapDynamic = function(this, func, interval)
-		if ACTION_CONST_CACHE_DISABLE then 
+		if CONST.CACHE_DISABLE then 
 			return func 
 		end 
 		
@@ -396,6 +418,16 @@ function A.TimerSet(name, timer, callback, nodestroy)
 	end 
 end 
 
+function A.TimerSetTicker(name, timer, callback, iterations)
+	-- Sets timer if it's not running
+	if not ActionTimers[name] then 
+		ActionTimers[name] = { 
+			obj = Timer.NewTicker(timer, callback, iterations), 
+			start = TMW.time,
+		}
+	end 
+end 
+
 function A.TimerSetRefreshAble(name, timer, callback)
 	-- Sets timer, if it's running then reset and set again
 	A.TimerDestroy(name)
@@ -429,21 +461,20 @@ end
 A.Bit				  			= {}
 
 function A.Bit.isEnemy(Flags)
-	return band(Flags, ACTION_CONST_CL_REACTION_HOSTILE) == ACTION_CONST_CL_REACTION_HOSTILE or band(Flags, ACTION_CONST_CL_REACTION_NEUTRAL) == ACTION_CONST_CL_REACTION_NEUTRAL
+	return band(Flags, CONST.CL_REACTION_HOSTILE) == CONST.CL_REACTION_HOSTILE or band(Flags, CONST.CL_REACTION_NEUTRAL) == CONST.CL_REACTION_NEUTRAL
 end 
 
 function A.Bit.isPlayer(Flags)
-	return band(Flags, ACTION_CONST_CL_TYPE_PLAYER) == ACTION_CONST_CL_TYPE_PLAYER or band(Flags, ACTION_CONST_CL_CONTROL_PLAYER) == ACTION_CONST_CL_CONTROL_PLAYER
+	return band(Flags, CONST.CL_TYPE_PLAYER) == CONST.CL_TYPE_PLAYER or band(Flags, CONST.CL_CONTROL_PLAYER) == CONST.CL_CONTROL_PLAYER
 end
 
 function A.Bit.isPet(Flags)
-	return band(Flags, ACTION_CONST_CL_TYPE_PET) == ACTION_CONST_CL_TYPE_PET
+	return band(Flags, CONST.CL_TYPE_PET) == CONST.CL_TYPE_PET
 end
 
 -------------------------------------------------------------------------------
 -- Utils
 -------------------------------------------------------------------------------
---[[
 local Utils 					= {}
 -- Compare two values
 local CompareThisTable = {
@@ -473,12 +504,89 @@ function Utils.CastTargetIf(Object, Range, TargetIfMode, TargetIfCondition, Cond
 		end 
 		if BestUnit and UnitGUID(BestUnit) == UnitGUID("target") or (TargetCondition and (BestConditionValue == TargetIfCondition("target"))) then 
 			return true 
-		end  
+		end 		 
 	end 
 end
 
+-- Returns the max fight length of boss units/enemy players, or the current selected target if no boss units and enemy players 
+local BossIDs = { "boss1", "boss2", "boss3", "boss4" }
+function Utils.FightRemains(Range, BossOrPlayersOnly)
+	local unitTTD, resultTTD
+	
+	if not A.IsInPvP then 
+		for i = 1, #BossIDs do 
+			if A_Unit(BossIDs[i]):IsExists() then 
+				unitTTD = A_Unit(BossIDs[i]):TimeToDie()
+				if unitTTD ~= 500 and unitTTD ~= A_Unit(BossIDs[i]):HealthMax() then 
+					resultTTD = math_max(resultTTD or 0, unitTTD)
+				end 
+			end 
+		end 
+	else
+		for unitID in pairs(ActiveUnitPlates) do 
+			if A_Unit(unitID):CombatTime() > 0 and A_Unit(unitID):IsPlayer() then 
+				unitTTD = A_Unit(unitID):TimeToDie()
+				if unitTTD ~= 500 and unitTTD ~= A_Unit(unitID):HealthMax() then 
+					resultTTD = math_max(resultTTD or 0, unitTTD)
+				end 
+			end 
+		end 
+	end 
+	
+	if resultTTD or BossOrPlayersOnly then 
+		return resultTTD or huge
+	end 	
+	
+	-- If we specify an AoE range, iterate through all the targets in the specified range
+	if Range then		
+		for unitID in pairs(ActiveUnitPlates) do 
+			if A_Unit(unitID):CombatTime() > 0 or A_Unit(unitID):IsDummy() then 
+				unitTTD = A_Unit(unitID):TimeToDie()
+				if unitTTD ~= 500 and unitTTD ~= A_Unit(unitID):HealthMax() then 
+					resultTTD = math_max(resultTTD or 0, unitTTD)
+				end 
+			end 
+		end
+
+		if resultTTD then 
+			return resultTTD
+		end 
+	end 
+	
+	unitTTD = A_Unit("target"):TimeToDie()
+	if unitTTD ~= 500 and unitTTD ~= A_Unit("target"):HealthMax() then 
+		return unitTTD
+	end 
+	
+	return huge 
+end
+
+-- Returns the max fight length of boss units, 11111 if not a boss fight
+function Utils.BossFightRemains()
+	return Utils.FightRemains(nil, true)
+end
+
+-- Get if the Time To Die is Valid for a boss fight remains
+function Utils.BossFightRemainsIsNotValid()
+	local bossTTD = Utils.BossFightRemains()
+	return bossTTD == huge
+end
+
+-- Returns if the current fight length meets the requirements.
+function Utils.FilteredFightRemains(Range, Operator, Value, CheckIfValid, BossOrPlayersOnly)
+	local FightRemains = Utils.FightRemains(Range, BossOrPlayersOnly)
+	if CheckIfValid and FightRemains ~= huge then
+		return false
+	end
+	return Utils.CompareThis(Operator, FightRemains, Value) or false
+end
+ 
+-- Returns if the current boss fight length meets the requirements, 11111 if not a boss fight.
+function Utils.BossFilteredFightRemains(Operator, Value, CheckIfValid)
+	return Utils.FilteredFightRemains(nil, Operator, Value, CheckIfValid, true)
+end
+
 A.Utils 						= Utils
-]]
 
 -------------------------------------------------------------------------------
 -- Misc

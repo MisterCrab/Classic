@@ -1,10 +1,9 @@
-if not ElvUI then 
+if not _G.ElvUI then 
 	return 
 end
 
-local _G, getmetatable, hooksecurefunc 	= 
-	  _G, getmetatable, hooksecurefunc
-	  
+local _G, getmetatable 					= _G, getmetatable
+local hooksecurefunc					= _G.hooksecurefunc	  
 local CreateFrame						= _G.CreateFrame	  
 local EnumerateFrames					= _G.EnumerateFrames
 

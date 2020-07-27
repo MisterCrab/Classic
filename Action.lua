@@ -1,24 +1,19 @@
 --- 
-local DateTime 														= "31.03.2020"
+local DateTime 														= "27.07.2020"
 ---
-local TMW 															= TMW
-local Env 															= TMW.CNDT.Env
-local strlowerCache  												= TMW.strlowerCache
-local TMWdb
-
-local StdUi 														= LibStub("StdUi"):NewInstance()
-local LibDBIcon	 													= LibStub("LibDBIcon-1.0")
-local LSM 															= LibStub("LibSharedMedia-3.0")
-	  LSM:Register(LSM.MediaType.STATUSBAR, "Flat", [[Interface\Addons\TheAction Classic\Media\Flat]])
-
-local pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, next, select, _G, coroutine, table, math, string, hooksecurefunc, wipe,     safecall,    debugprofilestop = 
-	  pcall, ipairs, pairs, type, assert, error, setfenv, tostringall, tostring, tonumber, getmetatable, setmetatable, loadstring, next, select, _G, coroutine, table, math, string, hooksecurefunc, wipe, TMW.safecall, _G.debugprofilestop_SAFE
+local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
+	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
  
+local debugprofilestop												= _G.debugprofilestop_SAFE
+local hooksecurefunc												= _G.hooksecurefunc
+local wipe															= _G.wipe	 
 local tinsert 														= table.insert 	 
 local tremove 														= table.remove 	 
+local tsort															= table.sort 
 local huge	 														= math.huge
 local math_abs														= math.abs
 local math_floor													= math.floor
+local math_random													= math.random
 local math_log10													= math.log10
 local math_max														= math.max
 local math_min														= math.min
@@ -27,54 +22,98 @@ local strformat 													= string.format
 local strjoin	 													= string.join
 local strupper														= string.upper
 
-local GetRealmName, GetExpansionLevel, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell, GetSpellInfo, GetNumMacros, GetMacroInfo, GetMacroIcons = 
-	  GetRealmName, GetExpansionLevel, GetFramerate, GetMouseFocus, GetLocale, GetCVar, SetCVar, GetBindingFromClick, GetItemSpell, GetSpellInfo, GetNumMacros, GetMacroInfo, GetMacroIcons
+local TMW 															= _G.TMW
+local Env 															= TMW.CNDT.Env
+local strlowerCache  												= TMW.strlowerCache
+local safecall														= TMW.safecall
+
+local LibStub														= _G.LibStub
+local StdUi 														= LibStub("StdUi"):NewInstance()
+local LibDBIcon	 													= LibStub("LibDBIcon-1.0")
+local LSM 															= LibStub("LibSharedMedia-3.0")
+	  LSM:Register(LSM.MediaType.STATUSBAR, "Flat", [[Interface\Addons\TheAction Classic\Media\Flat]])
+local isClassic														= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC	 
+StdUi.isClassic 													= isClassic	  
+local owner															= isClassic and "PlayerClass" or "PlayerSpec" 
+
+local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
+	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
-local UnitName, UnitClass, UnitRace, UnitExists, UnitIsUnit, UnitGUID, 	   UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit = 
-	  UnitName, UnitClass, UnitRace, UnitExists, UnitIsUnit, UnitGUID, TMW.UnitAura, UnitPower, UnitIsOwnerOrControllerOfUnit	  
+local 	 UnitName, 	  UnitClass, 	UnitRace, 	 UnitExists, 	UnitIsUnit,    UnitGUID, 	 UnitAura, 	  UnitPower, 	UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitRace, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
-local HasWandEquipped 												= HasWandEquipped	  
+local  HasWandEquipped 												= 
+	_G.HasWandEquipped	  
 	  
 -- LetMeCast 	  
-local DoEmote, Dismount, CancelShapeshiftForm 						=
-	  DoEmote, Dismount, CancelShapeshiftForm
+local 	 DoEmote, 	 Dismount, 	  CancelShapeshiftForm 				=
+	  _G.DoEmote, _G.Dismount, _G.CancelShapeshiftForm
+	  
+-- LetMeDrag
+local 	 EnumerateFrames, 	 GetCursorInfo							= 
+	  _G.EnumerateFrames, _G.GetCursorInfo
 	    
 -- AuraDuration 
-local SetPortraitToTexture, CooldownFrame_Set, ShowBossFrameWhenUninteractable, TargetFrame_ShouldShowDebuffs, TargetFrame_Update, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition,    DebuffTypeColor =
-	  SetPortraitToTexture, CooldownFrame_Set, ShowBossFrameWhenUninteractable, TargetFrame_ShouldShowDebuffs, TargetFrame_Update, TargetFrame_UpdateAuras, TargetFrame_UpdateAuraPositions, TargetFrame_UpdateBuffAnchor, TargetFrame_UpdateDebuffAnchor, Target_Spellbar_AdjustPosition, _G.DebuffTypeColor
+local 	 SetPortraitToTexture, 	  CooldownFrame_Set, 	CooldownFrame_Clear, 	ShowBossFrameWhenUninteractable, 	TargetFrame_ShouldShowDebuffs, 	  TargetFrame_Update, 	 TargetFrame_UpdateAuras, 	 TargetFrame_UpdateAuraPositions, 	 TargetFrame_UpdateBuffAnchor, 	  TargetFrame_UpdateDebuffAnchor, 	 Target_Spellbar_AdjustPosition,    DebuffTypeColor, 	MAX_TARGET_BUFFS, 	 MAX_TARGET_DEBUFFS =
+	  _G.SetPortraitToTexture, _G.CooldownFrame_Set, _G.CooldownFrame_Clear, _G.ShowBossFrameWhenUninteractable, _G.TargetFrame_ShouldShowDebuffs, _G.TargetFrame_Update, _G.TargetFrame_UpdateAuras, _G.TargetFrame_UpdateAuraPositions, _G.TargetFrame_UpdateBuffAnchor, _G.TargetFrame_UpdateDebuffAnchor, _G.Target_Spellbar_AdjustPosition, _G.DebuffTypeColor, _G.MAX_TARGET_BUFFS, _G.MAX_TARGET_DEBUFFS
 	  
 -- UnitHealthTool
-local TextStatusBar_UpdateTextStringWithValues 						=
-	  TextStatusBar_UpdateTextStringWithValues	 	 
+local 	 TextStatusBar_UpdateTextStringWithValues 					=
+	  _G.TextStatusBar_UpdateTextStringWithValues	 	 
 		
-local GameLocale 													= GetLocale()	
--- Mexico is used esES
-if GameLocale == "esMX" then 
-	GameLocale = "esES"
-end 
+local GameLocale 													= _G.GetLocale()	
 local DEFAULT_CHAT_FRAME											= _G.DEFAULT_CHAT_FRAME
+local LOOT_SPECIALIZATION_DEFAULT									= _G.LOOT_SPECIALIZATION_DEFAULT
+local BindPadFrame 													= _G.BindPadFrame
+local GameTooltip													= _G.GameTooltip
 local UIParent														= _G.UIParent
 local C_UI															= _G.C_UI
-local Spell															= _G.Spell 	  								-- ObjectAPI/Spell.lua  
+local CombatLogGetCurrentEventInfo									= _G.CombatLogGetCurrentEventInfo
 local CreateFrame 													= _G.CreateFrame	
 local PlaySound														= _G.PlaySound	  
 local InCombatLockdown												= _G.InCombatLockdown
-local CombatLogGetCurrentEventInfo									= _G.CombatLogGetCurrentEventInfo
 local IsControlKeyDown												= _G.IsControlKeyDown
+local IsShiftKeyDown												= _G.IsShiftKeyDown
+local ChatEdit_InsertLink											= _G.ChatEdit_InsertLink
 local CopyTable														= _G.CopyTable
+local TOOLTIP_UPDATE_TIME											= _G.TOOLTIP_UPDATE_TIME
 
 _G.Action 															= LibStub("AceAddon-3.0"):NewAddon("Action", "AceEvent-3.0")  
 Env.Action 															= _G.Action
 local Action 														= _G.Action
+Action.DateTime														= DateTime
+Action.StdUi 														= StdUi
 Action.PlayerRace 													= select(2, UnitRace("player"))
 Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("player")
-Action.StdUi 														= StdUi										-- Note: For custom lua snippets use 
 
--------------------------------------------------------------------------------
 -- Remap
--------------------------------------------------------------------------------
-local A_Unit, round
+local 	MacroLibrary, 
+		TMWdb, TMWdbprofile, TMWdbglobal, pActionDB, gActionDB,
+		A_Player, A_Unit, A_UnitInLOS, A_FriendlyTeam, A_EnemyTeam,	A_TeamCacheFriendlyUNITs,
+		A_Listener,	A_SetToggle, A_GetToggle, A_GetLocalization, A_Print, A_MacroQueue, A_IsActionTable,
+		A_OnGCD, A_IsActiveGCD, A_GetGCD, A_GetCurrentGCD, A_GetSpellInfo, A_IsQueueRunningAuto, A_WipeTableKeyIdentify, A_GetActionTableByKey,
+		A_ToggleMainUI, A_ToggleMinimap, A_MinimapIsShown, A_BlackBackgroundIsShown, A_BlackBackgroundSet, 
+		A_InterruptGetSliders, A_InterruptIsON, A_InterruptIsBlackListed, A_InterruptEnabled,
+		A_AuraGetCategory, A_AuraIsON, A_AuraIsBlackListed,
+		toStr, round, tabFrame, strOnlyBuilder	
+do 
+	Action.FormatGameLocale = function(GameLocale)
+		if GameLocale == "enGB" then 
+			GameLocale = "enUS"
+		elseif GameLocale == "esMX" then 
+			-- Mexico used esES
+			GameLocale = "esES"
+		elseif GameLocale == "ptBR" then 
+			-- Brazil used ptPT 
+			GameLocale = "ptPT"
+		end 
+		
+		return GameLocale
+	end 
+	
+	GameLocale = Action.FormatGameLocale(GameLocale)
+end 
 
 -------------------------------------------------------------------------------
 -- Localization
@@ -103,6 +142,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Click-and-drag to resize",
 		CLOSE = "Close",
 		APPLY = "Apply",
+		UPGRADEDFROM = "upgraded from ",
+		UPGRADEDTO = " to ",	
 		SLASH = {
 			LIST = "List of slash commands:",
 			OPENCONFIGMENU = "shows config menu",
@@ -121,17 +162,20 @@ local Localization = {
 		TAB = {
 			RESETBUTTON = "Reset settings",
 			RESETQUESTION = "Are you sure?",
-			SAVEACTIONS = "Save Actions settings",
+			SAVEACTIONS = "Save Actions Settings",
 			SAVEINTERRUPT = "Save Interrupt Lists",
 			SAVEDISPEL = "Save Auras Lists",
 			SAVEMOUSE = "Save Cursor Lists",
 			SAVEMSG = "Save MSG Lists",
+			SAVEHE = "Save Healing Engine Settings",
 			LUAWINDOW = "LUA Configure",
 			LUATOOLTIP = "To refer to the checking unit, use 'thisunit' without quotes\nCode must have boolean return (true) to process conditions\nThis code has setfenv which means what you no need to use Action. for anything that have it\n\nIf you want to remove already default code you will need to write 'return true' without quotes instead of remove them all",
 			BRACKETMATCH = "Bracket Matching",
 			CLOSELUABEFOREADD = "Close LUA Configuration before add",
 			FIXLUABEFOREADD = "You need to fix errors in LUA Configuration before to add",
-			RIGHTCLICKCREATEMACRO = "RightClick: Create macro",
+			RIGHTCLICKCREATEMACRO = "Right click: Create macro",
+			ROWCREATEMACRO = "Right click: Create macro to set current value for all ceils in this row\nShift + Right click: Create macro to set opposite value for all 'boolean' ceils in this row",
+			CEILCREATEMACRO = "Right click: Create macro to set '%s' value for '%s' ceil in this row\nShift + Right click: Create macro to set '%s' value for '%s' ceil-\n-and opposite value for other 'boolean' ceils in this row",				
 			NOTHING = "Profile has no configuration for this tab",
 			HOW = "Apply:",
 			HOWTOOLTIP = "Global: All account, all characters and all specializations",
@@ -140,6 +184,10 @@ local Localization = {
 			THISSPEC = "To the current specialization of the character",			
 			KEY = "Key:",
 			CONFIGPANEL = "'Add' Configuration",
+			BLACKLIST = "Black List",
+			LANGUAGE = "[English]",
+			AUTO = "Auto",
+			SESSION = "Session: ",
 			[1] = {
 				HEADBUTTON = "General",	
 				HEADTITLE = "Primary",
@@ -156,22 +204,12 @@ local Localization = {
 				SYSTEMSECTION = "System Section",
 				LOSSYSTEM = "LOS System",
 				LOSSYSTEMTOOLTIP = "ATTENTION: This option causes delay of 0.3s + current spinning gcd\nif unit being checked it is located in a lose (for example, behind a box at arena)\nYou must also enable the same setting in Advanced Settings\nThis option blacklists unit which in a lose and\nstops providing actions to it for N seconds\n\nRightClick: Create macro",
-				HEALINGENGINEPETS = "HealingEngine pets",
-				HEALINGENGINEPETSTOOLTIP = "Include in target select player's pets and calculate for heal them\n\nRightClick: Create macro",
-				HEALINGENGINEANYROLE = "HealingEngine any role",
-				HEALINGENGINEANYROLETOOLTIP = "Enable to use member targeting on any your role",
 				STOPATBREAKABLE = "Stop Damage On BreakAble",
 				STOPATBREAKABLETOOLTIP = "Will stop harmful damage on enemies\nIf they have CC such as Polymorph\nIt doesn't cancel auto attack!\n\nRightClick: Create macro",
-				ALL = "All",
-				RAID = "Raid",
-				TANK = "Only Tanks",
-				DAMAGER = "Only Damage Dealers",
-				HEALER = "Only Healers",
-				TANKANDPARTY = "Tanks and Party",
-				PARTY = "Party",
-				HEALINGENGINETOOLTIP = "This option relative for unit selection on healers\nAll: Everyone member\nRaid: Everyone member without tanks\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "DBM Timers",
-				DBMTOOLTIP = "Tracking pull timers and some specific events such as trash incoming.\nThis feature is not availble for all the profiles!\n\nRightClick: Create macro",
+				BOSSTIMERS = "Boss Timers",
+				BOSSTIMERSTOOLTIP = "Required DBM or BigWigs addons\n\nTracking pull timers and some specific events such as trash incoming.\nThis feature is not availble for all the profiles!\n\nRightClick: Create macro",
+				HEALINGENGINEANYROLE = "HealingEngine any role",
+				HEALINGENGINEANYROLETOOLTIP = "Enable to use member targeting on any your role\n\nRightClick: Create macro",
 				FPS = "FPS Optimization",
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Increases frames per second by increasing the dynamic dependency\nframes of the refresh cycle (call) of the rotation cycle\n\nYou can also manually set the interval following a simple rule:\nThe larger slider then more FPS, but worse rotation update\nToo high value can cause unpredictable behavior!\n\nRightClick: Create macro",					
@@ -180,7 +218,8 @@ local Localization = {
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
 				BURST = "Burst Mode",
-				BURSTTOOLTIP = "Everything - On cooldown\nAuto - Boss or Players\nOff - Disabled\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument in (ARG): 'Everything', 'Auto', 'Off'",					
+				BURSTEVERYTHING = "Everything",
+				BURSTTOOLTIP = "Everything - On cooldown\nAuto - Boss or Players\nOff - Disabled\n\nRightClick: Create macro\nIf you would like set fix toggle state use argument: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Healthstone | Healing Potion",
 				HEALTHSTONETOOLTIP = "Set percent health (HP)\nHealing Potion depends on your tab of the class settings for Potion\nand if these potions shown in Actions tab\nHealthstone has shared cooldown with Healing Potion\n\nRightClick: Create macro",
 				COLORTITLE = "Color Picker",
@@ -210,6 +249,7 @@ local Localization = {
 				SELECTTHEME = "Select Ready Theme",
 				THEMEHOLDER = "choose theme",
 				BLOODYBLUE = "Bloody Blue",
+				ICE = "Ice",
 				AUTOATTACK = "Auto Attack",
 				AUTOSHOOT = "Auto Shoot",				
 				PAUSECHECKS = "Rotation doesn't work if:",
@@ -241,6 +281,7 @@ local Localization = {
 				ROLETOOLTIP = "Depending on this mode, rotation will work\nAuto - Defines your role depending on the majority of nested talents in the right tree",
 				TOOLS = "Tools:",
 				LETMECASTTOOLTIP = "Auto-dismount and Auto-stand\nIf a spellcast or interaction fails due to being mounted, you will dismount. If it fails due to you sitting down, you will stand up\nLet me cast!",
+				LETMEDRAGTOOLTIP = "Allows you to put pet abilities\nfrom the spellbook on your regular command bar by creating a macro",
 				TARGETCASTBAR = "Target CastBar",
 				TARGETCASTBARTOOLTIP = "Shows a true cast bar under the target frame",
 				TARGETREALHEALTH = "Target RealHealth",
@@ -272,7 +313,7 @@ local Localization = {
 				UNBLOCKED = "|cff00ff00Unblocked: |r",
 				KEY = "[Key: ",
 				KEYTOTAL = "[Queued Total: ",
-				KEYTOOLTIP = "Use this key in MSG tab",
+				KEYTOOLTIP = "Use this key in 'Messages' tab",
 				ISFORBIDDENFORBLOCK = "is forbidden for blocker!",
 				ISFORBIDDENFORQUEUE = "is forbidden for queue!",
 				ISQUEUEDALREADY = "is already existing in queue!",
@@ -292,30 +333,32 @@ local Localization = {
 				ID = "ID",
 				NAME = "Name",
 				ICON = "Icon",
-				CONFIGPANEL = "'Add Interrupt' Configuration",
-				INTERRUPTFRONTSTRINGTITLE = "Select list:",
-				INTERRUPTTOOLTIP = "[Main] for units @target/@mouseover/@targettarget\n[Heal] for units @arena1-3 (healing)\n[PvP] for units @arena1-3 (crowdcontrol)\n\nYou can set different timings for [Heal] and [PvP] (not in this UI)",
+				USEKICK = "Kick",
+				USECC = "CC",
+				USERACIAL = "Racial",
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Sets the interruption between min and max percentage duration of the cast\n\nThe red color of the values means that they are too close to each other and dangerous to use\n\nOFF state means that these sliders are not available for this list",
+				USEMAIN = "[Main] Use",
+				USEMAINTOOLTIP = "Enables or disables the list with its units to interrupt\n\nRightClick: Create macro",
+				MAINAUTO = "[Main] Auto",
+				MAINAUTOTOOLTIP = "If enabled:\nPvE: Interrupts any available cast\nPvP: If it's healer and will die in less than 6 seconds either if it's player without in range enemy healers\n\nIf disabled:\nInterrupts only spells added in the scroll table for that list\n\nRightClick: Create macro",
+				USEMOUSE = "[Mouse] Use",
+				USEMOUSETOOLTIP = "Enables or disables the list with its units to interrupt\n\nRightClick: Create macro",
+				MOUSEAUTO = "[Mouse] Auto",
+				MOUSEAUTOTOOLTIP = "If enabled:\nPvE: Interrupts any available cast\nPvP: Interrupts only spells added in the scroll table for PvP and Heal lists and only players\n\nIf disabled:\nInterrupts only spells added in the scroll table for that list\n\nRightClick: Create macro",
+				USEHEAL = "[Heal] Use",
+				USEHEALTOOLTIP = "Enables or disables the list with its units to interrupt\n\nRightClick: Create macro",
+				HEALONLYHEALERS = "[Heal] Only Healers",
+				HEALONLYHEALERSTOOLTIP = "If enabled:\nInterrupts only healers\n\nIf disabled:\nInterrupts any enemy role\n\nRightClick: Create macro",
+				USEPVP = "[PvP] Use",
+				USEPVPTOOLTIP = "Enables or disables the list with its units to interrupt\n\nRightClick: Create macro",
+				PVPONLYSMART = "[PvP] Smart",
+				PVPONLYSMARTTOOLTIP = "If enabled will interrupt by advanced logic:\n1) Chain control on your healer\n2) Someone have Burst buffs >4 sec\n3) Someone will die in less than 8 sec\n4) You (or @target) can be executed\n\nIf disabled will interrupt without advanced logic\n\nRightClick: Create macro",
 				INPUTBOXTITLE = "Write spell:",					
 				INPUTBOXTOOLTIP = "ESCAPE (ESC): clear text and remove focus",
 				INTEGERERROR = "Integer overflow attempting to store > 7 numbers", 
 				SEARCH = "Search by name or ID",
-				TARGETMOUSEOVERLIST = "[Main] List",
-				TARGETMOUSEOVERLISTTOOLTIP = "Unchecked: will interrupt ANY cast randomly\nChecked: will interrupt only specified custom list for @target/@mouseover/@targettarget\nNote: in PvP will fixed interrupt that list if enabled, otherwise only healers if they will die in less than 3-4 sec!\n\n@mouseover/@targettarget are optional and depend on toggles in spec tab\n\nRightClick: Create macro",
-				KICKTARGETMOUSEOVER = "[Main] Interrupts\nEnabled",					
-				KICKTARGETMOUSEOVERTOOLTIP = "Unchecked: @target/@mouseover unit interrupts don't work\nChecked: @target/@mouseover unit interrupts will work\n\nRightClick: Create macro",					
-				KICKHEALONLYHEALER = "[Heal] Only healers",					
-				KICKHEALONLYHEALERTOOLTIP = "Unchecked: list will valid for any enemy unit specialization\n(e.g. Ench, Elem, SP, Retri)\nChecked: list will valid only for enemy healers\n\nRightClick: Create macro",
-				KICKHEAL = "[Heal] List",
-				KICKHEALPRINT = "[Heal] List of Interrupts",
-				KICKHEALTOOLTIP = "Unchecked: @arena1-3 [Heal] custom list don't work\nChecked: @arena1-3 [Heal] custom list will work\n\nRightClick: Create macro",
-				KICKPVP = "[PvP] List",
-				KICKPVPPRINT = "[PvP] List of Interrupts",
-				KICKPVPTOOLTIP = "Unchecked: @arena1-3 [PvP] custom list don't work\nChecked: @arena1-3 [PvP] custom list will work\n\nRightClick: Create macro",	
-				KICKPVPONLYSMART = "[PvP] SMART",
-				KICKPVPONLYSMARTTOOLTIP = "Checked: will interrupt only accordingly to logic established in profile lua configuration. Example:\n1) Chain control on your healer\n2) Someone friendly (or you) has Burst buffs >4 sec\n3) Someone will die in less than 8 sec\n4) Your (or @target) HP going to execute phase\nUnchecked: will interrupt this list always without any kind of logic\n\nNote: Cause high CPU demand\nRightClick: Create macro",
-				USEKICK = "Kick",
-				USECC = "CC",
-				USERACIAL = "Racial",
 				ADD = "Add Interrupt",					
 				ADDERROR = "|cffff0000You didn't specify anything in 'Write spell' or spell is not found!|r",
 				ADDTOOLTIP = "Add spell from 'Write spell'\neditbox to current selected list",
@@ -324,12 +367,12 @@ local Localization = {
 			},
 			[5] = { 	
 				HEADBUTTON = "Auras",					
-				USETITLE = "Checkbox Configuration",
+				USETITLE = "",
 				USEDISPEL = "Use Dispel",
 				USEPURGE = "Use Purge",
 				USEEXPELENRAGE = "Expel Enrage",
 				USEEXPELFRENZY = "Expel Frenzy",
-				HEADTITLE = "[Global] Dispel | Purge | Enrage",
+				HEADTITLE = "[Global]",
 				MODE = "Mode:",
 				CATEGORY = "Category:",
 				POISON = "Dispel poisons",
@@ -343,6 +386,7 @@ local Localization = {
 				BLESSINGOFPROTECTION = "Blessing of Protection",
 				BLESSINGOFFREEDOM = "Blessing of Freedom",
 				BLESSINGOFSACRIFICE = "Blessing of Sacrifice",
+				VANISH = "Vanish",
 				ROLE = "Role",
 				ID = "ID",
 				NAME = "Name",
@@ -401,6 +445,7 @@ local Localization = {
 				HORDEFLAG = "horde flag",
 			},
 			[7] = {
+				HEADBUTTON = "Messages",
 				HEADTITLE = "Message System",
 				USETITLE = "",
 				MSG = "MSG System",
@@ -424,6 +469,186 @@ local Localization = {
 				INPUTERROR = "You have not entered a phrase!",
 				INPUTTOOLTIP = "The phrase will be triggered on any match in the group chat (/party)\nIt's not case sensitive\nContains patterns, this means that a phrase written by someone with the combination of the words raid, party, arena, party or player\nadaptates the action to the desired meta slot\nYou don’t need to set the listed patterns here, they are used as an addition to the macro\nIf the pattern is not found, then slots for Single and AoE rotations will be used",				
 			},
+			[8] = {
+				HEADBUTTON = "Healing System",
+				OPTIONSPANEL = "Options",
+				OPTIONSPANELHELP = [[The settings of this panel affect 'Healing Engine' + 'Rotation'
+									
+									'Healing Engine' this name we refer to @target selection system through 
+									the macro /target 'unitID'
+									
+									'Rotation' this name we refer to itself healing/damage rotation 
+									for current primary unit (@target or @mouseover)
+									
+									Sometimes you will see 'profile must have code for it' text which means
+									what related features can not work without add by profile author 
+									special code for it inside lua snippets
+									
+									Each element has tooltip, so read it carefully and test if necessary
+									before you will start real fight]],
+				SELECTOPTIONS = "-- choose options --",
+				PREDICTOPTIONS = "Predict Options",
+				PREDICTOPTIONSTOOLTIP = "Supported: 'Healing Engine' + 'Rotation' (profile must have code for it)\n\nThese options affect:\n1. Health prediction of the group member for @target selection ('Healing Engine')\n2. Calculation of what healing action to use on @target/@mouseover ('Rotation')\n\nRight click: Create macro",
+				INCOMINGHEAL = "Incoming heal",
+				INCOMINGDAMAGE = "Incoming damage",
+				THREATMENT = "Threatment (PvE)",
+				SELFHOTS = "HoTs",
+				ABSORBPOSSITIVE = "Absorb Positive",
+				ABSORBNEGATIVE = "Absorb Negative",
+				SELECTSTOPOPTIONS = "Target Stop Options",
+				SELECTSTOPOPTIONSTOOLTIP = "Supported: 'Healing Engine'\n\nThese options affect only @target selection, and specifically\nprevent its selection if one of the options is successful\n\nRight click: Create macro",
+				SELECTSTOPOPTIONS1 = "@mouseover friendly",
+				SELECTSTOPOPTIONS2 = "@mouseover enemy",
+				SELECTSTOPOPTIONS3 = "@target enemy",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player dead",
+				SELECTSORTMETHOD = "Target Sort Method",
+				SELECTSORTMETHODTOOLTIP = "Supported: 'Healing Engine'\n\n'Health Percent' sorts @target selection with the least health in the percent ratio\n'Health Actual' sorts @target selection with the least health in the exact ratio\n\nRight click: Create macro",
+				SORTHP = "Health Percent",
+				SORTAHP = "Health Actual",
+				AFTERTARGETENEMYORBOSSDELAY = "Target Delay\nAfter @target enemy or boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Supported: 'Healing Engine'\n\nDelay (in seconds) before select next target after select an enemy or boss in @target\n\nOnly works if 'Target Stop Options' has '@target enemy' or '@target boss' turned off\n\nDelay is updated every time when conditions are successful or is reset otherwise\n\nRight click: Create macro",
+				AFTERMOUSEOVERENEMYDELAY = "Target Delay\nAfter @mouseover enemy",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Supported: 'Healing Engine'\n\nDelay (in seconds) before select next target after select an enemy in @mouseover\n\nOnly works if 'Target Stop Options' has '@mouseover enemy' turned off\n\nDelay is updated every time when conditions are successful or is reset otherwise\n\nRight click: Create macro",
+				SELECTPETS = "Enable Pets",
+				SELECTPETSTOOLTIP = "Supported: 'Healing Engine'\n\nSwitches pets to handle them by all API in 'Healing Engine'\n\nRight click: Create macro",
+				SELECTRESURRECTS = "Enable Resurrects",
+				SELECTRESURRECTSTOOLTIP = "Supported: 'Healing Engine'\n\nToggles dead players for @target selection\n\nOnly works out of combat\n\nRight click: Create macro",
+				HELP = "Help",
+				HELPOK = "Gotcha",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Supported: 'Healing Engine'\n\nTurns off/on '/target %s'",
+				UNITID = "unitID", 
+				NAME = "Name",
+				ROLE = "Role",
+				ROLETOOLTIP = "Supported: 'Healing Engine'\n\nResponsible for priority in @target selection, which is controlled by offsets\nPets are always 'Damagers'",
+				DAMAGER = "Damager",
+				HEALER = "Healer",
+				TANK = "Tank",
+				UNKNOWN = "Unknown",
+				USEDISPEL = "Dispel",
+				USEDISPELTOOLTIP = "Supported: 'Healing Engine' (profile must have code for it) + 'Rotation' (profile must have code for it)\n\n'Healing Engine': Allows to '/target %s' for dispel\n'Rotation': Allows to use dispel on '%s'\n\nDispel list specified in the 'Auras' tab",
+				USESHIELDS = "Shields",
+				USESHIELDSTOOLTIP = "Supported: 'Healing Engine' (profile must have code for it) + 'Rotation' (profile must have code for it)\n\n'Healing Engine': Allows to '/target %s' for shields\n'Rotation': Allows to use shields on '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Supported: 'Healing Engine' (profile must have code for it) + 'Rotation' (profile must have code for it)\n\n'Healing Engine': Allows to '/target %s' for HoTs\n'Rotation': Allows to use HoTs on '%s'",
+				USEUTILS = "Utils",
+				USEUTILSTOOLTIP = "Supported: 'Healing Engine' (profile must have code for it) + 'Rotation' (profile must have code for it)\n\n'Healing Engine': Allows to '/target %s' for utils\n'Rotation': Allows to use utils on '%s'\n\nUtils mean actions support category such as Freedom, some of them can be specified in the 'Auras' tab",
+				GGLPROFILESTOOLTIP = "\n\nGGL profiles will skip pets for this %s ceil in 'Healing Engine'(@target selection)",
+				LUATOOLTIP = "Supported: 'Healing Engine'\n\nUses the code you wrote as the last condition checked before '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nTo refer for metatable which contain 'thisunit' data such as health use:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Auto Hide",
+				AUTOHIDETOOLTIP = "This is only visual effect!\nAutomatically filters the list and shows only available unitID",						
+				PROFILES = "Profiles",
+				PROFILESHELP = [[The settings of this panel affect 'Healing Engine' + 'Rotation'
+								 
+								 Each profile records absolutely all the settings of the current tab
+								 Thus, you can change the behavior of target selection and healing rotation on the fly
+								 
+								 For example: You can create one profile for working on groups 2 and 3, and the second 
+								 for the entire raid, and at the same time change it with a macro, 
+								 which can also be created
+								 
+								 It's important to understand that each change made in this tab must be manually re-saved
+				]],
+				PROFILE = "Profile",
+				PROFILEPLACEHOLDER = "-- no profile or has unsaved changes for previous profile --",
+				PROFILETOOLTIP = "Write name of the new profile in editbox below and click 'Save'\n\nChanges will not be saved in real time!\nEvery time when you make any changes in case to save them you have to click again 'Save' for selected profile",
+				PROFILELOADED = "Loaded profile: ",
+				PROFILESAVED = "Saved profile: ",
+				PROFILEDELETED = "Deleted profile: ",
+				PROFILEERRORDB = "ActionDB is not initialized!",
+				PROFILEERRORNOTAHEALER = "You must be healer to use it!",
+				PROFILEERRORINVALIDNAME = "Invalid profile name!",
+				PROFILEERROREMPTY = "You haven't selected profile!",
+				PROFILEWRITENAME = "Write name of the new profile",
+				PROFILESAVE = "Save",
+				PROFILELOAD = "Load",
+				PROFILEDELETE = "Delete",
+				CREATEMACRO = "Right click: Create macro",
+				PRIORITYHEALTH = "Health Priority",
+				PRIORITYHELP = [[The settings of this panel affect only 'Healing Engine'
+
+								 Using these settings, you can change the priority of 
+								 target selection depending on the settings
+								 
+								 These settings change virtually health, allowing 
+								 the sorting method to expand units filter not only  
+								 according to their real + prediction options health
+
+								 The sorting method sorts all units for least health
+								 
+								 Multiplier is number by which health will be multiplied
+								 
+								 Offset is number that will be set as fixed percentage or 
+								 processed arithmetically (-/+ HP) depending on 'Offset Mode'
+								 
+								 'Utils' means offensive spells such as 'Blessing of Freedom'
+				]],
+				MULTIPLIERS = "Multipliers",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Incoming Damage Limit",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Limits incoming real time damage since damage can be so\nlarge that the system stops 'getting off' from the @target.\nPut 1 if you want to get an unmodified value\n\nRight click: Create macro",
+				MULTIPLIERTHREAT = "Threat",
+				MULTIPLIERTHREATTOOLTIP = "Processed if exist an increased threat (i.e. unit is tanking)\nPut 1 if you want to get an unmodified value\n\nRight click: Create macro",
+				MULTIPLIERPETSINCOMBAT = "Pets In Combat",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Pets must be enabled to make it work!\nPut 1 if you want to get an unmodified value\n\nRight click: Create macro",
+				MULTIPLIERPETSOUTCOMBAT = "Pets Out Combat",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Pets must be enabled to make it work!\nPut 1 if you want to get an unmodified value\n\nRight click: Create macro",
+				OFFSETS = "Offsets",
+				OFFSETMODE = "Offset Mode",
+				OFFSETMODEFIXED = "Fixed",
+				OFFSETMODEARITHMETIC = "Arithmetic",
+				OFFSETMODETOOLTIP = "'Fixed' will set exact same value in health percent\n'Arithmetic' will -/+ value to health percent\n\nRight click: Create macro",
+				OFFSETSELFFOCUSED = "Self Focused (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Processed if enemy players targeting you in PvP mode\n\nRight click: Create macro",
+				OFFSETSELFUNFOCUSED = "Self UnFocused (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Processed if enemy players NOT targeting you in PvP mode\n\nRight click: Create macro",
+				OFFSETSELFDISPEL = "Self Dispel",
+				OFFSETSELFDISPELTOOLTIP = "GGL profiles usually have PvE condition for it\n\nDispel list specified in the 'Auras' tab\n\nRight click: Create macro",
+				OFFSETHEALERS = "Healers",
+				OFFSETHEALERSTOOLTIP = "Processed only on other healers\n\nRight click: Create macro",
+				OFFSETTANKS = "Tanks",
+				OFFSETDAMAGERS = "Damagers",
+				OFFSETHEALERSDISPEL = "Healers Dispel",
+				OFFSETHEALERSTOOLTIP = "Processed only on other healers\n\nDispel list specified in the 'Auras' tab\n\nRight click: Create macro",
+				OFFSETTANKSDISPEL = "Tanks Dispel",
+				OFFSETTANKSDISPELTOOLTIP = "Dispel list specified in the 'Auras' tab\n\nRight click: Create macro",
+				OFFSETDAMAGERSDISPEL = "Damagers Dispel",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Dispel list specified in the 'Auras' tab\n\nRight click: Create macro",
+				OFFSETHEALERSSHIELDS = "Healers Shields",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Included self (@player)\n\nRight click: Create macro",
+				OFFSETTANKSSHIELDS = "Tanks Shields",
+				OFFSETDAMAGERSSHIELDS = "Damagers Shields",
+				OFFSETHEALERSHOTS = "Healers HoTs",
+				OFFSETHEALERSHOTSTOOLTIP = "Included self (@player)\n\nRight click: Create macro",
+				OFFSETTANKSHOTS = "Tanks HoTs",
+				OFFSETDAMAGERSHOTS = "Damagers HoTs",
+				OFFSETHEALERSUTILS = "Healers Utils",
+				OFFSETHEALERSUTILSTOOLTIP = "Included self (@player)\n\nRight click: Create macro",
+				OFFSETTANKSUTILS = "Tanks Utils",
+				OFFSETDAMAGERSUTILS = "Damagers Utils",
+				MANAMANAGEMENT = "Mana Management",
+				MANAMANAGEMENTHELP = [[The settings of this panel affect only 'Rotation'
+									   
+									   Profile must have code for it! 
+									   
+									   Works if:
+									   1. Inside instance
+									   2. In PvE mode 
+									   3. In combat  
+									   4. Group size >= 5
+									   5. Have a boss(-es) focused by members
+				]],
+				MANAMANAGEMENTMANABOSS = "Your Mana Percent <= Average Boss(-es) Health Percent",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Starts saving mana phase if condition successful\n\nLogic depends on profile which you use!\n\nNot all profiles supported this setting!\n\nRight click: Create macro",
+				MANAMANAGEMENTSTOPATHP = "Stop Management\nHealth Percent",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Stops saving mana if primary unit\n(@target/@mouseover) has health percent below this value\n\nNot all profiles supported this setting!\n\nRight click: Create macro",
+				OR = "OR",
+				MANAMANAGEMENTSTOPATTTD = "Stop Management\nTime To Die",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Stops saving mana if primary unit\n(@target/@mouseover) has time to die (in seconds) below this value\n\nNot all profiles supported this setting!\n\nRight click: Create macro",
+				MANAMANAGEMENTPREDICTVARIATION = "Mana Conservation Effectiveness",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "Only affects the 'AUTO' healing abilities settings!\n\nThis is a multiplier on which pure healing will be calculated when the mana save phase was started\n\nThe higher the level, the more mana save, but less APM\n\nRight click: Create macro",
+			},		
 		},
 	},
 	ruRU = {
@@ -446,6 +671,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Чтобы изменить размер, нажмите и тащите",	
 		CLOSE = "Закрыть",
 		APPLY = "Применить",
+		UPGRADEDFROM = "обновлен с ",
+		UPGRADEDTO = " до ",	
 		SLASH = {
 			LIST = "Список слеш команд:",
 			OPENCONFIGMENU = "открыть конфиг меню",
@@ -456,7 +683,7 @@ local Localization = {
 			BLOCKEXAMPLE = "пример использования Блокировки",
 			RIGHTCLICKGUIDANCE = "Большинство элементов кликабельны левой и правой кнопкой мышки. Правая кнопка мышки создаст макрос, так что вы можете не брать во внимание выше изложенную подсказку",						
 			INTERFACEGUIDANCE = "UI пояснения:",
-			INTERFACEGUIDANCEGLOBAL = "[Глобально] относится к ВСЕМУ вашему аккаунту, к ВСЕМ персонажам, к ВСЕМ специализациям",	
+			INTERFACEGUIDANCEGLOBAL = "[Глобально] относится к ВСЕМУ вашему аккаунту, к ВСЕМ персонажам",	
 			TOTOGGLEBURST = "чтобы переключить Режим Бурстов",
 			TOTOGGLEMODE = "чтобы переключить PvP / PvE",
 			TOTOGGLEAOE = "чтобы переключить AoE",
@@ -464,17 +691,20 @@ local Localization = {
 		TAB = {
 			RESETBUTTON = "Сбросить настройки",
 			RESETQUESTION = "Вы точно уверены?",
-			SAVEACTIONS = "Сохранить настройки Действий",
+			SAVEACTIONS = "Сохранить Настройки Действий",
 			SAVEINTERRUPT = "Сохранить Списки Прерываний",
 			SAVEDISPEL = "Сохранить Списки Аур",
 			SAVEMOUSE = "Сохранить Списки Курсора",
 			SAVEMSG = "Сохранить Списки MSG",
+			SAVEHE = "Сохранить Настройки Системы Исцеления",
 			LUAWINDOW = "LUA Конфигурация",
 			LUATOOLTIP = "Для обращения к проверяемому юниту используйте 'thisunit' без кавычек\nКод должен иметь логический возрат (true) для того чтобы условия срабатывали\nКод имеет setfenv, это означает, что не нужно использовать Action. для чего-либо что имеет это\n\nЕсли вы хотите удалить по-умолчанию установленный код, то нужно написать 'return true' без кавычек,\nвместо простого удаления",	
 			BRACKETMATCH = "Закрывать Скобки",
 			CLOSELUABEFOREADD = "Закройте LUA Конфигурацию прежде чем добавлять",
-			FIXLUABEFOREADD = "Исправьте ошибки в LUA Конфигурации прежде чем добавлять",
+			FIXLUABEFOREADD = "Исправьте ошибки в LUA Конфигурации прежде чем добавлять",			
 			RIGHTCLICKCREATEMACRO = "Правая кнопка мышки: Создать макрос",
+			ROWCREATEMACRO = "Правая кнопка мышки: Создать макрос устанавливающий текущее значение для всех ячеек в этой строке\nShift + Правая кнопка мышки: Создать макрос устанавливающий противоположное значение для всех 'boolean' ячеек в этой строке",
+			CEILCREATEMACRO = "Правая кнопка мышки: Создать макрос устанавливающий '%s' значение для '%s' ячейки в этой строке\nShift + Правая кнопка мышки: Создать макрос устанавливающий '%s' значение для '%s' ячейки-\n-и противоположное значение для других 'boolean' ячеек в этой строке",			
 			NOTHING = "Профиль не имеет конфигурации для этой вкладки",
 			HOW = "Применить:",
 			HOWTOOLTIP = "Глобально: Весь аккаунт, все персонажи и все спеки",
@@ -483,6 +713,10 @@ local Localization = {
 			THISSPEC = "К текущей специализации персонажа",			
 			KEY = "Ключ:",	
 			CONFIGPANEL = "'Добавить' Конфигурация",
+			BLACKLIST = "Черный Список",
+			LANGUAGE = "[Русский]",
+			AUTO = "Авто",
+			SESSION = "Сессия: ",
 			[1] = {
 				HEADBUTTON = "Общее",
 				HEADTITLE = "Основное",					
@@ -499,20 +733,12 @@ local Localization = {
 				SYSTEMSECTION = "Секция Систем",
 				LOSSYSTEM = "LOS Система",
 				LOSSYSTEMTOOLTIP = "ВНИМАНИЕ: Эта опция вызывает задержку 0.3сек + тек. крутящийся гкд\nесли проверяемый юнит находится в лосе (например за столбом на арене)\nВы также должны включить такую же настройку в Advanced Settings\nДанная опция заносит в черный список проверяемого юнита\nи перестает на N секунд предоставлять к нему действия если юнит в лосе\n\nПравая кнопка мышки: Создать макрос",
-				HEALINGENGINEPETS = "HealingEngine питомцы",
-				HEALINGENGINEPETSTOOLTIP = "Включить в выбор цели питомцев игроков и калькулировать исцеление на них\n\nПравая кнопка мышки: Создать макрос",
+				STOPATBREAKABLE = "Стоп урон на ломающемся контроле",
+				STOPATBREAKABLETOOLTIP = "Остановит вредоносный урон по врагам\nЕсли у них есть CC, например, Превращение\nЭто не отменяет автоатаку!\n\nПравая кнопка мышки: Создать макрос",
+				BOSSTIMERS = "Босс Таймеры",
+				BOSSTIMERSTOOLTIP = "Требует DBM или BigWigs аддоны\n\nОтслеживает пулл таймер и некоторые спец. события такие как 'след.треш'.\nЭта опция доступна не для всех профилей!\n\nПравая кнопка мышки: Создать макрос",
 				HEALINGENGINEANYROLE = "HealingEngine любая роль",
-				HEALINGENGINEANYROLETOOLTIP = "Позволяет использовать выбор цели на любую вашу роль",
-				ALL = "Все",
-				RAID = "Рейд",
-				TANK = "Только Танки",
-				DAMAGER = "Только Дамагеры",
-				HEALER = "Только Хилеры",			
-				TANKANDPARTY = "Танки и Группа",
-				PARTY = "Группа",	
-				HEALINGENGINETOOLTIP = "Эта опция отвечает за выбор участников группы или рейда если вы играете хилером\nВсе: Каждый участник\nРейд: Каждый участник исключая танков\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то используйте аргумент (АРГУМЕНТ): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "DBM Таймеры",
-				DBMTOOLTIP = "Отслеживает пулл таймер и некоторые спец. события такие как 'след.треш'.\nЭта опция доступна не для всех профилей!\n\nПравая кнопка мышки: Создать макрос",
+				HEALINGENGINEANYROLETOOLTIP = "Позволяет использовать выбор цели на любую вашу роль\n\nПравая кнопка мышки: Создать макрос",
 				FPS = "FPS Оптимизация",
 				FPSSEC = " (сек)",
 				FPSTOOLTIP = "AUTO: Повышение кадров в секунду за счет увеличения в динамической зависимости\nкадров интервала обновления (вызова) цикла ротации\n\nВы также можете вручную задать интервал следуя простому правилу:\nЧем больше ползунок, тем больше кадров, но хуже обновление ротации\nСлишком высокое значение может вызвать непредсказуемое поведение!\n\nПравая кнопка мышки: Создать макрос",					
@@ -521,7 +747,8 @@ local Localization = {
 				TRINKETS = "Аксессуары",
 				TRINKET = "Аксессуар",
 				BURST = "Режим Бурстов",
-				BURSTTOOLTIP = "Everything - По доступности способности\nAuto - Босс или Игрок\nOff - Выключено\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то\nиспользуйте аргумент (АРГУМЕНТ): 'Everything', 'Auto', 'Off'",					
+				BURSTEVERYTHING = "Все что угодно",
+				BURSTTOOLTIP = "Все что угодно - По доступности способности\nАвто - Босс или Игрок\nOff - Выключено\n\nПравая кнопка мышки: Создать макрос\nЕсли вы предпочитаете фиксированное состояние, то используйте аргумент: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Камень здоровья | Зелье исцеления",
 				HEALTHSTONETOOLTIP = "Выставить процент своего здоровья при котором использовать\nЗелье исцеления зависит от вашей вкладки настроек класса для Зелья\nи от того, отображаются ли эти зелья во вкладке Действия\nКамень здоровья имеет общее время восстановления с Зельем исцеления\n\nПравая кнопка мышки: Создать макрос",
 				COLORTITLE = "Палитра Цветов",
@@ -551,8 +778,7 @@ local Localization = {
 				SELECTTHEME = "Выбрать Готовую Тему",
 				THEMEHOLDER = "выбрать тему",
 				BLOODYBLUE = "Кроваво-Синий",
-				STOPATBREAKABLE = "Стоп урон на ломающемся контроле",
-				STOPATBREAKABLETOOLTIP = "Остановит вредоносный урон по врагам\nЕсли у них есть CC, например, Превращение\nЭто не отменяет автоатаку!\n\nПравая кнопка мышки: Создать макрос",
+				ICE = "Ледяной",
 				AUTOATTACK = "Авто Атака",
 				AUTOSHOOT = "Авто Выстрел",	
 				PAUSECHECKS = "Ротация не работает если:",
@@ -584,6 +810,7 @@ local Localization = {
 				ROLETOOLTIP = "В зависимости от этого режима будет работать ротация\nAuto - Определяет вашу роль в зависимости от большинства вложенных талантов в нужное дерево",
 				TOOLS = "Утилиты:",
 				LETMECASTTOOLTIP = "Авто-спешивание и Авто-встать\nЕсли произнесение или взаимодействие невозможно из-за транспорта, то вы будете спешены\nЕсли это невозможно пока вы сидите, то вы встанете\nLet me cast - Позволь мне произнести!",
+				LETMEDRAGTOOLTIP = "Позволяет помещать способности питомцев\nиз книги заклинаний на вашу обычную панель команд путем создания макроса",
 				TARGETCASTBAR = "Бар произнесения цели",
 				TARGETCASTBARTOOLTIP = "Отображает правдивый ползунок произнесения заклинания под фреймом цели",
 				TARGETREALHEALTH = "Реальное здоровье цели",
@@ -615,7 +842,7 @@ local Localization = {
 				UNBLOCKED = "|cff00ff00Разблокировано: |r",
 				KEY = "[Ключ: ",
 				KEYTOTAL = "[Суммарно Очереди: ",
-				KEYTOOLTIP = "Используйте этот ключ во вкладке MSG",
+				KEYTOOLTIP = "Используйте этот ключ во вкладке 'Сообщения'",
 				ISFORBIDDENFORBLOCK = "запрещен для установки в блокировку!",
 				ISFORBIDDENFORQUEUE = "запрещен для установки в очередь!",
 				ISQUEUEDALREADY = "уже в состоит в очереди!",
@@ -635,44 +862,46 @@ local Localization = {
 				ID = "ID",
 				NAME = "Название",
 				ICON = "Значок",
-				CONFIGPANEL = "'Добавить Прерывание' Конфигурация",
-				INTERRUPTFRONTSTRINGTITLE = "Выберите список:",	
-				INTERRUPTTOOLTIP = "[Main] для @target/@mouseover/@targettarget\n[Heal] для @arena1-3 (исцеляющие)\n[PvP] для @arena1-3 (контроль)\n\nВы можете выставить тайминги для [Heal] и [PvP] (не в этом UI)",
-				INPUTBOXTITLE = "Введите способность:",
-				INPUTBOXTOOLTIP = "ESCAPE (ESC): стереть текст и убрать фокус ввода",
-				SEARCH = "Поиск по имени или ID",
-				INTEGERERROR = "Целочисленное переполнение при попытке ввода > 7 чисел", 
-				TARGETMOUSEOVERLIST = "[Main] Список",
-				TARGETMOUSEOVERLISTTOOLTIP = "НЕ включено: будет прерывать ЛЮБОЙ каст случайно\nВключено: будет прерывать только из этого списка для @target/@mouseover/@targettarget\nПримечание: в PvP принудительно будет прерывать этот список если включено, или только хилеров за 3-4 сек до смерти!\n\n@mouseover/@targettarget являются опциональными и зависят от переключателей во вкладке специализации\n\nПравая кнопка мыши: Создать макрос",					
-				KICKTARGETMOUSEOVER = "[Main] Прерывания\nвключены",					
-				KICKTARGETMOUSEOVERTOOLTIP = "НЕ включено: @target/@mouseover/@targetarget юнит прерывания не работают\nВключено: @target/@mouseover/@targettarget юнит прерывания будут работать\n\nПравая кнопка мыши: Создать макрос",					
-				KICKHEALONLYHEALER = "[Heal] Только\nлекарей",				
-				KICKHEALONLYHEALERTOOLTIP = "НЕ включено: список будет валидным для любых специализаций вражеского юнита\nНапример: Энх, Элем, Ретрик, ШП\nВключено: список будет валидным только для вражеских хилеров\n\nПравая кнопка мыши: Создать макрос",
-				KICKHEAL = "[Heal] Список",
-				KICKHEALPRINT = "[Heal] Список Прерываний",
-				KICKHEALTOOLTIP = "НЕ включено: @arena1-3 [Heal] список не работает\nВключено: @arena1-3 [Heal] список будет работать\n\nПравая кнопка мыши: Создать макрос",						
-				KICKPVP = "[PvP] Список",
-				KICKPVPPRINT = "[PvP] Список Прерываний",
-				KICKPVPTOOLTIP = "НЕ включено: @arena1-3 [PvP] список не работает\nВключено: @arena1-3 [PvP] список будет работать\n\nПравая кнопка мыши: Создать макрос",	
-				KICKPVPONLYSMART = "[PvP] УМНЫЙ",					
-				KICKPVPONLYSMARTTOOLTIP = "Включено: будет прерывать только по логике заложенной в профиле на lua конфигурации. Например:\n1) Цепочку контроля по своему лекарю\n2) Кто-либо из союзников в бурстах >4 сек\n3) Кто-либо из союзников может умереть меньше чем за 8 сек\n4) Вы (или @target) здоровье близко к смертельной фазе\nНЕ включено: будет прерывать этот список всегда без какой либо логики\n\nЗаметка: Вызывает высокое потребление CPU\nПравая кнопка мыши: Создать макрос",					
 				USEKICK = "Киком",
 				USECC = "СС",
 				USERACIAL = "Расовой",
+				MIN = "Мин: ",
+				MAX = "Макс: ",
+				SLIDERTOOLTIP = "Устанавливает прерывание между минимальной и максимальной процентной продолжительностью произнесения\n\nКрасный цвет значений означает, что они слишком близки друг к другу и опасны для использования\n\nСостояние OFF означает, что эти ползунки не доступны для этого списка",
+				USEMAIN = "[Main] Использовать",
+				USEMAINTOOLTIP = "Включает или отключает список с его юнитами для прерывания\n\nПравый щелчок: Создать макрос",
+				MAINAUTO = "[Main] Авто",
+				MAINAUTOTOOLTIP = "Если включено:\nPvE: Прерывает любое доступное произнесение\nPvP: Если юнит является лекарем и умрет менее чем за 6 секунд, либо если это игрок находящийся вне зоны досягаемости вражеских целителей\n\nЕсли отключено:\nПрерывает только заклинания, добавленные в таблицу для этого списка\n\nПравый щелчок: Создать макрос",
+				USEMOUSE = "[Mouse] Использовать",
+				USEMOUSETOOLTIP = "Включает или отключает список с его юнитами для прерывания\n\nПравый щелчок: Создать макрос",
+				MOUSEAUTO = "[Mouse] Авто",
+				MOUSEAUTOTOOLTIP = "Если включено:\nPvE: Прерывает доступное произнесение\nPvP: Прерывает только заклинания, добавленные в таблицу для PvP и Heal списков, и только игроков\n\nЕсли отключено:\nПрерывает только заклинания, добавленные в таблицу для этого списка\n\nПравый щелчок: Создать макрос",
+				USEHEAL = "[Heal] Использовать",
+				USEHEALTOOLTIP = "Включает или отключает список с его юнитами для прерывания\n\nПравый щелчок: Создать макрос",
+				HEALONLYHEALERS = "[Heal] Только Лекарей",
+				HEALONLYHEALERSTOOLTIP = "Если включено:\nПрерывает только лекарей\n\nЕсли отключено:\nПрерывает любую роль врага\n\nПравый щелчок: Создать макрос",
+				USEPVP = "[PvP] Использовать",
+				USEPVPTOOLTIP = "Включает или отключает список с его юнитами для прерывания\n\nПравый щелчок: Создать макрос",
+				PVPONLYSMART = "[PvP] Умный",
+				PVPONLYSMARTTOOLTIP = "Если включено, будет прерывать продвинутой логикой:\n1) Цепочка контроля вашего лекаря\n2) У кого-то есть эффект бурста >4 сек\n3) Кто-то умрет менее чем за 8 секунд\n4) Вы (или @target) HP приближаетесь к Казнь фазе\n\nЕсли отключено, будет прерывать без продвинутой логики\n\nПравый клик: Создать макрос",				
+				INPUTBOXTITLE = "Введите способность:",
+				INPUTBOXTOOLTIP = "ESCAPE (ESC): стереть текст и убрать фокус ввода",
+				SEARCH = "Поиск по имени или ID",
+				INTEGERERROR = "Целочисленное переполнение при попытке ввода > 7 чисел", 				
 				ADD = "Добавить Прерывание",
 				ADDERROR = "|cffff0000Вы ничего не указали в 'Введите способность'\nили способность не найдена!|r",				
 				ADDTOOLTIP = "Добавить способность из поля ввода 'Введите способность' в текущий выбранный список",					
 				REMOVE = "Удалить Прерывание",
-				REMOVETOOLTIP = "Удалить выбранную способность в прокручивающейся таблице из текущего списка",					
+				REMOVETOOLTIP = "Удалить выбранную способность в прокручивающейся таблице из текущего списка",				
 			},
 			[5] = { 
 				HEADBUTTON = "Ауры",					
-				USETITLE = "Конфигурация чекбоксов",
+				USETITLE = "",
 				USEDISPEL = "Использовать Диспел",
 				USEPURGE = "Использовать Пурж",
 				USEEXPELENRAGE = "Снимать Исступления",
 				USEEXPELFRENZY = "Снимать Бешенство",
-				HEADTITLE = "[Глобально] Диспел | Пурж | Исступление",	
+				HEADTITLE = "[Глобально]",	
 				MODE = "Режим:",
 				CATEGORY = "Категория:",
 				POISON = "Диспел ядов",
@@ -686,6 +915,7 @@ local Localization = {
 				BLESSINGOFPROTECTION = "Благословение защиты",
 				BLESSINGOFFREEDOM = "Благословение cвободы",
 				BLESSINGOFSACRIFICE = "Благословение жертвенности",
+				VANISH = "Исчезновение",
 				ROLE = "Роль",
 				ID = "ID",
 				NAME = "Название",
@@ -744,6 +974,7 @@ local Localization = {
 				HORDEFLAG = "флаг орды",
 			},
 			[7] = {
+				HEADBUTTON = "Сообщения",
 				HEADTITLE = "Система Сообщений",
 				USETITLE = "[Каждый спек]",
 				MSG = "MSG Система",				
@@ -767,6 +998,188 @@ local Localization = {
 				INPUTERROR = "Вы не ввели фразу!",
 				INPUTTOOLTIP = "Фраза будет срабатывать на любое совпадение в чате группы (/party)\nЯвляется не чувствительным к регистру\nСодержит патерны, это означает, что сказанная кем-то фраза с комбинацией слов raid, party, arena, party или player\nпереназначит действие на нужный мета слот\nВам не нужно задавать перечисленные патерны здесь, они используются как приписка к макросу\nЕсли патерн не найден, то будут использоваться слоты для Single и AoE ротаций",
 			},
+			[8] = {
+				HEADBUTTON = "Система Исцеления",
+				OPTIONSPANEL = "Опции",
+				OPTIONSPANELHELP = [[Настройки этой панели влияют на 'Healing Engine' + 'Rotation'
+				
+									'Healing Engine' это название мы относим к системе выбора @target через
+									макрос /target 'unitID'
+									
+									'Rotation' это название мы относим к самой исцеление/урон наносящей ротации
+									для текущего главного юнита (@target или @mouseover)
+									
+									Иногда вы будете видеть текст 'профиль должен иметь код для этого', который 
+									имеет в виду, что относяющиеся функции могут не работать без добавления от 
+									автора профиля специального кода для этого внутри lua фрагментов
+									
+									Каждый элемент имеет подсказу, так что читайте это осторожно и тестируйте
+									если необходимо прежде чем начать реальный бой]],
+				SELECTOPTIONS = "-- выберите опции --",
+				PREDICTOPTIONS = "Опции Прогноза",
+				PREDICTOPTIONSTOOLTIP = "Поддерживает: 'Healing Engine' + 'Rotation' (профиль должен иметь код для этого)\n\nЭти опции влияют на:\n1. Прогноз здоровья участника группы для @target выбора ('Healing Engine')\n2. Калькуляция какое следующее исцеляющее действие использовать на @target/@mouseover ('Rotation')\n\nПравая кнопка мышки: Создать макрос",
+				INCOMINGHEAL = "Входящее исцеление",
+				INCOMINGDAMAGE = "Входящий урон",
+				THREATMENT = "Угроза (PvE)",
+				SELFHOTS = "ХоТы",
+				ABSORBPOSSITIVE = "Поглощение Положительное",
+				ABSORBNEGATIVE = "Поглощение Негативное",
+				SELECTSTOPOPTIONS = "Цель Стоп Опции",
+				SELECTSTOPOPTIONSTOOLTIP = "Поддерживает: 'Healing Engine'\n\nЭти опции влияют только на выбор @target, и конкретно\nпредотвращают этот выбор если одна из опций является успешной\n\nПравая кнопка мышки: Создать макрос",
+				SELECTSTOPOPTIONS1 = "@mouseover союзник",
+				SELECTSTOPOPTIONS2 = "@mouseover противник",
+				SELECTSTOPOPTIONS3 = "@target противник",
+				SELECTSTOPOPTIONS4 = "@target босс",
+				SELECTSTOPOPTIONS5 = "@player мертв",
+				SELECTSORTMETHOD = "Цель Метод Сортировки",
+				SELECTSORTMETHODTOOLTIP = "Поддерживает: 'Healing Engine'\n\n'Процентное Здоровье' сортирует выбор @target по наименьшему здоровью в процентном соотношении\n'Актуальное Здоровье' сортирует выбор @target по наименьшему здоровью в точном соотношении\n\nПравая кнопка мышки: Создать макрос",
+				SORTHP = "Процентное Здоровье",
+				SORTAHP = "Актуальное Здоровье",
+				AFTERTARGETENEMYORBOSSDELAY = "Задержка Цели\nПосле @target противника или босса",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Поддерживает: 'Healing Engine'\n\nЗадержка (в секундах) прежде чем выбрать следующую цель после выбора противника или босса в @target\n\nРаботает только если 'Цель Стоп Опции' имеет '@target противник' или '@target босс' выключенным\n\nЗадержка обновляется каждый раз когда условия являются успешными или сбрасывается в ином случае\n\nПравая кнопка мышки: Создать макрос",
+				AFTERMOUSEOVERENEMYDELAY = "Задержка Цели\nПосле @mouseover противника",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Поддерживает: 'Healing Engine'\n\nЗадержка (в секундах) прежде чем выбрать следующую цель после выбора противника в @mouseover\n\nРаботает только если 'Цель Стоп Опции' имеет '@mouseover противник' выключен\n\nЗадержка обновляется каждый раз когда условия являются успешными или сбрасывается в ином случае\n\nПравая кнопка мышки: Создать макрос",
+				SELECTPETS = "Включить Питомцев",
+				SELECTPETSTOOLTIP = "Поддерживает: 'Healing Engine'\n\nПереключает питомцев, чтобы обрабатывать их всему API в 'Healing Engine'\n\nПравая кнопка мышки: Создать макрос",
+				SELECTRESURRECTS = "Включить Воскрешения",
+				SELECTRESURRECTSTOOLTIP = "Поддерживает: 'Healing Engine'\n\nПереключает мертвых игроков для выбора в @target\n\nРаботает только вне боя\n\nПравая кнопка мышки: Создать макрос",
+				HELP = "Помощь",
+				HELPOK = "Понял",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Поддерживает: 'Healing Engine'\n\nВключает\выключает '/target %s'",
+				UNITID = "unitID",
+				NAME = "Имя",
+				ROLE = "Роль",
+				ROLETOOLTIP = "Поддерживает: 'Healing Engine'\n\nОтвечает за приоритет в выборе @target, который контролируется оффсетами\nПитомцы всегда имеют роль 'Урон'",
+				DAMAGER = "Урон",
+				HEALER = "Лекарь",
+				TANK = "Танк",
+				UNKNOWN = "Неизвестно",
+				USEDISPEL = "Дис\nпел",
+				USEDISPELTOOLTIP = "Поддерживает: 'Healing Engine' (профиль должен иметь код для этого) + 'Rotation' (профиль должен иметь код для этого)\n\n'Healing Engine': Позволяет '/target %s' для диспела\n'Rotation': Позволяет использовать диспел на '%s'\n\nДиспел лист задан во вкладке 'Ауры'",
+				USESHIELDS = "Щиты",
+				USESHIELDSTOOLTIP = "Поддерживает: 'Healing Engine' (профиль должен иметь код для этого) + 'Rotation' (профиль должен иметь код для этого)\n\n'Healing Engine': Позволяет '/target %s' для щитов\n'Rotation': Позволяет использовать щиты на '%s'",
+				USEHOTS = "ХоТы",
+				USEHOTSTOOLTIP = "Поддерживает: 'Healing Engine' (профиль должен иметь код для этого) + 'Rotation' (профиль должен иметь код для этого)\n\n'Healing Engine': Позволяет '/target %s' для ХоТов\n'Rotation': Позволяет использовать ХоТы на '%s'",
+				USEUTILS = "Ути\nлиты",
+				USEUTILSTOOLTIP = "Поддерживает: 'Healing Engine' (профиль должен иметь код для этого) + 'Rotation' (профиль должен иметь код для этого)\n\n'Healing Engine': Позволяет '/target %s' для утилит\n'Rotation': Позволяет использовать утилиты на '%s'\n\nУтилиты имеется в виду действия поддерживающей категории такие как Благословенная свобода, некоторые из них задаются во вкладке 'Ауры'",
+				GGLPROFILESTOOLTIP = "\n\nGGL профиля будут пропускать питомцев для этой %s ячейки в 'Healing Engine'(выбор @target)",
+				LUATOOLTIP = "Поддерживает: 'Healing Engine'\n\nИспользует код, который вы напишите как последнее условие проверки прежде чем '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nЧтобы попасть в метатаблицу, которая содержит 'thisunit' данные такие как здоровье, используйте:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Авто Скрытие",
+				AUTOHIDETOOLTIP = "Это только для визуального эффекта!\nАвтоматически фильтрует список и показывает только доступные unitID",						
+				PROFILES = "Профиля",
+				PROFILESHELP = [[Настройки этой панели влияют на 'Healing Engine' + 'Rotation'
+				
+								 Каждый профиль записывает абсолютно все настройки текущей вкладки 
+								 Тем самым вы можете менять поведения выбора цели и исцеляющей ротации прямо на лету
+								 
+								 Например: Вы можете создать один профиль для работы по группам 2 и 3, и второстепенный
+								 для всего рейда, и в это же время менять это макросом, который также 
+								 может быть создан 
+								 
+								 Важно понимать, что каждое сделанное изменение в этой вкладке должно быть
+								 вручную пере-сохранено 
+				]],
+				PROFILE = "Профиль",
+				PROFILEPLACEHOLDER = "-- нет профиля или имеются несохраненные изменения для предыдущего --",
+				PROFILETOOLTIP = "Напишите название нового профиля в строке ввода ниже и кликните 'Сохранить'\n\nИзменения не будут сохранены в реальном времени!\nКаждый раз когда вы делаете любое изменение, чтобы сохранить их вы должны кликнуть заново 'Сохранить' для выбранного профиля",
+				PROFILELOADED = "Загружен профиль: ",
+				PROFILESAVED = "Сохранен профиль: ",
+				PROFILEDELETED = "Удален профиль: ",
+				PROFILEERRORDB = "ActionDB не инициализирован!",
+				PROFILEERRORNOTAHEALER = "Вы должны быть лекарем, чтобы использовать это!",
+				PROFILEERRORINVALIDNAME = "Некорректное название профиля!",
+				PROFILEERROREMPTY = "Вы не выбрали профиль!",
+				PROFILEWRITENAME = "Напишите название нового профиля",
+				PROFILESAVE = "Сохранить",
+				PROFILELOAD = "Загрузить",
+				PROFILEDELETE = "Удалить",
+				CREATEMACRO = "Правая кнопка мышки: Создать макрос",
+				PRIORITYHEALTH = "Приоритет Здоровья",
+				PRIORITYHELP = [[Настройки этой панели влияют только на 'Healing Engine'
+								 Используя эти настройки, вы можете изменить приоритет 
+								 выбора цели в зависимости от настроек 
+
+								 Эти настройки изменяют виртуально здоровье, позволяя 
+								 сортирующему методу расширить фильтр юнитов не только 
+								 по их реальному + прогнозируемые опции здоровью 
+								 
+								 Сортирующий метод сортирует всех юнитов по наименьшему здоровью 
+
+								 Множитель это число на которое здоровье будет умножено
+								 
+								 Оффсет это число, которое будет установлено фиксированно как 
+								 процент здоровья или обработано арифметически (-/+ ХП) в 
+								 зависимости от 'Режим Оффсетов'
+								 
+								 'Утилиты' имеется в виду поддерживающие способности такие как 
+								 'Благословенная свобода'
+				]],
+				MULTIPLIERS = "Множители",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Лимит Входящего Урона",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Ограничивает входящий урон так как урон может быть\nнастолько огромным, что система перестанет 'слезать' с @target.\nПоставьте 1 если хотите получить немодифицированное значение\n\nПравая кнопка мышки: Создать макрос",
+				MULTIPLIERTHREAT = "Угроза",
+				MULTIPLIERTHREATTOOLTIP = "Обрабатывается если существует повышенная угроза (т.е. юнит танкует)\nПоставьте 1 если хотите получить немодифицированное значение\n\nПравая кнопка мышки: Создать макрос",
+				MULTIPLIERPETSINCOMBAT = "Питомцы В Бою",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Питомцы должны быть включенны, чтобы это работало!\nПоставьте 1 если хотите получить немодифицированное значение\n\nПравая кнопка мышки: Создать макрос",
+				MULTIPLIERPETSOUTCOMBAT = "Питомцы Вне Боя",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Питомцы должны быть включенны, чтобы это работало!\nПоставьте 1 если хотите получить немодифицированное значение\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETS = "Оффсеты",
+				OFFSETMODE = "Режим Оффсетов",
+				OFFSETMODEFIXED = "Фиксированно",
+				OFFSETMODEARITHMETIC = "Арифметически",
+				OFFSETMODETOOLTIP = "'Фиксированно' будет устанавливать точно такое же значение в процент здоровья\n'Арифметически' будет -/+ значение к проценту здоровья\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETSELFFOCUSED = "Вы - мишень (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Обрабатывается если вражеские игроки нацеливаются на вас в PvP режиме\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETSELFUNFOCUSED = "Вы - не мишень (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Обрабатывается если вражеские игроки НЕ нацеливаются на вас в PvP режиме\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETSELFDISPEL = "Диспел Себя",
+				OFFSETSELFDISPELTOOLTIP = "GGL профиля обычно имеют PvE условие для этого\n\nДиспел список задается во вкладке 'Ауры'\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETHEALERS = "Лекари",
+				OFFSETHEALERSTOOLTIP = "Обрабатывается только на других лекарях\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETTANKS = "Танки",
+				OFFSETDAMAGERS = "Уроны",
+				OFFSETHEALERSDISPEL = "Диспел Лекари",
+				OFFSETHEALERSTOOLTIP = "Обрабатывается только на других лекарях\n\nДиспел список задается во вкладке 'Ауры'\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETTANKSDISPEL = "Диспел Танки",
+				OFFSETTANKSDISPELTOOLTIP = "Диспел список задается во вкладке 'Ауры'\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETDAMAGERSDISPEL = "Диспел Уроны",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Диспел список задается во вкладке 'Ауры'\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETHEALERSSHIELDS = "Щиты Лекари",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Включительно себя (@player)\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETTANKSSHIELDS = "Щиты Танки",
+				OFFSETDAMAGERSSHIELDS = "Щиты Уроны",
+				OFFSETHEALERSHOTS = "ХоТы Лекари",
+				OFFSETHEALERSHOTSTOOLTIP = "Включительно себя (@player)\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETTANKSHOTS = "ХоТы Танки",
+				OFFSETDAMAGERSHOTS = "ХоТы Уроны",
+				OFFSETHEALERSUTILS = "Утилиты Лекари",
+				OFFSETHEALERSUTILSTOOLTIP = "Включительно себя (@player)\n\nПравая кнопка мышки: Создать макрос",
+				OFFSETTANKSUTILS = "Утилиты Танки",
+				OFFSETDAMAGERSUTILS = "Утилиты Уроны",
+				MANAMANAGEMENT = "Управление Маной",
+				MANAMANAGEMENTHELP = [[Настройки этой панели влияют только на 'Rotation'
+									   
+									   Профиль должен иметь код для этого!
+										
+									   Работает если:
+									   1. Внутри подземелья
+									   2. В режиме PvE 
+									   3. В бою 
+									   4. Размер группы >= 5
+									   5. Имеется босс(-ы) нацеленные участниками группы
+				]],
+				MANAMANAGEMENTMANABOSS = "Ваш Процент Маны <= Средний Процент Здоровья Босса(-ов)",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Начинает сохранять мана фазу если условие успешно\n\nЛогика зависит от профиля, который вы используете!\n\nНе все профиля поддерживают эту настройку!\n\nПравая кнопка мышки: Создать макрос",
+				MANAMANAGEMENTSTOPATHP = "Стоп Управление\nПроцент Здоровья",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Прекращает сохранять ману если главный юнит\n(@target/@mouseover) имеет процент здоровья ниже этого значения\n\nНе все профиля поддерживают эту настройку!\n\nПравая кнопка мышки: Создать макрос",
+				OR = "ИЛИ",
+				MANAMANAGEMENTSTOPATTTD = "Стоп Управление\nВремя До Смерти",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Прекращает сохранять ману если главный юнит\n(@target/@mouseover) имеет время до смерти (в секундах) ниже этого значения\n\nНе все профиля поддерживают эту настройку!\n\nПравая кнопка мышки: Создать макрос",
+				MANAMANAGEMENTPREDICTVARIATION = "Эффективность Сохранения Маны",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "Влияет только на 'AUTO' настройки исцеляющих способностей!\n\nЭто множитель на которой будет скалькулировано чистое исцеление когда фаза сохранения маны была начата\n\nЧем выше уровень тем больше сохранения маны, но меньше APM\n\nПравая кнопка мышки: Создать макрос",
+			},					
 		},
 	},
 	deDE = {			
@@ -789,6 +1202,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Click-und-bewege um die Größe zu ändern",
 		CLOSE = "Schließen",
 		APPLY = "Anwenden",
+		UPGRADEDFROM = "aktualisiert von ",
+		UPGRADEDTO = " zu ",
 		SLASH = {
 			LIST = "Liste der Slash-Befehle:",
 			OPENCONFIGMENU = "Menü Öffnen",
@@ -812,12 +1227,15 @@ local Localization = {
 			SAVEDISPEL = "Speicher Auraliste",
 			SAVEMOUSE = "Speicher Cursorliste",
 			SAVEMSG = "Speicher Nachrichtrenliste",
+			SAVEHE = "Einstellungen Heilsystem",
 			LUAWINDOW = "LUA Einstellung",
-			LUATOOLTIP = "Verwenden Sie 'thisunit' ohne Anführungszeichen, um auf die Prüfungseinheit zu verweisen.\nCode muss einen booleschen Rückgabewert (true) haben, um Bedingungen zu verarbeiten\nDieser Code hat setfenv, was bedeutet, dass Sie Action. nicht benötigen. für alles, was es hat\n\nWenn Sie bereits Standardcode entfernen möchten, müssen Sie 'return true' ohne Anführungszeichen schreiben, anstatt alle zu entfernen",
+			LUATOOLTIP = "Verwenden Sie 'thisunit' ohne Anführungszeichen, um auf die Prüfungseinheit zu verweisen.\nCode muss einen 'boolean' Rückgabewert (true) haben, um Bedingungen zu verarbeiten\nDieser Code hat setfenv, was bedeutet, dass Sie Action. nicht benötigen. für alles, was es hat\n\nWenn Sie bereits Standardcode entfernen möchten, müssen Sie 'return true' ohne Anführungszeichen schreiben, anstatt alle zu entfernen",
 			BRACKETMATCH = "Bracket Matching",
 			CLOSELUABEFOREADD = "Vor dem Adden LUA Konfiguration schließen!",
 			FIXLUABEFOREADD = "LUA Fehler beheben bevor du es hinzufügst",
 			RIGHTCLICKCREATEMACRO = "Rechtsklick: Erstelle macro",
+			ROWCREATEMACRO = "Rechtsklick: Erstelle macro, um den aktuellen Wert für alle Zellen in dieser Zeile festzulegen\nUmschalt + Rechtsklick: Erstelle macro, um den entgegengesetzten Wert für alle 'boolean' Decken in dieser Zeile festzulegen",
+			CEILCREATEMACRO = "Rechtsklick: Erstelle macro, um '%s' Wert für '%s' Ceil in dieser Zeile festzulegen\nUmschalt + Rechtsklick: Erstelle macro, um '%s' Wert für '%s' Ceil-\n-und entgegengesetzten Wert für festzulegen andere 'boolean' Decken in dieser Reihe",
 			NOTHING = "Keine Konfiguration für das Profil",
 			HOW = "Bestätigen:",
 			HOWTOOLTIP = "Global: Alle Accounrs, alle Charaktere und alle Skillungen",
@@ -826,6 +1244,10 @@ local Localization = {
 			THISSPEC = "Für die jetzige Skillung auf dem Charakter",			
 			KEY = "Schlüssel:",
 			CONFIGPANEL = "Konfiguration Hinzufügen",
+			BLACKLIST = "Schwarze Liste",
+			LANGUAGE = "[Deutsche]",
+			AUTO = "Auto",
+			SESSION = "Session: ",
 			[1] = {
 				HEADBUTTON = "General",	
 				HEADTITLE = "Primär",
@@ -842,22 +1264,12 @@ local Localization = {
 				SYSTEMSECTION = "Systemmenu",
 				LOSSYSTEM = "LOS System",
 				LOSSYSTEMTOOLTIP = "ACHTUNG: Diese Option führt zu einer Verzögerung von 0,3 s + der aktuellen Spinning-GCD.\nwenn überprüft wird, ob sich die Einheit in Sichtweite befindet (z. B. hinter einer Box in der Arena).\nDiese Option muss auch in den erweiterten Einstellungen aktiviert werden a lose und\nunterbricht die Bereitstellung von Aktionen für N Sekunden\n\nRechtsklick: Makro erstellen",
-				HEALINGENGINEPETS = "Heileinstellung für Begleiter",
-				HEALINGENGINEPETSTOOLTIP = "Füge die Begleiter des ausgewählten Spielers zum Ziel hinzu und berechne sie, um sie zu heilen.\n\nRechtsklick: Makro erstellen",
-				HEALINGENGINEANYROLE = "HealingEngine irgendeine Rolle",
-				HEALINGENGINEANYROLETOOLTIP = "Aktivieren Sie diese Option, um das Mitglieder-Targeting für jede Ihrer Rollen zu verwenden",
 				STOPATBREAKABLE = "Stoppt den Schaden bei Zerbrechlichkeit",
 				STOPATBREAKABLETOOLTIP = "Verhindert schädlichen Schaden bei Feinden\nWenn sie CC wie Polymorph haben\nDer automatische Angriff wird nicht abgebrochen!\n\nRechtsklick: Makro erstellen",
-				ALL = "Alle",
-				RAID = "Raid",
-				TANK = "Nur Tanks",
-				DAMAGER = "Nur Damagers",
-				HEALER = "Nur Healers",
-				TANKANDPARTY = "Tanks und Party",
-				PARTY = "Party",
-				HEALINGENGINETOOLTIP = "Diese Option bezieht sich auf die Einheitenauswahl bei Heilern.\nAlle: Alle Mitglieder\nGezahlt: Alle Mitglieder ohne Tanks\n\nRechtsklick: Makro erstellen\nWenn Sie das Argument für die Verwendung des Status zum Festlegen des Umschaltens in (ARG) festlegen möchten: 'ALL', 'RAID'. , 'TANK', 'HEILER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "DBM Timers",
-				DBMTOOLTIP = "Verfolgen von Pull-Timern und bestimmten Ereignissen, z. B. eingehendem Thrash.\nDiese Funktion ist nicht für alle Profile verfügbar!\n\nKlicken mit der rechten Maustaste: Makro erstellen",
+				BOSSTIMERS = "Bosse Timers",
+				BOSSTIMERSTOOLTIP = "Erforderliche DBM oder BigWigs addons\n\nVerfolgen von Pull-Timern und bestimmten Ereignissen, z. B. eingehendem Thrash.\nDiese Funktion ist nicht für alle Profile verfügbar!\n\nKlicken mit der rechten Maustaste: Makro erstellen",
+				HEALINGENGINEANYROLE = "HealingEngine irgendeine Rolle",
+				HEALINGENGINEANYROLETOOLTIP = "Aktivieren Sie diese Option, um das Mitglieder-Targeting für jede Ihrer Rollen zu verwenden\n\nRechtsklick: Makro erstellen",
 				FPS = "FPS Optimierungen",
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Erhöht die Frames pro Sekunde durch Erhöhen der dynamischen Abhängigkeit.\nFrames des Aktualisierungszyklus (Aufruf) des Rotationszyklus\n\nSie können das Intervall auch nach einer einfachen Regel manuell einstellen:\nDer größere Schieberegler als mehr FPS, aber schlechtere Rotation Update\nZu hoher Wert kann zu unvorhersehbarem Verhalten führen!\n\nRechtsklick: Makro erstellen",					
@@ -865,8 +1277,8 @@ local Localization = {
 				RETARGET = "Vorheriges gespeichertes @Ziel zurückgeben\n(nur Arena1-3-Einheiten)\nEs wird gegen Jäger mit 'Totstellen' und unvorhergesehenen Zielabwürfen empfohlen\n\nRechtsklick: Makro erstellen",
 				TRINKETS = "Schmuckstücke",
 				TRINKET = "Schmuck",
-				BURST = "Burst Modus",
-				BURSTTOOLTIP = "Alles - Auf Abklingzeit\nAuto - Boss oder Spieler\nAus - Deaktiviert\nRechtsklick: Makro erstellen\nWenn Sie einen festen Umschaltstatus festlegen möchten, verwenden Sie das Argument in (ARG): 'Alles', 'Auto', 'Aus'",					
+				BURSTEVERYTHING = "Alles",
+				BURSTTOOLTIP = "Alles - Auf Abklingzeit\nAuto - Boss oder Spieler\nAus - Deaktiviert\nRechtsklick: Makro erstellen\nWenn Sie einen festen Umschaltstatus festlegen möchten, verwenden Sie das Argument in: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Gesundheitsstein | Heiltrank",
 				HEALTHSTONETOOLTIP = "Wann der GeSu benutzt werden soll!\nDer Heiltrank hängt von der Registerkarte der Klasseneinstellungen für Trank\nab und davon, ob diese Tränke auf der Registerkarte Aktionen angezeigt werden\nGesundheitsstein hat die Abklingzeit mit Heiltrank geteilt\n\nRechtsklick: Makro erstellen",
 				COLORTITLE = "Farbwähler",
@@ -896,6 +1308,7 @@ local Localization = {
 				SELECTTHEME = "Wählen Sie Bereites Thema",
 				THEMEHOLDER = "Thema wählen",
 				BLOODYBLUE = "Blutiges Blau",
+				ICE = "Eis",
 				AUTOATTACK = "Automatischer Angriff",
 				AUTOSHOOT = "Automatisches Schießen",	
 				PAUSECHECKS = "Rota funktioniert nicht wenn:",
@@ -927,6 +1340,7 @@ local Localization = {
 				ROLETOOLTIP = "Abhängig von diesem Modus funktioniert die Drehung\nAuto - Definiert Ihre Rolle in Abhängigkeit von der Mehrheit der verschachtelten Talente im rechten Baum",
 				TOOLS = "Werkzeuge: ",				
 				LETMECASTTOOLTIP = "Auto-Dismount und Auto-Stand\nWenn ein Zauber oder eine Interaktion aufgrund eines Reitens fehlschlägt, werden Sie aussteigen. Wenn es fehlschlägt, weil Sie sitzen, werden Sie aufstehen\nLet Me Cast - Lass mich werfen!",
+				LETMEDRAGTOOLTIP = "Ermöglicht es Ihnen, Haustierfähigkeiten aus dem\nZauberbuch in Ihre reguläre Befehlsleiste aufzunehmen, indem Sie ein Makro erstellen",
 				TARGETCASTBAR = "Ziel-Cast-Leiste",
 				TARGETCASTBARTOOLTIP = "Zeigt eine echte Zauberleiste unter dem Zielrahmen an",
 				TARGETREALHEALTH = "Echte Gesundheit anvisieren",
@@ -950,15 +1364,15 @@ local Localization = {
 				NAME = "Name",
 				DESC = "Notiz",
 				ICON = "Icon",
-				SETBLOCKER = "Set\n Blocker",
+				SETBLOCKER = "Set\nBlocker",
 				SETBLOCKERTOOLTIP = "Dadurch wird die ausgewählte Aktion in der Rotation blockiert.\nSie wird niemals verwendet.\n\nRechtsklick: Makro erstellen",
-				SETQUEUE = "Set\n Warteschleife",
+				SETQUEUE = "Set\nWarteschleife",
 				SETQUEUETOOLTIP = "Der nächste Spell wird in die Warteschleife gessetzt\nEr wird benutzt sobald es möglich ist\n\n Rechtsklick: Makro erstellen\nSie können im erstellten Makro zusätzliche Bedingungen für die Warteschlange übergeben\nWie Kombinationspunkte (CP ist Schlüssel), Beispiel: {Priority = 1, CP = 5}\nDie Beschreibung der akzeptablen Schlüssel finden Sie in der Funktion 'Action:SetQueue' (Action.lua)",
 				BLOCKED = "|cffff0000Blockiert: |r",
 				UNBLOCKED = "|cff00ff00Freigestellt: |r",
 				KEY = "[Schlüssel: ",
 				KEYTOTAL = "[Warteschlangensumme: ",
-				KEYTOOLTIP = "Benutze den Schlüssel im MSG Fenster", 
+				KEYTOOLTIP = "Benutze den Schlüssel im 'Mitteilungen' Fenster",  
 				ISFORBIDDENFORBLOCK = "Verboten für die Blocker!",
 				ISFORBIDDENFORQUEUE = "Verboten für die Warteschleife!",
 				ISQUEUEDALREADY = "Schon in der Warteschleife drin!",
@@ -978,30 +1392,32 @@ local Localization = {
 				ID = "ID",
 				NAME = "Name",
 				ICON = "Icon",
-				CONFIGPANEL = "'Unterbrechungen hinzufügen' Menu",
-				INTERRUPTFRONTSTRINGTITLE = "Liste auswählen:",
-				INTERRUPTTOOLTIP = "[Main] für Einheiten @target/@mouseover/@targettarget\n [Heilung] für Einheiten @arena1-3 (Heilung)\n [PvP] für Einheiten @arena1-3 (crowdcontrol)\n\n Du kannst verschiedene Zeiten für [Heilung] und [PvP] (nicht in dem UI)",
+				USEKICK = "Kick",
+				USECC = "CC",
+				USERACIAL = "Rassisch",
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Legt die Unterbrechung zwischen minimaler und maximaler prozentualen Dauer des Zaubers fest\n\nDie rote Farbe der Werte bedeutet, dass diese zu nahe beieinander liegen und es zu gefährlich ist diese so zu verwenden\n\nAUS-Status bedeutet, dass diese Schieberegler für diese Liste nicht verfügbar sind",
+				USEMAIN = "[Main] Nutzen",
+				USEMAINTOOLTIP = "Aktiviert oder deaktiviert die Liste mit ihren zu unterbrechenden Einheiten\n\nRechtsklick: Makro erstellen",
+				MAINAUTO = "[Main] Auto",
+				MAINAUTOTOOLTIP = "Wenn aktiviert:\nPvE: Unterbricht jeden verfügbaren Zauber\nPvP: Wenn es ein Heiler ist und dieser in weniger als 6 Sekunden stirbt oder wenn es ein Spieler ohne gegnerische Heiler in Reichweite ist\n\nWenn deaktiviert:\nUnterbricht nur Zauber, die in der Tabelle für diese Liste hinzugefügt wurden\n\nRechtsklick: Makro erstellen",
+				USEMOUSE = "[Mouse] Nutzen",
+				USEMOUSETOOLTIP = "Aktiviert oder deaktiviert die Liste mit ihren zu unterbrechenden Einheiten\n\nRechtsklick: Makro erstellen",
+				MOUSEAUTO = "[Mouse] Auto",
+				MOUSEAUTOTOOLTIP = "Wenn aktiviert:\nPvE: Unterbricht jeden verfügbaren Zauber\nPvP: Unterbricht nur Zauber, die in der Tabelle für PvP und Heal hinzugefügt wurden, und nur Spieler\n\nWenn deaktiviert:\nUnterbricht nur Zauber, die in der Tabelle für diese Liste hinzugefügt wurden\n\nRechtsklick: Makro erstellen",
+				USEHEAL = "[Heal] Nutzen",
+				USEHEALTOOLTIP = "Aktiviert oder deaktiviert die Liste mit ihren zu unterbrechenden Einheiten\n\nRechtsklick: Makro erstellen",
+				HEALONLYHEALERS = "[Heal] Nur Heiler",
+				HEALONLYHEALERSTOOLTIP = "Wenn aktiviert:\nUnterbricht nur Heiler\n\nWenn deaktiviert:\nUnterbricht alle Feinde\n\nRechtsklick: Makro erstellen",
+				USEPVP = "[PvP] Nutzen",
+				USEPVPTOOLTIP = "Aktiviert oder deaktiviert die Liste mit ihren zu unterbrechenden Einheiten\n\nRechtsklick: Makro erstellen",
+				PVPONLYSMART = "[PvP] Clever",
+				PVPONLYSMARTTOOLTIP = "Wenn aktiviert wird durch erweiterte Logik unterbrochen:\n1) Unterbrechungskette auf deinen Heiler\n2) Dein Partner (oder du) hat seinen Burst aktiv >4 sek\n3) Wenn jemand in weniger als 8 Sekunden stirbt\n4) Du (oder @target) kann hingerichtet werden\n\nWenn deaktiviert wird ohne erweiterte Logik unterbrochen\n\nRechtsklick: Makro erstellen",
 				INPUTBOXTITLE = "Spell eintragen:",					
 				INPUTBOXTOOLTIP = "ESCAPE (ESC): Lösch den Text und entferne den Fokus",
 				INTEGERERROR = "Integer overflow attempting to store > 7 numbers", 
 				SEARCH = "Suche nach Name oder SpellID",
-				TARGETMOUSEOVERLIST = "[Main] List",
-				TARGETMOUSEOVERLISTTOOLTIP = "Deaktiviert: unterbricht JEGLICHE Zauber nach dem Zufallsprinzip.\nÜberprüft: unterbricht nur die angegebene benutzerdefinierte Liste für @ target / @ mouseover / @ targettarget.\nHinweis: Im PvP wird die Unterbrechung dieser Liste behoben, wenn sie aktiviert ist. 4 Sek.!\n\n@ mouseover / @ targettarget sind optional und hängen von den Optionen auf der Registerkarte spec ab.\n\nRechtsklick: Create macro",
-				KICKTARGETMOUSEOVER = "[Main] Unterbrechungen\n Aktiviert",				
-				KICKTARGETMOUSEOVERTOOLTIP = "Deaktiviert: @target/@mouseover Einheit Unterbrechen funktioniert nicht\nAktiviert: @target/@mouseover Einheiten Unterbrechen funktioniert \n\n Rechtsklick: Create macro",					
-				KICKHEALONLYHEALER = "[Heilung] Nur Heiler",					
-				KICKHEALONLYHEALERTOOLTIP = "Deaktiviert: Die Liste gilt für alle Spezialisierungen feindlicher Einheiten\n(e.g. Ench, Elem, SP, Retri)\n Aktiviert: Liste gilt nur für feindliche Heiler\n\n Rechtsklick: Create macro",
-				KICKHEAL = "[Heilung] Liste",
-				KICKHEALPRINT = "[Heilung] Liste der Unterbrechungen",
-				KICKHEALTOOLTIP = "Deaktiviert: @arena1-3 [Heilung] Benutzerlist funktioniert nicht\nChecked: @arena1-3 [Heilung] Benutzerliste funktioniert\n\nRechtsklick: Create macro",
-				KICKPVP = "[PvP] Liste",
-				KICKPVPPRINT = "[PvP] Liste der Unterbrechungen",
-				KICKPVPTOOLTIP = "Deaktiviert: @arena1-3 [PvP] Benutzerlist funktioniert nicht\nChecked: @arena1-3 [PvP] Benutzerliste funktioniert \n\n Rechtsklick: Create macro",	
-				KICKPVPONLYSMART = "[PvP] Einfach",
-				KICKPVPONLYSMARTTOOLTIP = "Aktiviert: wird nur durch logische Aktionen in der profil lua konfiguration unterbrochen. Beispiel:\n1) CC Kette auf deinen Heiler \n2) Dein partner (oder du) hat seinen Burst Aktiv >4 sec\n3) Wenn jemand in weniger als 8 Sekunden stirbt\n4) Dein (oder @target) HP kommt in die execute Phase\n Deaktiviert: Wird alles mögliche ohne Logik unterbrechen von deiner Liste\n\nNote: Hohe CPU Auslastung\nRightClick: Create macro",
-				USEKICK = "Kick",
-				USECC = "CC",
-				USERACIAL = "Rassisch",
 				ADD = "Unterbrechung hinzufügen",					
 				ADDERROR = "|cffff0000Du hast in 'Zauberspell' nichts angegeben, oder der Zauber wurde nicht gefunden!|r",
 				ADDTOOLTIP = "Füge Fähigkeit von 'Zauberspell'\n Zu deiner Liste",
@@ -1010,12 +1426,12 @@ local Localization = {
 			},
 			[5] = { 	
 				HEADBUTTON = "Auras",					
-				USETITLE = "Checkbox Configuration",
+				USETITLE = "",
 				USEDISPEL = "Benutze Dispel",
 				USEPURGE = "Benutze Purge",
 				USEEXPELENRAGE = "Entferne Enrage",
 				USEEXPELFRENZY = "Entferne Frenzy",
-				HEADTITLE = "[Global] Dispel | Purge | Enrage",
+				HEADTITLE = "[Global]",
 				MODE = "Mode:",
 				CATEGORY = "Kategorie:",
 				POISON = "Dispel Gifte",
@@ -1029,6 +1445,7 @@ local Localization = {
 				BLESSINGOFPROTECTION = "Segen des Schutzes",
 				BLESSINGOFFREEDOM = "Segen der Freiheit",
 				BLESSINGOFSACRIFICE = "Segen der Opferung",
+				VANISH = "Verschwinden",
 				ROLE = "Rolle",
 				ID = "ID",
 				NAME = "Name",
@@ -1087,6 +1504,7 @@ local Localization = {
 				HORDEFLAG = "siegesflagge der horde",                                 
 			},
 			[7] = {
+				HEADBUTTON = "Mitteilungen",
 				HEADTITLE = "Nachrichten System",
 				USETITLE = "",
 				MSG = "MSG System",
@@ -1110,6 +1528,189 @@ local Localization = {
 				INPUTERROR = "Du hast keinen Text angegeben!",
 				INPUTTOOLTIP = "Der Text wird ausgelöst sobald einer aus deiner Gruppe im Gruppenchat schreibt (/party)\nEr ist nicht Groß geschrieben\n Enthält Muster, das heisst der Text, die von jemandem mit der Kombination der Wörter Schlachtzug, Party, Arena, Party oder Spieler gesprochen wird, passt die Aktion an den gewünschten Meta-Slot an.\nDie hier aufgeführten Muster müssen nicht festgelegt werden Wird das Muster nicht gefunden, werden Slots für Single- und AoE-Rotationen verwendet",				
 			},
+			[8] = { 
+				HEADBUTTON = "Heilungs System",
+				OPTIONSPANEL = "Optionen",
+				OPTIONSPANELHELP = [[Die Einstellungen dieses Panels wirken sich aus 'Healing Engine' + 'Rotation'
+									
+									'Healing Engine' Diesen Namen beziehen wir uns auf @target Auswahlsystem durch
+									das Makro / Ziel 'unitID'
+									
+									'Rotation' Diesen Namen bezeichnen wir als Heilungs- / Schadensrotation
+									für die aktuelle primäre Einheit (@target oder @mouseover)
+									
+									Manchmal wirst du sehen 'profil muss Code dafür haben' Text was bedeutet
+									Welche verwandten Funktionen können nicht funktionieren, ohne vom Profilautor hinzugefügt zu werden?
+									spezieller Code dafür in Lua-snippets
+									
+									Jedes Element verfügt über einen Tooltip. Lesen Sie ihn daher sorgfältig durch und testen Sie ihn gegebenenfalls 
+									bevor Sie echte Kampf beginnen]],
+				SELECTOPTIONS = "-- option auswählen --",
+				PREDICTOPTIONS = "Vorhersage Optionen",
+				PREDICTOPTIONSTOOLTIP = "Unterstützt: 'Healing Engine' + 'Rotation' (profil muss Code dafür haben)\n\nDiese Optionen betreffen:\n1. Gesundheitsvorhersage des Gruppenmitglieds für die @targetauswahl('Healing Engine')\n2. Berechnung der Heilungsaktion für @target/@mouseover('Rotation')\n\nKlick: Makro erstellen",
+				INCOMINGHEAL = "Einkommende Heilung",
+				INCOMINGDAMAGE = "Einkommender Schaden",
+				THREATMENT = "Behandlung (PvE)",
+				SELFHOTS = "HoTs",
+				ABSORBPOSSITIVE = "Possitiv absorbieren",
+				ABSORBNEGATIVE = "Negativ absorbieren",
+				SELECTSTOPOPTIONS = "Ziel Stop Options",
+				SELECTSTOPOPTIONSTOOLTIP = "Unterstützt: 'Healing Engine'\n\nDiese Optionen wirken sich nur auf die @target auswahl aus und verhindern insbesondere die Auswahl, wenn eine der Optionen erfolgreich ist.\n\nRechtsklick: Makro erstellen",
+				SELECTSTOPOPTIONS1 = "@mouseover freundlich",
+				SELECTSTOPOPTIONS2 = "@mouseover gegner",
+				SELECTSTOPOPTIONS3 = "@target gegner",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player tot",
+				SELECTSORTMETHOD = "Ziel Sortiermethode",
+				SELECTSORTMETHODTOOLTIP = "Unterstützt: 'Healing Engine'\n\n'Gesundheit Prozent' sortiert die @target auswahl mit der geringsten Gesundheit im Prozentverhältnis\n'Wirkliche Gesundheit' sortiert die @targetauswahl mit dem geringsten Zustand im genauen Verhältnis\n\nKlick: Makro erstellen",
+				SORTHP = "Gesundheit Prozent",
+				SORTAHP = "Wirkliche Gesundheit",
+				AFTERTARGETENEMYORBOSSDELAY = "Ziel verzögern\nNach @target gegner or boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Unterstützt: 'Healing Engine'\n\nVerzögern (in Sekunden) bevor Auswahl nächstes Ziel nach Auswahl des Gegners oder Boss in @target\n\nNur funktioniert wenn 'Ziel Stop Options' hat '@target gegner' oder '@target boss' ausschalten\n\nVerzögerung wird jedes Mal aktualisiert, wenn die Bedingungen erfolgreich sind oder anderweitig zurückgesetzt werden\n\nRechts klick: Erstelle Makro",
+				AFTERMOUSEOVERENEMYDELAY = "Ziel Verzögerung\nNach @mouseover gegner",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Unterstützt: 'Healing Engine'\n\nVerzögerung (in Sekunden) vor der Auswahl des nächsten Ziels nach der Auswahl eines Feindes in @mouseover\n\nFunkioniert nur wenn 'Ziel Stop Options' hat '@mouseover gegner' ausschlaten\n\nDie Verzögerung wird jedes Mal aktualisiert, wenn die Bedingungen erfolgreich sind oder anderweitig zurückgesetzt werden\n\nRechts klick: Erstelle Makro",
+				SELECTPETS = "Aktiviere Begleiter",
+				SELECTPETSTOOLTIP = "Unterstützt: 'Healing Engine'\n\nWechselt Begleiter, um sie von allen API in 'Healing Engine'\n\nRechts klick: Erstelle Makro",
+				SELECTRESURRECTS = "Aktiviert Wiederbelebung",
+				SELECTRESURRECTSTOOLTIP = "Unterstützt: 'Healing Engine'\n\nSchaltet tote Spieler für die @target auswahl um\n\nFunktiuniert nur ausserhalb des Kampfes \n\nRechts klick: Erstellt Makro",
+				HELP = "Hilfe",
+				HELPOK = "Gotcha",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Unterstützt: 'Healing Engine'\n\nWechselt an/aus '/target %s'",
+				UNITID = "unitID",
+				NAME = "Name",
+				ROLE = "Rolle",
+				ROLETOOLTIP = "Unterstützt: 'Healing Engine'\n\nVerantwortlich für die Priorität in @target auswahl, welches durch Offsets gesteuert wird\nBegleiter sind immer 'Schadens'",
+				DAMAGER = "Schaden",
+				HEALER = "Heiler",
+				TANK = "Tank",
+				UNKNOWN = "Unbekannt",
+				USEDISPEL = "Dispel",
+				USEDISPELTOOLTIP = "Unterstützt: 'Healing Engine' (profil muss Code dafür haben) + 'Rotation' (profil muss Code dafür haben)\n\n'Healing Engine': Erlaubt to '/target %s' for dispel\n'Rotation':Ermöglicht die Verwendung von dispel on '%s'\n\nAuf der Registerkarte 'Auras' angegebene Liste zerstreuen",
+				USESHIELDS = "Shields",
+				USESHIELDSTOOLTIP = "Unterstützt: 'Healing Engine' (profil muss Code dafür haben) + 'Rotation' (profil muss Code dafür haben)\n\n'Healing Engine': Erlaubt to '/target %s' for shields\n'Rotation': Ermöglicht die Verwendung von Schildern '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Unterstützt: 'Healing Engine' (profil muss Code dafür haben) + 'Rotation' (profil muss Code dafür haben)\n\n'Healing Engine': Erlaubt to '/target %s' for HoTs\n'Rotation': Ermöglicht die Verwendung von HoTs '%s'",
+				USEUTILS = "Utils",
+				USEUTILSTOOLTIP = "Unterstützt: 'Healing Engine' (profil muss Code dafür haben) + 'Rotation' (profil muss Code dafür haben)\n\n'Healing Engine': Erlaubt '/target %s' for utils\n'Rotation':Ermöglicht die Verwendung von Utils '%s'\n\nUtils mean actions support category such as Freedom, some of them can be specified in the 'Auras' tab",
+				GGLPROFILESTOOLTIP = "\n\nGGL-Profile überspringen hierfür Begleiter %s ceil in 'Healing Engine'(@target selection)",
+				LUATOOLTIP = "Unterstützt: 'Healing Engine'\n\nVerwendet den Code, den Sie geschrieben haben, als letzte zuvor überprüfte Bedingung '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nUm auf Metatable zu verweisen, die enthalten 'thisunit' Daten wie Gesundheitsnutzung:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Automatisch Verstecken",
+				AUTOHIDETOOLTIP = "Dies ist nur ein visueller Effekt!\nFiltert die Liste automatisch und zeigt nur die verfügbare unitID an",
+				CEILCREATEMACRO = "\n\nRechts klick: Erstelle Makro to set '%s' value for '%s' ceil in this row\nShift + Rechts klick: Erstelle Makro um '%s' zu setzten '%s' Ceil-\n- und entgegengesetzten Wert für andere 'boolean' Decken in dieser Reihe",
+				ROWCREATEMACRO = "Rechts klick: Erstelle Makro um den aktuellen Wert für alle Decken in dieser Zeile festzulegen\nShift + Rechts klick: Erstelle Makro für alle den entgegengesetzten Wert setzen 'boolean' Decken in dieser Reihe",
+				PROFILES = "Profile",
+				PROFILESHELP = [[Die Einstellungen dieses Panels wirken sich aus 'Healing Engine' + 'Rotation'
+								 
+								 Jedes Profil zeichnet absolut alle Einstellungen der aktuellen Registerkarte auf
+								 Auf diese Weise können Sie das Verhalten der Zielauswahl und der Heilungsrotation
+								 im laufenden Betrieb ändern
+								 
+								 Beispiel: Sie können ein Profil für die Arbeit an den Gruppen 2 und 3 und das zweite Profil erstellen
+								 für den gesamten Überfall, und ändern Sie es gleichzeitig mit einem Makro,
+								 die auch erstellt werden kann
+								 
+								 Es ist wichtig zu verstehen, dass jede auf dieser Registerkarte vorgenommene Änderung manuell neu gespeichert werden muss
+				]],
+				PROFILE = "Profil",
+				PROFILEPLACEHOLDER = "-- kein profil oder hat nicht gespeicherte Änderungen für das vorherige profil --",
+				PROFILETOOLTIP = "Schreiben Sie den Namen des neuen Profils in das Bearbeitungsfeld unten und klicken Sie auf 'Save'\n\nÄnderungen werden nicht in Echtzeit gespeichert!\nJedes Mal, wenn Sie Änderungen vornehmen, um sie zu speichern, müssen Sie erneut klicken 'Save' um das Profil auszuwählen",
+				PROFILELOADED = "Profil laden: ",
+				PROFILESAVED = "Profil speichern: ",
+				PROFILEDELETED = "Profil löschen: ",
+				PROFILEERRORDB = "ActionDB wird nicht initialisiert!",
+				PROFILEERRORNOTAHEALER = "Du musst Heiler sein, um es zu benutzen!!",
+				PROFILEERRORINVALIDNAME = "Ungültiger Profilname!",
+				PROFILEERROREMPTY = "Sie haben kein Profil ausgewählt!",
+				PROFILEWRITENAME = "Schreiben Sie den Namen des neuen Profils",
+				PROFILESAVE = "Speichern",
+				PROFILELOAD = "Laden",
+				PROFILEDELETE = "Löschen",
+				CREATEMACRO = "Rechts klick: Makro erstellen",
+				PRIORITYHEALTH = "Gesundheitspriorität",
+				PRIORITYHELP = [[Die Einstellungen dieses Bedienfelds wirken sich nur aus 'Healing Engine'
+
+								 Mit diesen Einstellungen können Sie die Priorität von ändern
+								 Zielauswahl abhängig von den Einstellungen
+								 
+								 Diese Einstellungen ändern praktisch den Zustand, sodass die 
+								 Sortiermethode den Filter von Einheiten nicht nur nach dem 
+								 Zustand ihrer tatsächlichen + Vorhersageoptionen erweitern kann
+								 
+								 Die Sortiermethode sortiert alle Einheiten nach dem geringsten Gesundheitszustand
+								 
+								 Der Multiplikator ist die Zahl, mit der die Gesundheit multipliziert wird
+								 
+								 Der Versatz ist die Zahl, die als fester Prozentsatz oder festgelegt wird
+								 arithmetisch verarbeitet (-/+ HP) abhängig von 'Offset Modus'
+								 
+								 'Utils' bedeutet offensive Zauber wie 'Blessing of Freedom'
+				]],
+				MULTIPLIERS = "Multiplikatoren",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Eingehende Schadensgrenze",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Begrenzt den eingehenden Echtzeitschaden, da der Schaden so groß sein kann, dass das System stoppt 'aussteigen' vom @target.\nPut 1 wenn Sie einen unveränderten Wert erhalten möchten\n\nRechts klick: Makro erstellen",
+				MULTIPLIERTHREAT = "Bedrohung",
+				MULTIPLIERTHREATTOOLTIP = "Wird verarbeitet, wenn eine erhöhte Bedrohung vorliegt (i.e. Gerät tankt)\nPut 1 wenn Sie einen unveränderten Wert erhalten möchten\n\nRechts klick: Makro erstellen",
+				MULTIPLIERPETSINCOMBAT = "Begleiter im Kampf",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Begleiter muss aktiviert sein, damit es funktioniert!\nGeben Sie 1 ein, wenn Sie einen unveränderten Wert erhalten möchten\n\nRechts klick: Makro erstellen",
+				MULTIPLIERPETSOUTCOMBAT = "Begleiter ausserhalb des Kampfes",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Begleiter muss aktiviert sein, damit es funktioniert!\nGeben Sie 1 ein wenn Sie einen unveränderten Wert erhalten möchten\n\nRechts klick: Makro erstellen",
+				OFFSETS = "Offsets",
+				OFFSETMODE = "Offset Modus",
+				OFFSETMODEFIXED = "Fest",
+				OFFSETMODEARITHMETIC = "Arithmetik",
+				OFFSETMODETOOLTIP = "'Fest' setzt genau den gleichen Wert in Prozent in Gesundheit\n'Arithmetik' wird -/+ Wert auf Gesundheit Prozent\n\nRechts klick: Makro erstellen",
+				OFFSETSELFFOCUSED = "Selbst\nfokussiert (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Wird verarbeitet, wenn feindliche Spieler im PvP-Modus auf dich zielen\n\nRechts klick: Makro erstellen",
+				OFFSETSELFUNFOCUSED = "Selbst\nunkonzentriert (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Wird verarbeitet, wenn feindliche Spieler dich im PvP-Modus NICHT als Ziel wählen\n\nRechts klick: Makro erstellen",
+				OFFSETSELFDISPEL = "Selbst Dispel",
+				OFFSETSELFDISPELTOOLTIP = "GGL-Profile haben normalerweise eine PvE-Bedingung\n\nDispel Liste in der 'Auras' tab\n\nRechts klick: Makro erstellen",
+				OFFSETHEALERS = "Heiler",
+				OFFSETHEALERSTOOLTIP = "Nur bei anderen Heilern verarbeitet\n\nRechts klick: Makro erstellen",
+				OFFSETTANKS = "Tanks",
+				OFFSETDAMAGERS = "Schaden",
+				OFFSETHEALERSDISPEL = "Heiler Dispel",
+				OFFSETHEALERSTOOLTIP = "Nur bei anderen Heilern verarbeitet\n\nDispel Liste in der 'Auras' tab\n\nRechts klick: Makro erstellen",
+				OFFSETTANKSDISPEL = "Tanks Dispel",
+				OFFSETTANKSDISPELTOOLTIP = "Dispel Liste in der 'Auras' tab\n\nRechts klick: Makro erstellen",
+				OFFSETDAMAGERSDISPEL = "Schaden Dispel",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Liste in der 'Auras' tab\n\nRechts klick: Makro erstellen",
+				OFFSETHEALERSSHIELDS = "Heiler Schilde",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Inklusive Selbst (@player)\n\nRechts klick: Makro erstellen",
+				OFFSETTANKSSHIELDS = "Tanks Schilde",
+				OFFSETDAMAGERSSHIELDS = "Schaden Schilde",
+				OFFSETHEALERSHOTS = "Heiler HoTs",
+				OFFSETHEALERSHOTSTOOLTIP = "Inklusive Selbst (@player)\n\nRechts klick: Makro erstellen",
+				OFFSETTANKSHOTS = "Tanks HoTs",
+				OFFSETDAMAGERSHOTS = "Schaden HoTs",
+				OFFSETHEALERSUTILS = "Heiler Utils",
+				OFFSETHEALERSUTILSTOOLTIP = "Inklusive Selbst (@player)\n\nRechts klick: Makro erstellen",
+				OFFSETTANKSUTILS = "Tanks Utils",
+				OFFSETDAMAGERSUTILS = "Schadens Utils",
+				MANAMANAGEMENT = "Mana Manager",
+				MANAMANAGEMENTHELP = [[Die Einstellungen dieses Bedienfelds wirken sich nur aus 'Rotation'
+									   
+									   Profil muss Code dafür haben!
+									   
+									  Funktioniert wenn:
+									  1. Innerhalb der Instanz
+									  2. Im PvE-Modus
+									  3. Im Kampf
+									  4. Gruppengröße> = 5
+									  5. Lassen Sie einen Boss(-es) von Mitgliedern fokussieren
+				]],
+				MANAMANAGEMENTMANABOSS = "Ihr Mana-Prozentsatz <= Durchschnittlicher Gesundheits-Prozentsatz des Boss",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Startet das Speichern der Mana-Phase, wenn die Bedingung erfolgreich ist\n\nDie Logik hängt vom verwendeten Profil ab!\n\nNicht alle Profile unterstützen diese Einstellung!\n\nRechts klick: Makro erstellen",
+				MANAMANAGEMENTSTOPATHP = "Management beenden\nGesundheitsprozentsatz",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Stoppt das Speichern von Mana, wenn die Gesundheit der primären Einheit\n(@target/@mouseover) unter diesem Wert liegt\n\nNicht alle Profile unterstützen diese Einstellung!\n\nRechts klick: Makro erstellen",
+				OR = "OR",
+				MANAMANAGEMENTSTOPATTTD = "Stop Verwaltung\nZeit zu sterben",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Stoppt das Speichern von Mana, wenn die primäre Einheit\n(@target/@mouseover) Zeit hat, um (in Sekunden) unter diesem Wert zu sterben\n\nNicht alle Profile unterstützen diese Einstellung!\n\nRechts klick: Makro erstellen",
+				MANAMANAGEMENTPREDICTVARIATION = "Wirksamkeit der Manakonservierung",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "Beeinflusst nur die Einstellungen der 'AUTO'-Heilfähigkeiten!\n\nDies ist ein Multiplikator, anhand dessen die reine Heilung berechnet wird, wenn die Manasparphase gestartet wurde\n\n Je höher die Stufe, desto mehr Manasparen, aber weniger APM\n\nRechts klick: Makro erstellen",			
+			},		
 		},
 	},
 	frFR = {			
@@ -1132,6 +1733,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Cliquer et faire glisser pour redimensionner",
 		CLOSE = "Fermer",
 		APPLY = "Appliquer",
+		UPGRADEDFROM = "mise à niveau depuis ",
+		UPGRADEDTO = " à ",
 		SLASH = {
 			LIST = "Liste des commandes slash:",
 			OPENCONFIGMENU = "Voir le menu de configuration",
@@ -1151,16 +1754,19 @@ local Localization = {
 			RESETBUTTON = "Réinitiliser les paramètres",
 			RESETQUESTION = "Êtes-vous sûr?",
 			SAVEACTIONS = "Sauvegarder les paramètres d'Actions",
-			SAVEINTERRUPT = "Sauvegarder la liste d'interruption",
-			SAVEDISPEL = "Sauvergarder la liste d'auras",
-			SAVEMOUSE = "Sauvergarder la liste de Curseur",
-			SAVEMSG = "Sauvergarder La liste MSG",
+			SAVEINTERRUPT = "Sauvegarder la liste d'Interruption",
+			SAVEDISPEL = "Sauvergarder la liste d'Auras",
+			SAVEMOUSE = "Sauvergarder la liste d'Curseur",
+			SAVEMSG = "Sauvergarder la liste d'Messages",
+			SAVEHE = "Sauvegarder les paramètres d'Système de guérison",
 			LUAWINDOW = "Configuration LUA",
 			LUATOOLTIP = "Pour se réferer à l'unité vérifié, utiliser 'thisunit' sans les guillemets\nLe code doit retourner un booléen (true) pour activer les conditions\nLe code contient setfenv ce qui siginfie que vous n'avez pas bessoin d'utiliser Action. pour tout ce qui l'a\n\nSi vous voulez supprimer le code déjà par défaut, vous devez écrire 'return true' sans guillemets au lieu de tout supprimer",
 			BRACKETMATCH = "Repérage des paires de\nparenthèse", 
 			CLOSELUABEFOREADD = "Fermer la configuration LUA avant de l'ajouter",
 			FIXLUABEFOREADD = "Vous devez corriger les erreurs dans la configuration LUA avant de l'ajouter",
-			RIGHTCLICKCREATEMACRO = "Clique droit : Créer la macro",
+			RIGHTCLICKCREATEMACRO = "Clique droit: Créer la macro",
+			CEILCREATEMACRO = "Clic droit: Créer la macro pour définir la valeur '%s' pour '%s' cellules dans cette ligne\nShift + Clic droit: Créer la macro pour définir la valeur '%s' pour '%s' ceil-\n-et la valeur opposée pour d'autres plafonds 'booléens' dans cette ligne",
+			ROWCREATEMACRO = "Clic droit: Créer la macro pour définir la valeur de toutes les cellules dans cette ligne\nShift + Clic droit: Créer la macro pour définir une valeur opposée pour tous les plafonds 'booléens' de cette ligne",				
 			NOTHING = "Le profile n'a pas de configuration pour cette onglet",
 			HOW = "Appliquer:",
 			HOWTOOLTIP = "Globale: Tous les comptes, tous les personnages et toutes les spécialisations",
@@ -1169,6 +1775,10 @@ local Localization = {
 			THISSPEC = "Pour la spécialisation actuelle de votre personnage",			
 			KEY = "Touche:",
 			CONFIGPANEL = "'Ajouter' Configuration",
+			BLACKLIST = "Liste Noire",
+			LANGUAGE = "[Français]",
+			AUTO = "Auto",
+			SESSION = "Session: ",
 			[1] = {
 				HEADBUTTON = "Générale",	
 				HEADTITLE = "Primary",
@@ -1185,22 +1795,12 @@ local Localization = {
 				SYSTEMSECTION = "Section système",
 				LOSSYSTEM = "Système LOS",
 				LOSSYSTEMTOOLTIP = "ATTENTION: Cette option cause un delai de 0.3s + votre gcd en cours\nSi la cible verifié n'est pas dans la ligne de vue (par exemple, derrière une boite en arène) \nVous devez aussi activer ce paramètre dans les paramètres avancés\nCette option blacklistes l'unité qui n'est pas à vue et\narrête d'effectuer des actions sur elle pendant N secondes\n\nClique droit : Créer la macro",
-				HEALINGENGINEPETS = "HealingEngine familiers",
-				HEALINGENGINEPETSTOOLTIP = "Inclut les familier des joueurs et calcule les soins pour eux\n\nClique droit : Créer la macro",
-				HEALINGENGINEANYROLE = "HealingEngine n'importe quel rôle",
-				HEALINGENGINEANYROLETOOLTIP = "Activer l'utilisation du ciblage des membres sur n'importe quel rôle",
 				STOPATBREAKABLE = "Stop Damage On BreakAble",
 				STOPATBREAKABLETOOLTIP = "Arrêtera les dégâts sur les ennemis\nSi ils ont un CC tel que Polymorph\nIl n'annule pas l'attaque automatique!\n\nClique droit : Créer la macro",
-				ALL = "Tout",
-				RAID = "Raid",
-				TANK = "Tanks seulement",
-				DAMAGER = "DPS seulement",
-				HEALER = "Heal seulement",
-				TANKANDPARTY = "Tanks et Groupe",
-				PARTY = "Groupe",
-				HEALINGENGINETOOLTIP = "Cette option concerne les cible pour les heals\nTout: Tout les membres\nRaid: Tous les membres sauf les tanks\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule le ciblage des cible utiliser l'argumment (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "Timeur DBM",
-				DBMTOOLTIP = "Suit les timeur de pull and certain événement spécifique comme l'arrivé de trash.\nCette fonction n'est pas disponible pour tout les profiles!\n\nClique droit : Créer la macro",
+				BOSSTIMERS = "Boss Timeurs",
+				BOSSTIMERSTOOLTIP = "Addons DBM ou BigWigs requis\n\nSuit les timeur de pull and certain événement spécifique comme l'arrivé de trash.\nCette fonction n'est pas disponible pour tout les profiles!\n\nClique droit : Créer la macro",
+				HEALINGENGINEANYROLE = "HealingEngine n'importe quel rôle",
+				HEALINGENGINEANYROLETOOLTIP = "Activer l'utilisation du ciblage des membres sur n'importe quel rôle\n\nClique droit : Créer la macro",				
 				FPS = "FPS Optimisation",
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO:  Augmente les images par seconde en augmentant la dépendance dynamique\nimage du cycle de rafraichisement (call) du cycle de rotation\n\nVous pouvez régler manuellement l'intervalle en suivant cette règle simple:\nPlus le slider est grand plus vous avez de FPS, mais pire sera la mise à jour de la rotation\nUne valeur trop élevée peut entraîner un comportement imprévisible!\n\nClique droit : Créer la macro",
@@ -1209,7 +1809,8 @@ local Localization = {
 				TRINKETS = "Bijoux",
 				TRINKET = "Bijou",
 				BURST = "Mode Burst",
-				BURSTTOOLTIP = "Tout - On cooldown\nAuto - Boss or Joueur\nOff - Désactiver\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule les cooldowns utiliser l'argumment (ARG): 'Everything', 'Auto', 'Off'",					
+				BURSTEVERYTHING = "Tout",
+				BURSTTOOLTIP = "Tout - On cooldown\nAuto - Boss or Joueur\nOff - Désactiver\n\nClique droit : Créer la macro\nSi vous voulez régler comment bascule les cooldowns utiliser l'argumment: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Pierre de soin | Potion de guérison",
 				HEALTHSTONETOOLTIP = "Choisisez le pourcentage de vie (HP)\nPotion de guérison dépend des paramètres de votre classe dans Potion\net de leur affichage dans l’onglet Actions\nHealthstone a partagé son temps de recharge avec Potion de guérison\n\nClique droit : Créer la macro",
 				COLORTITLE = "Pipette à couleurs",
@@ -1239,6 +1840,7 @@ local Localization = {
 				SELECTTHEME = "Sélectionnez le thème prêt",
 				THEMEHOLDER = "choisissez le thème",
 				BLOODYBLUE = "Sanglant Bleu",
+				ICE = "La glace",
 				PAUSECHECKS = "La rotation ne fonction pas, si:",
 				AUTOATTACK = "Attaque automatique",
 				AUTOSHOOT = "Tir automatique",	
@@ -1270,6 +1872,7 @@ local Localization = {
 				ROLETOOLTIP = "En fonction de ce mode, la rotation fonctionnera\nAuto - Définit votre rôle en fonction de la majorité des talents imbriqués dans le bon arbre",
 				TOOLS = "Outils: ",
 				LETMECASTTOOLTIP = "Démontage automatique et stand automatique\nSi un orthographe ou une interaction échoue en raison de son montage, vous serez démonté. Si vous ne vous assoyez pas, vous vous lèverez.\nLet Me Cast - Laissez-moi jeter!",
+				LETMEDRAGTOOLTIP = "Vous permet de mettre les capacités des familiers\ndu livre de sorts sur votre barre de commande habituelle en créant une macro",
 				TARGETCASTBAR = "Cible CastBar",
 				TARGETCASTBARTOOLTIP = "Affiche une vraie barre de distribution sous le cadre cible",
 				TARGETREALHEALTH = "Cible la santé réelle",
@@ -1294,14 +1897,14 @@ local Localization = {
 				DESC = "Note",
 				ICON = "Icone",
 				SETBLOCKER = "Activer\nBloquer",
-				SETBLOCKERTOOLTIP = "Cela bloque l'action sélectionné dans la rotation\nElle ne sera jamais utiliser\n\nClique droit : Créer la macro",
+				SETBLOCKERTOOLTIP = "Cela bloque l'action sélectionné dans la rotation\nElle ne sera jamais utiliser\n\nClique droit: Créer la macro",
 				SETQUEUE = "Activer\nQueue(file d'attente)",
-				SETQUEUETOOLTIP = "Cela met l'action en queue dans la rotation\nElle sera utilisé le plus tôt possible\n\nClique droit : Créer la macro\nVous pouvez passer des conditions supplémentaires dans la macro créée pour la file d'attente\nComme des points de liste déroulante (la clé CP est la clé), exemple: {Priority = 1, CP = 5}\nVous pouvez trouver des clés acceptables avec une description dans la fonction 'Action:SetQueue' (Action.lua)",
+				SETQUEUETOOLTIP = "Cela met l'action en queue dans la rotation\nElle sera utilisé le plus tôt possible\n\nClique droit: Créer la macro\nVous pouvez passer des conditions supplémentaires dans la macro créée pour la file d'attente\nComme des points de liste déroulante (la clé CP est la clé), exemple: {Priority = 1, CP = 5}\nVous pouvez trouver des clés acceptables avec une description dans la fonction 'Action:SetQueue' (Action.lua)",
 				BLOCKED = "|cffff0000Bloqué: |r",
 				UNBLOCKED = "|cff00ff00Débloqué: |r",
 				KEY = "[Key: ",
 				KEYTOTAL = "[Total de la file d'attente: ",
-				KEYTOOLTIP = "Utiliser ce mot clef dans l'onglet MSG",
+				KEYTOOLTIP = "Utiliser ce mot clef dans l'onglet 'Messages'",
 				ISFORBIDDENFORBLOCK = "est indertit pour la file bloquer!",
 				ISFORBIDDENFORQUEUE = "est indertit pour la file d'attente!",
 				ISQUEUEDALREADY = "est déjà dans la file d'attente!",
@@ -1321,30 +1924,32 @@ local Localization = {
 				ID = "ID",
 				NAME = "Nom du sort",
 				ICON = "Icone",
-				CONFIGPANEL = "Configuration 'Ajouter une interuption'",
-				INTERRUPTFRONTSTRINGTITLE = "Sélectionner une liste:",
-				INTERRUPTTOOLTIP = "[Principal] pour les cibles en @target/@mouseover/@targettarget\n[Heal] pour les cibles @arena1-3 (healing)\n[PvP] pour les cibles @arena1-3 (Contrôle de foule)\n\nVous pouvez mettre différents timeur pour [Heal] et [PvP] (pas dans cette interface)",
+				USEKICK = "Kick",
+				USECC = "CC",
+				USERACIAL = "Racial",				
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Définit la valeur d'interruption du cast en pourcentage entre le min et le max\n\nLa couleur rouge des valeurs signifie qu'elles sont trop proches l'une de l'autre et dangereuses à utiliser\n\nOFF indique que ces réglages ne sont pas disponibles pour cette liste",
+				USEMAIN = "[Principal] Utiliser",
+				USEMAINTOOLTIP = "Active ou désactive la liste avec ces unités à interrompre\n\nClic droit: Créer une macro",
+				MAINAUTO = "[Principal] Auto",
+				MAINAUTOTOOLTIP = "Si activé:\nPvE: interrompt tous les sorts disponibles\nPvP: Si c'est un soigneur et qu'il va mourir en moins de 6 secondes ou que c'est un joueur sans soigneur ennemi à portée\n\nSi désactivé:\ninterrompt uniquement les sorts ajoutés dans la table pour cette liste\n\nClic droit: Créer une macro",
+				USEMOUSE = "[Souris] Utiliser",
+				USEMOUSETOOLTIP = "Active ou désactive la liste avec ces unités à interrompre\n\nClic droit: Créer une macro",
+				MOUSEAUTO = "[Souris] Auto",
+				MOUSEAUTOTOOLTIP = "Si activé:\nPvE: interrompt tous les sorts disponibles\nPvP: interrompt uniquement les sorts ajoutés dans la table pour les listes PvP et Soigneur et uniquement les personnages joueurs\n\nSi désactivé:\ninterrompt uniquement les sorts ajoutés dans la table pour cette liste\n\nClic droit: Créer une macro",
+				USEHEAL = "[Soigneur] Utiliser",
+				USEHEALTOOLTIP = "Active ou désactive la liste avec ces unités à interrompre\n\nClic droit: Créer une macro",
+				HEALONLYHEALERS = "[Soigneur] Seulement les soigneurs",
+				HEALONLYHEALERSTOOLTIP = "Si activé:\nInterrompt uniquement les soigneurs\n\nSi désactivé:\nInterrompt tout rôle ennemi\n\nClic droit: Créer une macro",
+				USEPVP = "[PvP] Utiliser",
+				USEPVPTOOLTIP = "Active ou désactive la liste avec ces unités à interrompre\n\nClic droit: Créer une macro",
+				PVPONLYSMART = "[PvP] Intelligent",
+				PVPONLYSMARTTOOLTIP = "Si activé, utilisera une logique avancée pour les interruptions:\n1) Une chaîne de contrôle sur votre soigneur\n2) Quelqu'un a des buffs de Dégats > 4 sec\n3) Quelqu'un va mourir en moins de 8 sec\n4) Vos PV (ou ceux de votre @cible) vont passer en phase d'exécution\n\nSi désactivé, interrompt sans logique avancée\n\nClic droit: créer une macro",
 				INPUTBOXTITLE = "Ajouter un sort:",					
 				INPUTBOXTOOLTIP = "ECHAP (ESC): supprimer texte and focus",
 				INTEGERERROR = "Plus de 7 chiffres ont été rentré", 
 				SEARCH = "Recherche par nom ou ID",
-				TARGETMOUSEOVERLIST = "[Principale] Liste",
-				TARGETMOUSEOVERLISTTOOLTIP = "Décoché: cela va interrompre N'IMPORTE quel sort\nCoché: Cela va interrompre uniquement les sort de cette liste sur @target/@mouseover/@targettarget\nNote: en PvP seul les sort de la liste PvP sera interrompu, par ailleurs si votre cible est un heal seul les sort de le liste [Heal] seront interrompu si la cible meurent dans les 3-4 sec!\n\n@mouseover/@targettarget sont optionel et dépend de l'option choisi dans l'onglet spécialisation\n\nClique droit : Créer la macro",
-				KICKTARGETMOUSEOVER = "[Principale] Interruptions",					
-				KICKTARGETMOUSEOVERTOOLTIP = "Décoché: Les interuptions sur les cibles @target/@mouseover ne fonctionnent pas\nCoché: Les interruptiond sur les cibles @target/@mouseover fonctionnent\n\nClique droit : Créer la macro",					
-				KICKHEALONLYHEALER = "[Heal] Heal seulement",					
-				KICKHEALONLYHEALERTOOLTIP = "Décoché: La liste sera valide pour ni'mporte quel spécialisation ennemis\n(e.g. Amélio, Elem, SP, Ret)\nCoché: La liste ne fonctionnera que sur les heals ennemis\n\nClique droit : Créer la macro",
-				KICKHEAL = "[Heal] Liste",
-				KICKHEALPRINT = "[Heal] Liste des Interruptions",
-				KICKHEALTOOLTIP = "Décoché: @arena1-3 [Heal] la liste ne fontionne pas\nCoché: @arena1-3 [Heal] La liste fonctionne\n\nClique droit : Créer la macro",
-				KICKPVP = "[PvP] Liste",
-				KICKPVPPRINT = "[PvP] Liste des Interruptions",
-				KICKPVPTOOLTIP = "Décoché: @arena1-3 [PvP] la liste ne fontionne pas\nCoché: @arena1-3 [PvP] La liste fonctionne\n\nClique droit : Créer la macro",	
-				KICKPVPONLYSMART = "[PvP] SMART",
-				KICKPVPONLYSMARTTOOLTIP = "Coché: interrompera seulement en suivant la logic établi dans le profile LUA. Exemple:\n1) Enchaînement de contrôle sur votre heal\n2) Quelqu'un d'amical (ou vous) avait des buffs de Burst >4 sec\n3) Quelqu'un va mourir en moins de 8 sec\n4) Vous (ou @target) HP rentre en phase d'execution \nDécoché: va interrompre les sorts de la liste sans aucune sorte de logique\n\nNote: Cause une demande élevée sur le CPU\nClique droit : Créer la macro",
-				USEKICK = "Kick",
-				USECC = "CC",
-				USERACIAL = "Racial",
 				ADD = "Ajouter une Interruption",					
 				ADDERROR = "|cffff0000Vous n'avez rien préciser dans 'Ajouter un sort' ou le sort n'est pas trouvé!|r",
 				ADDTOOLTIP = "Ajouter un sort depuis 'Ajouter un sort'\nDe la boite de texte à votre liste actuelle",
@@ -1353,12 +1958,12 @@ local Localization = {
 			},
 			[5] = { 	
 				HEADBUTTON = "Auras",					
-				USETITLE = "Configuration Checkbox",
+				USETITLE = "",
 				USEDISPEL = "Utiliser Dispel",
 				USEPURGE = "Utiliser Purge",
 				USEEXPELENRAGE = "Supprimer Enrage",
 				USEEXPELFRENZY = "Supprimer Frenzy",
-				HEADTITLE = "[Global] Dispel | Purge | Enrage",
+				HEADTITLE = "[Global]",
 				MODE = "Mode:",
 				CATEGORY = "Catégorie:",
 				POISON = "Dispel poisons",
@@ -1372,6 +1977,7 @@ local Localization = {
 				BLESSINGOFPROTECTION = "Bénédiction de protection",
 				BLESSINGOFFREEDOM = "Bénédiction de liberté",
 				BLESSINGOFSACRIFICE = "Bénédiction de sacrifice",
+				VANISH = "Disparition",
 				ROLE = "Role",
 				ID = "ID",
 				NAME = "Nom",
@@ -1392,7 +1998,7 @@ local Localization = {
 				ADD = "Ajouter Aura",					
 				REMOVE = "Retirer Aura",					
 			},				
-			[6] = {
+			[6] = {				
 				HEADBUTTON = "Curseur",
 				HEADTITLE = "Interaction Souris",
 				USETITLE = "Cougiration des Bouttons:",
@@ -1430,6 +2036,7 @@ local Localization = {
 				HORDEFLAG = "drapeau de la horde",
 			},
 			[7] = {
+				HEADBUTTON = "Messages",
 				HEADTITLE = "Système de Message",
 				USETITLE = "",
 				MSG = "Système MSG ",
@@ -1453,6 +2060,186 @@ local Localization = {
 				INPUTERROR = "Vous n'avez pas rentré de phrase!",
 				INPUTTOOLTIP = "La phrase sera déclenchée sur toute correspondance dans le chat de groupe (/party)\nCe n’est pas sensible à la casse\nContient des patterns, ce qui signifie que si la phrase est dite par des personne dans le chat raid, arène, groupe ou  par un joueur\ncela adapte l'action en fonction du groupe qui l'a dis\nVous n'avez pas besoin de préciser les pattern, ils sont utilisés comme un ajout à la macro\nSi le pattern n'est pas trouvé, les macros pour la rotation Single et AoE seront utilisé",				
 			},
+			[8] = {
+				HEADBUTTON = "Système de guérison",
+				OPTIONSPANEL = "Options",
+				OPTIONSPANELHELP = [[Les paramètres de ce panneau affectent 'Healing Engine' + 'Rotation'
+									
+								   'Healing Engine' ce nom correspond au système de sélection @target par
+									la macro /target 'unitID'
+									
+									'Rotation' ce nom correspond à la rotation de guérison/dégats elle même
+									pour l'unité principale actuelle (@target ou @mouseover)
+									
+									Parfois, vous verrez le texte 'le profil doit avoir du code pour cela', ce qui signifie
+									que les fonctionnalités ne peuvent pas fonctionner sans ajout de code lua spécial 
+									par l'auteur du profil
+									
+									Chaque élément a une info-bulle, alors lisez attentivement et testez si nécessaire
+									avant de commencer un vrai combat]],
+				SELECTOPTIONS = "-- choisissez les options --",
+				PREDICTOPTIONS = "Options de prédiction",
+				PREDICTOPTIONSTOOLTIP = "Supporté: 'Healing Engine' + 'Rotation' (le profil doit avoir du code pour cela)\n\nCes options affectent:\n1. Prédiction de santé du membre du groupe pour @target ('Healing Engine')\n2. Calcul de quelle action de soin utiliser pour @target/@mouseover ('Rotation')\n\nClic droit: Créer la macro",
+				INCOMINGHEAL = "Soins entrants",
+				INCOMINGDAMAGE = "Dégats entrants",
+				THREATMENT = "Menace (PvE)",
+				SELFHOTS = "HoTs",
+				ABSORBPOSSITIVE = "Absorbe positif",
+				ABSORBNEGATIVE = "Absorbe négatif",
+				SELECTSTOPOPTIONS = "Options de stopcast des cibles",
+				SELECTSTOPOPTIONSTOOLTIP = "Supporté: 'Healing Engine'\n\nCes options affectent seulement la @target et\nempêche spécifiquement sa sélection si l'une des options réussit\n\nClic droit: Créer la macro",
+				SELECTSTOPOPTIONS1 = "@mouseover amical",
+				SELECTSTOPOPTIONS2 = "@mouseover ennemi",
+				SELECTSTOPOPTIONS3 = "@target ennemi",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player mort",
+				SELECTSORTMETHOD = "Méthode de tri des cibles",
+				SELECTSORTMETHODTOOLTIP = "Supporté: 'Healing Engine'\n\n'Pourcentage de santé' classe les @target selon le plus faible ratio de Pourcentage de santé\n'Santé réelle' classe les @target leur ratio de vie réelle\n\nClic droit: Créer la macro",
+				SORTHP = "Pourcentage de santé",
+				SORTAHP = "Santé réelle",
+				AFTERTARGETENEMYORBOSSDELAY = "Délai cible\nAprès un @target ennemi ou boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Supporté: 'Healing Engine'\n\nDélai (en secondes) avant de sélectionner la cible suivante après avoir ciblé un ennemi ou un boss @target\n\nFonctionne uniquement si 'Options de stopcast des cibles' a '@target ennemi' ou '@target boss' désactivé\n\nLe délai est mis à jour à chaque fois que les conditions sont réussies ou est réinitialisé autrement\n\nClic droit: Créer la macro",
+				AFTERMOUSEOVERENEMYDELAY = "Délai cible\nAprès un @mouseover ennemi",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Supporté: 'Healing Engine'\n\nDélai (en secondes) avant de sélectionner la cible suivante après avoir ciblé un ennemi avec @mouseover\n\nFonctionne uniquement si 'Options de stopcast des cibles' a '@mouseover ennemi' désactivé\n\nLe délai est mis à jour à chaque fois que les conditions sont réussies ou est réinitialisé autrement\n\nClic droit: Créer la macro",
+				SELECTPETS = "Activer les familiers",
+				SELECTPETSTOOLTIP = "Supported: 'Healing Engine'\n\nChange les animaux de compagnie pour les gérer par toutes les API 'Healing Engine'\n\nClic droit: Créer la macro", 
+				SELECTRESURRECTS = "Activer les résurrections",
+				SELECTRESURRECTSTOOLTIP = "Supporté: 'Healing Engine'\n\nActive la sélection de joueurs morts avec @target\n\nFonctionne seulement hors de combat\n\nClic droit: Créer la macro",
+				HELP = "A l'aide",
+				HELPOK = "Compris",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Supporté: 'Healing Engine'\n\nDésactiver/sur '/target %s'",
+				UNITID = "unitID", 
+				NAME = "Nom",
+				ROLE = "Rôle",
+				ROLETOOLTIP = "Supporté: 'Healing Engine'\n\nResponsable de la priorité dans la selection de @target, qui est contrôlé par des décalages\nLes familiers sont toujours des 'dégâts'",
+				DAMAGER = "DPS",
+				HEALER = "Soigneur",
+				TANK = "Tank",
+				UNKNOWN = "Inconnu",
+				USEDISPEL = "Dissi\nper",
+				USEDISPELTOOLTIP = "Supporté: 'Healing Engine' (le profil doit avoir du code pour cela) + 'Rotation' (le profil doit avoir du code pour cela)\n\n'Healing Engine': Permet de '/target %s' pour les dissipations\n'Rotation': Permet d'utiliser les dissipations sur '%s'\n\nnListe de dissipations spécifiée dans l'onglet 'Auras'",
+				USESHIELDS = "Bouc\nliers",
+				USESHIELDSTOOLTIP = "Supporté: 'Healing Engine' (le profil doit avoir du code pour cela) + 'Rotation' (le profil doit avoir du code pour cela)\n\n'Healing Engine': Permet de '/target %s' pour les boucliers\n'Rotation': Permet d'utiliser les boucliers sur '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Supporté: 'Healing Engine' (le profil doit avoir du code pour cela) + 'Rotation' (le profil doit avoir du code pour cela)\n\n'Healing Engine': Permet de '/target %s' pour les soins sur la durée\n'Rotation': Permet d'utiliser les soins sur la durée sur '%s'",
+				USEUTILS = "Utils",
+				USEUTILSTOOLTIP = "Supporté: 'Healing Engine' (le profil doit avoir du code pour cela) + 'Rotation' (le profil doit avoir du code pour cela)\n\n'Healing Engine': Permet de '/target %s' pour les utilitaires\n'Rotation': Permet d'activer les utilitaires sur '%s'\n\nLes utilitaires signifient des catégories de support d'actions telles que la bénédiction de liberté, certaines d'entre elles peuvent être spécifiées dans l'onglet 'Auras'",
+				GGLPROFILESTOOLTIP = "\n\nLes profils GGL ignoreront les familiers pour ce seuil %s dans 'Healing Engine'(@target selection)",
+				LUATOOLTIP = "Supporté: 'Healing Engine'\n\nUtilise le code que vous avez écrit comme dernière condition vérifiée pour '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nPour se référer à metatable qui contient des données 'thisunit' telles que l'utilisation de la santé:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Cacher Automatiquement",
+				AUTOHIDETOOLTIP = "Ce n'est qu'un effet visuel!\nFiltre automatiquement la liste et affiche uniquement l'ID d'unité disponible",
+				PROFILES = "Profils",
+				PROFILESHELP = [[Les paramètres de ce panneau affectent 'Healing Engine' + 'Rotation'
+								 
+								 Chaque profil enregistre absolument tous les paramètres de l'onglet actuel
+								 Ainsi, vous pouvez modifier le comportement de la sélection des cibles et de la rotation de guérison à la volée
+								 
+								 Par exemple: vous pouvez créer un profil qui fonctionne sur les groupes 2 et 3, et le second 
+								 pour l'ensemble du raid, et en même temps le changer avec une macro,
+								 qui peut également être créé
+								 
+								 Il est important de comprendre que chaque modification effectuée dans cet onglet doit être réenregistrée manuellement
+				]],
+				PROFILE = "Profil",
+				PROFILEPLACEHOLDER = "-- aucun profil ou modifications non enregistrées pour le profil précédent --",
+				PROFILETOOLTIP = "Écrivez le nom du nouveau profil dans la zone d'édition ci-dessous et cliquez sur 'Enregistrer'\n\nLes modifications ne seront pas enregistrées en temps réel!\nChaque fois que vous apportez des modifications, vous devez cliquer à nouveau sur 'Enregistrer' pour le profil sélectionné",
+				PROFILELOADED = "Profil chargé: ",
+				PROFILESAVED = "Profil enregistré: ",
+				PROFILEDELETED = "Profil supprimé: ",
+				PROFILEERRORDB = "ActionDB n'est pas initialisé!",
+				PROFILEERRORNOTAHEALER = "Vous devez être soigneur pour l'utiliser!",
+				PROFILEERRORINVALIDNAME = "Nom de profil invalide!",
+				PROFILEERROREMPTY = "Vous n'avez pas sélectionné de profil!",
+				PROFILEWRITENAME = "Ecrire le nom du nouveau profil",
+				PROFILESAVE = "Sauvegarder",
+				PROFILELOAD = "Charger",
+				PROFILEDELETE = "Supprimer",
+				CREATEMACRO = "Clic droit: Créer la macro",
+				PRIORITYHEALTH = "Priorité de santé",
+				PRIORITYHELP = [[Les paramètres de ce panneau affectent uniquement 'Healing Engine'
+
+								 En utilisant ces paramètres, vous pouvez modifier la priorité de 
+								 sélection de la cible en fonction des paramètres
+								 
+								 Ces paramètres changent virtuellement la santé, permettant  
+								 la méthode de tri pour étendre le filtre des unités non seulement  
+								 en fonction de leurs options de prédiction réelles + santé
+								 
+								 La méthode de tri gère toutes les unités qui ont le moins de santé
+								 
+								 Le multiplicateur est le nombre par lequel la santé sera multipliée
+								 
+								 Le décalage est le nombre qui sera défini comme un pourcentage fixe ou
+								 traité arithmétiquement (-/+ HP) en fonction du 'mode de décalage'
+								 
+								 'Utils' signifient les sorts offensifs tels que 'Benediction de Liberté'
+				]],
+				MULTIPLIERS = "Multiplicateurs",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Limite de dommages entrants",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Limite les dommages entrants en temps réel, car les dommages peuvent être tellement\ngrand que le système cesse de 'switcher' de la @target.\nMettez 1 si vous voulez obtenir une valeur non modifiée\n\nClic droit: Créer la macro",
+				MULTIPLIERTHREAT = "Menace",
+				MULTIPLIERTHREATTOOLTIP = "Traité s'il existe une menace accrue (c'est-à-dire que l'unité est en train de tanker)\nMettez 1 si vous voulez obtenir une valeur non modifiée\n\nClic droit: Créer la macro",
+				MULTIPLIERPETSINCOMBAT = "Familiers en combat",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Les familiers doivent être activés pour fonctionner!\nMettez 1 si vous voulez obtenir une valeur non modifiée\n\nClic droit: Créer la macro",
+				MULTIPLIERPETSOUTCOMBAT = "Familiers hors de combat",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Les familiers doivent être activés pour fonctionner!\nMettez 1 si vous voulez obtenir une valeur non modifiée\n\nClic droit: Créer la macro",
+				OFFSETS = "Décalages",
+				OFFSETMODE = "Mode de décalage",
+				OFFSETMODEFIXED = "Fixe",
+				OFFSETMODEARITHMETIC = "Arithmétique",
+				OFFSETMODETOOLTIP = "'Fixe' définira exactement la même valeur en pourcentage de santé\n'Arithmétique' sera - / + la valeur pour la santé en pour cent\n\nClic droit: Créer la macro",
+				OFFSETSELFFOCUSED = "Focus\nsur soi même (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Traité si les joueurs ennemis vous ciblent en mode PvP\n\nClic droit: Créer la macro",
+				OFFSETSELFUNFOCUSED = "Focus\nsur un allié (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Traité si les joueurs ennemis ne vous ciblent PAS en mode PvP\n\nClic droit: Créer la macro",
+				OFFSETSELFDISPEL = "Dissipations\nsur soi même",
+				OFFSETSELFDISPELTOOLTIP = "Les profils GGL ont généralement une condition PvE pour cela\n\nListe de dissipations spécifiée dans l'onglet 'Auras'\n\nClic droit: Créer la macro",
+				OFFSETHEALERS = "Soigneurs",
+				OFFSETHEALERSTOOLTIP = "Traité uniquement sur les autres soigneurs\n\nClic droit: Créer la macro",
+				OFFSETTANKS = "Tanks",
+				OFFSETDAMAGERS = "DPS",
+				OFFSETHEALERSDISPEL = "Dissipation\ndes soigneurs",
+				OFFSETHEALERSTOOLTIP = "Traité uniquement sur les autres soigneurs\n\nListe de dissipations spécifiée dans l'onglet 'Auras'\n\nClic droit: Créer la macro",
+				OFFSETTANKSDISPEL = "Dissipations\ndes Tanks",
+				OFFSETTANKSDISPELTOOLTIP = "Liste de dissipations spécifiée dans l'onglet 'Auras'\n\nClic droit: Créer la macro",
+				OFFSETDAMAGERSDISPEL = "Dissipations\ndes DPS",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Liste de dissipations spécifiée dans l'onglet 'Auras'\n\nClic droit: Créer la macro",
+				OFFSETHEALERSSHIELDS = "Boucliers\ndes soigneurs",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Inclus soi-même (@player)\n\nClic droit: Créer la macro",
+				OFFSETTANKSSHIELDS = "Boucliers\ndes Tanks",
+				OFFSETDAMAGERSSHIELDS = "Boucliers\ndes DPS",
+				OFFSETHEALERSHOTS = "Soins sur la\ndurée des soigneurs",
+				OFFSETHEALERSHOTSTOOLTIP = "Inclus soi-même (@player)\n\nClic droit: Créer la macro",
+				OFFSETTANKSHOTS = "Soins sur la\ndurée des Tanks",
+				OFFSETDAMAGERSHOTS = "Soins sur la\ndurée des DPS",
+				OFFSETHEALERSUTILS = "Utils sur\nles Soigneurs",
+				OFFSETHEALERSUTILSTOOLTIP = "Inclus soi-même (@player)\n\nClic droit: Créer la macro",
+				OFFSETTANKSUTILS = "Utils sur\nles Tanks",
+				OFFSETDAMAGERSUTILS = "Utils sur\nles DPS",
+				MANAMANAGEMENT = "Gestion du Mana",
+				MANAMANAGEMENTHELP = [[Les paramètres de ce panneau affectent uniquement 'Rotation'
+									   
+									   Le profil doit avoir du code pour cela! 
+															   
+									   Fonctionne si:
+									   1. Dans une instance
+									   2. En mode PvE 
+									   3. En combat  
+									   4. Taille du groupe >= 5
+									   5. A un ou plusieurs boss ciblés par des membres alliés
+				]],
+				MANAMANAGEMENTMANABOSS = "Votre pourcentage de mana <= moyenne de santé du Boss",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Commence à économiser du mana si la condition est réussie\n\nLa logique dépend du profil que vous utilisez!\n\nTous les profils ne prennent pas en charge ce paramètre!\n\nClic droit: Créer la macro",
+				MANAMANAGEMENTSTOPATHP = "Arrêter la gestion\nPourcentage de santé",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Arrête d'économiser du mana si l'unité principale\n(@target/@mouseover) a un pourcentage de santé inférieur à cette valeur\n\nTous les profils ne prennent pas en charge ce paramètre!\n\nClic droit: Créer la macro",
+				OR = "OR",
+				MANAMANAGEMENTSTOPATTTD = "Arrêter la gestion\nTemps avant de mourir",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Arrête d'économiser du mana si l'unité principale\n(@target/@mouseover) a un temps avant de mourir (en secondes) inférieur à cette valeur\n\nTous les profils ne prennent pas en charge ce paramètre!\n\nClic droit: Créer la macro",
+				MANAMANAGEMENTPREDICTVARIATION = "Efficacité de la conservation du mana",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "N'affecte que les paramètres des capacités de guérison 'AUTO'!\n\nC'est un multiplicateur sur lequel la guérison pure sera calculée lorsque la phase de sauvegarde de mana a été lancée\n\nPlus le niveau est élevé, plus de sauvegarde de mana, mais moins d'APM\n\nClic droit: Créer la macro",
+			},		
 		},
 	},
 	itIT = {			
@@ -1475,6 +2262,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Seleziona e tracina per ridimensionare",
 		CLOSE = "Vicino",
 		APPLY = "Applicare",
+		UPGRADEDFROM = "aggiornato da ",
+		UPGRADEDTO = " per ",	
 		SLASH = {
 			LIST = "Lista comandi:",
 			OPENCONFIGMENU = "mostra il menu di configurazione",
@@ -1504,6 +2293,8 @@ local Localization = {
 			CLOSELUABEFOREADD = "Chiudi la configurazione LUA prima di aggiungere",
 			FIXLUABEFOREADD = "Devi correggere gli errori nella configurazione LUA prima di aggiungere",
 			RIGHTCLICKCREATEMACRO = "Pulsanmte destro: Crea macro",
+			ROWCREATEMACRO = "Pulsanmte destro: Crea macro per impostare il valore corrente per tutti i ceils in questa riga\nShift + Pulsanmte destro: Crea macro per impostare un valore opposto per tutti i ceils 'boolean' in questa riga",
+			CEILCREATEMACRO = "Pulsanmte destro: Crea macro per impostare il valore '%s' per il ceil '%s' in questa riga\nShift + Pulsanmte destro: Crea macro per impostare il valore '%s' per '%s' ceil-\n-e il valore opposto per altri ceils 'boolean' in questa riga",				
 			NOTHING = "Il profilo non ha una configuration per questo tab",
 			HOW = "Applica:",
 			HOWTOOLTIP = "Global: Tutto account, tutti i personaggi e tutte le specializzazioni",
@@ -1512,6 +2303,10 @@ local Localization = {
 			THISSPEC = "Alla specializzazione corrente del personaggio",			
 			KEY = "Chiave:",
 			CONFIGPANEL = "'Aggiungi' Configurazione",
+			BLACKLIST = "Lista Nera",
+			LANGUAGE = "[Italiano]",
+			AUTO = "Auto",
+			SESSION = "Sessione: ",
 			[1] = {
 				HEADBUTTON = "Generale",	
 				HEADTITLE = "Primaria",
@@ -1528,22 +2323,12 @@ local Localization = {
 				SYSTEMSECTION = "Area systema",
 				LOSSYSTEM = "Sistema di linea di vista [LOS]",
 				LOSSYSTEMTOOLTIP = "ATTENZIONE: Questa opzione causa un ritardo di 0.3s + piu tempo del sistema di recupero globale [srg]\nse il bersaglio é in los (per esempio dietro una cassa in arena)\nDevi anche abilitare lo stesso settaggio in Settaggi Avanzati\nQuesta opzione mette in blacklists bersagli fuori los e\nferma le azioni verso il bersaglio per N secondio\n\nTastodestro: Crea macro",
-				HEALINGENGINEPETS = "Logica di cure per pet",
-				HEALINGENGINEPETSTOOLTIP = "include nella selezione dei bersagli  i pets dei giocatori e considera la loro cura \n\nTastodestro: Crea macro",
-				HEALINGENGINEANYROLE = "HealingEngine qualsiasi ruolo",
-				HEALINGENGINEANYROLETOOLTIP = "Abilita l'utilizzo del targeting per membro su qualsiasi tuo ruolo",
 				STOPATBREAKABLE = "Stop Damage On BreakAble",
 				STOPATBREAKABLETOOLTIP = "Fermerà i danni dannosi ai nemici\nSe hanno CC come Polymorph\nNon annulla l'attacco automatico!\n\nTastodestro: Crea macro",
-				ALL = "Tutti",
-				RAID = "Raid",
-				TANK = "Solo Tank",
-				DAMAGER = "Solo Danno",
-				HEALER = "Solo Curatori",
-				TANKANDPARTY = "Tanks e Gruppo",
-				PARTY = "Gruppo",
-				HEALINGENGINETOOLTIP = "Opzione per la selezione bersagli per i curatori\nTutti: Tutti i membri\nRaid: Tutti i membri ma non i tank\n\nTastodestro: Crea macro\nSe desideri utilizzare specifici attributi per il bersaglio usa in (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "Timers DBM",
-				DBMTOOLTIP = "Tiene traccia dei timer di avvio combattimento e alcuni eventi specific tipo patrol in arrivo.\nQuesta funzionalitá é disponibile per tutti i profili!\n\nTastodestro: Crea macro",
+				BOSSTIMERS = "Boss Timers",
+				BOSSTIMERSTOOLTIP = "Addon DBM o BigWigs richiesti\n\nTiene traccia dei timer di avvio combattimento e alcuni eventi specific tipo patrol in arrivo.\nQuesta funzionalitá é disponibile per tutti i profili!\n\nTastodestro: Crea macro",
+				HEALINGENGINEANYROLE = "HealingEngine qualsiasi ruolo",
+				HEALINGENGINEANYROLETOOLTIP = "Abilita l'utilizzo del targeting per membro su qualsiasi tuo ruolo\n\nTastodestro: Crea macro",				
 				FPS = "Ottimizzazione FPS",
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Aumenta i frames per second incrementando la dipendenza dinamica\ndei frames del ciclo di refresh (call) della rotazione\n\nPuoi settare manualmente l'intervallo seguendo questa semplice regola:\nPiú é altop lo slider piú é l'FPS, ma peggiore sará l'update della rotazione\nValori troppo alti possono portare a risultati imprevedibili!\n\nTastodestro: Crea macro",					
@@ -1552,7 +2337,8 @@ local Localization = {
 				TRINKETS = "Ninnolo",
 				TRINKET = "Ninnoli",
 				BURST = "Modalitá raffica",
-				BURSTTOOLTIP = "Utilizza Tutto - appena esce dal coll down\nAuto - Boss o Giocatore\nOff - Disabilitata\n\nTastodestro: Crea macro\nSe desidere utilizzare specifici attributi utilizza in (ARG): 'Everything', 'Auto', 'Off'",					
+				BURSTEVERYTHING = "Utilizza Tutto",
+				BURSTTOOLTIP = "Utilizza Tutto - appena esce dal coll down\nAuto - Boss o Giocatore\nOff - Disabilitata\n\nTastodestro: Crea macro\nSe desidere utilizzare specifici attributi utilizza in: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Healthstone | Pozione curativa",
 				HEALTHSTONETOOLTIP = "Seta la percentuale di vita (HP)\nPozione curativa dipende dalle impostazioni della scheda classe per Pozione\ne se queste pozioni sono mostrate nella scheda Azioni\nHealthstone ha condiviso il tempo di recupero con Pozione curativa\n\nTastodestro: Crea macro",
 				COLORTITLE = "Color Picker",
@@ -1582,6 +2368,7 @@ local Localization = {
 				SELECTTHEME = "Seleziona Tema pronto",
 				THEMEHOLDER = "scegli il tema",
 				BLOODYBLUE = "Sanguinoso Blu",
+				ICE = "Ghiaccio",
 				AUTOATTACK = "Attacco automatico",
 				AUTOSHOOT = "Scatto automatico",	
 				PAUSECHECKS = "Rotation doesn't work if:",
@@ -1613,6 +2400,7 @@ local Localization = {
 				ROLETOOLTIP = "A seconda di questa modalità, la rotazione funzionerà\nAuto - Definisce il tuo ruolo in base alla maggior parte dei talenti nidificati nell'albero giusto",
 				TOOLS = "Utensili: ",
 				LETMECASTTOOLTIP = "Auto-smontaggio e Auto-stand\nSe un incantesimo o un'interazione falliscono a causa del montaggio, si smonterà. Se fallisce a causa del fatto che ti siedi, ti alzi\nLet Me Cast - Lasciami lanciare!",
+				LETMEDRAGTOOLTIP = "Ti permette di mettere le abilità dell'animale\ndomestico dal libro degli incantesimi sulla barra dei comandi normale creando una macro",
 				TARGETCASTBAR = "Target CastBar",
 				TARGETCASTBARTOOLTIP = "Mostra una barra del cast reale sotto il riquadro di destinazione",
 				TARGETREALHEALTH = "Target RealHealth",
@@ -1644,7 +2432,7 @@ local Localization = {
 				UNBLOCKED = "|cff00ff00Sbloccato: |r",
 				KEY = "[Chiave: ",
 				KEYTOTAL = "[Totale coda: ",
-				KEYTOOLTIP = "Usa questa chiave nel tab MSG",
+				KEYTOOLTIP = "Usa questa chiave nel tab 'Messaggi'",
 				ISFORBIDDENFORBLOCK = "non può esser messo in blocco!",
 				ISFORBIDDENFORQUEUE = "non può esser messo in coda!",
 				ISQUEUEDALREADY = "esiste giá nella coda!",
@@ -1664,30 +2452,32 @@ local Localization = {
 				ID = "ID",
 				NAME = "Nome",
 				ICON = "Icona",
-				CONFIGPANEL = "'Aggiungi Interruzione' Configurazione",
-				INTERRUPTFRONTSTRINGTITLE = "Seleziona lista:",
-				INTERRUPTTOOLTIP = "[Principale] per bersagli @target/@mouseover/@targettarget\n[Cura] per bersagli @arena1-3 (curatore)\n[PvP] per bersagli @arena1-3 (Controllo bersagli)\n\nPuoi settare differenti timer per [Cura] and [PvP] (non un questa UI)",
+				USEKICK = "Calcio",
+				USECC = "CC",
+				USERACIAL = "Razziale",
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Imposta l'interruzione tra la durata percentuale minima e massima del cast\n\nIl colore rosso dei valori indica che sono troppo vicini tra loro e pericolosi da usare\n\nLo stato OFF indica che questi cursori non sono disponibili per questo elenco",
+				USEMAIN = "[Main] Uso",
+				USEMAINTOOLTIP = "Abilita o disabilita l'interruzione dell'elenco con le sue unità\n\nTastodestro: Crea macro",
+				MAINAUTO = "[Main] Auto",
+				MAINAUTOTOOLTIP = "Se abilitato:\nPvE: interrompe qualsiasi cast disponibile\nPvP: se è un guaritore e morirà in meno di 6 secondi o se è un giocatore senza i guaritori nemici nel raggio di azione\n\nSe disabilitato:\nInterrompe solo gli incantesimi aggiunti nella tabella di scorrimento per quell'elenco\n\nTastodestro: Crea macro",
+				USEMOUSE = "[Mouse] Uso",
+				USEMOUSETOOLTIP = "Abilita o disabilita l'interruzione dell'elenco con le sue unità\n\nTastodestro: Crea macro",
+				MOUSEAUTO = "[Mouse] Auto",
+				MOUSEAUTOTOOLTIP = "Se abilitato:\nPvE: interrompe qualsiasi cast disponibile\nPvP: interrompe solo gli incantesimi aggiunti nella tabella di scorrimento per gli elenchi PvP e Guarigione e solo i giocatori\n\nSe disabilitato:\nInterrompe solo gli incantesimi aggiunti nella tabella di scorrimento per quell'elenco\n\nTastodestro: Crea macro",
+				USEHEAL = "[Heal] Uso",
+				USEHEALTOOLTIP = "Abilita o disabilita l'interruzione dell'elenco con le sue unità\n\nTastodestro: Crea macro",
+				HEALONLYHEALERS = "[Heal] Only Healers",
+				HEALONLYHEALERSTOOLTIP = "Se abilitato:\nInterrompe solo i guaritori\n\nSe disabilitato:\nInterrompe qualsiasi ruolo nemico\n\nTastodestro: Crea macro",
+				USEPVP = "[PvP] Uso",
+				USEPVPTOOLTIP = "Abilita o disabilita l'interruzione dell'elenco con le sue unità\n\nTastodestro: Crea macro",
+				PVPONLYSMART = "[PvP] Inteligente",
+				PVPONLYSMARTTOOLTIP = "Se abilitato, verrà interrotto dalla logica avanzata:\n1) Controllo a catena sul curatore\n2) Bersaglio amico (o tu) ha il raffica di buff con tempo residuo >4 sec\n3) Qualcuno muore in meno di 8 sec\n4) I punti vita tuoi (o @target) vengono considerati\n\nNon selezionato: interrompe sempre gli incantesimi nella lista senza ulteriori logiche\n\nTastodestro: Crea macro",				
 				INPUTBOXTITLE = "Srivi Incantesimo :",					
 				INPUTBOXTOOLTIP = "ESCAPE (ESC): cancella incantesimo e rimuove il focus",
 				INTEGERERROR = "Errore Integer overflow > tentativo di memorizzare piú di 7 numeri", 
 				SEARCH = "Cerca per nome o ID ",
-				TARGETMOUSEOVERLIST = "[Principale] Lista",
-				TARGETMOUSEOVERLISTTOOLTIP = "Non selezionato: interroperá QUALSIASI incantesimo a caso\nSelezionato: interromperá solo scecifiche liste se @target/@mouseover/@targettarget\nNota: in PvP interromperá gli spell della lista se selezionato, altrimeti solo healers se moriranno in meno di 3-4 sec!\n\n@mouseover/@targettarget sono opzionali e dipendono dalle selezioni fatte nella sezione spec\n\nTastodestro: Crea macro",
-				KICKTARGETMOUSEOVER = "[Principale] Interruzioni\nAbilitato",					
-				KICKTARGETMOUSEOVERTOOLTIP = "Non selezionato: @target/@mouseover le interruzioni non funzionano\nSelezionato: @target/@mouseover le interruzioni funzionano\n\nTastodestro: Crea macro",					
-				KICKHEALONLYHEALER = "[Cura] Solo curatori",					
-				KICKHEALONLYHEALERTOOLTIP = "Non selezionato: la lista sará valida per ogni specializzazione del bersaglio\n(e.g. Ench, Elem, SP, Retri)\nSelezionato: la lista sará valida solo per i bersagli curatori\n\nTastodestro: Crea macro",
-				KICKHEAL = "[Cura] Lista",
-				KICKHEALPRINT = "[Cura] Lista delle interruzioni",
-				KICKHEALTOOLTIP = "Non selezionato: @arena1-3 [Cura] lista custom non attiva\nSelezionato: @arena1-3 [Cura] lista custom attiva\n\nTastodestro: Crea macro",
-				KICKPVP = "[PvP] Lista",
-				KICKPVPPRINT = "[PvP] Lista delle interruzioni",
-				KICKPVPTOOLTIP = "Non selezionato: @arena1-3 [PvP] lista custom non attiva\nSelezionato: @arena1-3 [PvP] lista custom attiva\n\nTastodestro: Crea macro",	
-				KICKPVPONLYSMART = "[PvP] SMART",
-				KICKPVPONLYSMARTTOOLTIP = "Selezionato: interompe seguendo la logica definita nella configurazione del profilo. Esempio:\n1) Controllo a catena sul curatore\n2) Bersaglio amico (o tu) ha il raffica di buff con tempo residuo >4 sec\n3) Qualcuno muore in meno di 8 sec\n4) I punti vita tuoi (o @target) vengono considerati\nnon selezionato: interrompe sempre gli incantesimi nella lista senza ulteriori logiche\n\nNota: può causare un alto uso della CPU\nTastodestro: Crea macro",
-				USEKICK = "Calcio",
-				USECC = "CC",
-				USERACIAL = "Razziale",
 				ADDERROR = "|cffff0000Non hai specificato niente in 'Scrivi Incantesimo' o l'incantesimo non é stato trovato!|r",
 				ADD = "Aggiungi Interruzione",					
 				ADDTOOLTIP = "Aggiungi incantesimo indicato in 'Scrivi Incantesimo'\nalla lista selezionata",
@@ -1696,12 +2486,12 @@ local Localization = {
 			},
 			[5] = { 	
 				HEADBUTTON = "Auree",					
-				USETITLE = "Configurazione",
+				USETITLE = "",
 				USEDISPEL = "Usa Dissoluzione",
 				USEPURGE = "Usa Epurazione",
 				USEEXPELENRAGE = "Usa Enrage",
 				USEEXPELFRENZY = "Usa Frenzy",
-				HEADTITLE = "[Globale] Dissoluzione | Epurazione | Enrage",
+				HEADTITLE = "[Globale]",
 				MODE = "Modo:",
 				CATEGORY = "Categoria:",
 				POISON = "Dissolvi Veleni",
@@ -1714,7 +2504,9 @@ local Localization = {
 				ENRAGE = "Expel Enrage",
 				BLESSINGOFPROTECTION = "Benedizione della Protezione",
 				BLESSINGOFFREEDOM = "Benedizione della Libertà",
-				BLESSINGOFSACRIFICE = "Benedizione del Sacrificio",				
+				BLESSINGOFSACRIFICE = "Benedizione del Sacrificio",
+				VANISH = "Sparizione",
+				MAGICROOTS = "Radici Magiche",				
 				ROLE = "Ruolo",
 				ID = "ID",
 				NAME = "Nome",
@@ -1773,8 +2565,9 @@ local Localization = {
 				HORDEFLAG = "horde flag",
 			},
 			[7] = {
+				HEADBUTTON = "Messaggi",
 				HEADTITLE = "Messaggio di sistema",
-				USETITLE = "[Spec Corrente]",
+				USETITLE = "",
 				MSG = "MSG Sistema",
 				MSGTOOLTIP = "Selezionato: attivo\nNon selezionato: non attivo\n\nTastodestro: Crea macro",
 				DISABLERETOGGLE = "Blocca Coda Rimuovi",
@@ -1796,6 +2589,188 @@ local Localization = {
 				INPUTERROR = "Non hai inserito una frase!",
 				INPUTTOOLTIP = "La frase verrà attivata in corrispondenza ai riscontri nella chat di gruppo(/party)\nNon é sensibile alle maiuscole\nIdentifica pattern, ciò significa che una frase scritta in chat con la combinazione delle parole raid, party, arena, party o giocatore\nattiva l'azione nel meta slot desiderato\nNon hai bisogno di impostare i pattern elencati, sono usati on top alla macro\nIf non trova nessun pattern, allora verra usato lo slot per rotazione Singola e ad area",				
 			},
+			[8] = { -- this tab was translated by using google translate, if some one will wish to fix something let me know 
+				HEADBUTTON = "Sistema di guarigione",
+				OPTIONSPANEL = "Opzioni",
+				OPTIONSPANELHELP = [[Le impostazioni di questo pannello influiscono 'Healing Engine' + 'Rotation'
+									
+									'Healing Engine' questo nome ci riferiamo al sistema di selezione @target attraverso
+									la macro /target 'unitID'
+									
+									'Rotation' questo nome ci riferiamo a se stesso rotazione di guarigione/danno
+									per l'unità primaria corrente (@target o @mouseover)
+									
+									A volte vedrai il testo 'profilo deve avere un codice per esso' che significa
+									quali funzioni correlate non possono funzionare senza aggiungere l'autore del profilo
+									codice speciale all'interno dei frammenti di lua
+									
+									Ogni elemento ha un tooltip, quindi leggilo attentamente e testalo se necessario
+									prima di iniziare un vero combattimento]],
+				SELECTOPTIONS = "-- scegli le opzioni --",
+				PREDICTOPTIONS = "Opzioni di previsione",
+				PREDICTOPTIONSTOOLTIP = "Supportato: 'Healing Engine' + 'Rotation' (profilo deve avere un codice per esso)\n\nQueste opzioni influiscono:\n1. Previsione di integrità del membro del gruppo per la selezione di @target ('Healing Engine')\n2. Calcolo dell'azione terapeutica da utilizzare su @target/@mouseover ('Rotation')\n\nPulsanmte destro: Crea macro",
+				INCOMINGHEAL = "Guarigione in arrivo",
+				INCOMINGDAMAGE = "Danno in arrivo",
+				THREATMENT = "Minaccia (PvE)",
+				SELFHOTS = "HoTs",
+				ABSORBPOSSITIVE = "Assorbi Positivo",
+				ABSORBNEGATIVE = "Assorbi Negativo",
+				SELECTSTOPOPTIONS = "Opzioni lo stop target",
+				SELECTSTOPOPTIONSTOOLTIP = "Supportato: 'Healing Engine'\n\nQueste opzioni riguardano solo la selezione di @target e in particolare\nimpedirne la selezione se una delle opzioni ha esito positivo\n\nPulsanmte destro: Crea macro",
+				SELECTSTOPOPTIONS1 = "@mouseover amichevole",
+				SELECTSTOPOPTIONS2 = "@mouseover nemico",
+				SELECTSTOPOPTIONS3 = "@target nemico",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player morto",
+				SELECTSORTMETHOD = "Metodo di ordinamento target",
+				SELECTSORTMETHODTOOLTIP = "Supportato: 'Healing Engine'\n\n'Percentuale di salute' ordina la selezione @target con il minor livello di integrità nel rapporto percentuale\n'Salute reale' ordina la selezione di @target con la minima salute nel rapporto esatto\n\nPulsanmte destro: Crea macro",
+				SORTHP = "Percentuale di salute",
+				SORTAHP = "Salute reale",
+				AFTERTARGETENEMYORBOSSDELAY = "Ritardo target\nDopo @target nemico o boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Supportato: 'Healing Engine'\n\nRitarda (in secondi) prima di selezionare il bersaglio successivo dopo aver selezionato un nemico o un boss in @target\n\nFunziona solo se 'Opzioni lo stop target' ha '@target nemico' o '@target boss' disattivato\n\nIl ritardo viene aggiornato ogni volta che le condizioni hanno esito positivo o viene reimpostato in altro modo\n\nPulsanmte destro: Crea macro",
+				AFTERMOUSEOVERENEMYDELAY = "Ritardo target\nDopo il nemico @mouseover",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Supportato: 'Healing Engine'\n\nRitarda (in secondi) prima di selezionare il bersaglio successivo dopo aver selezionato un nemico in @mouseover\n\nFunziona solo se 'Opzioni lo stop target' ha disattivato '@mouseover nemico'\n\nIl ritardo viene aggiornato ogni volta che le condizioni hanno esito positivo o viene reimpostato in altro modo\n\nPulsanmte destro: Crea macro",
+				SELECTPETS = "Abilita Famigli",
+				SELECTPETSTOOLTIP = "Supportato: 'Healing Engine'\n\nCambia animali domestici per gestirli da tutte le API in 'Healing Engine'\n\nPulsanmte destro: Crea macro",
+				SELECTRESURRECTS = "Abilita Resurrezioni",
+				SELECTRESURRECTSTOOLTIP = "Supportato: 'Healing Engine'\n\nAttiva/disattiva i giocatori morti per la selezione di @target\n\nFunziona solo fuori combattimento\n\nPulsanmte destro: Crea macro",
+				HELP = "Aiuto",
+				HELPOK = "Gotcha",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Supportato: 'Healing Engine'\n\nAttiva/disattiva '/target %s'",
+				UNITID = "unitID", 
+				NAME = "Nome",
+				ROLE = "Ruolo",
+				ROLETOOLTIP = "Supportato: 'Healing Engine'\n\nResponsabile della priorità nella selezione @target, che è controllata da offset\nGli animali domestici sono sempre 'Assaltatore'",
+				DAMAGER = "Assaltatore",
+				HEALER = "Guaritore",
+				TANK = "Difensore",
+				UNKNOWN = "Sconosciuto",
+				USEDISPEL = "Dissi\npare",
+				USEDISPELTOOLTIP = "Supportato: 'Healing Engine' (profilo deve avere un codice per esso) + 'Rotation' (profilo deve avere un codice per esso)\n\n'Healing Engine': Lo permette '/target %s' per dissipare\n'Rotation': Permette di usare dispel on '%s'\n\nElimina l'elenco specificato nella scheda 'Auree'",
+				USESHIELDS = "Scudo",
+				USESHIELDSTOOLTIP = "Supportato: 'Healing Engine' (profilo deve avere un codice per esso) + 'Rotation' (profilo deve avere un codice per esso)\n\n'Healing Engine': Lo permette '/target %s' per scudo\n'Rotation': Permette di usare scudo on '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Supportato: 'Healing Engine' (profilo deve avere un codice per esso) + 'Rotation' (profilo deve avere un codice per esso)\n\n'Healing Engine': Lo permette '/target %s' per HoTs\n'Rotation': Permette di usare HoTs on '%s'",
+				USEUTILS = "Utilità",
+				USEUTILSTOOLTIP = "Supportato: 'Healing Engine' (profilo deve avere un codice per esso) + 'Rotation' (profilo deve avere un codice per esso)\n\n'Healing Engine': Lo permette '/target %s' per utilità\n'Rotation': Permette di usare utilità on '%s'\n\nUtilità significa azioni che supportano la categoria come 'Benedizione della Libertà', alcune delle quali possono essere specificate nella scheda 'Aure'",
+				GGLPROFILESTOOLTIP = "\n\nI profili GGL salteranno gli animali domestici per questo %s ceil in 'Healing Engine' (selezione @target)",
+				LUATOOLTIP = "Supportato: 'Healing Engine'\n\nUtilizza il codice che hai scritto come ultima condizione verificata in precedenza '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nPer fare riferimento a metatable che contengono dati 'thisunit' come l'uso della salute:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Nascondi Automaticamente",
+				AUTOHIDETOOLTIP = "Questo è solo un effetto visivo!\nFiltra automaticamente l'elenco e mostra solo unitID disponibile",						
+				PROFILES = "Profili",
+				PROFILESHELP = [[Le impostazioni di questo pannello influiscono 'Healing Engine' + 'Rotation'
+								 
+								 Ogni profilo registra assolutamente tutte le impostazioni della scheda corrente
+								 Pertanto, è possibile modificare al volo il comportamento della selezione del bersaglio 
+								 e della rotazione di guarigione
+								 
+								 Ad esempio: è possibile creare un profilo per lavorare sui gruppi 2 e 3 e il secondo
+								 per l'intero raid e allo stesso tempo cambiarlo con una macro,
+								 che può anche essere creato
+								 
+								 È importante comprendere che ogni modifica apportata in questa scheda deve essere 
+								 salvata di nuovo manualmente
+				]],
+				PROFILE = "Profilo",
+				PROFILEPLACEHOLDER = "-- nessun profilo o ha modifiche non salvate per il profilo precedente --",
+				PROFILETOOLTIP = "Scrivi il nome del nuovo profilo nella casella di modifica in basso e fai clic su 'Salva'\n\nLe modifiche non verranno salvate in tempo reale!\nOgni volta che si apportano modifiche per salvarle, è necessario fare nuovamente clic su 'Salva' per il profilo selezionato",
+				PROFILELOADED = "Profilo caricato: ",
+				PROFILESAVED = "Profilo salvato: ",
+				PROFILEDELETED = "Profilo cancellato: ",
+				PROFILEERRORDB = "ActionDB non è inizializzato!",
+				PROFILEERRORNOTAHEALER = "Devi essere un guaritore per usarlo!",
+				PROFILEERRORINVALIDNAME = "Nome profilo non valido!",
+				PROFILEERROREMPTY = "Non hai selezionato il profilo!",
+				PROFILEWRITENAME = "Scrivi il nome del nuovo profilo",
+				PROFILESAVE = "Salva",
+				PROFILELOAD = "Caricare",
+				PROFILEDELETE = "Elimina",
+				CREATEMACRO = "Pulsanmte destro: Crea macro",
+				PRIORITYHEALTH = "Priorità di salute",
+				PRIORITYHELP = [[Le impostazioni di questo pannello influiscono 'Healing Engine'
+
+								 Utilizzando queste impostazioni, è possibile modificare la priorità di
+								 selezione target in base alle impostazioni
+								 
+								 Queste impostazioni cambiano virtualmente l'integrità, permettendo
+								 il metodo di ordinamento per espandere le unità non solo filtra
+								 secondo le loro reali + opzioni di previsione salute
+
+								 Il metodo di ordinamento ordina tutte le unità per la salute minima
+								 
+								 Il moltiplicatore è il numero per il quale verrà moltiplicata la salute
+								 
+								 Offset è il numero che verrà impostato come percentuale fissa o
+								 elaborato in modo aritmetico (-/+ HP) in base alla 'Modalità offset'
+								 
+								 'Utilità' significa incantesimi offensivi come 'Benedizione della Libertà'
+				]],
+				MULTIPLIERS = "Moltiplicatori",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Limite danni in entrata",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Limita i danni in arrivo in tempo reale poiché i danni possono essere così\nlargati che il sistema smette di 'scendere' da @target.\nMetti 1 se vuoi ottenere un valore non modificato\n\nPulsanmte destro: Crea macro",
+				MULTIPLIERTHREAT = "Minaccia",
+				MULTIPLIERTHREATTOOLTIP = "Elaborato se esiste una minaccia maggiore (ad es. L'unità sta tankando)\nMetti 1 se vuoi ottenere un valore non modificato\n\nPulsanmte destro: Crea macro",
+				MULTIPLIERPETSINCOMBAT = "Famigli in combattimento",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Pets must be enabled to make it work!\nMetti 1 se vuoi ottenere un valore non modificato\n\nPulsanmte destro: Crea macro",
+				MULTIPLIERPETSOUTCOMBAT = "Famigli fuori combattimento",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Gli animali domestici devono essere abilitati per farlo funzionare!\nMetti 1 se vuoi ottenere un valore non modificato\n\nPulsanmte destro: Crea macro",
+				OFFSETS = "Offsets",
+				OFFSETMODE = "Modalità offset",
+				OFFSETMODEFIXED = "Fisso",
+				OFFSETMODEARITHMETIC = "Aritmetica",
+				OFFSETMODETOOLTIP = "'Fisso' imposterà lo stesso valore esatto in percentuale di salute\n'Aritmetica' -/+ valuterà la percentuale di salute\n\nPulsanmte destro: Crea macro",
+				OFFSETSELFFOCUSED = "Se stesso\nFocalizzato (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Elaborato se i giocatori nemici ti prendono di mira in modalità PvP\n\nPulsanmte destro: Crea macro",
+				OFFSETSELFUNFOCUSED = "Se stesso\nNon Focalizzato (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Elaborato se i giocatori nemici NON ti bersagliano in modalità PvP\n\nPulsanmte destro: Crea macro",
+				OFFSETSELFDISPEL = "Se stesso Dissipare",
+				OFFSETSELFDISPELTOOLTIP = "I profili GGL di solito hanno una condizione PvE per questo\n\nElimina l'elenco specificato nella scheda 'Auree'\n\nPulsanmte destro: Crea macro",
+				OFFSETHEALERS = "Guaritori",
+				OFFSETHEALERSTOOLTIP = "Elaborato solo su altri guaritori\n\nPulsanmte destro: Crea macro",
+				OFFSETTANKS = "Difensori",
+				OFFSETDAMAGERS = "Assaltatori",
+				OFFSETHEALERSDISPEL = "Guaritori Dissipare",
+				OFFSETHEALERSTOOLTIP = "Elaborato solo su altri guaritori\n\nElimina l'elenco specificato nella scheda 'Auree'\n\nPulsanmte destro: Crea macro",
+				OFFSETTANKSDISPEL = "Difensori Dissipare",
+				OFFSETTANKSDISPELTOOLTIP = "Elimina l'elenco specificato nella scheda 'Auree'\n\nPulsanmte destro: Crea macro",
+				OFFSETDAMAGERSDISPEL = "Assaltatori Dissipare",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Elimina l'elenco specificato nella scheda 'Auree'\n\nPulsanmte destro: Crea macro",
+				OFFSETHEALERSSHIELDS = "Guaritori Scudo",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Auto inclusa (@player)\n\nPulsanmte destro: Crea macro",
+				OFFSETTANKSSHIELDS = "Difensori Scudo",
+				OFFSETDAMAGERSSHIELDS = "Assaltatori Scudo",
+				OFFSETHEALERSHOTS = "Guaritori HoTs",
+				OFFSETHEALERSHOTSTOOLTIP = "Auto inclusa (@player)\n\nPulsanmte destro: Crea macro",
+				OFFSETTANKSHOTS = "Difensori HoTs",
+				OFFSETDAMAGERSHOTS = "Assaltatori HoTs",
+				OFFSETHEALERSUTILS = "Guaritori Utilità",
+				OFFSETHEALERSUTILSTOOLTIP = "Auto inclusa (@player)\n\nPulsanmte destro: Crea macro",
+				OFFSETTANKSUTILS = "Difensori Utilità",
+				OFFSETDAMAGERSUTILS = "Assaltatori Utilità",
+				MANAMANAGEMENT = "Gestione del mana",
+				MANAMANAGEMENTHELP = [[Le impostazioni di questo pannello influiscono solo 'Rotation'
+									   
+									   Il profilo deve avere un codice per questo! 
+									   
+									   Funziona se:
+									   1. Istanza interna
+									   2. In modalità PvE
+									   3. In combattimento  
+									   4. Dimensione del gruppo >= 5
+									   5. Avere un capo (i) focalizzato dai membri
+				]],
+				MANAMANAGEMENTMANABOSS = "La tua percentuale di mana <= percentuale di salute media dei boss",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Inizia a salvare la fase di mana se la condizione ha esito positivo\n\nLa logica dipende dal profilo che si utilizza!\n\nNon tutti i profili supportano questa impostazione!\n\nPulsanmte destro: Crea macro",
+				MANAMANAGEMENTSTOPATHP = "Interrompere la gestione\nPercentuale di salute",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Smette di salvare mana se unità primaria\n(@target/@mouseover) ha una percentuale di integrità inferiore a questo valore\n\nNon tutti i profili supportano questa impostazione!\n\nPulsanmte destro: Crea macro",
+				OR = "O",
+				MANAMANAGEMENTSTOPATTTD = "Interrompere la gestione\nTempo di morire",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Smette di salvare mana se unità primaria\n(@target/@mouseover) ha il tempo di morire (in secondi) al di sotto di questo valore\n\nNon tutti i profili supportano questa impostazione!\n\nPulsanmte destro: Crea macro",
+				MANAMANAGEMENTPREDICTVARIATION = "Efficacia di conservazione del mana",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "Influisce solo sulle impostazioni delle abilità di guarigione 'AUTO'!\n\nQuesto è un moltiplicatore su cui verrà calcolata la guarigione pura all'avvio della fase di salvataggio del mana\n\nMaggiore è il livello, maggiore è il risparmio di mana, ma meno APM\n\nPulsanmte destro: Crea macro",
+			},					
 		},
 	},
 	esES = {			
@@ -1818,6 +2793,8 @@ local Localization = {
 		RESIZE_TOOLTIP = "Click-y-arrastrar para redimensionar",
 		CLOSE = "Cerca",
 		APPLY = "Aplicar",
+		UPGRADEDFROM = "actualizado de ",
+		UPGRADEDTO = " a ",	
 		SLASH = {
 			LIST = "Lista de comandos:",
 			OPENCONFIGMENU = "Mostrar menú de configuración",
@@ -1841,12 +2818,15 @@ local Localization = {
 			SAVEDISPEL = "Guardar Lista de Auras",
 			SAVEMOUSE = "Guardar Lista de Cursor",
 			SAVEMSG = "Guardar Lista de Mensajes",
+			SAVEHE = "Guardar ajustes de Sistema de curacióne",
 			LUAWINDOW = "Configurar LUA",
 			LUATOOLTIP = "Para referirse a la unidad de comprobación, usa 'thisunit' sin comillas\nEl código debe tener retorno boolean (true) para procesar las condiciones\nEste código tiene setfenv que significa lo que no necesitas usar Action. para cualquier cosa que tenga it\n\nSi quieres borrar un codigo default necesitas escribir 'return true' sin comillas en vez de removerlo todo",
 			BRACKETMATCH = "Correspondencia de corchetes",
 			CLOSELUABEFOREADD = "Cerrar las configuración de LUA antes de añadir",
 			FIXLUABEFOREADD = "Debes arreglas los errores en la Configuración de LUA antes de añadir",
-			RIGHTCLICKCREATEMACRO = "ClickDerecho: Crear macro",
+			RIGHTCLICKCREATEMACRO = "Botón derecho: Crear macro",
+			CEILCREATEMACRO = "Botón derecho: Crear macro para establecer el valor '%s' para el techo '%s' en esta fila\nShift + botón derecho: Crear macro para establecer el valor '%s' para '%s' ceil-\n-y el valor opuesto para otros techos 'boolean' en esta fila",
+			ROWCREATEMACRO = "Botón derecho: Crear macro para establecer el valor actual para todos los techos en esta fila\nShift + botón derecho: Crear macro para establecer un valor opuesto para todos los techos 'boolean' en esta fila",							
 			NOTHING = "El Perfil no tiene configuración para este apartado",
 			HOW = "Aplicar:",
 			HOWTOOLTIP = "Global: Todas las cuentas, personajes y especializaciones",
@@ -1855,6 +2835,10 @@ local Localization = {
 			THISSPEC = "Para la especialización actual del personaje",			
 			KEY = "Tecla:",
 			CONFIGPANEL = "'Añadir' Configuración",
+			BLACKLIST = "Lista Negra",
+			LANGUAGE = "[Español]",
+			AUTO = "Auto",
+			SESSION = "Sesión: ",
 			[1] = {
 				HEADBUTTON = "General",	
 				HEADTITLE = "Primaria",
@@ -1871,22 +2855,12 @@ local Localization = {
 				SYSTEMSECTION = "Sección del sistema",
 				LOSSYSTEM = "Sistema LOS",
 				LOSSYSTEMTOOLTIP = "ATENCIÓN: Esta opción causa un delay de 0.3s + un giro actual de gcd\nsi la unidad está siendo comprobada esta se localizará como pérdida (por ejemplo, detrás de una caja en la arena)\nDebes también habilitar las mismas opciones en Opciones Avanzadas\nEsta opción pone en una lista negra la unidad con perdida y\n deja de producir acciones a esta durante N segundos\n\nClickDerecho: Crear macro",
-				HEALINGENGINEPETS = "Motor de Curación para Pets",
-				HEALINGENGINEPETSTOOLTIP = "Incluída en el target de las pets del jugador y calcula para curarles\n\nClickDerecho: Crear macro",
-				HEALINGENGINEANYROLE = "HealingEngine cualquier papel",
-				HEALINGENGINEANYROLETOOLTIP = "Habilite el uso de la orientación a miembros en cualquier rol",
 				STOPATBREAKABLE = "Detener el daño en el descanso",
 				STOPATBREAKABLETOOLTIP = "Detendrá el daño dañino en los enemigos\nSi tienen CC como Polymorph\nNo cancela el ataque automático!\n\nClickDerecho: Crear macro",
-				ALL = "Todo",
-				RAID = "Raid",
-				TANK = "Solo Tanques",
-				DAMAGER = "Solo Damage Dealers",
-				HEALER = "Solo Healers",
-				TANKANDPARTY = "Tanks y Grupo",
-				PARTY = "Grupo",
-				HEALINGENGINETOOLTIP = "Esta opción relativa a selección de unidad en curación\nTodo: todos los miembros\nRaid: Todos los miembros sin tanques\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'ALL', 'RAID', 'TANK', 'HEALER', 'DAMAGER', 'TANKANDPARTY', 'PARTY'",
-				DBM = "Tiempos DBM",
-				DBMTOOLTIP = "Rastrea tiempos de pull y algunos eventos específicos como la basura que pueda venir.\nEsta característica no está disponible para todos los perfiles!\n\nClickDerecho: Crear macro",
+				BOSSTIMERS = "Jefes Tiempos",
+				BOSSTIMERSTOOLTIP = "Complementos DBM o BigWigs requeridos\n\nRastrea tiempos de pull y algunos eventos específicos como la basura que pueda venir.\nEsta característica no está disponible para todos los perfiles!\n\nClickDerecho: Crear macro",
+				HEALINGENGINEANYROLE = "HealingEngine cualquier papel",
+				HEALINGENGINEANYROLETOOLTIP = "Habilite el uso de la orientación a miembros en cualquier role\n\nClickDerecho: Crear macro",				
 				FPS = "Optimización de FPS",
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Incrementa los frames por segundo aumentando la dependencia dinámica\nframes del ciclo de recarga (llamada) del ciclo de rotación\n\nTambién puedes establecer manualmente el intervalo siguiendo una regla simple:\nCuanto mayor sea el desplazamiento, mayor las FPS, pero peor actualización de rotación\nUn valor demasiado alto puede causar un comportamiento impredecible!\n\nClickDerecho: Crear macro",					
@@ -1895,7 +2869,8 @@ local Localization = {
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
 				BURST = "Modo Bursteo",
-				BURSTTOOLTIP = "Todo - En cooldown\nAuto - Boss o Jugadores\nOff - Deshabilitado\n\nClickDerechohabilitado\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en (ARG): 'Everything', 'Auto', 'Off'",					
+				BURSTEVERYTHING = "Todo",
+				BURSTTOOLTIP = "Todo - En cooldown\nAuto - Boss o Jugadores\nOff - Deshabilitado\n\nClickDerechohabilitado\n\nClickDerecho: Crear macro\nSi quieres establecer el estado de conmutación fija usa el argumento en: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
 				HEALTHSTONE = "Healthstone | Poción curativa",
 				HEALTHSTONETOOLTIP = "Establecer porcentaje de vida (HP)\nPoción curativa depende de la configuración de la pestaña de tu clase para Poción\ny si estas pociones se muestran en la pestaña Acciones\nPiedra de salud ha compartido tiempo de reutilización con Poción de sanación\n\nClickDerecho: Crear macro",
 				COLORTITLE = "Selector de color",
@@ -1925,6 +2900,7 @@ local Localization = {
 				SELECTTHEME = "Seleccionar Tema Listo",
 				THEMEHOLDER = "escoge un tema",
 				BLOODYBLUE = "Sangriento Azul",
+				ICE = "Hielo",
 				AUTOATTACK = "Auto ataque",
 				AUTOSHOOT = "Disparo automático",	
 				PAUSECHECKS = "La rotación no funciona si:",
@@ -1956,6 +2932,7 @@ local Localization = {
 				ROLETOOLTIP = "Dependiendo de este modo, la rotación funcionará\nAuto - Define tu rol dependiendo de la mayoría de los talentos anidados en el árbol correcto",
 				TOOLS = "Herramientas: ",
 				LETMECASTTOOLTIP = "Desmontaje automático y soporte automático\nSi un hechizo o interacción falla debido a que está montado, desmontarás. Si falla debido a que te sientas, te levantarás\nLet Me Cast - Déjame echar!",
+				LETMEDRAGTOOLTIP = "Te permite poner habilidades de mascota del libro\nde hechizos en tu barra de comandos regular creando una macro",
 				TARGETCASTBAR = "Target CastBar",
 				TARGETCASTBARTOOLTIP = "Muestra una barra de lanzamiento real debajo del marco de destino",
 				TARGETREALHEALTH = "Target RealHealth",
@@ -1987,7 +2964,7 @@ local Localization = {
 				UNBLOCKED = "|cff00ff00Desbloqueado: |r",
 				KEY = "[Tecla: ",
 				KEYTOTAL = "[Cola Total: ",
-				KEYTOOLTIP = "Usa esta tecla en la pestaña MSG",
+				KEYTOOLTIP = "Usa esta tecla en la pestaña 'Mensajes'",
 				ISFORBIDDENFORBLOCK = "está prohibido ponerlo en bloquear!",
 				ISFORBIDDENFORQUEUE = "está prohibido ponerlo en cola!",
 				ISQUEUEDALREADY = "ya existe en la cola!",
@@ -2007,30 +2984,32 @@ local Localization = {
 				ID = "ID",
 				NAME = "Nombre",
 				ICON = "Icono",
-				CONFIGPANEL = "'Añadir Interrupción' Configuración",
-				INTERRUPTFRONTSTRINGTITLE = "Seleccionar lista:",
-				INTERRUPTTOOLTIP = "[Main] para unidades @target/@mouseover/@targettarget\n[Heal] para unidades @arena1-3 (healing)\n[PvP] para unidades @arena1-3 (controlmultitud)\n\nPuedes establecer diferentes tiempos para [Heal] y [PvP] (no en esta UI)",
+				USEKICK = "Patada",
+				USECC = "CC",
+				USERACIAL = "Racial",
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Establece la interrupción entre el porcentaje mínimo y máximo de duración del lanzamiento\n\nEl color rojo de los valores significa que están demasiado cerca uno del otro y son peligrosos de usar\n\nEl estado OFF significa que estos controles deslizantes no están disponibles para esta lista",
+				USEMAIN = "[Main] Utilizar",
+				USEMAINTOOLTIP = "Habilita o deshabilita la lista con sus unidades para interrumpir\n\nClickDerecho: Crear macro",
+				MAINAUTO = "[Main] Auto",
+				MAINAUTOTOOLTIP = "Si está habilitado:\nPvE: interrumpe cualquier lanzamiento disponible\nPvP: si es healer y morirá en menos de 6 segundos, ya sea si es un jugador sin healers enemigos dentro del alcance\n\nSi está deshabilitado:\nInterrumpe solo los hechizos agregados en la tabla de desplazamiento para esa lista\n\nClickDerecho: Crear macro",
+				USEMOUSE = "[Mouse] Utilizar",
+				USEMOUSETOOLTIP = "Habilita o deshabilita la lista con sus unidades para interrumpir\n\nClickDerecho: Crear macro",
+				MOUSEAUTO = "[Mouse] Auto",
+				MOUSEAUTOTOOLTIP = "Si está habilitado:\nPvE: interrumpe cualquier lanzamiento disponible\nPvP: interrumpe solo los hechizos agregados en la tabla de desplazamiento para las listas PvP y Curar y solo para los jugadores\n\nSi está deshabilitado:\nInterrumpe solo los hechizos agregados en la tabla de desplazamiento para esa lista\n\nClickDerecho: Crear macro",
+				USEHEAL = "[Heal] Utilizar",
+				USEHEALTOOLTIP = "Habilita o deshabilita la lista con sus unidades para interrumpir\n\nClickDerecho: Crear macro",
+				HEALONLYHEALERS = "[Heal] Solamente Healers",
+				HEALONLYHEALERSTOOLTIP = "Si está habilitado:\nInterrumpe solo a los healers\n\nSi está deshabilitado:\nInterrumpe cualquier vocación enemiga\n\nClickDerecho: Crear macro",
+				USEPVP = "[PvP] Utilizar",
+				USEPVPTOOLTIP = "Habilita o deshabilita la lista con sus unidades para interrumpir\n\nClickDerecho: Crear macro",
+				PVPONLYSMART = "[PvP] Inteligente",
+				PVPONLYSMARTTOOLTIP = "Si está habilitado, se interrumpirá por lógica avanzada:\n1) Chain control en tu healer\n2) Alguien amigo (o tu) teneis buffs de Burst > 4 segundos\n3) Alguien morirá en menos de 8 segundos\n4) Tu (o @target) HP va a ejecutar la fase\n\nDesmarcado: interrumpirá esta lista siempre sin ningún tipo de lógica\n\nClickDerecho: Crear macro",		
 				INPUTBOXTITLE = "Escribir habilidad:",					
 				INPUTBOXTOOLTIP = "ESCAPE (ESC): limpiar texto y borrar focus",
 				INTEGERERROR = "Desbordamiento de enteros intentando almacenar > 7 números", 
 				SEARCH = "Buscar por nombre o ID",
-				TARGETMOUSEOVERLIST = "[Main] Lista",
-				TARGETMOUSEOVERLISTTOOLTIP = "Desmarcado: interrumpirá CUALQUIER cast de forma aleatoria\nMarcado: interrumpirá solamente la lista específica de @target/@mouseover/@targettarget\nNota: en PvP se solucionará la interrupción de esa lista si está habilitado, de otra manera solo healers si mueren en menos de 3-4 segundos!\n\n@mouseover/@targettarget son opcionales y dependen de si están activados en la seccion spec\n\nClickDerecho: Crear macro",
-				KICKTARGETMOUSEOVER = "[Main] Interrupciones\nHabilitado",					
-				KICKTARGETMOUSEOVERTOOLTIP = "Desmarcado: @target/@mouseover interrupciones de la unidad no funcionan\nMarcado: @target/@mouseover interrupciones de la unidad funcionan\n\nClickDerecho: Crear macro",					
-				KICKHEALONLYHEALER = "[Heal] Solo healers",					
-				KICKHEALONLYHEALERTOOLTIP = "Desmarcado: lista válida para cualquier especialización de la unidad enemiga\n(e.g. Ench, Elem, SP, Retri)\nMarcado: lista solo válida para enemigos healers\n\nClickDerecho: Crear macro",
-				KICKHEAL = "[Heal] Lista",
-				KICKHEALPRINT = "[Heal] Lista of Interrupciones",
-				KICKHEALTOOLTIP = "Desmarcado: @arena1-3 [Heal] lista personalizada no funcionará\nChecked: @arena1-3 [Heal] lista personalizada funcionará\n\nClickDerecho: Crear macro",
-				KICKPVP = "[PvP] Lista",
-				KICKPVPPRINT = "[PvP] Lista de Interrupciones",
-				KICKPVPTOOLTIP = "Desmarcado: @arena1-3 [PvP] lista personalizada no funcionará\nChecked: @arena1-3 [PvP] lista personalizada funcionará\n\nClickDerecho: Crear macro",	
-				KICKPVPONLYSMART = "[PvP] INTELIGENTE",
-				KICKPVPONLYSMARTTOOLTIP = "Marcado: interrumpirá solamente acorden a la lógica establecida en la configuración del perfil lua. Ejemplo:\n1) Chain control en tu healer\n2) Alguien amigo (o tu) teneis buffs de Burst > 4 segundos\n3) Alguien morirá en menos de 8 segundos\n4) Tu (o @target) HP va a ejecutar la fase\nDesmarcado: interrumpirá esta lista siempre sin ningún tipo de lógica\n\nNota: Causa una demanda alta de la CPU\nClickDerecho: Crear macro",
-				USEKICK = "Patada",
-				USECC = "CC",
-				USERACIAL = "Racial",
 				ADD = "Añadir Interrupción",					
 				ADDERROR = "|cffff0000No has especificado nada en 'Escribir Habilidad' o la habilidad no ha sido encontrada!|r",
 				ADDTOOLTIP = "Añade habilidad del 'Escribir Habilidad'\n edita el cuadro a la lista seleccionada actual",
@@ -2039,12 +3018,12 @@ local Localization = {
 			},
 			[5] = { 	
 				HEADBUTTON = "Auras",					
-				USETITLE = "Configuración de Caja",
+				USETITLE = "",
 				USEDISPEL = "Usar Dispel",
 				USEPURGE = "Usar Purga",
 				USEEXPELENRAGE = "Expel Enrague",
 				USEEXPELFRENZY = "Expel Frenzy",
-				HEADTITLE = "[Global] Dispel | Purga | Enrague",
+				HEADTITLE = "[Global]",
 				MODE = "Modo:",
 				CATEGORY = "Categoría:",
 				POISON = "Dispelea venenos",
@@ -2058,6 +3037,7 @@ local Localization = {
 				BLESSINGOFPROTECTION = "Bendición de Protección",
 				BLESSINGOFFREEDOM = "Bendición de Libertad",
 				BLESSINGOFSACRIFICE = "Bendición de Sacrificio",	
+				VANISH = "Esfumarse",
 				ROLE = "Rol",
 				ID = "ID",
 				NAME = "Nombre",
@@ -2116,6 +3096,7 @@ local Localization = {
 				HORDEFLAG = "bandera de la horda",
 			},
 			[7] = {
+				HEADBUTTON = "Mensajes",
 				HEADTITLE = "Mensaje del Sistema",
 				USETITLE = "",
 				MSG = "Sistema de MSG",
@@ -2139,6 +3120,715 @@ local Localization = {
 				INPUTERROR = "No has escrito una frase!",
 				INPUTTOOLTIP = "La frase aparecerá en cualquier coincidencia del chat de grupo (/party)\nNo se distingue entre mayúsculas y minúsculas\nContiene patrones, significa que la frase escrita por alguien con la combinación de palabras de raid, party, arena, party o player\nse adapta la acción a la meta slot deseada\nNo necesitas establecer los patrones listados aquí, se utilizan como un añadido a la macro\nSi el patrón no es encontrado, los espacios para las rotaciones Single y AoE serán usadas",				
 			},
+			[8] = {
+				HEADBUTTON = "Sistema de Cura",
+				OPTIONSPANEL = "Opciones",
+				OPTIONSPANELHELP = [[Las opciones de este panel afectan al 'Healing Engine' + 'Rotation'
+									
+									Nos referimos al 'Healing Engine' con la selección del sistema a través de @target
+									con macro /target 'unitID'
+									
+									Nos referimos a 'Rotation' para rotación de la cura/daño
+									para la actual primera unidad (@target o @mouseover)
+									
+									Hay veces que verás 'el perfil debe tener código para ello' que quiere decir
+									que característica no funciona sin añadir un
+									código especial de perfil de autor dentro del lua
+									
+									Cada elemento tiene información (tooltip), lee atentamente y prueba si necesarioso
+									antes de empezar la pelea real]],									
+				SELECTOPTIONS = "-- seleccionar opciones --",
+				PREDICTOPTIONS = "Predecir Opciones",
+				PREDICTOPTIONSTOOLTIP = "Soportado: 'Healing Engine' + 'Rotation' (el perfil debe tener código para ello)\n\nEstas opciones afectan:\n1. Predicción de cura del miembro del grupo para la selección del @target ('Healing Engine')\n2. Cálculo de que acción de cura se usa en @target/@mouseover ('Rotation')\n\nBotón derecho: Crear macro",
+				INCOMINGHEAL = "Cura Entrante",
+				INCOMINGDAMAGE = "Daño Entrante",
+				THREATMENT = "Amenaza (PvE)",
+				SELFHOTS = "HoTs", -- ´de uno mismo
+				ABSORBPOSSITIVE = "Absorción Positiva",
+				ABSORBNEGATIVE = "Absorción Negativa",
+				SELECTSTOPOPTIONS = "Opciones de parada de Target",
+				SELECTSTOPOPTIONSTOOLTIP = "Soportado: 'Healing Engine'\n\nEstas opciones afectan solo a la selección de @target, y en especial\npreviene la selección si una de las opciones es satisfactoria\n\nBotón derecho: Crear macro",
+				SELECTSTOPOPTIONS1 = "@mouseover amigo",
+				SELECTSTOPOPTIONS2 = "@mouseover enemigo",
+				SELECTSTOPOPTIONS3 = "@target enemigo",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player muerto",
+				SELECTSORTMETHOD = "Método de orden de target",
+				SELECTSORTMETHODTOOLTIP = "Soportado: 'Healing Engine'\n\n'Porcentaje de Vida' ordena la selección del @target con el último ratio deporcentage de vida\n'Vida Actual' ordena la selección del @target con el ratio exacto de vida\n\Botón derecho: Crear macro",
+				SORTHP = "Porcentaje de Vida",
+				SORTAHP = "Vida Actual",
+				AFTERTARGETENEMYORBOSSDELAY = "Retraso/Adelanto del Target\n @target enemigo o boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Soportado: 'Healing Engine'\n\nRetraso (en segundos) antes de seleccionar el siguiente target después de seleccionar un enemigo o boss en @target\n\nSolo funciona si la opción 'Opciones de para Target' tiene '@target enemigo' o '@target boss' deshabilitada\n\nEl retraso se actualiza cada vez cuando las condiciones se realizan satisfactoriamente o se reinician\n\nBotón derecho: Crear macro",
+				AFTERMOUSEOVERENEMYDELAY = "Target Retraso\nAdelanto @mouseover enemigo",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Soportado: 'Healing Engine'\n\nRetraso (en segundos) antes de seleccionar el siguiente target después de seleccionar un enemy en @mouseover\n\nSolo funciona si la opción 'Opciones de para Target' tiene '@mouseover enemigo' deshabilitada\n\nEl retraso se actualiza cada vez cuando las condiciones se realizan satisfactoriamente o se reinician\n\nBotón derecho: Crear macro",
+				SELECTPETS = "Habilitar Mascotas",
+				SELECTPETSTOOLTIP = "Soportado: 'Healing Engine'\n\nCambia mascotas para manejarlas por todas las API en 'Healing Engine'\n\nBotón derecho: Crear macro",
+				SELECTRESURRECTS = "Enable Resurrects",
+				SELECTRESURRECTSTOOLTIP = "Soportado: 'Healing Engine'\n\nAlterna jugadores muertos por la selección de @target \n\nSolo funciona fuera de combate\n\nBotón derecho: Crear macro",
+				HELP = "Ayuda",
+				HELPOK = "Entendido",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Soportado: 'Healing Engine'\n\nApagar/Encender '/target %s'",
+				UNITID = "unitID",
+				NAME = "Nombre",
+				ROLE = "Rol",
+				ROLETOOLTIP = "Soportado: 'Healing Engine'\n\nResponsable de la prioridad en la selección de @target, que se controla mediante compensaciones\nLas mascotas son siempre 'Dañadores'",
+				DAMAGER = "Dañador",
+				HEALER = "Healer",
+				TANK = "Tanque",
+				UNKNOWN = "Desconocido",
+				USEDISPEL = "Disipar",
+				USEDISPELTOOLTIP = "Soportado: 'Healing Engine' (el perfil debe tener código para ello) + 'Rotation' (el perfil debe tener código para ello)\n\n'Healing Engine': Permite '/target %s' para dispel\n'Rotation': Permite usar disipar en '%s'\n\nDisipar la lista especificada en la pestaña 'Auras'",
+				USESHIELDS = "Escu\ndos",
+				USESHIELDSTOOLTIP = "Soportado: 'Healing Engine' (el perfil debe tener código para ello) + 'Rotation' (el perfil debe tener código para ello)\n\n'Healing Engine': Permite '/target %s' para escudos\n'Rotation': Permite usar escudos en '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Soportado: 'Healing Engine' (el perfil debe tener código para ello) + 'Rotation' (el perfil debe tener código para ello)\n\n'Healing Engine': Permite '/target %s' para HoTs\n'Rotation': Permite usarlo con HoTs en '%s'",
+				USEUTILS = "Utils",
+				USEUTILSTOOLTIP = "Soportado: 'Healing Engine' (el perfil debe tener código para ello) + 'Rotation' (el perfil debe tener código para ello)\n\n'Healing Engine': Permite '/target %s' para utilidades\n'Rotation': Permite usarlo en '%s'\n\nLas utilidades significan una categoría de soporte de acciones como 'Bendición de libertad', algunas de ellas se pueden especificar en la pestaña 'Auras'",
+				GGLPROFILESTOOLTIP = "\n\nLos perfiles de GGL esquivarán las petas para este %s ceil en 'Healing Engine'(@target selection)",
+				LUATOOLTIP = "Soportado: 'Healing Engine'\n\nUtiliza el código que escribió como la última condición verificada antes '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nPara referirse a metatabla que contiene datos de 'thisunit' como el uso de la salud:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Auto Esconder",
+				AUTOHIDETOOLTIP = "Esto es solo un efecto visual!\nFiltra automáticamente la lista y muestra solo unitID disponible",
+				PROFILES = "Perfiles",
+				PROFILESHELP = [[La configuración de este panel afecta 'Healing Engine' + 'Rotation'
+								 
+								Cada perfil registra absolutamente todas las configuraciones de la pestaña actual
+								Por lo tanto, puede cambiar el comportamiento de la selección de objetivos y la rotación
+								de curación sobre la marcha
+								 
+								Por ejemplo: puede crear un perfil para trabajar en los grupos 2 y 3, y el segundo
+								para toda la incursión, y al mismo tiempo cambiarlo con una macro,
+								que también se puede crear
+								 
+								Es importante comprender que cada cambio realizado en esta pestaña debe guardarse manualmente
+				]],
+				PROFILE = "Perfil",
+				PROFILEPLACEHOLDER = "-- sin perfil o tiene cambios sin guardar para el perfil anterior --",
+				PROFILETOOLTIP = "Escriba el nombre del nuevo perfil en el cuadro de edición a continuación y haga clic en 'Guardar'\n\n¡Los cambios no se guardarán en tiempo real!\nCada vez que realice cambios en caso de guardarlos, debe hacer clic nuevamente en 'Guardar' para el perfil seleccionado",
+				PROFILELOADED = "Perfil cargado: ",
+				PROFILESAVED = "Perfil guardado: ",
+				PROFILEDELETED = "Borrar perfil: ",
+				PROFILEERRORDB = "ActionDB no están inicializado!",
+				PROFILEERRORNOTAHEALER = "¡Debes ser sanadora para usarlo!",
+				PROFILEERRORINVALIDNAME = "Nombre de perfil inválido!",
+				PROFILEERROREMPTY = "No has seleccionado el perfil!",
+				PROFILEWRITENAME = "Escribe el nombre del nuevo perfil",
+				PROFILESAVE = "Guardar",
+				PROFILELOAD = "Cargar",
+				PROFILEDELETE = "Borrar",
+				CREATEMACRO = "Botón derecho: Crear macro",
+				PRIORITYHEALTH = "Prioridad de Cura",
+				PRIORITYHELP = [[La configuración de este panel solo afecta 'Healing Engine'
+
+								Con esta configuración, puede cambiar la prioridad de
+								selección de objetivo según la configuración
+								 
+								Estas configuraciones cambian virtualmente la salud, permitiendo
+								El método de clasificación para expandir unidades filtra no solo
+								según sus opciones de predicción real + salud
+
+								El método de clasificación clasifica todas las unidades por menos salud
+								El multiplicador es el número por el cual se multiplicará la salud.
+								 
+								La compensación es un número que se establecerá como porcentaje fijo o
+								procesado aritméticamente (-/+ HP) dependiendo del 'Modo de compensación'
+								 
+								'Utils' significa hechizos ofensivos como 'Bendición de libertad'
+				]],
+				MULTIPLIERS = "Multiplicadores",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Límite de daño entrante",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Limita el daño entrante en tiempo real ya que el daño puede ser tan\ngrande que el sistema se detiene 'baja' del @target.\nPonga 1 si desea obtener un valor no modificado\n\nBotón derecho: Crear macro",
+				MULTIPLIERTHREAT = "Amenaza",
+				MULTIPLIERTHREATTOOLTIP = "Procesado si existe una amenaza mayor (por ejemplo si la unidad está atacando)\nPonga 1 si desea obtener un valor no modificado\n\nBotón derecho: Crear macro",
+				MULTIPLIERPETSINCOMBAT = "Mascotas en combate",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "¡Las mascotas deben estar habilitadas para que funcione!\nPonga 1 si desea obtener un valor no modificado\n\nBotón derecho: Crear macro",
+				MULTIPLIERPETSOUTCOMBAT = "Mascotas fuera de combate",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "¡Las mascotas deben estar habilitadas para que funcione!\nPonga 1 si desea obtener un valor no modificado\n\nBotón derecho: Crear macro",
+				OFFSETS = "Desplazamientos",
+				OFFSETMODE = "Modo de desplazamiento",
+				OFFSETMODEFIXED = "Fijo",
+				OFFSETMODEARITHMETIC = "Aritmética",
+				OFFSETMODETOOLTIP = "'Fijo' establecerá exactamente el mismo valor en porcentaje de salud\n'Aritmética' será -/+ valor al porcentaje de salud\n\nBotón derecho: Crear macro",
+				OFFSETSELFFOCUSED = "Auto\nenfocado (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Procesado si los jugadores enemigos te atacan en modo PvP\n\nBotón derecho: Crear macro",
+				OFFSETSELFUNFOCUSED = "Auto\ndesenfocado (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Procesado si los jugadores enemigos NO te apuntan en modo PvP\n\nBotón derecho: Crear macro",
+				OFFSETSELFDISPEL = "Disipador\n(a uno mismo)",
+				OFFSETSELFDISPELTOOLTIP = "Los perfiles GGL normalmente tienen condiciones PvE para esto\n\nDisipar la lista especificada en la pestaña 'Auras'\n\nBotón derecho: Crear macro",
+				OFFSETHEALERS = "Healers",
+				OFFSETHEALERSTOOLTIP = "Procesado solo en otros healers\n\nBotón derecho: Crear macro",
+				OFFSETTANKS = "Tanques",
+				OFFSETDAMAGERS = "Dañadores",
+				OFFSETHEALERSDISPEL = "Disipador Healers",
+				OFFSETHEALERSTOOLTIP = "Procesado solo en otros healers\n\nDisipar la lista especificada en la pestaña 'Auras'\n\nBotón derecho: Crear macro",
+				OFFSETTANKSDISPEL = "Disipador Tanque",
+				OFFSETTANKSDISPELTOOLTIP = "Disipar la lista especificada en la pestaña 'Auras'\n\nBotón derecho: Crear macro",
+				OFFSETDAMAGERSDISPEL = "Disipador Dañadores",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Disipar la lista especificada en la pestaña 'Auras'\n\nBotón derecho: Crear macro",
+				OFFSETHEALERSSHIELDS = "Escudos Healers",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Auto incluído (@player)\n\nBotón derecho: Crear macro",
+				OFFSETTANKSSHIELDS = "Tanques Dañadores",
+				OFFSETDAMAGERSSHIELDS = "Escudos Dañadores",
+				OFFSETHEALERSHOTS = "HoTs Healer",
+				OFFSETHEALERSHOTSTOOLTIP = "Auto incluído (@player)\n\nBotón derecho: Crear macro",
+				OFFSETTANKSHOTS = "HoTs Tanque",
+				OFFSETDAMAGERSHOTS = "HoTs Dañadores",
+				OFFSETHEALERSUTILS = "Utils Healer",
+				OFFSETHEALERSUTILSTOOLTIP = "Auto incluído (@player)\n\nBotón derecho: Crear macro",
+				OFFSETTANKSUTILS = "Utils Tanque",
+				OFFSETDAMAGERSUTILS = "Utils Dañadores",
+				MANAMANAGEMENT = "Manejo de Maná",
+				MANAMANAGEMENTHELP = [[La configuración de este panel solo afecta 'Rotation'
+									   
+									   ¡El perfil debe tener código para esto!
+									   
+									   Funciona en:
+									   1. Dentro de Instancias
+									   2. En modo PvE
+									   3. En combate  
+									   4. Grupos de >= 5
+									   5. Tener boss(-es) focuseados por miembros
+				]],
+				MANAMANAGEMENTMANABOSS = "Tu Porcentaje de Mana <= Promedio del Porcentaje de Vida del Boss(-es)",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Comienza a guardar la fase de maná si la condición es exitosa\n\nLa lógica depende del perfíl que uses!\n\nNo todos los perfiles soportan estas opciones!\n\nRight click: Create macro",
+				MANAMANAGEMENTSTOPATHP = "Parar la gestión\nPorcentaje de salud",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Deja de guardar maná si la unidad principal\n(@target/@mouseover)tiene un porcentaje de salud por debajo de este valor\n\n¡No todos los perfiles admiten esta configuración!\n\nBotón derecho: Crear macro",
+				OR = "O",
+				MANAMANAGEMENTSTOPATTTD = "Parar la gestión\nTiempo de Morir",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Deja de guardar maná si la unidad principal\n(@target/@mouseover) tiene tiempo de morir (en segundos) por debajo de este valor\n\n¡No todos los perfiles admiten esta configuración!\n\nBotón derecho: Crear macro",
+				MANAMANAGEMENTPREDICTVARIATION = "Efectividad de conservación de maná",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "¡Solo afecta la configuración de las habilidades de curación 'AUTO'!\n\nEste es un multiplicador en el que se calculará la curación pura cuando se inició la fase de guardado de maná\n\nCuanto mayor sea el nivel, mayor será el ahorro de maná, pero menos APM\n\nBotón derecho: Crear macro",			
+			},					
+		},
+	},
+	ptPT = {		
+		NOSUPPORT = "este perfil não suporta o ActionUI ainda",	
+		DEBUG = "|cffff0000[Debug] Identificação de erro: |r",			
+		ISNOTFOUND = "não encontrado!",			
+		CREATED = "criado",
+		YES = "Sim",
+		NO = "Não",
+		TOGGLEIT = "Trocar",
+		SELECTED = "Selecionado",
+		RESET = "Resetar",
+		RESETED = "Resetado",
+		MACRO = "Macro",
+		MACROEXISTED = "|cffff0000Macro já existe!|r",
+		MACROLIMIT = "|cffff0000Impossível criar macro. Você já chegou no limite. Você precisa remover pelo menos um macro!|r",	
+		MACROINCOMBAT = "|cffff0000Impossível criar macro em combate. Você precisa sair de combate!|r",
+		GLOBALAPI = "API Global: ",
+		RESIZE = "Redimensionar",
+		RESIZE_TOOLTIP = "Clique-e-arraste to redimensionar",
+		CLOSE = "Fechar",
+		APPLY = "Aplicar",
+		UPGRADEDFROM = "Melhorado de ",
+		UPGRADEDTO = " para ",		
+		SLASH = {
+			LIST = "Lista de comandos:",
+			OPENCONFIGMENU = "exibe o menu de configurações",
+			HELP = "exibe informações de ajuda",
+			QUEUEHOWTO = "macro (ativável) para o sistema de sequência (Queue), o TABLENAME é uma referência para o SpellName|ItemName (em Inglês)",
+			QUEUEEXAMPLE = "exemplo de uso da Queue",
+			BLOCKHOWTO = "macro (ativável) para habilitar|desabilitar qualquer ação (Blocker), o TABLENAME é uma referência para o SpellName|ItemName (em Inglês)",
+			BLOCKEXAMPLE = "exemplo de uso do Blocker",
+			RIGHTCLICKGUIDANCE = "Maioria dos elementos podem ser clicados com o botão esquerdo ou direito. O botão direito criará um ativador de macro então pode considerar a sugestão acima",				
+			INTERFACEGUIDANCE = "Explicações da UI:",
+			INTERFACEGUIDANCEGLOBAL = "[Global] relativa para TODA sua conta, TODOS os personagems, TODAS as especializações",
+			TOTOGGLEBURST = "ativar o  Burst Mode",
+			TOTOGGLEMODE = "ativar o PvP / PvE",
+			TOTOGGLEAOE = "ativar o AoE",
+		},
+		TAB = {
+			RESETBUTTON = "Resetar configurações",
+			RESETQUESTION = "Tem certeza?",
+			SAVEACTIONS = "Salvar configurações das Actions",
+			SAVEINTERRUPT = "Salvar lista de Interrupts",
+			SAVEDISPEL = "Salvar lista de Auras",
+			SAVEMOUSE = "Salvar lista de Cursors",
+			SAVEMSG = "Salvar lista de MSG",
+			SAVEHE = "Salvar configurações das Sistema de Cura",
+			LUAWINDOW = "Configurar LUA",
+			LUATOOLTIP = "Para se referir a unidade checada, use 'thisunit' sem aspas\nCódigo deve retornar um Boolean (true) para processar as condições\nEste código tem setfenv o que significa que você não precisa usar o Action para nada que já tenha ele\n\nSe quiser remover o código padrão você precisará escrever 'return true' sem aspas no lugar de remover tudo",
+			BRACKETMATCH = "Igualar colchetes",
+			CLOSELUABEFOREADD = "Fechar configuração LUA antes de salvar",
+			FIXLUABEFOREADD = "Você precisa corrigir os erros do LUA antes de salvar",
+			RIGHTCLICKCREATEMACRO = "RightClick: Criar macro",
+			CEILCREATEMACRO = "Clique direito: Criar macro para estabelecer '%s' um valor de '%s' teto nessa linha\nShift + Clique direito: Criar macro para estabelecer '%s' um valor de '%s' teto-\n-e valor oposto para outros valores teto 'boolean' nessa linha",
+			ROWCREATEMACRO = "Clique direito: Criar macro para estabelecer um valor atual para todos os tetos nessa linha\nShift + Clique direito: Criar macro para estabelecer um valor oposto para todos os tetos 'boolean' nessa linha",
+			NOTHING = "Este perfil não possui configurações para esta aba",
+			HOW = "Aplicar:",
+			HOWTOOLTIP = "Global: Toda a conta, todos os personagens e todas as especializações",
+			GLOBAL = "Global",
+			ALLSPECS = "Para todas as especializações do personagem",
+			THISSPEC = "Para a especialização atual do personagem",			
+			KEY = "Chave:",
+			CONFIGPANEL = "'Adicionar' Configuração",
+			BLACKLIST = "Lista Negra",
+			LANGUAGE = "[Português]",
+			AUTO = "Auto",
+			SESSION = "Sessão: ",
+			[1] = {
+				HEADBUTTON = "Geral",	
+				HEADTITLE = "Primário",
+				PVEPVPTOGGLE = "PvE / PvP Ativação manual",
+				PVEPVPTOGGLETOOLTIP = "Forçar um perfil a trocar para outro modo\n(especialmente útil quando o WarMode está ligado)\n\nRightClick: Criar macro", 
+				PVEPVPRESETTOOLTIP = "Resetar a ativação manual para seleção automática",
+				CHANGELANGUAGE = "Trocar língua",
+				CHARACTERSECTION = "Seção de personagens",
+				AUTOTARGET = "Alvo automático",
+				AUTOTARGETTOOLTIP = "Se o alvo está vazio, mas você está em combate, será retornado o inimigo mais próximo\nO trocador funciona da mesma maneira se o alvo possui alguma imunidade em PVP\n\nRightClick: Criar macro",					
+				POTION = "Poção",				
+				RACIAL = "Magia Racial",
+				STOPCAST = "Parar de conjurar",
+				SYSTEMSECTION = "Seção de Sistema",
+				LOSSYSTEM = "Sistema LOS",
+				LOSSYSTEMTOOLTIP = "ATENÇÃO: Esta opção causa um delay de 0.3s + o gcd atual\nse a unidade estiver localizada fora de LOS (por exemplo, atrás de uma caixa em arena)\nVocê também deve ativar a mesma opção em Configurações Avançadas\nEsta opção coloca na Lista Negra as unidades que não estiverem em LOS\ne para de prover ações para ela por N segundo\n\nRightClick: Criar macro",
+				STOPATBREAKABLE = "Pare o dano quando Quebravel",
+				STOPATBREAKABLETOOLTIP = "Irá para o dano em alvos\nSe eles estiverem em CC como Polymorph\nO auto-ataque não é cancelado!\n\nRightClick: Criar macro",
+				BOSSTIMERS = "Contadores do Chefes",
+				BOSSTIMERSTOOLTIP = "Suplementos DBM ou BigWigs necessários\n\nRastreando contadoes de pull e alguns eventos específicos como trash a caminho.\nEsta funcionalidade não está disponível para todos os profiles\n\nRightClick: Criar macro",
+				HEALINGENGINEANYROLE = "HealingEngine qualquer função",
+				HEALINGENGINEANYROLETOOLTIP = "Habilite o uso da segmentação por membros em qualquer função\n\nRightClick: Criar macro",
+				FPS = "Otimização de FPS",
+				FPSSEC = " (sec)",
+				FPSTOOLTIP = "AUTO: Aumenta os quadros por segundo por meio de aumento na depêndencia dinâmica \nquadros do ciclo de atualização (call) do ciclo de rotação\n\nVocê pode setar o intervalo manualmente seguindo uma simples regra:\nQuanto maior o slider maior o FPS, mas pior será a atualização da rotação\nValores muito altos podem causar comportamento imprevisível!\n\nRightClick: Criar macro",					
+				PVPSECTION = "Seção PVP",
+				RETARGET = "Retorna @target anterior\n(arena1-3 units only)\nRecomendado contra caçadores usando 'Fingir de Morto' e outras perdas de alvo não previstas\n\nRightClick: Criar macro",
+				TRINKETS = "Berloques",
+				TRINKET = "Berloque",
+				BURST = "Modo Explosão",
+				BURSTEVERYTHING = "Tudo",
+				BURSTTOOLTIP = "Tudo - Em recarga\nAuto - Chefe ou Jogadores\nOff - Desativado\n\nRightClick: Criar macro\nSe você gostaria de fixar o estado de ativação utilize o argumento em: 'Everything', 'Auto', 'Off'\n/run Action.ToggleBurst('Everything', 'Auto')",					
+				HEALTHSTONE = "Pedra da vida | Poção de Cura",
+				HEALTHSTONETOOLTIP = "Definir porcentagem de saúde (HP)\nA poção de cura depende da sua guia das configurações de classe para Poção\ne se essas poções mostradas na guia Ações\nO Healthstone tiver compartilhado a recarga com a Poção de Cura\n\nRightClick: Criar macro",
+				COLORTITLE = "Seletor de cor",
+				COLORUSE = "Usar cor customizada",
+				COLORUSETOOLTIP = "Trocar a cor padrão pela cor customizada",
+				COLORELEMENT = "Elemento",
+				COLOROPTION = "Opção",
+				COLORPICKER = "Seletor",
+				COLORPICKERTOOLTIP = "Clique para abrir a janela de configuração para o seu 'Element' selecionado > 'Option'\nBotão direito do mouse para mover a janela",
+				FONT = "Fonte",
+				NORMAL = "Normal",
+				DISABLED = "Desabilitado",
+				HEADER = "Cabeçalho",
+				SUBTITLE = "Legenda",
+				TOOLTIP = "Tooltip",
+				BACKDROP = "Pano de fundo",
+				PANEL = "Painel",
+				SLIDER = "Slider",
+				HIGHLIGHT = "Highlight",
+				BUTTON = "Botão",
+				BUTTONDISABLED = "Botão Desabilitado",
+				BORDER = "Borda",
+				BORDERDISABLED = "Borda Desabilitada",	
+				PROGRESSBAR = "Barra de progresso",
+				COLOR = "Cor",
+				BLANK = "Em branco",
+				SELECTTHEME = "Selecionar o tema de Pronto",
+				THEMEHOLDER = "escolher tema",
+				BLOODYBLUE = "Bloody Blue",
+				ICE = "Gelo",
+				AUTOATTACK = "Auto Attack",
+				AUTOSHOOT = "Auto Shoot",	
+				PAUSECHECKS = "Rotação não funciona se:",
+				DEADOFGHOSTPLAYER = "Você está morto",
+				DEADOFGHOSTTARGET = "Alvo está morto",
+				DEADOFGHOSTTARGETTOOLTIP = "Caçador inimigo como exceção se ele for selecionado como alvo principal",
+				MOUNT = "IsMounted",
+				COMBAT = "Fora de combate", 
+				COMBATTOOLTIP = "Se você e seu alvo estiverem fora de combate. Invisibilidade é exceção\n(quando invisivel esta condição será ignorada)",
+				SPELLISTARGETING = "SpellIsTargeting",
+				SPELLISTARGETINGTOOLTIP = "Exemplo: Nevasca, Salto Heroico, Armadilha Congelante",
+				LOOTFRAME = "LootFrame",
+				EATORDRINK = "Está comendo ou bebendo",
+				MISC = "Misc:",		
+				DISABLEROTATIONDISPLAY = "Esconder display da rotação",
+				DISABLEROTATIONDISPLAYTOOLTIP = "Esconde o grupo, que está normalmente no\ncentro abaixo da sua tela",
+				DISABLEBLACKBACKGROUND = "Esconder o fundo preto", 
+				DISABLEBLACKBACKGROUNDTOOLTIP = "Esconde o fundo preto na parte superior esquerda\nATENÇÃO: Isto pode causar comportamento imprevisível!",
+				DISABLEPRINT = "Esconder print",
+				DISABLEPRINTTOOLTIP = "Esconder notificações de tudo\nATENÇÃO: Isso também esconderá Identificações de Erro [Debug]!",
+				DISABLEMINIMAP = "Esconder icone no minimapa",
+				DISABLEMINIMAPTOOLTIP = "Esconde o icone do minimapa desta UI",
+				DISABLEPORTRAITS = "Esconder retrato da classe",
+				DISABLEROTATIONMODES = "Esconder modos da rotação",
+				DISABLESOUNDS = "Desabilitar sons",
+				HIDEONSCREENSHOT = "Esconder em capturas de tela",
+				HIDEONSCREENSHOTTOOLTIP = "Durante a captura de tela esconda todos os quadros de Action do TellMeWhen,\n e então os mostra de volta",
+				CAMERAMAXFACTOR = "Fator máximo da câmera", 
+				ROLETOOLTIP = "Dependendo desse modo, a rotação funcionará\nAuto - Define sua função dependendo da maioria dos talentos aninhados na árvore correta",
+				TOOLS = "Ferramentas:",
+				LETMECASTTOOLTIP = "Desmontagem automática e Suporte automático\nSe um feitiço ou interação falhar devido à montagem, você desmontará. Se falhar devido a você se sentar, você se levantará\nLet me cast!",
+				LETMEDRAGTOOLTIP = "Permite que você coloque habilidades do animal de estimação\ndo livro de feitiços na barra de comando normal, criando uma macro",
+				TARGETCASTBAR = "Target CastBar",
+				TARGETCASTBARTOOLTIP = "Mostra uma verdadeira barra de conversão sob o quadro de destino",
+				TARGETREALHEALTH = "Target RealAlvo",
+				TARGETREALHEALTHTOOLTIP = "Mostra um valor real de saúde no quadro de destino",
+				TARGETPERCENTHEALTH = "Target Percentual de Saúde",
+				TARGETPERCENTHEALTHTOOLTIP = "Mostra um valor percentual de integridade no quadro de destino",
+				AURADURATION = "Duração da Aura",
+				AURADURATIONTOOLTIP = "Mostra o valor da duração nos quadros de unidade padrão",
+				AURACCPORTRAIT = "Aura CC Portrait",
+				AURACCPORTRAITTOOLTIP = "Mostra o retrato do controle de multidões no quadro de destino",
+				LOSSOFCONTROLPLAYERFRAME = "Perda de controle: quadro do jogador",
+				LOSSOFCONTROLPLAYERFRAMETOOLTIP = "Exibe a duração da perda de controle na posição de retrato do jogador",
+				LOSSOFCONTROLROTATIONFRAME = "Perda de controle: Quadro de rotação",
+				LOSSOFCONTROLROTATIONFRAMETOOLTIP = "Exibe a duração da perda de controle na posição retrato de rotação (no centro)",
+				LOSSOFCONTROLTYPES = "Perda de controle: gatilhos de exibição",	
+			},
+			[3] = {
+				HEADBUTTON = "Ações",
+				HEADTITLE = "Blocker | Queue",
+				ENABLED = "Ativado",
+				NAME = "Nome",
+				DESC = "Nota",
+				ICON = "Icone",
+				SETBLOCKER = "Setar\nBloqueador",
+				SETBLOCKERTOOLTIP = "Isso bloqueara a dada action na rotação\nEla nunca será utilizada\n\nRightClick: Criar macro",
+				SETQUEUE = "Setar\nFila",
+				SETQUEUETOOLTIP = "Isto colocará a action na fila\nEla será usada assim que possível\n\nRightClick: Criar macro\nVocê pode passar condições adicionais para o macro criado para a fila\nComo em qual unidade utilizar (UnitID é a chave), example: { Priority = 1, UnitID = 'player' }\nVocê pode achar as chaves aceitáveisna descrição da função 'Action:SetQueue' (Action.lua)",
+				BLOCKED = "|cffff0000Bloqueado: |r",
+				UNBLOCKED = "|cff00ff00Desbloqueado: |r",
+				KEY = "[Key: ",
+				KEYTOTAL = "[Total enfileirado: ",
+				KEYTOOLTIP = "Use esta chave na aba 'Mensagens'",
+				ISFORBIDDENFORBLOCK = "é proibido para o bloqueado!",
+				ISFORBIDDENFORQUEUE = "é proibido para a fila!",
+				ISQUEUEDALREADY = "já existe na fila!",
+				QUEUED = "|cff00ff00Enfileirado: |r",
+				QUEUEREMOVED = "|cffff0000Removido da fila: |r",
+				QUEUEPRIORITY = " tem prioridade #",
+				QUEUEBLOCKED = "|cffff0000não pode ser enfileirado por que SetBlocker o bloqueou!|r",
+				SELECTIONERROR = "|cffff0000Você não escolheu uma linha!|r",
+				AUTOHIDDEN = "[All specs] Esconder automáticamente seções indisponíveis",
+				AUTOHIDDENTOOLTIP = "Torna a tabela menor e mais clara\nPor exemplo a classe do personagem tem poucas raciais mas pode usar uma, esta opção irá esconder as outras raciais.\nApenas para conforto visual",
+				LUAAPPLIED = "Código LUA foi aplicado em ",
+				LUAREMOVED = "Código LUA foi removido de ",
+			},
+			[4] = {
+				HEADBUTTON = "Interrupções",	
+				HEADTITLE = "Interrupções do Perfil",					
+				ID = "ID",
+				NAME = "Nome",
+				ICON = "Icone",
+				USEKICK = "Chute",
+				USECC = "CC",
+				USERACIAL = "Racial",
+				MIN = "Min: ",
+				MAX = "Max: ",
+				SLIDERTOOLTIP = "Seta a interrupção entre o a porcentagem minima e máxima do cast\n\nA cor vermelha dos valores significa que eles estão muito próximos um do outro e é perigoso de usar\n\nEstado OFF significa que os sliders não estão disponíveis para esta lista",
+				USEMAIN = "[Main] Usar",
+				USEMAINTOOLTIP = "Habilita ou desabilita a lista com suas unidades para interromper\n\nRightClick: Criar macro",
+				MAINAUTO = "[Main] Auto",
+				MAINAUTOTOOLTIP = "Se ativado:\nPvE: Interrompe qualquer cast disponível\nPvP: Se for um curador e ele vai morrer em menos de 6 segundos ou se o jogador não estiver no alcance do curador inimigo\n\nSe desabilitado:\nInterrompe apenas as magias adicionadas na lista\n\nRightClick: Criar macro",
+				USEMOUSE = "[Mouse] Usar",
+				USEMOUSETOOLTIP = "Habilita ou desabilita a lista com usas unidades para interromper\n\nRightClick: Criar macro",
+				MOUSEAUTO = "[Mouse] Auto",
+				MOUSEAUTOTOOLTIP = "Se ativado:\nPvE: Interrompe qualquer cast disponível\nPvP: Interrompe apenas magias na tabela de listas para PvP e curadores e apenas jogadores\n\nSe desabilitado:\nInterrompe apenas as magias na tabela daquela lista\n\nRightClick: Criar macro",
+				USEHEAL = "[Heal] Usar",
+				USEHEALTOOLTIP = "Habilita ou desabilita a lista com unidadades para interromper\n\nRightClick: Criar macro",
+				HEALONLYHEALERS = "[Heal] Apenas curadores",
+				HEALONLYHEALERSTOOLTIP = "Se ativado:\nInterrompe apenas curadores\n\nSe desabilitado:\nInterrompe qualquer função inimiga\n\nRightClick: Criar macro",
+				USEPVP = "[PvP] Use",
+				USEPVPTOOLTIP = "Habilita ou desabilita a lista com unidadades para interromper\n\nRightClick: Criar macro",
+				PVPONLYSMART = "[PvP] Inteligente",
+				PVPONLYSMARTTOOLTIP = "Se ativado irá interromper com lógica avançada:\n1) Controle em cadeia no eu curador\n2) Alguém tem buffs de explosão >4 sec\n3) Alguém vai morrer em menos de 8 segundos\n4) Você (ou @target) podem ser executados\n\nSe desativado irá interromper sem lógica avançada\n\nRightClick: Criar macro",
+				INPUTBOXTITLE = "Escrever magia:",					
+				INPUTBOXTOOLTIP = "ESCAPE (ESC): Limpar texto e remover focus",
+				INTEGERERROR = "Transbordo de Inteiro tentando armazenar > 7 números.", 
+				SEARCH = "Procure por nome ou ID",
+				ADD = "Adicionar Interrupção",					
+				ADDERROR = "|cffff0000Você não especificou nada em  'Escrever magia' ou a magia não foi encontrada!|r",
+				ADDTOOLTIP = "Adicionar magia do campo 'Escrever magia'\n para a lista selecionada",
+				REMOVE = "Remover interrupção",
+				REMOVETOOLTIP = "Remove a magia selecionada da tabela da lista atual",
+			},
+			[5] = { 	
+				HEADBUTTON = "Auras",					
+				USETITLE = "",
+				USEDISPEL = "Usar Dispel",
+				USEPURGE = "Usar Purge",
+				USEEXPELENRAGE = "Remover Enrage",
+				HEADTITLE = "[Global]",
+				MODE = "Modo:",
+				CATEGORY = "Categoria:",
+				POISON = "Remover venenos",
+				DISEASE = "Remover doenças",
+				CURSE = "Remover maldições",
+				MAGIC = "Remover magic",
+				MAGICMOVEMENT = "Remover lentidão/enraizamento mágico",
+				PURGEFRIENDLY = "Expurgar aliado",
+				PURGEHIGH = "Expurgar inimigo (prioridade alta)",
+				PURGELOW = "Expurgar inimigo (prioridade baixa)",
+				ENRAGE = "Remover Enrage",	
+				BLESSINGOFPROTECTION = "Benção da Proteção",
+				BLESSINGOFFREEDOM = "Benção da Liberdade",
+				BLESSINGOFSACRIFICE = "Benção do Sacrificio",	
+				VANISH = "Sumir",
+				ROLE = "Função",
+				ID = "ID",
+				NAME = "Nome",
+				DURATION = "Duração\n >",
+				STACKS = "Stacks\n >=",
+				ICON = "Icone",					
+				ROLETOOLTIP = "Sua função utiliza",
+				DURATIONTOOLTIP = "Reaja na aura se a duração da aura for maior (>) do que os segundos especificados\nIMPORTANTE: Auras sem duração como 'Graça divina'\n(Paladino Sagrado) devem ser 0. Isso significa que a aura está presente!",
+				STACKSTOOLTIP = "Reaja na aura se ela tiver uma quantia de stacks maiour ou igual (>=) a quantia especificada",									
+				BYID = "Use ID\nao inves do Nome",
+				BYIDTOOLTIP = "Por ID se deve checar TODAS as magias\nque possuem o mesmo nome, mas assuma que são auras diferentes\ncomo 'Corrupção Instavel'",					
+				CANSTEALORPURGE = "Somente se puder\nroubar ou expurgar",					
+				ONLYBEAR = "Somente se a unidade estiver\nna 'Forma de Urso'",									
+				CONFIGPANEL = "Configuração de 'Adicionar Aura'",
+				ANY = "Qualquer",
+				HEALER = "Curador",
+				DAMAGER = "Tank|Causador de dano",
+				ADD = "Adicionar Aura",					
+				REMOVE = "Remover Aura",					
+			},				
+			[6] = {
+				HEADBUTTON = "Cursor",
+				HEADTITLE = "Interação com Mouse",
+				USETITLE = "Configuração de Botões:",
+				USELEFT = "Usar botão esquerdo",
+				USELEFTTOOLTIP = "Este macro usa '/target mouseover' o que em si não é um click!\n\nRightClick: Criar macro",
+				USERIGHT = "Usar botão direito",
+				LUATOOLTIP = "Para se referir a unidade sendo checada, use 'thisunit' sem aspas\nSe usar LUA na Categoria 'GameToolTip' então thisunit não será valido\nCódigo deve ter um retorno booleano (true) para processar as condições\nEste código tem setfenv o que significa que você não precisa usar o Action para nada que o tenha\n\nSe quiser remover o código padrão você precisará escrever 'return true' sem aspas no lugar de remover tudo",							
+				BUTTON = "Click",
+				NAME = "Nome",
+				LEFT = "Click Esquerdo",
+				RIGHT = "Click Direito",
+				ISTOTEM = "IsTotem",
+				ISTOTEMTOOLTIP = "Se ativado então vai checar por @mouseover no tipo 'Totem' para o dado nome\nTambém previne a situação de o seu @target já ser um totem",				
+				INPUTTITLE = "Digite o nome do objeto (localizado!)", 
+				INPUT = "Este campo não é sensivel ao case",
+				ADD = "Adicionar",
+				REMOVE = "Remover",
+				-- GlobalFactory default name preset in lower case!					
+				SPIRITLINKTOTEM = "totem do vínculo do espirito",
+				HEALINGTIDETOTEM = "totem da maré curativa",
+				CAPACITORTOTEM = "totem capacitor",					
+				SKYFURYTOTEM = "totem da furia do céu",					
+				ANCESTRALPROTECTIONTOTEM = "totem da proteção ancestral",					
+				COUNTERSTRIKETOTEM = "totem contragolpe",
+				-- Optional totems
+				TREMORTOTEM = "totem sísmico",
+				GROUNDINGTOTEM = "totem de aterramento",
+				WINDRUSHTOTEM = "totem de rajada de vento",
+				EARTHBINDTOTEM = "totem de prisão terrena",
+				-- Flags by UnitName 
+				HORDEBATTLESTANDARD = "estandarte de batalha da horda",
+				ALLIANCEBATTLESTANDARD = "estandarte de batalha da aliança",
+				-- GameToolTips
+				ALLIANCEFLAG = "bandeira da aliança",
+				HORDEFLAG = "bandeira da horda",
+			},
+			[7] = {
+				HEADBUTTON = "Mensagens",
+				HEADTITLE = "Sistema de Mensagens",
+				USETITLE = "",
+				MSG = "Sistema de MSG",
+				MSGTOOLTIP = "Marcado: funcionando\nDesmarcado: não funcionando\n\nRightClick: Criar macro",
+				DISABLERETOGGLE = "Bloquear remover fila",
+				DISABLERETOGGLETOOLTIP = "Prevenido devido remoções repetidas de mensagens do sistema de filas\nEx.: Possível macro de spam não sendo removido\n\nRightClick: Criar macro",
+				MACRO = "Macro para seu grupo:",
+				MACROTOOLTIP = "Isso é o que deve ser enviado para o chat de grupo para ativar a ação atribuida na tecla especificada\nPara atribuir a ação a uma unidade especifica, adicione as unidades para o macro ou deixe como está para a rotação de Alvo único/AoE\nSuportados: raid1-40, party1-2, player, arena1-3\nAPENAS UMA UNIDADE POR MENSAGEM!\n\nSeus companheiros também podem usar macros, mas tome cuidado, eles devem ser leais a isto!\nNÃO LIBERE A MACRO PARA PESSOAS QUE NÃO ESTÃO NO TEMA!",
+				KEY = "Chave",
+				KEYERROR = "Você não especificou uma chave!",
+				KEYERRORNOEXIST = "Chave não existe!",
+				KEYTOOLTIP = "Você precisa especificar uma tecla para vincular à action\nVocê pode extrair uma tecla na aba 'Actions'",
+				MATCHERROR = "o nome passado já existe, use outro!",				
+				SOURCE = "O nome da pessoa que disse",					
+				WHOSAID = "Quem disse",
+				SOURCETOOLTIP = "Isso é opcional. Você pode deixar em branco (recomendado)\nSe quiser configurar, o nome deve ser exatamente igual ao que está no chat de grupo",
+				NAME = "Contém uma mensagem",
+				ICON = "Icone",
+				INPUT = "Digite uma frase para mensagem do sistema",
+				INPUTTITLE = "Frase",
+				INPUTERROR = "Você não forneceu uma frase!",
+				INPUTTOOLTIP = "A frase será ativada em qualquer palavra no chat de grupo (/party) que está de acordo com a condição\nNão é case-sensitive\nContém padrões, isso significa que a frase escrita por alguém com a combinação das palavras raid, party, arena, ou player\nadapta a action para o dado slot\nVocê não precisa setar os padrões aqui, elas são usadas como adição ao macro\nSe o padrão não for encontrado, então os slots para rotações single e AoE serão utilizados",				
+			},
+			[8] = { 
+				HEADBUTTON = "Sistema de Cura",
+				OPTIONSPANEL = "Opções",
+				OPTIONSPANELHELP = [[As definições desse painel afetam a 'Healing Engine' + 'Rotation'
+									
+									'Healing Engine' esse nome se refere ao sistema de seleção de @target 
+									através do macro /target 'unitID'
+									
+									'Rotation' esse nome nós referimos às rotações de cura/dano para 
+									a unidade primária atual (@target ou @mouseover)
+									
+									Algumas vezes você verá a mensagem 'o perfil deve conter o código para ele' o que significa que
+									os recursos relacionados não funcionam sem códigos especiais a serem adicionados pelo autor 
+									dentro dos trechos em LUA
+									
+									Cada elemento tem sua dica, então leia cuidadosamente, faça testes e se necessesário
+									antes de você começar uma luta de verdade]],
+				SELECTOPTIONS = "-- escolha as opções --",
+				PREDICTOPTIONS = "Opções de Previsão",
+				PREDICTOPTIONSTOOLTIP = "Suportados: 'Healing Engine' + 'Rotation' (o perfil deve ter o códigoo para isso)\n\nEssas opções afetam:\n1. Previsão de vida de membro do grupo para a seleção de @target ('Healing Engine')\n2. Cálculo de qual Ação de Cura será usada no @target/@mouseover ('Rotation')\n\nClique direito: Criar macro",
+				INCOMINGHEAL = "Cura a ser recebida",
+				INCOMINGDAMAGE = "Dano a ser recebido",
+				THREATMENT = "Modo (PvE)",
+				SELFHOTS = "HoTs", -- próprios
+				ABSORBPOSSITIVE = "Absorver Positivo",
+				ABSORBNEGATIVE = "Absorver Negativo",
+				SELECTSTOPOPTIONS = "Opçõess de parar o alvo",
+				SELECTSTOPOPTIONSTOOLTIP = "Suportados: 'Healing Engine'\n\nEssas opçõess afetam apenas a seleção de @target, e especificamente\nprevine a sua seleção se uma das opções é em-sucedida\n\nClique direito: Criar macro",
+				SELECTSTOPOPTIONS1 = "@mouseover amigo",
+				SELECTSTOPOPTIONS2 = "@mouseover inimigo",
+				SELECTSTOPOPTIONS3 = "@target inimigo",
+				SELECTSTOPOPTIONS4 = "@target boss",
+				SELECTSTOPOPTIONS5 = "@player morto",
+				SELECTSORTMETHOD = "Método de classificação do alvo",
+				SELECTSORTMETHODTOOLTIP = "Suportados: 'Healing Engine'\n\n'Porcentagem de Vida' escolhe o @target com a menor porcentagem de vida\n'Vida Atual' escolhe o @target com menos vida especificada\n\nClique direito: Criar macro",
+				SORTHP = "Porcentagem de Vida",
+				SORTAHP = "Vida Atual",
+				AFTERTARGETENEMYORBOSSDELAY = "Atraso de Alvo\nDepois do @target inimigo ou boss",
+				AFTERTARGETENEMYORBOSSDELAYTOOLTIP = "Suportados: 'Healing Engine'\n\nAtraso (em segundos) antes de selecionar o próximo alvo após selecionar um inimigo ou boss ser selecionado @target\n\nFunciona apenas se 'Opções de parar o alvo' contém'@target inimigo' ou '@target boss' desligado\n\nAtraso é atualizado toda vez que as condições são bem-sucedidas, do contrário são resetadas\n\nClique direito: Criar macro",
+				AFTERMOUSEOVERENEMYDELAY = "Atraso do Alvo\nApós @mouseover inimigo",
+				AFTERMOUSEOVERENEMYDELAYTOOLTIP = "Suportados: 'Healing Engine'\n\nAtraso (em segundos) antes de selecionar o próximo alvo após selecionar um inimigo com @mouseover\n\nFunciona apenas se 'Opções de parar o alvo' contém '@mouseover inimigo' desligado\n\nAtraso é atualizado toda vez que as condições são bem-sucedidas, do contrário são resetadas\n\nClique direito: Criar macro",
+				SELECTPETS = "Ativar Familiares",
+				SELECTPETSTOOLTIP = "Suportados: 'Healing Engine'\n\nTroca os pets para lidar com toda a API em 'Healing Engine'\n\nClique direito: Criar macro",  
+				SELECTRESURRECTS = "Ativar Resurrects",
+				SELECTRESURRECTSTOOLTIP = "Suportados: 'Healing Engine'\n\nAlterna os jogadores mortos para a seleção de @target\n\nFunciona apenas fora de combate\n\nClique direito: Criar macro",
+				HELP = "Ajuda",
+				HELPOK = "Entendi",
+				ENABLED = "/tar", 
+				ENABLEDTOOLTIP = "Suportados: 'Healing Engine'\n\nAlterna off/on '/target %s'",
+				UNITID = "unitID",
+				NAME = "Nome",
+				ROLE = "Função",
+				ROLETOOLTIP = "Suportados: 'Healing Engine'\n\nResponsável pela prioridade da seleção de @target, que é controlado pelos offsets\nPets são sempre 'Danos'",
+				DAMAGER = "Dano",
+				HEALER = "Healer",
+				TANK = "Tank",
+				UNKNOWN = "Desconhecido",
+				USEDISPEL = "Dispel",
+				USEDISPELTOOLTIP = "Suportados: 'Healing Engine' (o perfil deve ter o código para isso) + 'Rotation' (o perfil deve ter o código para isso)\n\n'Healing Engine': Permite o '/target %s' para dispel\n'Rotation': Permite o uso do dispel no '%s'\n\nLista de Dispels especificados na aba 'Auras'",
+				USESHIELDS = "Shields",
+				USESHIELDSTOOLTIP = "Suportados: 'Healing Engine' (o perfil deve ter o código para isso) + 'Rotation' (o perfil deve ter o código para isso)\n\n'Healing Engine': Permite o '/target %s' para shields\n'Rotation': Permite o uso de shields no '%s'",
+				USEHOTS = "HoTs",
+				USEHOTSTOOLTIP = "Suportados: 'Healing Engine' (o perfil deve ter o código para isso) + 'Rotation' (o perfil deve ter o código para isso)\n\n'Healing Engine': Permite o '/target %s' para HoTs\n'Rotation': Permite o uso de HoTs no '%s'",
+				USEUTILS = "Utils",
+				USEUTILSTOOLTIP = "Suportados: 'Healing Engine' (o perfil deve ter o código para isso) + 'Rotation' (o perfil deve ter o código para isso)\n\n'Healing Engine': Permite o '/target %s' para utils\n'Rotation': Permite o uso de utilidades no '%s'\n\nUtilidades significa ações suportads como Freedom, do paladino\n\nAlgumas delas podem ser especificadas na aba 'Auras'",
+				GGLPROFILESTOOLTIP = "\n\nPerfis do GGL irão pular os pets para isso %s teto em 'Healing Engine'(seleção de @target)",
+				LUATOOLTIP = "Suportados: 'Healing Engine'\n\nUsa o código que você escreveu como a última condição verificada antes '/target %s'",
+				LUATOOLTIPADDITIONAL = "\n\nPara se referir aos dados metatable no 'thisunit' tal como a vida, use:\nlocal memberData = HealingEngine.Data.UnitIDs[thisunit]\nif memberData then Print(thisunit .. ' (' .. Unit(thisunit):Name() .. ')' .. ' has real health percent: ' .. memberData.realHP .. ' and modified: ' .. memberData.HP) end",
+				AUTOHIDE = "Esconder auto",
+				AUTOHIDETOOLTIP = "Isso é apenas um efeito visual!\nFiltra a lista automaticamente e mostra apenas as unitID disponíveis",
+				PROFILES = "Perfis",
+				PROFILESHELP = [[As definições nesse painel afetam 'Healing Engine' + 'Rotation'
+								 
+								 Cada perfil registra absolutamente todas as configurações da aba atual
+								 Assim, você pode alterar o comportamento da seleção de alvos e da rotação de cura em tempo real
+								 
+								 Por exemplo: Você pode criar um perfil para trabalhar nos grupos 2 e 3 e o segundo 
+								 durante toda a raid, e ao mesmo tempo, pode alterá-lo com uma macro, 
+								 que também pode ser criada
+								 
+								 É importante entender que cada mudança feita nessa aba deve ser manualmente salva novamente
+				]],
+				PROFILE = "Perfil",
+				PROFILEPLACEHOLDER = "-- nenhum perfil ou alterações não salvas no perfil anterior --",
+				PROFILETOOLTIP = "Escreva o nome do novo perfil na caixa de texto abaixo e clique em 'Salvar'\n\nAs mudanças não serão salvas em tempo real!\nToda vez que você fizer qualquer mudança para salvá-las você deve clicar novamente em 'Salvar' para o perfil selecionado",
+				PROFILELOADED = "Perfil carregado: ",
+				PROFILESAVED = "Perfil salvo: ",
+				PROFILEDELETED = "Perfil deletado: ",
+				PROFILEERRORDB = "ActionDB não está nicializada!",
+				PROFILEERRORNOTAHEALER = "Você deve ser um healer para usar isso!",
+				PROFILEERRORINVALIDNAME = "Nome de perfil inválido!",
+				PROFILEERROREMPTY = "Você não selecionou um perfil!",
+				PROFILEWRITENAME = "Escreva o nome do perfil",
+				PROFILESAVE = "Salvar",
+				PROFILELOAD = "Carregar",
+				PROFILEDELETE = "Deletar",
+				CREATEMACRO = "Clique direito: Criar macro",
+				PRIORITYHEALTH = "Prioridade de Vida",
+				PRIORITYHELP = [[As definições desse painel afetam apenas a 'Healing Engine'
+
+								 Ao usar essas definições, você pode alterar a prioridade 
+								 de seleção de alvo dependendo das configurações
+								 
+								 As configurações mudam a vida virtual, permitindo 
+								 que o método de classificação expanda as unidades de filtro não apenas  
+								 de acordo com a opções de vida real + previsão
+
+								 O método de classificação classifica todas as unidades por menos vida
+								 
+								 Multiplicador é um número pelo qual a vida será multiplicada
+								 
+								 Offset é um número que irá estabelecer uma porcentagem fixa ou 
+								 processada aritmeticamente (-/+ HP) dependendo do 'Modo de Offset'
+								 
+								 'Utils' significa feitiços ofensivos tais como 'Benção da Liberdade'
+				]],
+				MULTIPLIERS = "Multiplicador",
+				MULTIPLIERINCOMINGDAMAGELIMIT = "Limite de dano a ser recebido",
+				MULTIPLIERINCOMINGDAMAGELIMITTOOLTIP = "Limita o dano a ser recebido em tempo real desde que o dano possa ser tão\ngrande que o sistema 'fica preso' no @target.\nColoque 1 se quiser um valor a não ser modificado\n\nClique direito: Criar macro",
+				MULTIPLIERTHREAT = "Ameaça",
+				MULTIPLIERTHREATTOOLTIP = "Processada se existir uma ameaça maior (exemplo: unidade está tankando)\nColoque 1 se quiser um valor a não ser modificado\n\nClique direito: Criar macro",
+				MULTIPLIERPETSINCOMBAT = "Pets em Combate",
+				MULTIPLIERPETSINCOMBATTOOLTIP = "Pets devem estar ativos para funcionar!\nColoque 1 se quiser um valor a não ser modificado\n\nClique direito: Criar macro",
+				MULTIPLIERPETSOUTCOMBAT = "Pets fora de combate",
+				MULTIPLIERPETSOUTCOMBATTOOLTIP = "Pets devem estar ativos para funcionar!\nColoque 1 se quiser um valor a não ser modificado\n\nClique direito: Criar macro",
+				OFFSETS = "Offsets",
+				OFFSETMODE = "Modo de Offset",
+				OFFSETMODEFIXED = "Fixo",
+				OFFSETMODEARITHMETIC = "Aritmético",
+				OFFSETMODETOOLTIP = "'Fixo' irá estabelecer o mesmo valor exato que a porcentagem de vida\n'Aritmético' irá -/+ usar o valor de porcentagem de vida\n\nClique direito: Criar macro",
+				OFFSETSELFFOCUSED = "Foco\npróprio (PvP)",
+				OFFSETSELFFOCUSEDTOOLTIP = "Processado se os inimigos estão te alvejando no modo PvP\n\nClique direito: Criar macro",
+				OFFSETSELFUNFOCUSED = "Sem Foco\npróprio (PvP)",
+				OFFSETSELFUNFOCUSEDTOOLTIP = "Processado se os inimigos NÃO estão te alvejando no modo PvP\n\nClique direito: Criar macro",
+				OFFSETSELFDISPEL = "Dispel próprio",
+				OFFSETSELFDISPELTOOLTIP = "Os perfis da GGL normalmente possuem condições PvE para isso\n\nLista de dispels especificadas na aba 'Auras'\n\nClique direito: Criar macro",
+				OFFSETHEALERS = "Healers",
+				OFFSETHEALERSTOOLTIP = "Processado apenas nos outros healers\n\nClique direito: Criar macro",
+				OFFSETTANKS = "Tanks",
+				OFFSETDAMAGERS = "Danos",
+				OFFSETHEALERSDISPEL = "Dispel de Healers",
+				OFFSETHEALERSTOOLTIP = "Processado apenas nos outros healers\n\nLista de dispels especificadas na aba 'Auras'\n\nClique direito: Criar macro",
+				OFFSETTANKSDISPEL = "Dispel de Tanks",
+				OFFSETTANKSDISPELTOOLTIP = "Lista de dispels especificadas na aba 'Auras'\n\nClique direito: Criar macro",
+				OFFSETDAMAGERSDISPEL = "Dispel dos danos",
+				OFFSETDAMAGERSDISPELTOOLTIP = "Lista de dispels especificadas na aba 'Auras'\n\nClique direito: Criar macro",
+				OFFSETHEALERSSHIELDS = "Shields dos Healers",
+				OFFSETHEALERSSHIELDSTOOLTIP = "Inclui o próprio (@player)\n\nClique direito: Criar macro",
+				OFFSETTANKSSHIELDS = "Shields dos Tanks",
+				OFFSETDAMAGERSSHIELDS = "Shields do Danos",
+				OFFSETHEALERSHOTS = "HoTs dos Healers",
+				OFFSETHEALERSHOTSTOOLTIP = "Inclui o próprio (@player)\n\nClique direito: Criar macro",
+				OFFSETTANKSHOTS = "HoTs dos Tanks",
+				OFFSETDAMAGERSHOTS = "HoTs dos Danos",
+				OFFSETHEALERSUTILS = "Utils dos Healers",
+				OFFSETHEALERSUTILSTOOLTIP = "Inclui o próprio (@player)\n\nClique direito: Criar macro",
+				OFFSETTANKSUTILS = "Utils dos Tanks",
+				OFFSETDAMAGERSUTILS = "Utils dos Danos",
+				MANAMANAGEMENT = "Gerenciador de Mana",
+				MANAMANAGEMENTHELP = [[As definições desse painel afetam apenas 'Rotation'
+									   
+									   O perfil deve conter o código para isso! 
+									   
+									   Funciona se:
+									   1. Dentro da instância
+									   2. No modo PvE 
+									   3. Em combate  
+									   4. Tamanho do grupo >= 5
+									   5. Contém boss(es) focados por membros
+				]],
+				MANAMANAGEMENTMANABOSS = "Sua Porcentagem de Mana <= Percentual de vida médio dos boss(es)",
+				MANAMANAGEMENTMANABOSSTOOLTIP = "Começa a economizar mana se a condição é bem-sucedida\n\nA lógica depende do perfi que você usa!\n\nNem todos os perfis suportam essa configuração!\n\nClique direito: Criar macro",
+				MANAMANAGEMENTSTOPATHP = "Para Gerenciamento\nPorcentagem de Vida",
+				MANAMANAGEMENTSTOPATHPTOOLTIP = "Para de economizar mana se a unidade primária\n(@target/@mouseover) tem porcentagem de vida abaixo desse valor\n\nNem todos os perfis suportam essa configuração!\n\nClique direito: Criar macro",
+				OR = "OU",
+				MANAMANAGEMENTSTOPATTTD = "Para Gerenciamento\nTempo para morrer",
+				MANAMANAGEMENTSTOPATTTDTOOLTIP = "Para de economizar mana se a unidade primária\n(@target/@mouseover) tem tempo para morrer (em segundos) abaixo desse valor\n\nNem todos os perfis suportam essa configuração!\n\nClique direito: Criar macro",
+				MANAMANAGEMENTPREDICTVARIATION = "Eficácia da Conservação de Mana",
+				MANAMANAGEMENTPREDICTVARIATIONTOOLTIP = "Afeta apenas as configurações das habilidades de cura 'AUTO'!\n\nEste é um multiplicador no qual a cura pura será calculada quando a fase de economia de mana foi iniciada\n\nQuanto maior o nível, mais economia de mana, mas menos APM\n\nClique direito: Criar macro",	
+			},			
 		},
 	},
 }
@@ -2158,8 +3848,8 @@ end
 
 function Action.GetLocalization()
 	-- @return table localized with current language of interface 
-	CL = TMWdb and TMWdb.global.ActionDB and TMWdb.global.ActionDB.InterfaceLanguage ~= "Auto" and Localization[TMWdb.global.ActionDB.InterfaceLanguage] and TMWdb.global.ActionDB.InterfaceLanguage or next(Localization[GameLocale]) and GameLocale or "enUS"
-	L = Localization[CL]
+	CL 	= gActionDB and gActionDB.InterfaceLanguage ~= "Auto" and Localization[gActionDB.InterfaceLanguage] and gActionDB.InterfaceLanguage or next(Localization[GameLocale]) and GameLocale or "enUS"
+	L 	= Localization[CL]
 	return L
 end 
 
@@ -2171,8 +3861,9 @@ end
 -------------------------------------------------------------------------------
 -- DB: Database
 -------------------------------------------------------------------------------
-Action.Enum = {}
-Action.Data = {	
+Action.Const 	= {}
+Action.Enum 	= {}
+Action.Data 	= {	
 	ProfileUI = {},
 	ProfileDB = {},
 	ProfileEnabled = {
@@ -2232,7 +3923,7 @@ Action.Data = {
 		["SEXHOTPINK"]	    = "ffFF6EB4d",		
     },
 	RANKCOLOR = {
-		-- Simular to Healing Engine Raid1 and next 
+		-- Similar to Healing Engine Raid1 and next 
 		[""] = function() return 0, 0, 0, 1.0 end,
 		[0] = function() return 0, 0, 0, 1.0 end,
 		[1] = function() return 0.192157, 0.878431, 0.015686, 1.0 end,
@@ -2264,23 +3955,81 @@ Action.Data = {
 	TG = {},
 	-- Auras 
 	Auras = {},
+	-- Print Cache 
+	PrintCache = {},
 }
 
-local ActionDataDefaultProfile 										= Action.Data.DefaultProfile
-local ActionDatatheme 												= Action.Data.theme
-local ActionDataQ 													= Action.Data.Q
-local ActionDataT 													= Action.Data.T
-local ActionDataTG													= Action.Data.TG
-local ActionDataAuras												= Action.Data.Auras
-local ActionHasRunningDB
+local ActionConst													= Action.Const
+local ActionData 													= Action.Data 
+local ActionDataQ 													= ActionData.Q
+local ActionDataT 													= ActionData.T
+local ActionDataTG													= ActionData.TG
+local ActionDataAuras												= ActionData.Auras
+local ActionDataPrintCache											= ActionData.PrintCache
+local ActionHasRunningDB, ActionHasFinishedLoading
+
+-- Pack constants
+do 
+	for constant, v in pairs(_G) do 
+		if type(constant) == "string" and constant:match("ACTION_CONST_") then 
+			ActionConst[constant:gsub("ACTION_CONST_", "")] = v
+		end 
+	end 
+end
 
 -- Templates
 -- Important: Default LUA overwrite problem was fixed by additional LUAVER key, however [3] "QLUA" and "LUA" was leaved and only 'Reset Settings' can clear it 
--- TMWdb.profile.ActionDB DefaultBase
+function StdUi:tGenerateMinMax(t, min1, min2, addmax, isfixedmax)
+	t.Min = math_random(min1, min2)
+	if isfixedmax then 
+		t.Max = addmax
+	else 
+		t.Max = math_max(math_random(t.Min, t.Min + addmax), t.Min + 17)
+	end 
+	return t  
+end 
+
+function StdUi:tGenerateHealingEngineUnitIDs(optionsTable)
+	local t = {}
+	
+	local unitID
+	for _, unit in ipairs({ "focus", "player", "party", "raid", "partypet", "raidpet" }) do 
+		if unit:match("raid") then 			
+			for i = 1, 40 do 
+				unitID = unit .. i
+				t[unitID] = CopyTable(optionsTable)
+				
+				if optionsTable.Role and unitID:match("pet") then 
+					t[unitID].isPet = true
+				end
+			end 
+		elseif unit:match("party") then 
+			for i = 1, 4 do 
+				unitID = unit .. i
+				t[unitID] = CopyTable(optionsTable)
+				
+				if optionsTable.Role and unitID:match("pet") then 
+					t[unitID].isPet = true
+				end
+			end 
+		else
+			t[unit] = CopyTable(optionsTable)
+			
+			if optionsTable.Role and unit:match("pet") then 
+				t[unit].isPet = true
+			end
+		end 				
+	end 
+	
+	return t 
+end 
+
+-- pActionDB DefaultBase
 local Factory = {
 	-- Special keys: 
 	-- ISINTERRUPT will swap ID to locale Name as key and create formated table 
 	-- ISCURSOR will swap key localized Name from Localization table and create formated table 
+	Ver = ActionConst.ADDON_VERSION, -- NEVER DECREASE THIS NUMBER (duh?).  IT IS ALSO ONLY INTERNAL
 	[1] = {
 		CheckDeadOrGhost = true, 
 		CheckDeadOrGhostTarget = true,
@@ -2330,6 +4079,7 @@ local Factory = {
 		},	
 		cameraDistanceMaxZoomFactor = true,
 		LetMeCast = true,
+		LetMeDrag = true,
 		TargetCastBar = true,
 		TargetRealHealth = true,
 		TargetPercentHealth = true,		
@@ -2376,10 +4126,8 @@ local Factory = {
 		StopCast = true,
 		AutoShoot = true,
 		AutoAttack = true, 
-		DBM = true,
-		LOSCheck = false, 
-		HE_Toggle = "ALL",
-		HE_Pets = true,		
+		BossMods = true,
+		LOSCheck = true, 
 		HE_AnyRole = false,
 		StopAtBreakAble = false,
 		FPS = -0.01, 			
@@ -2399,23 +4147,33 @@ local Factory = {
 		QluaActions = {},
 	},
 	[4] = {
+		-- Category
 		BlackList = {
 			[GameLocale] = {
 				ISINTERRUPT = true,
-				[22651] = "Sacrifice",
 			},	
 		},
-		PvETargetMouseover = {
+		MainPvE = StdUi:tGenerateMinMax({
 			[GameLocale] = {
 				ISINTERRUPT = true,
 			},	
-		},
-		PvPTargetMouseover = {
+		}, 13, 37, 45),
+		MousePvE = StdUi:tGenerateMinMax({
 			[GameLocale] = {
 				ISINTERRUPT = true,
 			},	
-		},
-		Heal = {
+		}, 13, 37, 45),
+		MainPvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+			},	
+		}, 17, 37, 55),
+		MousePvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+			},	
+		}, 17, 37, 55),
+		Heal = StdUi:tGenerateMinMax({
 			[GameLocale] = {	
 				ISINTERRUPT = true,
 				-- Priest
@@ -2435,8 +4193,8 @@ local Factory = {
 				[19750] = "Flash of Light",
 				[635] = "Holy Light",
 			},			
-		},
-		PvP = {
+		}, 43, 70, math_random(87, 95), true),
+		PvP = StdUi:tGenerateMinMax({
 			[GameLocale] = {
 				ISINTERRUPT = true,
 				-- Shaman 
@@ -2476,14 +4234,18 @@ local Factory = {
 				[2878] = "Turn Undead",		
 				-- Hunter 
 				[19386] = "Wyvern Sting",
-			},	
-		},	
-		TargetMouseoverList = false,
-		KickHealOnlyHealers = false, 
-		KickPvPOnlySmart = false,
-		KickTargetMouseover = true, 
-		KickHeal = true, 
-		KickPvP = true, 		
+			}, 
+		}, 34, 58, 37),
+		-- Checkbox 
+		UseMain 		= true,
+		UseMouse 		= true, 			
+		UseHeal 		= true, 
+		UsePvP			= true,
+		-- Sub-Checkbox (below Checkbox i.e. additional conditions)
+		MainAuto		= true,
+		MouseAuto 		= true,
+		HealOnlyHealers = true,
+		PvPOnlySmart 	= true, 		
 	},
 	[5] = {
 		UseDispel = true,			
@@ -2502,6 +4264,11 @@ local Factory = {
 				},
 			},
 			GameToolTip = {
+				[GameLocale] = {
+					ISCURSOR = true,
+				},
+			},
+			UI = {
 				[GameLocale] = {
 					ISCURSOR = true,
 				},
@@ -2532,6 +4299,11 @@ local Factory = {
 					[Localization[GameLocale]["TAB"][6]["HORDEFLAG"]] 						= { Button = "RIGHT" },
 				},
 			},
+			UI = {
+				[GameLocale] = {
+					ISCURSOR = true,
+				},
+			},
 		},
 	},
 	[7] = {
@@ -2539,10 +4311,79 @@ local Factory = {
 		DisableReToggle = false,
 		msgList = {},
 	},
-}
+	[8] = {
+		PredictOptions = {
+			[1] = true, 	-- Incoming heal 
+			[2] = true,		-- Incoming damage 
+			[3] = true, 	-- Threatment (PvE)
+			[4] = true, 	-- HoTs
+			[5] = false, 	-- Absorb Possitive
+			[6] = true, 	-- Absorb Negative				
+		},
+		SelectStopOptions = {
+			[1] = true, -- @mouseover friendly 
+			[2] = true, -- @mouseover enemy 
+			[3] = true, -- @target enemy 
+			[4] = true, -- @target boss 
+			[5] = true, -- @player dead 
+		},
+		SelectSortMethod = "HP",	
+		AfterTargetEnemyOrBossDelay = 0,	-- SelectStopOptions must be off for: [3] @target enemy or [4] @target boss
+		AfterMouseoverEnemyDelay = 0,		-- SelectStopOptions must be off for: [2] @mouseover enemy 
+		SelectPets = true,
+		SelectResurrects = true, 			-- Classic Druids haven't it.. 
+		UnitIDs = StdUi:tGenerateHealingEngineUnitIDs({ Enabled = true, Role = "AUTO", useDispel = true, useShields = true, useHoTs = true, useUtils = true, LUA = "" }), 
+		AutoHide = true,
+		Profile = "",
+		Profiles = {
+			--[[
+				["profileName"] = {
+					-- Contain the copy of all this except Profiles table and Profile key 
+				},
+			]]
+		},
+		-- Multipliers
+		MultiplierIncomingDamageLimit = 0.15,
+		MultiplierThreat = 0.95,
+		MultiplierPetsInCombat = 1.35,
+		MultiplierPetsOutCombat = 1.15,
 
--- TMWdb.global.ActionDB DefaultBase
+		-- Offsets 
+		OffsetMode = "FIXED",
+		
+		OffsetSelfFocused = 0,
+		OffsetSelfUnfocused = 0,
+		OffsetSelfDispel = 0,
+		
+		OffsetHealers = 0,
+		OffsetHealersDispel = 0,
+		OffsetHealersShields = 0,
+		OffsetHealersHoTs = 0,
+		OffsetHealersUtils = 0,
+		
+		OffsetTanks = 0,
+		OffsetTanksDispel = 0,
+		OffsetTanksShields = 0,
+		OffsetTanksHoTs = 0,
+		OffsetTanksUtils = 0,
+		
+		OffsetDamagers = 0,						
+		OffsetDamagersDispel = 0,						
+		OffsetDamagersShields = 0,						
+		OffsetDamagersHoTs = 0,
+		OffsetDamagersUtils = 0,	
+
+		-- Mana Management
+		ManaManagementManaBoss = 30,
+		ManaManagementStopAtHP = 40,
+		ManaManagementStopAtTTD = 6,
+		ManaManagementPredictVariation = 4,
+	},
+}; StdUi.Factory = Factory
+
+-- gActionDB DefaultBase
 local GlobalFactory = {	
+	Ver = ActionConst.ADDON_VERSION, -- NEVER DECREASE THIS NUMBER (duh?).  IT IS ALSO ONLY INTERNAL
 	InterfaceLanguage = "Auto",	
 	minimap = {},
 	[5] = {		
@@ -2866,6 +4707,8 @@ local GlobalFactory = {
 			},
 			BlessingofSacrifice = {
 			},
+			Vanish = {
+			},
 		},
 		PvP = {
 			BlackList = {},
@@ -2925,6 +4768,8 @@ local GlobalFactory = {
 				[3043] = { dur = 1.5 },
 				-- Rogue: Slow Poison
 				[3332] = {},
+				-- Rogue: Blind
+				[2094] = { dur = 2.5 },
 			},
 			Disease = {
 			},
@@ -3051,8 +4896,7 @@ local GlobalFactory = {
 				[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
 				[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
 				-- Disoriented
-				[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 
-				[2094] = { dur = 4.5 }, 			-- Blind					(Rogue)
+				[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
 				-- Feared 
 				[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
 			},
@@ -3065,6 +4909,7 @@ local GlobalFactory = {
 				[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
 				[19229] = { dur = 2 },				-- Improved Wing Clip 		(Hunter)
 				[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+				[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
 				[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
 			},
 			BlessingofSacrifice = {
@@ -3072,13 +4917,14 @@ local GlobalFactory = {
 				[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
 				[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
 			},
+			Vanish = {
+				[22519] = {}, 						-- Ice Nova 				(Mage)
+				[122] = {}, 						-- Frost Nova 				(Mage)
+				[339] = {}, 						-- Entangling Roots 		(Druid)
+			},
 		},
 	},
-}
-
---local GlobalFactoryErased = {
-	-- The table which holds all keys which must be erased from actual db, must be [key] = true construct
---}
+}; StdUi.GlobalFactory = GlobalFactory
 
 -- Table controlers 	
 local function tMerge(default, new, special, nonexistremove)
@@ -3090,16 +4936,49 @@ local function tMerge(default, new, special, nonexistremove)
 		if type(v) == "table" then 
 			if special and v.ISINTERRUPT then 
 				result[k] = {}
-				for ID in pairs(v) do
-					if type(ID) == "number" then 												
-						result[k][GetSpellInfo(ID)] = { Enabled = true, ID = ID, useKick = true, useCC = true, useRacial = true } -- Spell:CreateFromSpellID(ID):GetSpellName()
+				local Enabled, useKick, useCC, useRacial
+				for ID, IDv in pairs(v) do
+					if type(ID) == "number" then 	
+						local spellName = GetSpellInfo(ID)
+						if spellName then 
+							if type(IDv) == "table" then
+								if IDv.Enabled == nil then 
+									Enabled = true 
+								else 
+									Enabled = IDv.Enabled
+								end 
+								
+								if IDv.useKick == nil then 
+									useKick = true 
+								else
+									useKick = IDv.useKick
+								end 
+								
+								if IDv.useCC == nil then 
+									useCC = true
+								else
+									useCC = IDv.useCC
+								end 
+								
+								if IDv.useRacial == nil then 
+									useRacial = true 
+								else
+									useRacial = IDv.useRacial
+								end 
+							else
+								Enabled, useKick, useCC, useRacial = true, true, true, true
+							end 						
+							result[k][spellName] = { Enabled = Enabled, ID = ID, useKick = useKick, useCC = useCC, useRacial = useRacial } 
+						else 
+							A_Print(L["DEBUG"] .. (ID or "") .. " (spellName - ISINTERRUPT) " .. " " .. L["ISNOTFOUND"]:lower())							
+						end 					
 					end 
 				end
 			elseif special and v.ISCURSOR then 
 				result[k] = {}
 				for KeyLocale, Val in pairs(v) do 					
 					if type(Val) == "table" then 				
-						result[k][KeyLocale] = { Enabled = true, Button = Val.Button, isTotem = Val.isTotem, LUA = Val.LUA } 
+						result[k][KeyLocale] = { Enabled = true, Button = Val.Button, isTotem = Val.isTotem, LUA = Val.LUA, LUAVER = Val.LUAVER } 
 					end 
 				end 
 			elseif new[k] ~= nil then 
@@ -3142,7 +5021,7 @@ local function tCompare(default, new, upkey, skip)
 						-- Overwrite default LUA specified in profile (default) even if user made custom (new), doesn't work for [3] "QLUA" and "LUA" 
 						if k == "LUA" and default.LUAVER ~= nil and default.LUAVER ~= new.LUAVER then 							
 							result[k] = v
-							Action.Print(L["DEBUG"] .. (upkey or "") .. " (LUA) " .. " " .. L["RESETED"]:lower())
+							A_Print(L["DEBUG"] .. (upkey or "") .. " (LUA) " .. " " .. L["RESETED"]:lower())
 						elseif k == "LUAVER" then 
 							result[k] = v  
 						else 
@@ -3164,7 +5043,7 @@ local function tCompare(default, new, upkey, skip)
 				result[k] = v
 			--else 
 				-- Debugs keys which has been updated by default 
-				--Action.Print(L["DEBUG"] .. "tCompare key: " .. k .. "  upkey: " .. (upkey or ""))				
+				--A_Print(L["DEBUG"] .. "tCompare key: " .. k .. "  upkey: " .. (upkey or ""))				
 			end	
 		end 
 	end 				
@@ -3172,26 +5051,111 @@ local function tCompare(default, new, upkey, skip)
 	return result 
 end
 
-local function tEraseKeys(default, new)
+local function tEraseKeys(default, new, path)
 	-- Cleans in 'default' table keys which persistent in 'new' table 
 	if new then 
 		for k, v in pairs(new) do 
-			if default[k] then 
+			if default[k] ~= nil then 
+				local path = path 
+				if type(k) == "number" then 
+					path = (path or "") .. "[" .. k .. "]"
+				else
+					path = (path and path .. "." or "") .. k 
+				end 
+				
 				if type(v) == "table" then 
-					if not v.enabled then 
-						tEraseKeys(default[k], v)
-					end
+					tEraseKeys(default[k], v, path)
 				else 
 					default[k] = nil 
-					Action.Print(L.DEBUG .. L.TAB[5].HEADBUTTON .. " " .. GetSpellInfo(k) .. " " .. L.RESETED:lower())
+					A_Print(L.DEBUG .. path .. " " .. L.RESETED:lower())
 				end 
 			end
 		end 
 	end 
 	return default
+end
+
+local Upgrade = {
+	GetTable = {
+		[1] = { 
+			-- Factory 
+			[false] = {
+				[4] = {
+					PvETargetMouseover = "nil",
+					PvPTargetMouseover = "nil",
+				},
+			},
+		},
+	},
+	tReplaceKeys = function(self, default, new, path)
+		if new then 
+			for k, v in pairs(new) do 
+				if default[k] ~= nil then 
+					local path = path 
+					if type(k) == "number" then 
+						path = (path or "") .. "[" .. k .. "]"
+					else
+						path = (path and path .. "." or "") .. k 
+					end 
+					
+					if type(v) == "table" then 
+						self:tReplaceKeys(default[k], v, path)
+					else 
+						if v == "nil" then 
+							default[k] = nil 
+						else
+							default[k] = v
+						end 
+						A_Print(L.DEBUG .. path .. " " .. L.RESETED:lower())
+					end 
+				elseif k == GameLocale then 
+					for locale, localeTable in pairs(default) do 
+						if type(locale) == "string" and type(localeTable) == "table" then 
+							if v == "nil" then 
+								default[locale] = nil 
+								A_Print(L.DEBUG .. (path or "") .. "[" .. locale .. "]" .. " " .. L.RESETED:lower())
+							else 
+								-- The names for next table enterence must be localized 
+								self:tReplaceKeys(default[locale], v, (path or "") .. "[" .. locale .. "]")
+							end 
+						end 
+					end 
+				end 
+			end 
+		end 			
+	end,
+	Perform = function(self, original, actual)
+		if original and actual and actual.Ver and original.Ver ~= actual.Ver then 
+			local isGlobal = actual.InterfaceLanguage and true or false
+			for i = original.Ver or 1, actual.Ver do 
+				self:tReplaceKeys(original, self.GetTable[i] and self.GetTable[i][isGlobal])
+			end 
+			
+			A_Print("|cff00cc66" .. (isGlobal and "ActionDB.global " or "ActionDB.profile ") .. L["UPGRADEDFROM"] .. (original.Ver or 0) .. L["UPGRADEDTO"] .. actual.Ver .. "|r")
+			original.Ver = actual.Ver
+			return original 
+		end 
+	end,
+}
+
+-- DB controllers
+local function dbUpdate()
+	TMWdb 			= TMW.db
+	TMWdbprofile	= TMWdb.profile 
+	TMWdbglobal		= TMWdb.global 
+	pActionDB 		= TMWdbprofile.ActionDB
+	gActionDB		= TMWdbglobal.ActionDB
+	
+	-- On hook InitializeDatabase
+	if not Action.CurrentProfile and TMWdb then 
+		Action.CurrentProfile = TMWdb:GetCurrentProfile()
+	end 
+
+	-- Note: Doesn't fires if speclization changed!
+	TMW:Fire("TMW_ACTION_DB_UPDATED", pActionDB, gActionDB) 
 end 
 
--- TMWdb.global.ActionDB[5] -> TMWdb.profile.ActionDB[5]
+-- gActionDB[5] -> pActionDB[5]
 local isDispelCategory = {
 	["Poison"] = true,
 	["Disease"] = true,
@@ -3211,7 +5175,7 @@ local function DispelPurgeEnrageRemap()
 				ActionDataAuras[Mode][Category] = {} 
 			end 
 			for SpellID, v in pairs(Category_v) do 
-				local Name = Spell:CreateFromSpellID(SpellID):GetSpellName()	
+				local Name = GetSpellInfo(SpellID)
 				ActionDataAuras[Mode][Category][Name] = { 
 					ID = SpellID, 
 					Name = Name, 
@@ -3219,6 +5183,7 @@ local function DispelPurgeEnrageRemap()
 					Role = v.role or "ANY",
 					Dur = v.dur or 0,
 					Stack = v.stack or 0,
+					byID = v.byID,
 					canStealOrPurge = v.canStealOrPurge,
 					onlyBear = v.onlyBear,
 					LUA = v.LUA,
@@ -3355,15 +5320,19 @@ local function DispelPurgeEnrageRemap()
 		ActionDataAuras.DisableCheckboxes = { UseDispel = true, UsePurge = true, UseExpelEnrage = true, UseExpelFrenzy = true }
 		for Mode, Mode_v in pairs(UnitAuras[Action.PlayerClass]) do 
 			for Category, Category_v in pairs(Mode_v) do 
-				if not TMWdb.profile.ActionDB[5][Mode] then 
-					TMWdb.profile.ActionDB[5][Mode] = {}
+				if not pActionDB[5][Mode] then 
+					pActionDB[5][Mode] = {}
 				end 
-				if not TMWdb.profile.ActionDB[5][Mode][Category] then 
-					TMWdb.profile.ActionDB[5][Mode][Category] = {}
+				if not pActionDB[5][Mode][Category] then 
+					pActionDB[5][Mode][Category] = {}
 				end 
-
+				
 				-- Always to reset
-				TMWdb.profile.ActionDB[5][Mode][Category][GameLocale] = {}
+				if pActionDB[5][Mode][Category][GameLocale] then 
+					wipe(pActionDB[5][Mode][Category][GameLocale])
+				else 
+					pActionDB[5][Mode][Category][GameLocale] = {}
+				end
 			
 				if isDispelCategory[Category] then 
 					ActionDataAuras.DisableCheckboxes.UseDispel = false 
@@ -3378,76 +5347,58 @@ local function DispelPurgeEnrageRemap()
 				if #Category_v > 0 then 
 					for i = 1, #Category_v do 
 						for k, v in pairs(Category_v[i]) do 
-							TMWdb.profile.ActionDB[5][Mode][Category][GameLocale][k] = v
+							pActionDB[5][Mode][Category][GameLocale][k] = v
 						end 
 					end 
-				else
+				else -- Not sure if we really need this but why not ..
 					for k, v in pairs(Category_v) do 
-						TMWdb.profile.ActionDB[5][Mode][Category][GameLocale][k] = v
+						pActionDB[5][Mode][Category][GameLocale][k] = v
 					end 
 				end 
 			end 	
 		end
-		 
+		
+		-- Set false in db if we found what no longer can use checkboxes
 		for Checkbox, v in pairs(ActionDataAuras.DisableCheckboxes) do 
 			if v then 
-				TMWdb.profile.ActionDB[5][Checkbox] = not v
+				pActionDB[5][Checkbox] = not v
 			end 
 		end 
 	else  
 		ActionDataAuras.DisableCheckboxes = nil	
-		TMWdb.profile.ActionDB[5].UseDispel = false 
-		TMWdb.profile.ActionDB[5].UsePurge = false 
-		TMWdb.profile.ActionDB[5].UseExpelEnrage = false
-		TMWdb.profile.ActionDB[5].UseExpelFrenzy = false
+		pActionDB[5].UseDispel = false 
+		pActionDB[5].UsePurge = false 
+		pActionDB[5].UseExpelEnrage = false
+		pActionDB[5].UseExpelFrenzy = false
 	end 		
 end
 
 -------------------------------------------------------------------------------
 -- UI: Containers
 -------------------------------------------------------------------------------
-local tabFrame, strOnlyBuilder, macroFrame
-local function ConvertSpellNameToID(spellName)
-	local Name, _, _, _, _, _, ID = GetSpellInfo(spellName)
-	if not Name then 
-		for i = 1, 350000 do 
-			Name, _, _, _, _, _, ID = GetSpellInfo(i) 
-			if Name ~= nil and Name ~= "" and Name == spellName then 
-				return ID
-			end 
-		end 
-	end 
-	return ID 
-end 
-ConvertSpellNameToID = TMW:MakeSingleArgFunctionCached(ConvertSpellNameToID)
-local function GetTableKeyIdentify(action)
-	-- Using to link key in DB
-	if not action.TableKeyIdentify then 
-		action.TableKeyIdentify = strOnlyBuilder(action.SubType, action.ID, action.isRank, action.Desc, action.Color)
-	end 
-	return action.TableKeyIdentify
-end
-local function ShowTooltip(parent, show, ID, Type)
+function StdUi:ShowTooltip(parent, show, ID, Type)
 	if show then
-		if ID == nil or Type == "SwapEquip" then 
+		if ID == nil or Type == "SwapEquip" then  
 			GameTooltip:Hide()
 			return 
 		end
 		GameTooltip:SetOwner(parent)
 		if Type == "Trinket" or Type == "Potion" or Type == "Item" then 
 			GameTooltip:SetItemByID(ID) 
-		else
+		elseif Type == "Spell" then 
 			GameTooltip:SetSpellByID(ID)
+		else 
+			GameTooltip:SetText(ID)
 		end 
 	else
 		GameTooltip:Hide()
 	end
 end
-local function LayoutSpace(parent)
+function StdUi:LayoutSpace(parent)
 	-- Util for EasyLayout to create "space" in row since it support only elements
-	return StdUi:Subtitle(parent, '')
+	return self:Subtitle(parent, "")
 end 
-local function GetWidthByColumn(parent, col, offset)
+function StdUi:GetWidthByColumn(parent, col, offset)
 	-- Util for EasyLayout to provide correctly width for dropdown menu since lib has bug to properly resize it 
 	local left = parent.layout.padding.left
 	local right = parent.layout.padding.right
@@ -3456,28 +5407,60 @@ local function GetWidthByColumn(parent, col, offset)
 	local columns = parent.layout.columns
 	return (width / (columns / col)) - 2 * gutter + (offset or 0)
 end 
-local function GetAnchor(tab, spec)
-	-- Uses for EasyLayout (only resizer / comfort remap)
-	if tab.name == 1 or tab.name == 2 then 
+function StdUi:ClipScrollTableColumn(parent, height)
+	local columnHeadFrame 	= parent.head
+	local columns			= parent.columns
+	for i = 1, #columnHeadFrame.columns do
+		local columnFrame = columnHeadFrame.columns[i]
+		
+		columnFrame.text:SetText(columns[i].name)
+		columnFrame.text:ClearAllPoints()
+		columnFrame.text:SetPoint("TOP", columnFrame, "TOP", 0, 0)
+		columnFrame.text:SetPoint("BOTTOM", columnFrame, "BOTTOM", 0, 0)
+		columnFrame.text:SetWidth(columns[i].width - 2 * 2.5)
+	end 
+end
+function StdUi:GetAnchor(tab, spec)
+	-- Uses for EasyLayout (resizer / toggles)
+	if tab.childs[spec].scrollChild then 
 		return tab.childs[spec].scrollChild
 	else 
 		return tab.childs[spec]
 	end  
 end 
-local function GetKids(tab, spec)
+function StdUi:GetAnchorKids(tab, spec)
 	-- Uses for EasyLayout (resizer / toggles)
-	if tab.name == 1 or tab.name == 2 then 
+	if tab.childs[spec].scrollChild then 
 		return tab.childs[spec].scrollChild:GetChildrenWidgets()
 	else 
 		return tab.childs[spec]:GetChildrenWidgets()
 	end  
 end 
-local function CreateResizer(parent)
+function StdUi:AddToggleWidgets(toggleWidgets, ...)
+	local child 
+	for i = 1, select("#", ...) do 
+		child = select(i, ...)
+		if child.isWidget then 
+			if child.layout then 
+				self:AddToggleWidgets(toggleWidgets, child:GetChildren())
+			elseif child.Identify and child.Identify.Toggle then 
+				toggleWidgets[child.Identify.Toggle] = child
+			end 
+		end 
+	end 
+end 
+function StdUi:EnumerateToggleWidgets(tabChild, anchor)
+	tabChild.toggleWidgets = {}
+	StdUi:AddToggleWidgets(tabChild.toggleWidgets, anchor:GetChildren())
+end 
+function StdUi:CreateResizer(parent)
+	local parent = parent
+	if not parent then parent = self end 
 	if not TMW or parent.resizer then return end 
-	-- Pre Loading options in case if first time it failed 
+	-- Pre Loading options if case if first time it failed 
 	if TMW.Classes.Resizer_Generic == nil then 
 		TMW:LoadOptions()
-	end 
+	end 	
 	local frame = {}
 	frame.resizer = TMW.Classes.Resizer_Generic:New(parent)
 	frame.resizer:Show()
@@ -3488,52 +5471,8 @@ local function CreateResizer(parent)
 	end 
 	TMW:TT(frame.resizer.resizeButton, L["RESIZE"], L["RESIZE_TOOLTIP"], 1, 1)
 	return frame
-end 
-local function CraftMacro(Name, Macro, perCharacter, QUESTIONMARK, leaveNewLine)
-	if InCombatLockdown() then 
-		Action.Print(L["MACROINCOMBAT"])
-		return 
-	end 
-	
-	if not macroFrame then 
-		macroFrame = _G.MacroFrame		
-	end
-	
-	if macroFrame and macroFrame:IsVisible() then 
-		MacroFrame.CloseButton:Click()
-	end 
-	
-	local numglobal, numperchar = GetNumMacros()	
-	local NumMacros = perCharacter and numperchar or numglobal
-	if (perCharacter and NumMacros >= MAX_CHARACTER_MACROS) or (not perCharacter and NumMacros >= MAX_ACCOUNT_MACROS) then 
-		Action.Print(L["MACROLIMIT"])
-		GameMenuButtonMacros:Click()
-		return 
-	end 
-	
-	Name = strgsub(Name, "\n", " ")
-	for i = 1, MAX_CHARACTER_MACROS + MAX_ACCOUNT_MACROS do 
-		if GetMacroInfo(i) == Name then 
-			Action.Print(Name .. " - " .. L["MACROEXISTED"])
-			GameMenuButtonMacros:Click()
-			return 
-		end 
-	end 
-	
-	CreateMacro(Name, QUESTIONMARK and "INV_MISC_QUESTIONMARK" or GetMacroIcons()[1], not leaveNewLine and strgsub(Macro, "\n", " ") or Macro, perCharacter and 1 or nil)			
-	Action.Print(L["MACRO"] .. " " .. Name .. " " .. L["CREATED"] .. "!")
-	GameMenuButtonMacros:Click()
 end
-local function GetActionTableByKey(key)
-	-- @return table or nil 
-	-- Note: Returns table object which can be used to pass methods by specified key 
-	if Action[Action.PlayerClass] and Action[Action.PlayerClass][key] then 
-		return Action[Action.PlayerClass][key]
-	elseif Action[key] and type(Action[key]) == "table" and Action[key].Type and Action[key].ID and Action[key].Desc then 
-		return Action[key]
-	end 
-end 
-local function SetProperlyScale()
+function StdUi:SetProperlyScale()
 	if GetCVar("useUiScale") ~= "1" then
 		Action.MainUI:SetScale(0.8)
 	else 
@@ -3541,13 +5480,85 @@ local function SetProperlyScale()
 	end 	
 end 
 
--- Note: For custom lua snippets use 
-Action.ConvertSpellNameToID 			= ConvertSpellNameToID
-Action.LayoutSpace						= LayoutSpace
-Action.GetWidthByColumn					= GetWidthByColumn
-Action.CreateResizer					= CreateResizer
-Action.CraftMacro 						= CraftMacro
-Action.GetActionTableByKey				= GetActionTableByKey
+function Action.ConvertSpellNameToID(spellName)
+	local Name, _, _, _, _, _, ID = GetSpellInfo(spellName)
+	if not Name then 
+		for i = 1, 350000 do 
+			Name, _, _, _, _, _, ID = GetSpellInfo(i)
+			if Name ~= nil and Name ~= "" and Name == spellName then 
+				return ID
+			end 
+		end 
+	end 
+	return ID 
+end 
+Action.ConvertSpellNameToID = TMW:MakeSingleArgFunctionCached(Action.ConvertSpellNameToID) 
+function Action.CraftMacro(macroName, macroBody, perCharacter, useQuestionIcon, leaveNewLine, isHidden)
+	-- @usage: Action.CraftMacro(@string, @string[, @boolean, @boolean, @boolean, @boolean])
+	-- 1. macroName the name of the macro title 
+	-- 2. macroBody the text of the macro 
+	-- 3. perCharacter, must be true if need create macro in character's tab 
+	-- 4. useQuestionIcon, must be true if need use default question texture 
+	-- 5. leaveNewLine, must be true if need leave '\n' in macroBody
+	-- 6. isHidden, must be true if need create macro without cause opened macro frame 
+	local macroName = macroName:gsub("\n", " ")
+	local macroBody = not leaveNewLine and macroBody:gsub("\n", " ") or macroBody
+	local error 	= MacroLibrary:CraftMacro(macroName, not useQuestionIcon and MacroLibrary.Data.Icons[1], macroBody, perCharacter, isHidden)	
+	
+	if error == "MacroExists" then 
+		A_Print(macroName .. " - " .. L["MACROEXISTED"])		
+	elseif error == "InCombatLockdown" then 
+		A_Print(L["MACROINCOMBAT"])		 
+	elseif error == "MacroLimit" then 
+		A_Print(L["MACROLIMIT"])	
+	else 
+		A_Print(L["MACRO"] .. " " .. macroName .. " " .. L["CREATED"] .. "!")
+	end 
+end
+function Action:IsActionTable(tabl)
+	-- @return boolean
+	-- Noe: Returns true if it's action created by .Create method 
+	local this = tabl or self 
+	return this.Type and this.SubType and this.Desc and true 
+end 
+function Action.GetActionTableByKey(key)
+	-- @return table or nil 
+	-- Note: Returns table object which can be used to pass methods by specified key 
+	local owner = Action[owner]
+	local A = Action[owner] and Action[owner][key]
+	if type(A) == "table" and A_IsActionTable(A) then 
+		return A
+	else
+		A = Action[key]
+		if type(A) == "table" and A_IsActionTable(A) then 
+			return A
+		end 
+	end 
+end 
+function Action:GetTableKeyIdentify()
+	-- Using to link key in DB
+	if not self.TableKeyIdentify then 
+		self.TableKeyIdentify = strOnlyBuilder(self.SubType, self.ID, self.isRank, self.Desc, self.Color)
+	end 
+	return self.TableKeyIdentify
+end
+function Action.WipeTableKeyIdentify()
+	-- Using to reset cached key due spell changes by level (Retail) or changes by rank (Classic)	
+	local owner = Action[owner]
+	if Action[owner] then 
+		for _, actionData in pairs(Action[owner]) do 
+			if type(actionData) == "table" and actionData.TableKeyIdentify then 
+				actionData.TableKeyIdentify = nil 
+			end 
+		end 
+	end 
+	
+	for _, actionData in pairs(Action) do 
+		if type(actionData) == "table" and actionData.TableKeyIdentify then 
+			actionData.TableKeyIdentify = nil 
+		end 
+	end 
+end 
 
 -------------------------------------------------------------------------------
 -- UI: ColorPicker - Container
@@ -4016,11 +6027,108 @@ local ColorPicker 						= {
 				},
 			},
 		},
+		Ice 	 						= {
+			["progressBar"] = {
+				["color"] = {
+					["a"] = 0.5,
+					["r"] = 0,
+					["g"] = 0.8901960784313725,
+					["b"] = 1,
+				},
+			},
+			["font"] = {
+				["color"] = {
+					["normal"] = {
+						["a"] = 1,
+						["r"] = 0.5686274509803921,
+						["g"] = 0.9019607843137255,
+						["b"] = 1,
+					},
+					["subtitle"] = {
+						["a"] = 1,
+						["r"] = 0.1411764705882353,
+						["g"] = 0.8784313725490196,
+						["b"] = 1,
+					},
+					["disabled"] = {
+						["a"] = 1,
+						["r"] = 0.2745098039215687,
+						["g"] = 0.5725490196078431,
+						["b"] = 0.6941176470588235,
+					},
+					["tooltip"] = {
+						["a"] = 1,
+						["r"] = 0.2862745098039216,
+						["g"] = 0.788235294117647,
+						["b"] = 1,
+					},
+					["header"] = {
+						["a"] = 1,
+						["r"] = 0,
+						["g"] = 1,
+						["b"] = 0.984313725490196,
+					},
+				},
+			},
+			["highlight"] = {
+				["color"] = {
+					["a"] = 0.4,
+					["r"] = 0,
+					["g"] = 0.8627450980392157,
+					["b"] = 1,
+				},
+				["blank"] = {
+					["a"] = 0,
+					["r"] = 0,
+					["g"] = 0,
+					["b"] = 0,
+				},
+			},
+			["backdrop"] = {
+				["panel"] = {
+					["a"] = 0.8,
+					["r"] = 0.00784313725490196,
+					["g"] = 0.00784313725490196,
+					["b"] = 0.07450980392156863,
+				},
+				["highlight"] = {
+					["a"] = 0.5,
+					["r"] = 0.9215686274509803,
+					["g"] = 0.9647058823529412,
+					["b"] = 1,
+				},
+				["border"] = {
+					["a"] = 1,
+					["r"] = 0,
+					["g"] = 0,
+					["b"] = 0,
+				},
+				["button"] = {
+					["a"] = 1,
+					["r"] = 0.06274509803921569,
+					["g"] = 0.1764705882352941,
+					["b"] = 0.3098039215686275,
+				},
+				["buttonDisabled"] = {
+					["a"] = 1,
+					["r"] = 0.00784313725490196,
+					["g"] = 0.06666666666666667,
+					["b"] = 0.1647058823529412,
+				},
+				["borderDisabled"] = {
+					["a"] = 1,
+					["r"] = 0,
+					["g"] = 0,
+					["b"] = 0,
+				},
+				["slider"] = {
+				},
+			},
+		},							
 	},
 	Cache 								= {}, 										-- Stores default StdUi colors 	
 	StdUiObjects						= CopyTable(Factory[1].ColorPickerConfig),	-- Stores objects as key and function as value. It doesn't cache 'highlight' because his data receives with real time by OnEnter handler
 	strupperCache 						= setmetatable({}, {
-		--__mode = "kv",
 		__index = function(t, i)
 			if not i then return end
 			local o
@@ -4088,7 +6196,7 @@ local ColorPicker 						= {
 		-- Note: 
 		--		 't' is manual color table i.e. self.Cache to reset 
 		-- 		 'element' is a first level passthrough key i.e. font (element) > color > normal (option)
-		for k, v in pairs(t or TMWdb.profile.ActionDB[1].ColorPickerConfig) do 
+		for k, v in pairs(t or pActionDB[1].ColorPickerConfig) do 
 			if self:HasRGBA(v) then 			
 				self:MakeOn(element, k, v)
 			elseif next(v) then 
@@ -4152,7 +6260,7 @@ local ColorPicker 						= {
 		-- Used for target apply to custom 
 		-- @usage: ColorPicker:MakeOn(element, option[, t])
 		local tStdUiConfig 		= self:tFindByOption(StdUi.config[element], option)
-		local tCurrentConfig 	= t or self:tFindByOption(TMWdb.profile.ActionDB[1].ColorPickerConfig[element], option)
+		local tCurrentConfig 	= t or self:tFindByOption(pActionDB[1].ColorPickerConfig[element], option)
 		
 		if self:HasRGBA(tCurrentConfig) and not self:tEqualRGBA(tStdUiConfig, tCurrentConfig) then 
 			self:tReplaceRGBA(tStdUiConfig, tCurrentConfig)
@@ -4181,7 +6289,7 @@ local ColorPicker 						= {
 	end,
 	Initialize							= function(self)
 		self:MakeCache()
-		if Action.GetToggle(1, "ColorPickerUse") then 
+		if A_GetToggle(1, "ColorPickerUse") then 
 			self:MakeColors()
 		elseif self.wasChanged then 
 			self:ResetColors()
@@ -4189,16 +6297,14 @@ local ColorPicker 						= {
 		
 		-- Fix StdUi bug with tab buttons, they become in disabled state 
 		if tabFrame then 
-			local selectedTab = tabFrame:GetSelectedTab()
 			for _, tab in ipairs(tabFrame.tabs) do
-				if tab.button and selectedTab ~= tab then
+				if tab.button and tabFrame.selected ~= tab.name then
 					tab.button:Enable()
 				end 
 			end 
 		end 
 	end,
-}
-
+}; Action.ColorPicker = ColorPicker
 do 
 	-- Inserts in StdUi.config missed but required parts 
 	local f = CreateFrame("Frame")
@@ -4332,7 +6438,7 @@ local function GetCompiledFunction(luaCode, thisunit)
 		Functions[luaCode] = func
 	end	
 	return func, err
-end
+end; StdUi.GetCompiledFunction = GetCompiledFunction
 local function RunLua(luaCode, thisunit)
 	if not luaCode or luaCode == "" then 
 		return true 
@@ -4340,39 +6446,40 @@ local function RunLua(luaCode, thisunit)
 	
 	local func = GetCompiledFunction(luaCode, thisunit)
 	return func and func()
-end
-local function CreateLuaEditor(parent, title, w, h, editTT)
+end; StdUi.RunLua = RunLua
+function StdUi:CreateLuaEditor(parent, title, w, h, editTT)
 	-- @return frame which is simular between WeakAura and TellMeWhen (if IndentationLib loaded, otherwise without effects like colors and tabulations)
-	local LuaWindow = StdUi:Window(parent, w, h, title)
+	local LuaWindow = self:Window(parent, w, h, title)
 	LuaWindow:SetShown(false)
 	LuaWindow:SetFrameStrata("DIALOG")
 	LuaWindow:SetMovable(false)
 	LuaWindow:EnableMouse(false)
-	StdUi:GlueAfter(LuaWindow, Action.MainUI, 0, 0)	
+	self:GlueAfter(LuaWindow, Action.MainUI, 0, 0)	
 	
-	LuaWindow.UseBracketMatch = StdUi:Checkbox(LuaWindow, L["TAB"]["BRACKETMATCH"])
-	StdUi:GlueTop(LuaWindow.UseBracketMatch, LuaWindow, 15, -15, "LEFT")
+	LuaWindow.UseBracketMatch = self:Checkbox(LuaWindow, L["TAB"]["BRACKETMATCH"])
+	self:GlueTop(LuaWindow.UseBracketMatch, LuaWindow, 15, -15, "LEFT")
 	
-	LuaWindow.LineNumber = StdUi:Subtitle(LuaWindow, "")
+	LuaWindow.LineNumber = self:Subtitle(LuaWindow, "")
 	LuaWindow.LineNumber:SetFontSize(14)
-	StdUi:GlueTop(LuaWindow.LineNumber, LuaWindow, 0, -30)
+	self:GlueTop(LuaWindow.LineNumber, LuaWindow, 0, -30)
 	
-	local widget = StdUi:MultiLineBox(LuaWindow, 100, 5, "") 
-	widget.editBox.stdUi = StdUi
-	widget.scrollFrame.stdUi = StdUi
+	local widget = self:MultiLineBox(LuaWindow, 100, 5, "") 
+	widget.editBox.stdUi = self
+	widget.scrollFrame.stdUi = self
 	LuaWindow.EditBox = widget.editBox
 	LuaWindow.EditBox:SetText("")
 	LuaWindow.EditBox.panel:SetBackdropColor(0, 0, 0, 1)
-	StdUi:GlueAcross(LuaWindow.EditBox.panel, LuaWindow, 5, -50, -5, 5)
+	self:GlueAcross(LuaWindow.EditBox.panel, LuaWindow, 5, -50, -5, 5)
 	
 	if editTT then 
-		StdUi:FrameTooltip(LuaWindow.EditBox, editTT, nil, "TOPLEFT", "TOPLEFT")
+		self:FrameTooltip(LuaWindow.EditBox, editTT, nil, "TOPLEFT", "TOPLEFT")
 	end 	
 	
 	-- The indention lib overrides GetText, but for the line number
 	-- display we need the original, so save it here
 	LuaWindow.EditBox.GetOriginalText = LuaWindow.EditBox.GetText
 	-- ForAllIndentsAndPurposes
+	local IndentationLib = _G.IndentationLib
 	if IndentationLib then
 		-- Monkai   
 		local theme = {		
@@ -4451,7 +6558,7 @@ local function CreateLuaEditor(parent, title, w, h, editTT)
 	
 	-- Set manual black color (if enabled custom Color Picker)
 	LuaWindow.EditBox:HookScript("OnShow", function(self)
-		if Action.GetToggle(1, "ColorPickerUse") then 
+		if A_GetToggle(1, "ColorPickerUse") then 
 			self.panel:SetBackdropColor(0, 0, 0, 1)
 		end 
 	end)
@@ -4506,11 +6613,11 @@ end
 
 -- [3] LUA API 
 function Action:GetLUA()
-	return TMWdb.profile.ActionDB[3].luaActions[GetTableKeyIdentify(self)] 
+	return pActionDB[3].luaActions[self:GetTableKeyIdentify()] 
 end
 
 function Action:SetLUA(luaCode)
-	TMWdb.profile.ActionDB[3].luaActions[GetTableKeyIdentify(self)] = luaCode
+	pActionDB[3].luaActions[self:GetTableKeyIdentify()] = luaCode
 end 
 
 function Action:RunLua(thisunit)
@@ -4519,11 +6626,11 @@ end
 
 -- [3] QLUA API 
 function Action:GetQLUA()
-	return TMWdb.profile.ActionDB[3].QluaActions[GetTableKeyIdentify(self)] 
+	return pActionDB[3].QluaActions[self:GetTableKeyIdentify()] 
 end
 
 function Action:SetQLUA(luaCode)
-	TMWdb.profile.ActionDB[3].QluaActions[GetTableKeyIdentify(self)] = luaCode
+	pActionDB[3].QluaActions[self:GetTableKeyIdentify()] = luaCode
 end 
 
 function Action:RunQLua(thisunit)
@@ -4537,13 +6644,14 @@ end
 function Action.ToggleMode()
 	Action.IsLockedMode = true
 	Action.IsInPvP = not Action.IsInPvP	
-	Action.Print(L["SELECTED"] .. ": " .. (Action.IsInPvP and "PvP" or "PvE"))
+	A_Print(L["SELECTED"] .. ": " .. (Action.IsInPvP and "PvP" or "PvE"))
 	TMW:Fire("TMW_ACTION_MODE_CHANGED")
 end 
 
 -- [1] Role 
+ActionDataPrintCache.ToggleRole = {1, "Role"}
 function Action.ToggleRole(fixed, between)
-	local Current = Action.GetToggle(1, "Role")
+	local Current = A_GetToggle(1, "Role")
 	
 	local set
 	if between and fixed ~= between then 	
@@ -4564,14 +6672,14 @@ function Action.ToggleRole(fixed, between)
 		Current = ActionDataTG.Role
 	end 			
 	
-	Action.SetToggle({1, "Role"}, set or fixed or Current)	
-	Action:PLAYER_SPECIALIZATION_CHANGED()	
-	TMW:Fire("TMW_ACTION_ROLE_CHANGED")
+	ActionDataPrintCache.ToggleRole[3] = L["TAB"][5]["ROLE"] .. ": "
+	A_SetToggle(ActionDataPrintCache.ToggleRole, set or fixed or Current)		
 end 
 
 -- [1] Burst 
+ActionDataPrintCache.ToggleBurst = {1, "Burst"}
 function Action.ToggleBurst(fixed, between)
-	local Current = Action.GetToggle(1, "Burst")
+	local Current = A_GetToggle(1, "Burst")
 	
 	local set
 	if between and fixed ~= between then 	
@@ -4592,17 +6700,17 @@ function Action.ToggleBurst(fixed, between)
 		Current = ActionDataTG.Burst
 	end 			
 	
-	Action.SetToggle({1, "Burst", L["TAB"][1]["BURST"] .. ": "}, set or fixed or Current)	
+	ActionDataPrintCache.ToggleBurst[3] = L["TAB"][1]["BURST"] .. ": "
+	A_SetToggle(ActionDataPrintCache.ToggleBurst, set or fixed or Current)	
 end 
 
 function Action.BurstIsON(unitID)	
 	-- @return boolean
-	-- Note: This function is cached
-	local Current = Action.GetToggle(1, "Burst")
+	local Current = A_GetToggle(1, "Burst")
 	
 	if Current == "Auto" then  
 		local unit = unitID or "target"
-		return Action.Unit(unitID):IsPlayer() or Action.Unit(unitID):IsBoss()
+		return A_Unit(unitID):IsPlayer() or A_Unit(unitID):IsBoss()
 	elseif Current == "Everything" then 
 		return true 
 	end 		
@@ -4614,29 +6722,7 @@ end
 function Action.RacialIsON(self)
 	-- @usage Action.RacialIsON() or Action:RacialIsON()
 	-- @return boolea
-	return Action.GetToggle(1, "Racial") and (not self or self:IsExists())
-end 
-
--- [1] HealingEngine 
-local tempToggleHE = {1, "HE_Toggle", "HealingEngine: "}
-function Action.ToggleHE(fixed)
-	local Current = Action.GetToggle(1, "HE_Toggle")
-	if Current == "ALL" then 		
-		Current = "RAID"
-	elseif Current == "RAID" then  
-		Current = "TANK"
-	elseif Current == "TANK" then 
-		Current = "DAMAGER"
-	elseif Current == "DAMAGER" then 
-		Current = "HEALER"
-	elseif Current == "HEALER" then 
-		Current = "TANKANDPARTY"
-	elseif Current == "TANKANDPARTY" then 
-		Current = "PARTY"
-	else 
-		Current = "ALL"
-	end 		
-	Action.SetToggle(tempToggleHE, fixed or Current)	
+	return A_GetToggle(1, "Racial") and (not self or self:IsExists())
 end 
 
 -- [1] ReTarget
@@ -4644,9 +6730,9 @@ local Re = {
 	Units = { "arena1", "arena2", "arena3" },
 	-- Textures 
 	target = {
-		["arena1"] = ACTION_CONST_PVP_TARGET_ARENA1,
-		["arena2"] = ACTION_CONST_PVP_TARGET_ARENA2,
-		["arena3"] = ACTION_CONST_PVP_TARGET_ARENA3,
+		["arena1"] = ActionConst.PVP_TARGET_ARENA1,
+		["arena2"] = ActionConst.PVP_TARGET_ARENA2,
+		["arena3"] = ActionConst.PVP_TARGET_ARENA3,
 	},
 	-- OnEvent 
 	PLAYER_TARGET_CHANGED = function(self)
@@ -4657,6 +6743,7 @@ local Re = {
 					if UnitIsUnit("target", self.Units[i]) then 
 						Action.LastTargetUnitID = self.Units[i]
 						Action.LastTargetTexture = self.target[Action.LastTargetUnitID]
+						break
 					end 
 				end 
 			else
@@ -4664,21 +6751,18 @@ local Re = {
 			end 
 		end 		
 	end,	
-	Wipe			= function(self)
+	Reset 			= function(self)		
+		A_Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED")
 		Action.LastTargetIsExists	= nil
 		Action.LastTargetUnitID 	= nil 
 		Action.LastTargetTexture 	= nil 	
 	end,
-	Reset 			= function(self)		
-		Action.Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED")
-		self:Wipe()
-	end,
 	Initialize		= function(self)
-		if Action.GetToggle(1, "ReTarget") then 
-			Action.Listener:Add("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED", function() self:PLAYER_TARGET_CHANGED() end)
+		if A_GetToggle(1, "ReTarget") then 
+			A_Listener:Add("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED", function() self:PLAYER_TARGET_CHANGED() end)
 			self:PLAYER_TARGET_CHANGED()
 		else 
-			Action.Listener:Remove("ACTION_EVENT_RE", 	"PLAYER_TARGET_CHANGED")
+			A_Listener:Remove("ACTION_EVENT_RE", 	"PLAYER_TARGET_CHANGED")
 			Action.LastTargetIsExists	= nil
 			Action.LastTargetUnitID 	= nil 
 			Action.LastTargetTexture 	= nil 			
@@ -4698,7 +6782,7 @@ local LineOfSight = {
 	end }),
 	-- Functions
 	UnitInLOS 		= function(self, unitID, unitGUID)		
-		if not Action.GetToggle(1, "LOSCheck") then
+		if not A_GetToggle(1, "LOSCheck") then
 			return false 
 		end 
 
@@ -4723,26 +6807,18 @@ local LineOfSight = {
 		self.PhysicalUnitWait 	= nil
 	end,
 	Reset 			= function(self)		
-		Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"UI_ERROR_MESSAGE")
-		Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"COMBAT_LOG_EVENT_UNFILTERED")
-		Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"PLAYER_REGEN_ENABLED")
-		Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"PLAYER_REGEN_DISABLED")
+		A_Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"UI_ERROR_MESSAGE")
+		A_Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"COMBAT_LOG_EVENT_UNFILTERED")
+		A_Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"PLAYER_REGEN_ENABLED")
+		A_Listener:Remove("ACTION_EVENT_LOS_SYSTEM", 	"PLAYER_REGEN_DISABLED")
 		self:Wipe()
+		wipe(self.Cache)
 	end,
 	-- OnEvent
 	UI_ERROR_MESSAGE = function(self, ...)
-		if Action.IsInitialized and select(2, ...) == ACTION_CONST_SPELL_FAILED_LINE_OF_SIGHT then 
+		if select(2, ...) == ActionConst.SPELL_FAILED_LINE_OF_SIGHT then 
 			if self.PhysicalUnitID and TMW.time >= self.PhysicalUnitWait then 
 				local SkipTimer = self.Timer
-				-- Fix for HealingEngine
-				if Action.IamHealer and self.PhysicalUnitID == "target" and self.PhysicalUnitGUID == UnitGUID(self.PhysicalUnitID) then 
-					if Action.Zone == "arena" then 
-						SkipTimer = 3 
-					else 
-						SkipTimer = 9
-					end 
-				end 
-
 				if self.PhysicalUnitGUID then 
 					self.Cache[self.PhysicalUnitGUID] = TMW.time + SkipTimer
 				else 
@@ -4752,38 +6828,27 @@ local LineOfSight = {
 					end 
 				end 
 				
-				self:Wipe()
-				return
-			end 
-
-			if Action.IamHealer and Action.IsUnitEnemy("targettarget") then
-				self.Cache[UnitGUID("targettarget")] = TMW.time + self.Timer
+				self:Wipe()				
 			end 
 		end 	
 	end,
 	COMBAT_LOG_EVENT_UNFILTERED = function(self, ...)
-		if Action.IsInitialized then 
-			local _, event, _, SourceGUID, _,_,_, DestGUID = CombatLogGetCurrentEventInfo()	
-			if event == "SPELL_CAST_SUCCESS" and self.Cache[DestGUID] and SourceGUID and SourceGUID == UnitGUID("player") then 
-				self.Cache[DestGUID] = nil 
-				if self.PhysicalUnitID and DestGUID == (self.PhysicalUnitGUID or UnitGUID(self.PhysicalUnitID)) then 
-					self:Wipe()
-				end 
-			end 	
-		end 
+		local _, event, _, SourceGUID, _,_,_, DestGUID = CombatLogGetCurrentEventInfo()	
+		if event == "SPELL_CAST_SUCCESS" and self.Cache[DestGUID] and SourceGUID and SourceGUID == A_TeamCacheFriendlyUNITs.player then 
+			self.Cache[DestGUID] = nil 
+			if self.PhysicalUnitID and DestGUID == (self.PhysicalUnitGUID or UnitGUID(self.PhysicalUnitID)) then 
+				self:Wipe()
+			end 
+		end 	 
 	end,
 	Initialize		= function(self)
-		if Action.GetToggle(1, "LOSCheck") then 	
-			Action.Listener:Add("ACTION_EVENT_LOS_SYSTEM", "UI_ERROR_MESSAGE", 				function(...) self:UI_ERROR_MESSAGE(...) 			end)
-			Action.Listener:Add("ACTION_EVENT_LOS_SYSTEM", "COMBAT_LOG_EVENT_UNFILTERED", 	function(...) self:COMBAT_LOG_EVENT_UNFILTERED(...) end)
-			Action.Listener:Add("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_ENABLED", 			function() 	  wipe(self.Cache)						end)
-			Action.Listener:Add("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_DISABLED", 		function() 	  wipe(self.Cache)						end)
+		if A_GetToggle(1, "LOSCheck") then 	
+			A_Listener:Add("ACTION_EVENT_LOS_SYSTEM", "UI_ERROR_MESSAGE", 				function(...) self:UI_ERROR_MESSAGE(...) 			end)
+			A_Listener:Add("ACTION_EVENT_LOS_SYSTEM", "COMBAT_LOG_EVENT_UNFILTERED", 	function(...) self:COMBAT_LOG_EVENT_UNFILTERED(...) end)
+			A_Listener:Add("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_ENABLED", 			function() 	  wipe(self.Cache)						end)
+			A_Listener:Add("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_DISABLED", 			function() 	  wipe(self.Cache)						end)
 		else 			
-			Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", "UI_ERROR_MESSAGE")
-			Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", "COMBAT_LOG_EVENT_UNFILTERED")
-			Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_ENABLED")
-			Action.Listener:Remove("ACTION_EVENT_LOS_SYSTEM", "PLAYER_REGEN_DISABLED")	
-			wipe(self.Cache)	
+			self:Reset()	
 		end 
 	end,
 }
@@ -4798,10 +6863,10 @@ function Action.UnitInLOS(unitID, unitGUID)
 	return LineOfSight:UnitInLOS(unitID, unitGUID)
 end 
 
-function GetLOS(unitID) 
+function _G.GetLOS(unitID) 
 	-- External physical button use 
-	if Action.IsInitialized and Action.GetToggle(1, "LOSCheck") then
-		if not Action.IsActiveGCD() and (not LineOfSight.PhysicalUnitID or TMW.time > LineOfSight.PhysicalUnitWait) and (unitID ~= "target" or not LineOfSight.PhysicalUnitWait or TMW.time > LineOfSight.PhysicalUnitWait + 1) and not Action.UnitInLOS(unitID) then 
+	if Action.IsInitialized and A_GetToggle(1, "LOSCheck") then
+		if not A_IsActiveGCD() and (not LineOfSight.PhysicalUnitID or TMW.time > LineOfSight.PhysicalUnitWait) and (unitID ~= "target" or not LineOfSight.PhysicalUnitWait or TMW.time > LineOfSight.PhysicalUnitWait + 1) and not A_UnitInLOS(unitID) then 
 			LineOfSight.PhysicalUnitID = unitID
 			if unitID == "target" then 
 				LineOfSight.PhysicalUnitGUID = UnitGUID(unitID)
@@ -4834,17 +6899,17 @@ local ScreenshotHider = {
 			-- UI 
 			if Action.MainUI and Action.MainUI:IsShown() then 
 				tinsert(self.HiddenFrames, "MainUI")
-				Action.ToggleMainUI()
+				A_ToggleMainUI()
 			end 
 			
-			if Action.MinimapIsShown() then 
+			if A_MinimapIsShown() then 
 				tinsert(self.HiddenFrames, "Minimap")
-				Action.ToggleMinimap(false)
+				A_ToggleMinimap(false)
 			end 
 			
-			if Action.BlackBackgroundIsShown() then 
+			if A_BlackBackgroundIsShown() then 
 				tinsert(self.HiddenFrames, "BlackBackground")
-				Action.BlackBackgroundSet(false)
+				A_BlackBackgroundSet(false)
 			end 
 		end 
 	end,
@@ -4852,11 +6917,11 @@ local ScreenshotHider = {
 		if #self.HiddenFrames > 0 then 
 			for i = 1, #self.HiddenFrames do 
 				if self.HiddenFrames[i] == "MainUI" then 
-					Action.ToggleMainUI()
+					A_ToggleMainUI()
 				elseif self.HiddenFrames[i] == "Minimap" then 
-					Action.ToggleMinimap(true)
+					A_ToggleMinimap(true)
 				elseif self.HiddenFrames[i] == "BlackBackground" then 
-					Action.BlackBackgroundSet(true)	
+					A_BlackBackgroundSet(true)	
 				elseif _G[self.HiddenFrames[i]] then 
 					_G[self.HiddenFrames[i]]:Show()
 				end 
@@ -4866,49 +6931,56 @@ local ScreenshotHider = {
 		end 	
 	end,
 	-- UI 
-	Initialize 		 = function(self, toggle)
-		if toggle then 
-			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED", 	function() self:OnStart() end)
-			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED", 	function() self:OnStop()  end)
-			Action.Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED", 	function() self:OnStop()  end)
-		else 
-			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED"		)
-			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED"		)
-			Action.Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED"	)
-			self:OnStop()
-		end 
-	end,
 	Reset			= function(self)
-		self:Initialize()
+		A_Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED"		)
+		A_Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED"		)
+		A_Listener:Remove("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED"		)
+		self:OnStop()
+	end,
+	Initialize 		 = function(self)
+		if A_GetToggle(1, "HideOnScreenshot") then 
+			A_Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_STARTED", 	function() self:OnStart() end)
+			A_Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_FAILED", 		function() self:OnStop()  end)
+			A_Listener:Add("ACTION_EVENT_SCREENSHOT", "SCREENSHOT_SUCCEEDED", 	function() self:OnStop()  end)
+		else 
+			self:Reset()
+		end 
 	end,
 }
 
+-- [1] PlaySound 
+function Action.PlaySound(sound)
+	if not A_GetToggle(1, "DisableSounds") then 
+		PlaySound(sound)
+	end 
+end 
+
 -- [1] LetMeCast 
 local LETMECAST = {
-	SitElapsed = 0,
+	SitElapsed 			= 0,
 	MSG 				= {
-		[SPELL_FAILED_NOT_STANDING] 				= "STAND", 
-		[ERR_CANTATTACK_NOTSTANDING]				= "STAND",
-		[ERR_LOOT_NOTSTANDING]						= "STAND",
-		[ERR_TAXINOTSTANDING]						= "STAND",
-		[SPELL_FAILED_BAD_TARGETS]					= "SIT",
-		[SPELL_FAILED_NOT_MOUNTED] 					= "DISMOUNT",
-		[ERR_NOT_WHILE_MOUNTED]						= "DISMOUNT",
-		[ERR_MOUNT_ALREADYMOUNTED]					= "DISMOUNT",
-		[ERR_TAXIPLAYERALREADYMOUNTED]				= "DISMOUNT",
-		[ERR_ATTACK_MOUNTED]						= "DISMOUNT",
-		[ERR_NO_ITEMS_WHILE_SHAPESHIFTED] 			= "DISMOUNT",
-		[ERR_TAXIPLAYERSHAPESHIFTED]				= "DISMOUNT",
-		[ERR_MOUNT_SHAPESHIFTED]					= "DISMOUNT",
-		[ERR_NOT_WHILE_SHAPESHIFTED]				= "DISMOUNT",
-		[ERR_CANT_INTERACT_SHAPESHIFTED]			= "DISMOUNT",
-		[SPELL_NOT_SHAPESHIFTED_NOSPACE]			= "DISMOUNT",
-		[SPELL_NOT_SHAPESHIFTED]					= "DISMOUNT",
-		[SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED]	= "DISMOUNT",
-		[SPELL_FAILED_NOT_SHAPESHIFT]				= "DISMOUNT",
+		[_G.SPELL_FAILED_NOT_STANDING] 					= "STAND", 
+		[_G.ERR_CANTATTACK_NOTSTANDING]					= "STAND",
+		[_G.ERR_LOOT_NOTSTANDING]						= "STAND",
+		[_G.ERR_TAXINOTSTANDING]						= "STAND",
+		[_G.SPELL_FAILED_BAD_TARGETS]					= "SIT",
+		[_G.SPELL_FAILED_NOT_MOUNTED] 					= "DISMOUNT",
+		[_G.ERR_NOT_WHILE_MOUNTED]						= "DISMOUNT",
+		[_G.ERR_MOUNT_ALREADYMOUNTED]					= "DISMOUNT",
+		[_G.ERR_TAXIPLAYERALREADYMOUNTED]				= "DISMOUNT",
+		[_G.ERR_ATTACK_MOUNTED]							= "DISMOUNT",
+		[_G.ERR_NO_ITEMS_WHILE_SHAPESHIFTED] 			= "DISMOUNT",
+		[_G.ERR_TAXIPLAYERSHAPESHIFTED]					= "DISMOUNT",
+		[_G.ERR_MOUNT_SHAPESHIFTED]						= "DISMOUNT",
+		[_G.ERR_NOT_WHILE_SHAPESHIFTED]					= "DISMOUNT",
+		[_G.ERR_CANT_INTERACT_SHAPESHIFTED]				= "DISMOUNT",
+		[_G.SPELL_NOT_SHAPESHIFTED_NOSPACE]				= "DISMOUNT",
+		[_G.SPELL_NOT_SHAPESHIFTED]						= "DISMOUNT",
+		[_G.SPELL_FAILED_NO_ITEMS_WHILE_SHAPESHIFTED]	= "DISMOUNT",
+		[_G.SPELL_FAILED_NOT_SHAPESHIFT]				= "DISMOUNT",
 	},
-	ClassBuffs = {
-		SHAMAN = 2645,
+	ClassBuffs 			= {
+		SHAMAN 			= 2645,
 	},
 	-- OnEvent 
 	UI_ERROR_MESSAGE	= function(self, ...)
@@ -4922,13 +6994,13 @@ local LETMECAST = {
 				self.SitElapsed = TMW.time + 5
 			end 
 		elseif self.MSG[msg] == "DISMOUNT" then 
-			if Action.PlayerClass == "DRUID" and Action.Player:GetStance() ~= 0 then 
+			if Action.PlayerClass == "DRUID" and A_Player:GetStance() ~= 0 then 
 				CancelShapeshiftForm()
 			end 
 			
 			if self.ClassBuffs[Action.PlayerClass] then 
-				local buffName = Action.GetSpellInfo(self.ClassBuffs[Action.PlayerClass])
-				Action.Player:CancelBuff(buffName)
+				local buffName = A_GetSpellInfo(self.ClassBuffs[Action.PlayerClass])
+				A_Player:CancelBuff(buffName)
 			end 
 			
 			Dismount()			
@@ -4937,17 +7009,123 @@ local LETMECAST = {
 	TAXIMAP_OPENED		= function()
 		Dismount()
 	end,
+	-- API
 	Reset 				= function(self)
-		Action.Listener:Remove("ACTION_EVENT_LET_ME_CAST", "UI_ERROR_MESSAGE")
-		Action.Listener:Remove("ACTION_EVENT_LET_ME_CAST", "TAXIMAP_OPENED")		
+		A_Listener:Remove("ACTION_EVENT_LET_ME_CAST", "UI_ERROR_MESSAGE")
+		A_Listener:Remove("ACTION_EVENT_LET_ME_CAST", "TAXIMAP_OPENED")		
 	end,
 	Initialize			= function(self)
-		if Action.GetToggle(1, "LetMeCast") then 
-			Action.Listener:Add("ACTION_EVENT_LET_ME_CAST", "UI_ERROR_MESSAGE", function(...) self:UI_ERROR_MESSAGE(...) end)
-			Action.Listener:Add("ACTION_EVENT_LET_ME_CAST", "TAXIMAP_OPENED", 	self.TAXIMAP_OPENED)
+		if A_GetToggle(1, "LetMeCast") then 
+			A_Listener:Add("ACTION_EVENT_LET_ME_CAST", "UI_ERROR_MESSAGE", 	function(...) self:UI_ERROR_MESSAGE(...) end)
+			A_Listener:Add("ACTION_EVENT_LET_ME_CAST", "TAXIMAP_OPENED", 	self.TAXIMAP_OPENED)
 		else 
-			Action.Listener:Remove("ACTION_EVENT_LET_ME_CAST", "UI_ERROR_MESSAGE")
-			Action.Listener:Remove("ACTION_EVENT_LET_ME_CAST", "TAXIMAP_OPENED")			
+			self:Reset()			
+		end 
+	end,
+}
+
+-- [1] LetMeDrag
+local LETMEDRAG = {
+	PreviousPetAction 		= {},	
+	ToggleOFF				= {1, "LetMeDrag", nil, true},
+	-- Functions 
+	IsFrameIsActionButton	= function(self, f)
+		-- @return boolean 
+		-- Returns true if frame inherits SpellButtonTemplate (reference SpellBookFrame.xml)
+		return 	f:GetObjectType() == "CheckButton" 	
+			and f.AutoCastShine  
+			and f.AutoCastable 
+			and f.Border 
+			and f.Count 
+			and f.Flash 
+			and f.FlyoutArrow 
+			and f.FlyoutBorder 
+			and f.FlyoutBorderShadow 
+			and f.HotKey 
+			and f.Name 
+			and f.NewActionTexture 
+			and f.NormalTexture 
+			and f.SpellHighlightAnim 
+			and f.SpellHighlightTexture
+			and f.cooldown
+			and f.action
+			and f.icon
+			and true 
+	end,
+	CanBeEnabled			= function(self)
+		-- @return boolean 
+		-- Returns true if class will use pet 
+		return Action.PlayerClass == "WARLOCK" or Action.PlayerClass == "HUNTER"
+	end,
+	-- OnEvent 
+	OnShowGrid				= function(self)
+		local actionType, actionSpellID, actionID = GetCursorInfo()
+		if actionType == "petaction" then 
+			self.PreviousPetAction.SpellID  = actionSpellID
+			self.PreviousPetAction.ID 		= actionID
+		end 
+	end,
+	OnHideGrid				= function(self)
+		if next(self.PreviousPetAction) then 
+			wipe(self.PreviousPetAction)	
+		end
+	end,
+	OnActionButtonClick 	= function(self, button)
+		if button == "LeftButton" and self.PreviousPetAction.SpellID and self.PreviousPetAction.ID then 
+			local spellName = A_GetSpellInfo(self.PreviousPetAction.SpellID)
+			local error 	= MacroLibrary:CraftMacro(spellName, nil, "#showtooltip\n/cast " .. spellName, true, true)
+			if error == "InCombatLockdown" then 
+				A_Print(L["MACROINCOMBAT"])
+			elseif error == "MacroLimit" then 
+				A_Print(L["MACROLIMIT"])
+			else 
+				local slot 
+				if self.action and self.action ~= 0 then 
+					slot = self.action 
+				elseif self.feedback_action and self.feedback_action ~= 0 then 
+					slot = self.feedback_action
+				else 
+					slot = self.id
+				end 
+				MacroLibrary:SetActionButton(spellName, slot)
+			end 
+		end
+	end,
+	OnEnable				= function(self)
+		if not self.isEnabled and self:CanBeEnabled() then 
+			A_Listener:Add("ACTION_EVENT_LET_ME_DRAG", "PLAYER_LOGIN", function()	
+				local enumeratedFrame = EnumerateFrames()
+				while enumeratedFrame do
+					if self:IsFrameIsActionButton(enumeratedFrame) then 
+						enumeratedFrame.PreviousPetAction = self.PreviousPetAction
+						enumeratedFrame:HookScript("OnClick", self.OnActionButtonClick)						
+					end 
+					enumeratedFrame = EnumerateFrames(enumeratedFrame)
+				end
+				
+				A_Listener:Remove("ACTION_EVENT_LET_ME_DRAG", "PLAYER_LOGIN")
+			end)
+			
+			self.isEnabled = true
+		end 
+	end,
+	-- API  
+	Reset 					= function(self)
+		self:OnHideGrid()
+		A_Listener:Remove("ACTION_EVENT_LET_ME_DRAG", "PET_BAR_SHOWGRID")
+		A_Listener:Remove("ACTION_EVENT_LET_ME_DRAG", "PET_BAR_HIDEGRID")		
+	end,
+	Initialize				= function(self)
+		if A_GetToggle(1, "LetMeDrag") then 
+			if self:CanBeEnabled() then 
+				A_Listener:Add("ACTION_EVENT_LET_ME_DRAG", "PET_BAR_SHOWGRID", function() self:OnShowGrid() end)
+				A_Listener:Add("ACTION_EVENT_LET_ME_DRAG", "PET_BAR_HIDEGRID", function() self:OnHideGrid() end)
+			else
+				A_SetToggle(self.ToggleOFF, false)
+				self:Reset()
+			end 
+		else 
+			self:Reset()			
 		end 
 	end,
 }
@@ -5262,11 +7440,11 @@ local AuraDuration = {
 			self:UpdatePortraitIcon(unit, maxPrio, maxPrioIndex, maxPrioFilter)
 		end		
 	end,
-	Initialize				= function(self, isLaunch)
-		self.IsEnabled 		= Action.GetToggle(1, "AuraDuration")
+	Initialize				= function(self)
+		self.IsEnabled 		= A_GetToggle(1, "AuraDuration")
 		
 		if self.IsInitialized then 
-			if not isLaunch then 
+			--if not isLaunch then 
 				-- turn off visual immediately
 				if not self.IsEnabled then 
 					self:Reset()
@@ -5274,7 +7452,7 @@ local AuraDuration = {
 				else 
 					self:TurnOnAuras()	
 				end 	
-			end 
+			--end 
 			
 			return 		
 		end 
@@ -5282,7 +7460,7 @@ local AuraDuration = {
 		
 		if GetCVar("noBuffDebuffFilterOnTarget") ~= "1" then 
 			SetCVar("noBuffDebuffFilterOnTarget", "1")
-			Action.Print("noBuffDebuffFilterOnTarget 0 => 1")
+			A_Print("noBuffDebuffFilterOnTarget 0 => 1")
 		end 
 		
 		self.LibSpellLocks.RegisterCallback(Action, "UPDATE_INTERRUPT", function(event, guid)
@@ -5308,7 +7486,7 @@ local AuraDuration = {
 		auraCD:Hide()
 		
 		-- load portrait saved options
-		if not Action.GetToggle(1, "AuraCCPortrait") then 
+		if not A_GetToggle(1, "AuraCCPortrait") then 
 			self.defaults.portraitIcon = false 
 		end 
 
@@ -5355,13 +7533,13 @@ local NumberGroupingScale = {
 	zhTW = 4,
 }
 local UnitHealthTool = {
-	AddOn_Localization_NumberGroupingScale = NumberGroupingScale[GameLocale] or NumberGroupingScale["enUS"],
+	AddOn_Localization_NumberGroupingScale = NumberGroupingScale[_G.GetLocale()] or NumberGroupingScale["enUS"],
 	AbbreviateNumber		= function(self, val)
 		-- Calculate exponent of 10 and clamp to zero
 		local exp = math_max(0, math_floor(math_log10(math_abs(val))))
 		-- Less than 1k, return as-is
 		if exp < self.AddOn_Localization_NumberGroupingScale then 
-			return Action.toStr and Action.toStr[math_floor(val)] or tostring(math_floor(val))
+			return toStr[math_floor(val)] or tostring(math_floor(val))
 		end
 
 		-- Exponent factor of 1k
@@ -5387,14 +7565,14 @@ local UnitHealthTool = {
 		end 
 		
 		-- set values 
-		local realValue = round(Action.Unit("target"):Health(), 0)
+		local realValue = round(A_Unit("target"):Health(), 0)
 		if realValue ~= 0 then 
 			parent.RealHealth:SetText(self:AbbreviateNumber(realValue))
 		else 
 			parent.RealHealth:SetText("")
 		end 		
 		
-		local percentValue = round(Action.Unit("target"):HealthPercent(), 0)
+		local percentValue = round(A_Unit("target"):HealthPercent(), 0)
 		if percentValue ~= 0 then 
 			parent.PercentHealth:SetText(percentValue .. "%")
 		else 
@@ -5402,7 +7580,7 @@ local UnitHealthTool = {
 		end 
 		
 		-- determine default anchors and visible status 
-		local real, percent = Action.GetToggle(1, "TargetRealHealth"), Action.GetToggle(1, "TargetPercentHealth")
+		local real, percent = A_GetToggle(1, "TargetRealHealth"), A_GetToggle(1, "TargetPercentHealth")
 		
 		parent.RealHealth:ClearAllPoints()
 		parent.PercentHealth:ClearAllPoints()
@@ -5461,7 +7639,7 @@ local UnitHealthTool = {
 			if Action.IsInitialized then 
 				if EVENTS[event] then 
 					if this.RealHealth:IsShown() then 
-						local realValue = round(Action.Unit("target"):Health(), 0)
+						local realValue = round(A_Unit("target"):Health(), 0)
 						if realValue ~= 0 then 
 							this.RealHealth:SetText(realValue)			
 						else 
@@ -5470,7 +7648,7 @@ local UnitHealthTool = {
 					end 
 					
 					if this.PercentHealth:IsShown() then 
-						local percentValue = round(Action.Unit("target"):HealthPercent(), 0)
+						local percentValue = round(A_Unit("target"):HealthPercent(), 0)
 						if percentValue ~= 0 then 
 							this.PercentHealth:SetText(percentValue .. "%")
 						else 
@@ -5484,125 +7662,118 @@ local UnitHealthTool = {
 }
 
 -- [2] AoE toggle through Ctrl+Left Click on main picture 
-local tempAoE = {2, "AoE"}
+ActionDataPrintCache.ToggleAoE = {2, "AoE"}
 function Action.ToggleAoE()
-	Action.SetToggle(tempAoE)
+	A_SetToggle(ActionDataPrintCache.ToggleAoE)
 end 
 
 -- [3] SetBlocker 
 function Action:IsBlocked()
 	-- @return boolean 
-	return TMWdb.profile.ActionDB[3].disabledActions[GetTableKeyIdentify(self)] == true
+	return pActionDB[3].disabledActions[self:GetTableKeyIdentify()] == true
 end
 
 function Action:SetBlocker()
 	-- Sets block on action
 	-- Note: /run Action[Action.PlayerClass].WordofGlory:SetBlocker()
 	if self.BlockForbidden and not self:IsBlocked() then 
-		Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORBLOCK"])
+		A_Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORBLOCK"])
         return 		
 	end 
 	
-	local Notification 
-	local Identify = GetTableKeyIdentify(self)
+	local Identify = self:GetTableKeyIdentify()
 	if self:IsBlocked() then 
-		TMWdb.profile.ActionDB[3].disabledActions[Identify] = nil 
-		Notification = L["TAB"][3]["UNBLOCKED"] .. self:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify:gsub("nil", "") .. "]"		
+		pActionDB[3].disabledActions[Identify] = nil 
+		A_Print(L["TAB"][3]["UNBLOCKED"] .. self:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify:gsub("nil", "") .. "]")
 	else 
-		TMWdb.profile.ActionDB[3].disabledActions[Identify] = true
-		Notification = L["TAB"][3]["BLOCKED"] .. self:Link() .. " " ..  L["TAB"][3]["KEY"] .. Identify:gsub("nil", "") .. "]"
+		pActionDB[3].disabledActions[Identify] = true
+		A_Print(L["TAB"][3]["BLOCKED"] .. self:Link() .. " " ..  L["TAB"][3]["KEY"] .. Identify:gsub("nil", "") .. "]")
 	end 
-    Action.Print(Notification)
 	
-	if Action.MainUI then 
-		local spec = Action.PlayerClass .. CL	
-		local ScrollTable = tabFrame.tabs[3].childs[spec].ScrollTable
-		for i = 1, #ScrollTable.data do 
-			if Identify == GetTableKeyIdentify(ScrollTable.data[i]) then 
-				if self:IsBlocked() then 
-					ScrollTable.data[i].Enabled = "False"
-				else 
-					ScrollTable.data[i].Enabled = "True"
-				end								 			
-			end 
-		end		
-		ScrollTable:ClearSelection() 
-	end 
+	TMW:Fire("TMW_ACTION_SET_BLOCKER_CHANGED", self)	
 end
 
 function Action.MacroBlocker(key)
 	-- Sets block on action with avoid lua errors for non exist key
-	local object = GetActionTableByKey(key)
+	local object = A_GetActionTableByKey(key)
 	if not object then 
-		Action.Print(L["DEBUG"] .. (key or "") .. " " .. L["ISNOTFOUND"])
+		A_Print(L["DEBUG"] .. (key or "") .. " " .. L["ISNOTFOUND"])
 		return 	 
 	end 
 	object:SetBlocker()
 end
 
 -- [3] SetQueue (Queue System)
-local Queue = {
+local Queue; Queue 				= {
+	EmptyArgs					= {},
 	Temp 						= {
 		SilenceON				= { Silence = true },
 		SilenceOFF				= { Silence = false },
 	},
-	Reset 						= function(self)
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED")
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN")
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB")
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED")		
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE")
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED")	
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED")	
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD")	
-		Action.Listener:Remove("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED")
-		TMW:UnregisterCallback("TMW_ACTION_MODE_CHANGED", function() self:OnEventToReset() end,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
+	IsTypeValid					= {
+		Spell					= true,
+		Trinket					= true,
+		Potion 					= true,
+		Item 					= true,
+		SwapEquip				= true,
+	},
+	Reset 						= function()
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED")		
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED")	
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED")	
+		A_Listener:Remove("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD")			
+		TMW:UnregisterCallback("TMW_ACTION_MODE_CHANGED", Queue.OnEventToReset,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
 	end, 
-	IsThisMeta 					= function(self, meta)
+	IsThisMeta 					= function(meta)
 		return (not ActionDataQ[1].MetaSlot and (meta == 3 or meta == 4)) or ActionDataQ[1].MetaSlot == meta
 	end, 
 	IsInterruptAbleChannel 		= {},
 	-- Events
-	UNIT_SPELLCAST_SUCCEEDED 	= function(self, ...)
+	UNIT_SPELLCAST_SUCCEEDED 	= function(...)
 		local source, _, spellID = ...
-		if (source == "player" or source == "pet") and ActionDataQ[1] and ActionDataQ[1].Type == "Spell" and ((ActionDataQ[1].isRank and ActionDataQ[1].isRank ~= 0 and ActionDataQ[1].ID == spellID) or ((not ActionDataQ[1].isRank or ActionDataQ[1].isRank == 0) and ActionDataQ[1]:Info() == Action.GetSpellInfo(spellID))) then 			
-			getmetatable(ActionDataQ[1]).__index:SetQueue(self.Temp.SilenceON)
+		if (source == "player" or source == "pet") and ActionDataQ[1] and ActionDataQ[1].Type == "Spell" and ((ActionDataQ[1].isRank and ActionDataQ[1].isRank ~= 0 and ActionDataQ[1].ID == spellID) or ((not ActionDataQ[1].isRank or ActionDataQ[1].isRank == 0) and ActionDataQ[1]:Info() == A_GetSpellInfo(spellID))) then 			
+			getmetatable(ActionDataQ[1]).__index:SetQueue(Queue.Temp.SilenceON)
 		end 	
 	end,
-	BAG_UPDATE_COOLDOWN			= function(self)
-		if ActionDataQ[1] and ActionDataQ[1].Type ~= "Spell" and ActionDataQ[1].Type ~= "SwapEquip" then 
-			local start, duration, enable = ActionDataQ[1].Item:GetCooldown()
-			if duration and math_abs(TMW.time - start) <= 2 then 
-				getmetatable(ActionDataQ[1]).__index:SetQueue(self.Temp.SilenceON)
-				return 
+	BAG_UPDATE_COOLDOWN			= function()
+		if ActionDataQ[1] and ActionDataQ[1].Item and ActionDataQ[1].Item.GetCooldown then 
+			local start, duration, enable = ActionDataQ[1].Item:GetCooldown()			
+			if enable ~= 0 and duration ~= 0 and duration and not A_OnGCD(duration) and TMW.time - start < A_GetGCD() * 1.5 then 
+				getmetatable(ActionDataQ[1]).__index:SetQueue(Queue.Temp.SilenceON)								 
+				return
 			end 
 			-- For things like a potion that was used in combat and the cooldown hasn't yet started counting down
 			if enable == 0 and ActionDataQ[1].Type ~= "Trinket" then 
-				getmetatable(ActionDataQ[1]).__index:SetQueue(self.Temp.SilenceON)
+				getmetatable(ActionDataQ[1]).__index:SetQueue(Queue.Temp.SilenceON)
 			end 
 		end 	
 	end, 
-	ITEM_UNLOCKED				= function(self)
+	ITEM_UNLOCKED				= function()
 		if ActionDataQ[1] and ActionDataQ[1].Type == "SwapEquip" then 
-			getmetatable(ActionDataQ[1]).__index:SetQueue(self.Temp.SilenceON)
+			getmetatable(ActionDataQ[1]).__index:SetQueue(Queue.Temp.SilenceON)
 		end 
 	end, 
-	OnEventToResetNoCombat 	= function(self, isSilenced)
+	OnEventToResetNoCombat 	= function(isSilenced)
 		-- ByPass wrong reset events by equip swap during combat
-		if Action.Unit("player"):CombatTime() == 0 then 
-			self:OnEventToReset(isSilenced)
+		if A_Unit("player"):CombatTime() == 0 then 
+			Queue.OnEventToReset(isSilenced)
 		end 
 	end, 
-	OnEventToReset 				= function(self, isSilenced)
+	OnEventToReset 				= function(isSilenced)
 		if #ActionDataQ > 0 then 
 			for i = #ActionDataQ, 1, -1 do 
 				if ActionDataQ[i] and ActionDataQ[i].Queued then 
-					getmetatable(ActionDataQ[i]).__index:SetQueue((isSilenced and self.Temp.SilenceON) or self.Temp.SilenceOFF)
+					getmetatable(ActionDataQ[i]).__index:SetQueue((isSilenced == true and Queue.Temp.SilenceON) or Queue.Temp.SilenceOFF)
 				end 
 			end 		
 		end 
 		wipe(ActionDataQ) 
-		self:Reset()
+		Queue:Reset()
 	end, 
 }
 
@@ -5611,7 +7782,7 @@ function Action:QueueValidCheck()
 	-- Note: This thing does mostly tasks but still causing some issues with certain spells which should be blacklisted or avoided through another way (ideally) 
 	-- Example of issue: Monk can set Queue for Resuscitate while has @target an enemy and it will true because it will set to variable "player" which is also true and correct!
 	-- Why "player"? Coz while @target an enemy you can set queue of supportive spells for "self" and if they will be used on enemy then they will be applied on "player" 	
-	local isCastingName, _, _, _, castID, isChannel = Action.Unit("player"):IsCasting()
+	local isCastingName, _, _, _, castID, isChannel = A_Unit("player"):IsCasting()
 	if (not isCastingName or isCastingName ~= self:Info()) and (not isChannel or Queue.IsInterruptAbleChannel[castID]) then
 		if self.Type == "SwapEquip" or self.isStance then 
 			return true 
@@ -5625,9 +7796,9 @@ function Action:QueueValidCheck()
 			-- unitID 		= self.UnitID or (self.Type == "Spell" and (((isHarm or self:IsHelpful()) and "target") or "player")) or (self.Type ~= "Spell" and (((isHarm or self:IsHelpful()) and "target") or (not Action.IamHealer and "player"))) or "target"
 			
 			if isHarm then 
-				return Action.Unit(unitID):IsEnemy() and self:IsInRange(unitID) and self:AbsentImun(unitID, self.AbsentImunQueueCache)
+				return A_Unit(unitID):IsEnemy() and (self.NoRange or self:IsInRange(unitID)) and self:AbsentImun(unitID, self.AbsentImunQueueCache)
 			else 
-				return UnitIsUnit(unitID, "player") or (self:IsInRange(unitID) and self:AbsentImun(unitID))
+				return UnitIsUnit(unitID, "player") or ((self.NoRange or self:IsInRange(unitID)) and self:AbsentImun(unitID))
 			end 
 		end 
 	end 
@@ -5635,7 +7806,7 @@ function Action:QueueValidCheck()
 end 
 
 function Action.CancelAllQueue()
-	Queue:OnEventToReset(true)
+	Queue.OnEventToReset(true)
 end 
 
 function Action.CancelAllQueueForMeta(meta)
@@ -5663,34 +7834,48 @@ end
 function Action.IsQueueReady(meta)
 	-- @return boolean
 	local index = #ActionDataQ
-    if index > 0 and Queue:IsThisMeta(meta) then 		
+    if index > 0 and Queue.IsThisMeta(meta) then 		
 		local self = ActionDataQ[1]
-		if self.Auto and self.Start and TMW.time - self.Start > (ActionDataQueueAutoResetTimer or 10) then 
-			Queue:OnEventToReset()
+		
+		-- Cancel 
+		if self.Auto and self.Start and TMW.time - self.Start > (ActionData.QueueAutoResetTimer or 10) then 
+			Queue.OnEventToReset()
 			return false 
-		end 		
-        if self.Type == "Spell" or self.Type == "Trinket" or self.Type == "Potion" or self.Type == "Item" then -- Note: Equip, Count, Existance of action already checked in Action:SetQueue 
-			if self.UnitID == "player" or self:QueueValidCheck() then 
-				return self:IsUsable(self.ExtraCD) and (not self.PowerCustom or UnitPower("player", self.PowerType) >= (self.PowerCost or 0)) and (self.Auto or self:RunQLua(self.UnitID)) and (not self.isCP or Action.Player:ComboPoints("target") >= (self.CP or 1))  
-			end
-		elseif self.Type == "SwapEquip" then 
-			return not Action.Player:IsSwapLocked() and (self.Auto or self:RunQLua(self.UnitID)) and (not self.isCP or Action.Player:ComboPoints("target") >= (self.CP or 1))  
-        else 
-			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"])          
+		end 	
+		
+		if not Queue.IsTypeValid[self.Type or ""] then 
+			A_Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"])          
 			getmetatable(self).__index:SetQueue()
-        end 
+			return false 
+		end 
+		
+		-- Check 
+		if self.Type == "SwapEquip" then 
+			return 	not A_Player:IsSwapLocked() 
+					and (not self.PowerCustom or UnitPower("player", self.PowerType) >= (self.PowerCost or 0)) 
+					and (self.Auto or self:RunQLua(self.UnitID)) 
+					and (not self.isCP or A_Player:ComboPoints("target") >= (self.CP or 1))  
+		else 
+			-- Note: Equip, Count, Existance of action already checked in Action:SetQueue 
+			return  (self.UnitID == "player" or self:QueueValidCheck())
+					and self:IsUsable(self.ExtraCD) 
+					and (not self.PowerCustom or UnitPower("player", self.PowerType) >= (self.PowerCost or 0)) 
+					and (self.Auto or self:RunQLua(self.UnitID)) 
+					and (not self.isCP or A_Player:ComboPoints("target") >= (self.CP or 1)) 
+		end 
     end 
+	
     return false 
 end 
 
 function Action:IsBlockedByQueue()
 	-- @return boolean 
-	return 	not self.QueueForbidden and 
-			#ActionDataQ > 0 and 
-			self.Type == ActionDataQ[1].Type and 
-			( not ActionDataQ[1].PowerType or self.PowerType == ActionDataQ[1].PowerType ) and 
-			( not ActionDataQ[1].PowerCost or UnitPower("player", self.PowerType) < ActionDataQ[1].PowerCost ) and 
-			( not ActionDataQ[1].isCP or (self.isCP == ActionDataQ[1].isCP and Action.Player:ComboPoints("target") < (ActionDataQ[1].CP or Action.Player:ComboPointsMax())) )
+	return 	not self.QueueForbidden  
+			and #ActionDataQ > 0  
+			and self.Type == ActionDataQ[1].Type  
+			and ( not ActionDataQ[1].PowerType or self.PowerType == ActionDataQ[1].PowerType )  
+			and ( not ActionDataQ[1].PowerCost or UnitPower("player", self.PowerType) < ActionDataQ[1].PowerCost )
+			and ( not ActionDataQ[1].isCP or (self.isCP and A_Player:ComboPoints("target") < ActionDataQ[1].CP) )
 end
 
 function Action:IsQueued()
@@ -5701,7 +7886,7 @@ end
 function Action:SetQueue(args) 
 	-- Sets queue on action 
 	-- Note: /run Action[Action.PlayerClass].WordofGlory:SetQueue()
-	-- QueueAuto: Action:SetQueue({ Silence = true, Priority = 1 }) just sometimes simcraft use it in some place
+	-- QueueAuto: Action:SetQueue({ Auto = true, Silence = true, Priority = 1 }) -- simcraft like 	
 	--[[@usage: args (table)
 	 	Optional: 
 			PowerType (number) custom offset 														(passing conditions to func IsQueueReady)
@@ -5709,6 +7894,7 @@ function Action:SetQueue(args)
 			ExtraCD (number) custom offset															(passing conditions to func IsQueueReady)
 			Silence (boolean) if true don't display print 
 			UnitID (string) specified for spells usually to check their for range on certain unit 	(passing conditions to func QueueValidCheck)
+			NoRange (boolean) will skip range check 												(passing conditions to func QueueValidCheck)
 			Value (boolean) sets custom fixed statement for queue
 			Priority (number) put in specified priority 
 			MetaSlot (number) usage for MSG system to set queue on fixed position 
@@ -5717,31 +7903,31 @@ function Action:SetQueue(args)
 	]]
 	-- Check validance 
 	if not self.Queued and (not self:IsExists() or self:IsBlockedBySpellBook()) then  
-		Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"]) 
+		A_Print(L["DEBUG"] .. self:Link() .. " " .. L["ISNOTFOUND"]) 
 		return 
 	end 
 	
 	local printKey 	= self.Desc .. (self.Color or "") 
 		  printKey	= (printKey ~= "" and (" " .. L["TAB"][3]["KEY"] .. printKey .. "]")) or ""
 	
-	local args = args or {}	
-	local Identify = GetTableKeyIdentify(self)
-	if self.QueueForbidden or (self.isStance and Action.Player:IsStance(self.isStance)) or ((self.Type == "Trinket" or self.Type == "Item") and not GetItemSpell(self.ID)) then 
+	local args = args or Queue.EmptyArgs	
+	local Identify = self:GetTableKeyIdentify()
+	if self.QueueForbidden or (self.isStance and A_Player:IsStance(self.isStance)) or ((self.Type == "Trinket" or self.Type == "Item") and not self:GetItemSpell()) then 
 		if not args.Silence then 
-			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. printKey)
+			A_Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. printKey)
 		end 
         return 	 
-	-- Let for user allow run blocked actions whenever he wants, anyway why not 
-	--elseif self:IsBlocked() and not self.Queued then 
-		--if not args.Silence then 
-			--Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"] .. printKey)
-		--end 
-        --return 
+-- 	Let for user allow run blocked actions whenever he wants, anyway why not 
+--	elseif self:IsBlocked() and not self.Queued then 
+--		if not args.Silence then 
+--			A_Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"] .. printKey)
+--		end 
+--		return 
 	end
 	
 	if args.Value ~= nil and self.Queued == args.Value then 
 		if not args.Silence then 
-			Action.Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISQUEUEDALREADY"] .. printKey)
+			A_Print(L["DEBUG"] .. self:Link() .. " " .. L["TAB"][3]["ISQUEUEDALREADY"] .. printKey)
 		end 
 		return 
 	end 
@@ -5752,21 +7938,21 @@ function Action:SetQueue(args)
 		self.Queued = not self.Queued
 	end 
 	
-	local priority = (args.Priority and (args.Auto or not Action.IsQueueRunningAuto()) and (args.Priority > #ActionDataQ + 1 and #ActionDataQ + 1 or args.Priority)) or #ActionDataQ + 1
+	local priority = (args.Priority and (args.Auto or not A_IsQueueRunningAuto()) and (args.Priority > #ActionDataQ + 1 and #ActionDataQ + 1 or args.Priority)) or #ActionDataQ + 1
     if not args.Silence then		
 		if self.Queued then 
-			Action.Print(L["TAB"][3]["QUEUED"] .. self:Link() .. L["TAB"][3]["QUEUEPRIORITY"] .. priority .. ". " .. L["TAB"][3]["KEYTOTAL"] .. #ActionDataQ + 1 .. "]")
+			A_Print(L["TAB"][3]["QUEUED"] .. self:Link() .. L["TAB"][3]["QUEUEPRIORITY"] .. priority .. ". " .. L["TAB"][3]["KEYTOTAL"] .. #ActionDataQ + 1 .. "]")
 		else
-			Action.Print(L["TAB"][3]["QUEUEREMOVED"] .. self:Link() .. printKey)
+			A_Print(L["TAB"][3]["QUEUEREMOVED"] .. self:Link() .. printKey)
 		end 
     end 
     
 	if not self.Queued then 
 		for i = #ActionDataQ, 1, -1 do 
-			if GetTableKeyIdentify(ActionDataQ[i]) == Identify then 
+			if ActionDataQ[i]:GetTableKeyIdentify() == Identify then 
 				tremove(ActionDataQ, i)
 				if #ActionDataQ == 0 then 
-					Queue:Reset()
+					Queue.Reset()
 					return 
 				end 				
 			end 
@@ -5777,12 +7963,12 @@ function Action:SetQueue(args)
 	-- Do nothing if it does in spam with always true as insert to queue list 	
 	if args.Value and #ActionDataQ > 0 then 
 		for i = #ActionDataQ, 1, -1 do
-			if GetTableKeyIdentify(ActionDataQ[i]) == Identify then 
+			if ActionDataQ[i]:GetTableKeyIdentify() == Identify then 
 				return
 			end 
 		end 
 	end
-    tinsert(ActionDataQ, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot, Auto = args.Auto, Start = TMW.time, CP = args.CP }, { __index = self }))
+    tinsert(ActionDataQ, priority, setmetatable({ UnitID = args.UnitID, MetaSlot = args.MetaSlot, Auto = args.Auto, Start = TMW.time, CP = args.CP }, { __index = self })) -- Don't touch creation tables here!
 
 	if args.PowerType then 
 		-- Note: we set it as true to use in function Action.IsQueueReady()
@@ -5797,228 +7983,286 @@ function Action:SetQueue(args)
 		ActionDataQ[priority].ExtraCD = args.ExtraCD 
 	end 	
 		
-    Action.Listener:Add("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED", 		function(...) Queue:UNIT_SPELLCAST_SUCCEEDED(...) 	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			function() 	  Queue:BAG_UPDATE_COOLDOWN() 		  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED",					function() 	  Queue:ITEM_UNLOCKED() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			function() 	  Queue:OnEventToReset() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		function() 	  Queue:OnEventToResetNoCombat() 	  	end)	
-    Action.Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			function() 	  Queue:OnEventToResetNoCombat() 	  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED", 			function() 	  Queue:OnEventToReset() 			  	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED", 		function() 	  Queue:OnEventToResetNoCombat() 	 	end)
-	Action.Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD", 			function() 	  Queue:OnEventToReset() 			  	end)	
-	TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 							function() 	  Queue:OnEventToReset() 				end,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET")
+    A_Listener:Add("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED", 		Queue.UNIT_SPELLCAST_SUCCEEDED									)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			Queue.BAG_UPDATE_COOLDOWN										)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED",					Queue.ITEM_UNLOCKED												)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			Queue.OnEventToReset											)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		Queue.OnEventToResetNoCombat									)	
+    A_Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			Queue.OnEventToResetNoCombat									)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_REGEN_ENABLED", 			Queue.OnEventToReset											)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_EQUIPMENT_CHANGED", 		Queue.OnEventToResetNoCombat									)
+	A_Listener:Add("ACTION_EVENT_QUEUE", "PLAYER_ENTERING_WORLD", 			Queue.OnEventToReset											)	
+	TMW:RegisterCallback("TMW_ACTION_MODE_CHANGED", 						Queue.OnEventToReset,  "TMW_ACTION_MODE_CHANGED_QUEUE_RESET"	)
 end
 
 function Action.MacroQueue(key, args)
 	-- Sets queue on action with avoid lua errors for non exist key
-	local object = GetActionTableByKey(key)
+	local object = A_GetActionTableByKey(key)
 	if not object then 
-		Action.Print(L["DEBUG"] .. (key or "") .. " " .. L["ISNOTFOUND"])
+		A_Print(L["DEBUG"] .. (key or "") .. " " .. L["ISNOTFOUND"])
 		return 	 
 	end 
 	object:SetQueue(args)
 end
 
 -- [4] Interrupts
-function Action.InterruptIsON(list)
+-- Note:  Toggle				"Main", "Mouse", "PvP", "Heal"									-- This is short assignment for reference to Checkbox and Category
+--								nil (which is "Main" or "Mouse")
+--		  Checkbox 				"UseMain", "UseMouse", "UsePvP", "UseHeal" 						-- for internal info 
+--		  Category 				"MainPvE", "MainPvP", "MousePvE", "MousePvP", "PvP", "Heal"		-- for internal info 
+local Interrupts 				= {
+	CastMustDoneTimeByToggle 	= setmetatable({}, { 
+		__index = function(t, category)
+			t[category] = setmetatable({}, { 
+				__call = function(this, spellName, castStartTime, castEndTime, countGCD)
+					if not this[spellName] then 
+						this[spellName] = {}
+					end 
+					local thisCast = this[spellName]
+					
+					-- Refresh Interval 
+					-- If new cast begin or we re-specified 'countGCD' of the already started (written with interval) cast
+					if thisCast.lastEndTime ~= castEndTime or thisCast.countGCD ~= countGCD then 
+						local castFullTime 			= castEndTime - castStartTime
+						local min, max				
+						if not isClassic and Action.IsInPvP and spellName == A_GetSpellInfo(209525) then -- Smoothing Mist
+							min, max 				= 3, 18
+						else 
+							min, max 				= A_InterruptGetSliders(category)
+						end 
+						
+						if countGCD then 
+							-- If enabled then we will limit 'mustDoneTime' to have it available for interrupt with the next gcd 
+							castFullTime			= math_max(castFullTime - A_GetGCD(), 0)
+						end 
+						
+						thisCast.mustDoneTime 		= math_random(min, max) * castFullTime / 100
+						thisCast.lastEndTime		= castEndTime
+						thisCast.countGCD			= countGCD
+					end 
+					
+					return thisCast.mustDoneTime
+				end,
+			})
+			return t[category]
+		end,
+	}),
+	SmartInterrupt				= function()
+		-- Note: This function is cached 
+		local HealerInCC = not Action.IamHealer and A_FriendlyTeam("HEALER", 1):GetCC() or 0
+		return 	(HealerInCC > 0 and HealerInCC < A_GetGCD() + A_GetCurrentGCD()) or 
+				A_FriendlyTeam("DAMAGER", 2):GetBuffs("DamageBuffs") > 4 or 
+				A_FriendlyTeam():GetTTD(1, 8, 40) or 
+				A_Unit("target"):IsExecuted() or 
+				A_Unit("player"):IsExecuted() or 
+				A_EnemyTeam("DAMAGER", 2):GetBuffs("DamageBuffs") > 4
+	end,
+	GetCategory					= function(self, unitID, toggle, ignoreToggle)
+		-- @return category, toggle 
+		local ToggleType = (toggle and self.GetToggleType[toggle]) or "Unknown"
+		if ToggleType == "Unknown" then 
+			if ignoreToggle then 
+				return toggle, toggle
+			end 
+			
+			if unitID == "mouseover" and not UnitIsUnit(unitID, "target") then -- and (not Action.IamHealer or not UnitIsUnit(unitID, "targettarget"))
+				return self:GetCategory(unitID, "Mouse")
+			else 
+				return self:GetCategory(unitID, "Main")
+			end 
+		elseif self.FormatToggleType[ToggleType] then 
+			return self.FormatToggleType[ToggleType][Action.IsInPvP or false], ToggleType
+		else 
+			return toggle, toggle
+		end 
+	end,
+	GetCheckbox					= {
+		Main 					= "UseMain",
+		MainPvE					= "UseMain",
+		MainPvP					= "UseMain",
+		Mouse 					= "UseMouse",
+		MousePvP				= "UseMouse",
+		MousePvE				= "UseMouse",
+		PvP						= "UsePvP",
+		Heal 					= "UseHeal",
+	},
+	GetToggleType				= {		
+		Main 					= "Main",
+		MainPvE					= "Main",		-- prevent wrong usage
+		MainPvP					= "Main",		-- prevent wrong usage
+		Mouse 					= "Mouse",
+		MousePvE				= "Mouse",		-- prevent wrong usage
+		MousePvP				= "Mouse",		-- prevent wrong usage	
+		PvP 					= "PvP",
+		Heal 					= "Heal",
+	},
+	FormatToggleType	 		= {
+		Main					= {
+			[true] 				= "MainPvP",
+			[false] 			= "MainPvE",
+		},
+		Mouse 					= {
+			[true] 				= "MousePvP",
+			[false] 			= "MousePvE",
+		},
+	},
+}
+
+function Action.InterruptGetSliders(category)
+	-- @return number, number or nil 
+	local Slider = pActionDB[4][category]
+	if Slider then 
+		return Slider.Min, Slider.Max
+	end 
+end 
+
+function Action.InterruptIsON(toggleOrCategory)
 	-- @return boolean 	
-	-- Note: list 	("TargetMouseover", "PvP", "Heal")
-	return TMWdb.profile.ActionDB[4]["Kick" .. list]
+	local checkbox = Interrupts.GetCheckbox[toggleOrCategory]
+	return checkbox and pActionDB[4][checkbox]
 end 
 
 function Action.InterruptIsBlackListed(unitID, spellName)
-	-- @return boolean (Kick, CC, Racial)
-	local blackListed = TMWdb.profile.ActionDB[4].BlackList[GameLocale][spellName]
+	-- @return boolean, boolean, boolean
+	local blackListed = pActionDB[4].BlackList[GameLocale][spellName]
 	if blackListed and blackListed.Enabled then 
-		local luaCode = blackListed.LUA or nil
-		if RunLua(luaCode, unitID) then 
+		if RunLua(blackListed.LUA, unitID) then 
 			return blackListed.useKick, blackListed.useCC, blackListed.useRacial
 		end 
 	end 
 end 
 
-function Action.InterruptEnabled(list, spellName)
+function Action.InterruptEnabled(category, spellName)
 	-- @return boolean 
-	-- Note: list ("PvETargetMouseover", "PvPTargetMouseover", "PvP", "Heal")
-	return TMWdb.profile.ActionDB[4][list][GameLocale][spellName] and TMWdb.profile.ActionDB[4][list][GameLocale][spellName].Enabled
+	local interrupt = pActionDB[4][category][GameLocale][spellName]
+	return interrupt and interrupt.Enabled
 end 
 
-local function SmartInterrupt()
-	-- Note: This function is cached 
-	local HealerInCC = not Action.IamHealer and Action.FriendlyTeam("HEALER"):GetCC() or 0
-	return (HealerInCC > 0 and HealerInCC < Action.GetGCD() + Action.GetCurrentGCD()) or Action.FriendlyTeam("DAMAGER", 2):GetBuffs("DamageBuffs") > 4 or Action.FriendlyTeam():GetTTD(1, 8) or Action.Unit("target"):IsExecuted() or Action.Unit("player"):IsExecuted() or Action.EnemyTeam("DAMAGER", 2):GetBuffs("DamageBuffs") > 4
-end 
-local ConcatenationStr = {
-	[true] = "PvPTargetMouseover",
-	[false] = "PvETargetMouseover",
-}
-
-function Action.InterruptIsValid(unitID, list, ignoreToggle)
-	-- @return boolean (Kick, CC, Racial)
-	-- Note: list 	("TargetMouseover", "PvP", "Heal")
-	-- list as "PvETargetMouseover" and "PvPTargetMouseover" must be always "TargetMouseover"
+function Action.InterruptIsValid(unitID, toggle, ignoreToggle, countGCD)
+	-- @return boolean, boolean, boolean, boolean, number, number
+	-- @usage  useKick, useCC, useRacial, notInterruptable, castRemainsTime, castDoneTime = Action.InterruptIsValid(unitID[, toggle, ignoreToggle, countGCD])
+	-- Basically conception of the 'countGCD' is Action.InterruptIsValid(unitID, nil, nil, not Action.InterruptNonGCD:IsReady(unitID)), so it will pick up in count GCD for current loop while primary non-gcd interrupt(s) unavailable 
+	-- 'ignoreToggle' 	if true will skip check for enabled toggle and transforms 'toggle' to be 'category' if its Unknown (i.e. custom category added by callback)
+	-- 'countGCD' 		if true will limit max interval to have it interrupted in the next gcd 
 	
 	-- ATTENTION
-	-- This thing doesn't check random interval and as well distance with imun to kick
+	-- This thing doesn't check distance and imun to kick
 	
-	if ignoreToggle or Action.InterruptIsON(list) then 	
-		local spellName = Action.Unit(unitID):IsCasting()
-		if spellName then 
-			local bl_useKick, bl_useCC, bl_useRacial = Action.InterruptIsBlackListed(unitID, spellName)
-			if list == "TargetMouseover" then 
-				list = ConcatenationStr[Action.IsInPvP]
-			end 	
+	local castRemainsTime, castDoneTime = 0, 0
+	local category, toggle = Interrupts:GetCategory(unitID, toggle, ignoreToggle)
+	
+	if ignoreToggle or A_InterruptIsON(toggle) then 	
+		local spellName, castStartTime, castEndTime, notInterruptable = A_Unit(unitID):IsCasting()
+		if spellName then 		
+			-- milliseconds > seconds 
+			castStartTime 			= castStartTime / 1000
+			castEndTime   			= castEndTime / 1000			
+			castDoneTime			= TMW.time - castStartTime 	-- 0 -> inif seconds
+			castRemainsTime			= castEndTime - TMW.time	-- inif -> 0 seconds
+			
+			local Interrupt 	
+			local MainAuto			= toggle == "Main" 	and A_GetToggle(4, "MainAuto")
+			local MouseAuto			= toggle == "Mouse" and A_GetToggle(4, "MouseAuto")
+			if not MainAuto and not MouseAuto then 
+				Interrupt 			= pActionDB[4][category][GameLocale][spellName]	
+				-- If it's not any cast and not exists in the list 
+				if not Interrupt or not Interrupt.Enabled then 
+					return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+				end 
+			end 
+							
+			local useKick, useCC, useRacial = true, true, true 			
+			if Interrupt then 
+				useKick				= Interrupt.useKick
+				useCC				= Interrupt.useCC
+				useRacial			= Interrupt.useRacial
+			end 
+			
+			local blackListedKick, blackListedCC, blackListedRacial = A_InterruptIsBlackListed(unitID, spellName)	
+			if blackListedKick 		then useKick 	= false end 
+			if blackListedCC 		then useCC		= false end 
+			if blackListedRacial	then useRacial	= false end  
+			
+			-- If all types unavailable 
+			if not useRacial and not useCC and not useKick then 
+				return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+			end 
+			
+			-- If interval is not reached 
+			local mustDoneTime = Interrupts.CastMustDoneTimeByToggle[category](spellName, castStartTime, castEndTime, countGCD or notInterruptable) -- Note: Usually primary interrupt (Kick) without GCD but it's not ready if its notInterruptable, so we want to replace it by gcd based interrupts 
+			if castDoneTime < mustDoneTime then 
+				return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+			end 						
+			
+			-- If additional conditions aren't successful
+			if toggle == "PvP" then 
+				if UnitIsUnit(unitID, "target") or (A_GetToggle(4, "PvPOnlySmart") and not Interrupts.SmartInterrupt()) then 
+					return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+				end 
+			end 
+			
+			if toggle == "Heal" then 
+				if UnitIsUnit(unitID, "target") or (A_GetToggle(4, "HealOnlyHealers") and not A_Unit(unitID):IsHealer()) then 
+					return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+				end 
+			end 
+			
+			if toggle == "Main" then 
+				if MainAuto then 
+					-- We want to interrupt only not imun units 
+					if category == "MainPvE" then 
+						if A_Unit(unitID):IsTotem() or A_Unit(unitID):IsDummy() or (not isClassic and (A_Unit(unitID):IsExplosives() or A_Unit(unitID):IsCracklingShard())) then 
+							return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+						end 
+					end 
+					
+					-- We want to interrupt only if it's healer and will die in less than 6 seconds or if it's player without in range enemy healers 
+					if category == "MainPvP" then 
+						local isHealer = A_Unit(unitID):IsHealer() 
+						if (isHealer and A_Unit(unitID):TimeToDie() > 6) or (not isHealer and (not A_Unit(unitID):IsPlayer() or A_EnemyTeam("HEALER"):GetUnitID(60) ~= "none")) then
+							return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+						end 
+					end 
+				end 
+			end 
+			
+			if toggle == "Mouse" then 				
+				if MouseAuto then 
+					-- We want to interrupt only not imun units 
+					if category == "MousePvE" then 
+						if A_Unit(unitID):IsTotem() or A_Unit(unitID):IsDummy() or (not isClassic and (A_Unit(unitID):IsExplosives() or A_Unit(unitID):IsCracklingShard())) then 
+							return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+						end 
+					end 
+					
+					-- We want to interrupt only PvP and Heal casts by players
+					if category == "MousePvP" then 
+						if not A_Unit(unitID):IsPlayer() or (not A_InterruptEnabled("PvP", spellName) and not A_InterruptEnabled("Heal", spellName)) then 
+							return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+						end 
+					end 
+				end 
+			end 
+			
+			-- If custom lua is not successful, conception is to have it last checked 
+			if Interrupt and not RunLua(Interrupt.LUA, unitID) then 
+				return false, false, false, notInterruptable, castRemainsTime, castDoneTime
+			end 
 
-			local Interrupt = TMWdb.profile.ActionDB[4][list][GameLocale][spellName]
-			local luaCode = Interrupt and Interrupt.LUA or nil
-			
-			local r_useKick, r_useCC, r_useRacial
-			
-			if list:match("TargetMouseover") then
-				if (not Action.GetToggle(4, "TargetMouseoverList") and (not Action.IsInPvP or (Action.Unit(unitID):IsHealer() and Action.Unit(unitID):TimeToDie() < 6))) or (Action.InterruptEnabled(list, spellName) and RunLua(luaCode, unitID)) then 
-					if Interrupt then 
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = Interrupt.useKick
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = Interrupt.useCC
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = Interrupt.useRacial
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial
-					else
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = true
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = true
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = true
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial 
-					end 
-				end 
-			elseif list == "Heal" then 
-				if Action.InterruptEnabled(list, spellName) and (not Action.GetToggle(4, "KickHealOnlyHealers") or Action.Unit(unitID):IsHealer()) and RunLua(luaCode, unitID) then 
-					if Interrupt then 
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = Interrupt.useKick
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = Interrupt.useCC
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = Interrupt.useRacial
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial
-					else
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = true
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = true
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = true
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial
-					end 
-				end 
-			elseif list == "PvP" then 
-				if Action.InterruptEnabled(list, spellName) and (not Action.GetToggle(4, "KickPvPOnlySmart") or SmartInterrupt()) and RunLua(luaCode, unitID) then 
-					if Interrupt then 
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = Interrupt.useKick
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = Interrupt.useCC
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = Interrupt.useRacial
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial
-					else
-						if bl_useKick ~= nil then 
-							r_useKick = not bl_useKick
-						else
-							r_useKick = true
-						end 
-						
-						if bl_useCC ~= nil then 
-							r_useCC = not bl_useCC
-						else
-							r_useCC = true
-						end 
-						
-						if bl_useRacial ~= nil then 
-							r_useRacial = not bl_useRacial
-						else
-							r_useRacial = true
-						end 
-						
-						return r_useKick, r_useCC, r_useRacial
-					end 
-				end 
-			end
+			return useKick, useCC, useRacial, notInterruptable, castRemainsTime, castDoneTime
 		end 
 	end 
-	return false, false, false
+	return false, false, false, false, castRemainsTime, castDoneTime
 end 
 
 -- [5] Auras
 -- Note: Toggles  ("UseDispel", "UsePurge", "UseExpelEnrage", "UseExpelFrenzy")  
 --		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList", 
---																																	"BlessingofProtection", "BlessingofFreedom", "BlessingofSacrifice")	-- only Paladin 		
+--																																	"BlessingofProtection", "BlessingofFreedom", "BlessingofSacrifice"	-- only Paladin 		
+--																																	"Vanish") -- only Rogue 
 function Action.AuraIsON(Toggle)
 	-- @return boolean 
-	return (type(Toggle) == "boolean" and Toggle == true) or TMWdb.profile.ActionDB[5][Toggle]
+	return (type(Toggle) == "boolean" and Toggle == true) or pActionDB[5][Toggle]
 end 
 
 function Action.AuraGetCategory(Category)
@@ -6035,8 +8279,8 @@ function Action.AuraGetCategory(Category)
 		Filter = Filter .. " HELPFUL"
 	end 
 	
-	if TMWdb.profile.ActionDB[5][Mode] and TMWdb.profile.ActionDB[5][Mode][Category] then 
-		return TMWdb.profile.ActionDB[5][Mode][Category][GameLocale], Filter
+	if pActionDB[5][Mode] and pActionDB[5][Mode][Category] then 
+		return pActionDB[5][Mode][Category][GameLocale], Filter
 	end 
 	
 	if ActionDataAuras[Mode] then 
@@ -6048,7 +8292,7 @@ end
 
 function Action.AuraIsBlackListed(unitID)
 	-- @return boolean 
-	local Aura, Filter = Action.AuraGetCategory("BlackList")
+	local Aura, Filter = A_AuraGetCategory("BlackList")
 	if Aura and next(Aura) then 
 		local _, Name, count, duration, expirationTime, canStealOrPurge, id
 		for i = 1, huge do 
@@ -6056,7 +8300,7 @@ function Action.AuraIsBlackListed(unitID)
 			if Name then
 				if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 
 					local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
-					if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or Action.Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
+					if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or A_Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
 						return true
 					end 
 				end 
@@ -6070,16 +8314,16 @@ end
 
 function Action.AuraIsValid(unitID, Toggle, Category)
 	-- @return boolean 
-	if Category ~= "BlackList" and Action.AuraIsON(Toggle) then 
-		local Aura, Filter = Action.AuraGetCategory(Category)
-		if Aura and not Action.AuraIsBlackListed(unitID) then 
+	if Category ~= "BlackList" and A_AuraIsON(Toggle) then 
+		local Aura, Filter = A_AuraGetCategory(Category)
+		if Aura and not A_AuraIsBlackListed(unitID) then 
 			local _, Name, count, duration, expirationTime, canStealOrPurge, id
 			for i = 1, huge do			
 				Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
 				if Name then					
 					if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 					
 						local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
-						if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or Action.Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
+						if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or A_Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
 							return true
 						end 
 					end 
@@ -6093,90 +8337,153 @@ function Action.AuraIsValid(unitID, Toggle, Category)
 end
 
 -- [6] Cursor 
-function Action.CursorInit()
-	if not Action.IsGameTooltipInitializated then
-		local function OnEvent(self)
-			if Action.IsInitialized and Action[Action.PlayerClass] then 
-				local UseLeft = Action.GetToggle(6, "UseLeft")
-				local UseRight = Action.GetToggle(6, "UseRight")
-				if UseLeft or UseRight then 
-					local M = Action.IsInPvP and "PvP" or "PvE"
-					local ObjectName = UnitName("mouseover")
-					if ObjectName then 		
-						-- UnitName 
-						ObjectName = ObjectName:lower()
-						local UnitNameKey = TMWdb.profile.ActionDB[6][M]["UnitName"][GameLocale][ObjectName]
-						if UnitNameKey and UnitNameKey.Enabled and ((UnitNameKey.Button == "LEFT" and UseLeft) or (UnitNameKey.Button == "RIGHT" and UseRight)) and (not UnitNameKey.isTotem or Action.Unit("mouseover"):IsTotem() and not Action.Unit("target"):IsTotem()) and RunLua(UnitNameKey.LUA, "mouseover") then 
-							Action.GameTooltipClick = UnitNameKey.Button
-							return
+local Cursor; Cursor 		= {
+	OnEvent 				= function(self)
+		-- Note: self here is not self to the Cursor table, it's self to the frame 
+		if Cursor.Initialized then 
+			local UseLeft = A_GetToggle(6, "UseLeft")
+			local UseRight = A_GetToggle(6, "UseRight")
+			if UseLeft or UseRight then 
+				local M = Action.IsInPvP and "PvP" or "PvE"
+				local ObjectName = UnitName("mouseover")
+				if ObjectName then 		
+					-- UnitName 
+					local UnitNameKey = pActionDB[6][M]["UnitName"][GameLocale][ObjectName:lower()]
+					if UnitNameKey and UnitNameKey.Enabled and ((UnitNameKey.Button == "LEFT" and UseLeft) or (UnitNameKey.Button == "RIGHT" and UseRight)) and (not UnitNameKey.isTotem or A_Unit("mouseover"):IsTotem() and not A_Unit("target"):IsTotem()) and RunLua(UnitNameKey.LUA, "mouseover") then 
+						Cursor.lastMouseName = ObjectName
+						Action.GameTooltipClick = UnitNameKey.Button
+						return
+					end 
+				elseif self:IsVisible() and self:GetEffectiveAlpha() >= 1 then
+					-- GameTooltip 
+					local focus = GetMouseFocus() 					
+					if focus and not focus:IsForbidden() then
+						local GameTooltipTable 
+						if focus:GetName() == "WorldFrame" then 
+							GameTooltipTable = pActionDB[6][M]["GameToolTip"][GameLocale]
+						else 
+							GameTooltipTable = pActionDB[6][M]["UI"][GameLocale]
 						end 
-					elseif self:IsShown() and self:GetEffectiveAlpha() >= 1 then 			
-						-- GameTooltip 
-						local focus = GetMouseFocus() 
-						if focus and not focus:IsForbidden() and focus:GetName() == "WorldFrame" then
-							local GameTooltipTable = TMWdb.profile.ActionDB[6][M]["GameToolTip"][GameLocale]
-							if next(GameTooltipTable) then 						
-								local Regions = { self:GetRegions() }
-								for i = 1, #Regions do 					
-									local region = Regions[i]							
-									if region and region:GetObjectType() == "FontString" then 
-										local text = region:GetText() 								
-										if text then 
-											text = text:lower()
-											local GameTooltipKey = GameTooltipTable[text]
-											if GameTooltipKey and GameTooltipKey.Enabled and ((GameTooltipKey.Button == "LEFT" and UseLeft) or (GameTooltipKey.Button == "RIGHT" and UseRight)) and (not GameTooltipKey.isTotem or Action.Unit("mouseover"):IsTotem() and not Action.Unit("target"):IsTotem()) and RunLua(GameTooltipKey.LUA, "mouseover") then 								
-												Action.GameTooltipClick = GameTooltipKey.Button
-												return 									
-											end 
+						
+						if next(GameTooltipTable) then 						
+							local Regions = { self:GetRegions() }
+							for i = 1, #Regions do 					
+								local region = Regions[i]									
+								if region and region.GetText then 									
+									local text = region:GetText()										
+									if text then 
+										text = text:lower()
+										local GameTooltipKey = GameTooltipTable[text]
+										if GameTooltipKey and GameTooltipKey.Enabled and ((GameTooltipKey.Button == "LEFT" and UseLeft) or (GameTooltipKey.Button == "RIGHT" and UseRight)) and (not GameTooltipKey.isTotem or A_Unit("mouseover"):IsTotem() and not A_Unit("target"):IsTotem()) and RunLua(GameTooltipKey.LUA, "mouseover") then 								
+											Action.GameTooltipClick = GameTooltipKey.Button
+											return 									
 										end 
 									end 
 								end 
 							end 
 						end 
-					end
+					end 					
+				end
+			end 
+			
+			Cursor.lastMouseName 	= nil 
+			Action.GameTooltipClick = nil 	
+		end		
+	end,
+	CURSOR_UPDATE			= function()	
+		Cursor.lastEventTime = TMW.time
+		if Action.GameTooltipClick and not Cursor.lastMouseName then			
+			Action.GameTooltipClick = nil 	 
+		end 
+	end,
+	UPDATE_MOUSEOVER_UNIT 	= function()	
+		Cursor.lastEventTime = TMW.time
+		if not Cursor.lastMouseName or Cursor.lastMouseName ~= UnitName("mouseover") then 
+			Cursor.Update()			
+		end 
+	end,	
+	Reset 					= function(self)
+		A_Listener:Remove("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE")
+		A_Listener:Remove("ACTION_EVENT_CURSOR_FEATURE", "UPDATE_MOUSEOVER_UNIT")	
+		Action.GameTooltipClick = nil 
+		self.lastMouseName		= nil 	
+		self.Initialized 		= nil 		
+	end, 
+	Initialize				= function(self)
+		local wasHooked = self.IsHooked
+		if not self.IsHooked then 
+			self.GameTooltip 			= _G.GameTooltip			
+			self.lastSetDefaultAnchor 	= TOOLTIP_UPDATE_TIME
+			self.lastEventTime 			= TOOLTIP_UPDATE_TIME		
+			self.Update 				= function()
+				self.OnEvent(self.GameTooltip)
+			end 
+			
+			-- Add
+			self.GameTooltip:HookScript("OnShow", function(this)													-- UI:Add
+				if self.Initialized and TMW.time - self.lastEventTime > 0.4 and TMW.time - (self.lastSetDefaultAnchor - TOOLTIP_UPDATE_TIME) > 0.4 then 
+					Cursor.Update()
 				end 
-				Action.GameTooltipClick = nil	
-			end 				 			
-		end
+			end)
+			self.GameTooltip:HookScript("OnTooltipSetDefaultAnchor", function(this)  								-- GameObjects:Add (passthrough)
+				if self.Initialized and not Action.GameTooltipClick and not UnitExists("mouseover") then		
+					self.lastSetDefaultAnchor = TMW.time + TOOLTIP_UPDATE_TIME
+					self.lastMouseName = nil 			 
+				end 
+			end) 
+			A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "UPDATE_MOUSEOVER_UNIT", self.UPDATE_MOUSEOVER_UNIT)		-- Units:Add	
+			
+			-- Remove
+			self.GameTooltip:HookScript("OnTooltipCleared", function() 												-- UI:Remove
+				if Action.GameTooltipClick and TMW.time - self.lastEventTime > 0.4 then 
+					Action.GameTooltipClick = nil 
+					self.lastMouseName		= nil 
+				end
+			end)					
+			A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 		self.CURSOR_UPDATE) 				-- GameObjects:Remove				
+			self.GameTooltip:HookScript("OnUpdate", function(this, elapse)											
+				-- Note: UPDATE_MOUSEOVER_UNIT doesn't fires if you move out cursor from unit, so we will use this to simulate same event 
+				if self.Initialized then 
+					if self.lastMouseName then 																		-- Units:Remove 
+						if self.lastMouseName ~= UnitName("mouseover") then 
+							Action.GameTooltipClick = nil
+							self.lastMouseName		= nil 	
+						end
+					else																							
+						if not Action.GameTooltipClick and self.lastSetDefaultAnchor >= TMW.time then 				-- GameObjects:Add (continue)
+							Cursor.Update()
+							if Action.GameTooltipClick then 
+								self.lastSetDefaultAnchor = TOOLTIP_UPDATE_TIME
+							end 
+						end 
+						
+						if Action.GameTooltipClick and this:GetEffectiveAlpha() < 1 then 							-- Remove All 
+							-- Note: Just super additional condition to avoid any possible missed issues before OnTooltipCleared will be triggered 
+							Action.GameTooltipClick = nil
+						end 
+					end 
+				end 
+			end)
 		
-		-- PRE
-		GameTooltip:HookScript("OnShow", OnEvent)
-		-- POST
-		GameTooltip:RegisterEvent("CURSOR_UPDATE")
-		GameTooltip:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
-		GameTooltip:HookScript("OnEvent", function(self, event) 
-			if Action.GameTooltipClick and (event == "CURSOR_UPDATE" or (event == "UPDATE_MOUSEOVER_UNIT" and not UnitExists("mouseover"))) and self:IsShown() and self:GetEffectiveAlpha() >= 1 then  			
-				Action.GameTooltipClick = nil	
-				self:Hide()
-			end 
-		end)		
-		GameTooltip:HookScript("OnTooltipCleared", function(self)
-			if self:IsShown() then 
-				OnEvent(self)
-			else 
-				Action.GameTooltipClick = nil 
-			end 
-		end)		
+			self.IsHooked = true 
+		end 
 		
-		Action.IsGameTooltipInitializated = true 
-	end 
-end 
+		self.Initialized = A_GetToggle(6, "UseLeft") or A_GetToggle(6, "UseRight")
+		if wasHooked then 
+			if self.Initialized then
+				A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 			self.CURSOR_UPDATE)
+				A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "UPDATE_MOUSEOVER_UNIT", 	self.UPDATE_MOUSEOVER_UNIT)	
+			else
+				self:Reset()
+			end 
+		end 
+	end,
+}
 
 -- [7] MSG System (Message)
---[[
-local CompareUnitIDwithUnitName(unitID, unitName)
-	local name, server = UnitName(unitID)
-	if unitID == "player" then 
-		server = GetRealmName():gsub(" ", "")
-	end 
-	local fullname = name .. "-" .. server 
-	return fullname == unitName
-end 
-]]
-
-local MSG = {
-	units = { "raid%d+", "party%d+", "arena%d+", "player", "target" },
-	group = { 
+local MSG; MSG 				= {
+	units 					= { "raid%d+", "party%d+", "arena%d+", "player", "target" },
+	group 					= { 
 		{ u = "player", meta = 3 	}, 
 		{ u = "raid1", 	meta = 6 	}, 
 		{ u = "raid2", 	meta = 7	}, 
@@ -6185,430 +8492,569 @@ local MSG = {
 		{ u = "party2", meta = 7	}, 
 		{ u = "party3", meta = 8	},
 	}, -- Classic has index started from 6 to 8 which provide to support party3
-	arena = {
+	arena 					= {
 		{ u = "arena1", meta = 6 	}, 
 		{ u = "arena2", meta = 7	}, 
 		{ u = "arena3", meta = 8	}, 	
 	},
-	set = {},
-}	
-local function UpdateChat(...)
-	if not Action.IsInitialized then 
-		return 
-	end 
-	
-	local msgList = Action.GetToggle(7, "msgList")
-	if not msgList or next(msgList) == nil then 
-		return 
-	end 
-	
-	local msg, sname  = ... 
-	msg = msg:lower()
-	for Name, v in pairs(msgList) do 
-		if v.Enabled and msg:match(Name) and (not v.Source or v.Source == sname) then 
-			local Obj = Action[Action.PlayerClass][v.Key] 
-			if Obj and (not Action.GetToggle(7, "DisableReToggle") or not Obj:IsQueued()) then  							
-				wipe(MSG.set)
-				local unit
-				
-				for j = 1, #MSG.units do 
-					unit = msg:match(MSG.units[j])
-					if unit then 
-						break
-					end 
-				end 
+	set 					= {},
+	SetToggle				= {7, "MSG_Toggle"},
+	OnEvent					= function(...)
+		local msgList = A_GetToggle(7, "msgList")
+		if type(msgList) ~= "table" or not next(msgList) then 
+			return 
+		end 
+		
+		local msg, sname  = ... 
+		msg = msg:lower()
+		for Name, v in pairs(msgList) do 
+			if v.Enabled and msg:match(Name) and (not v.Source or v.Source == sname) then 
+				local Obj = Action[Action.PlayerClass][v.Key] 
+				if Obj and (not A_GetToggle(7, "DisableReToggle") or not Obj:IsQueued()) then  							
+					wipe(MSG.set)
 					
-				--[[
-				if not v.Source then 
+					local unit					
 					for j = 1, #MSG.units do 
 						unit = msg:match(MSG.units[j])
 						if unit then 
 							break
 						end 
-					end 
-				else 
-					if CompareUnitIDwithUnitName("player", sname) then 
-						unit = "player"
-					elseif CompareUnitIDwithUnitName("target", sname) then
-						unit = "target"
-					else 
-						for j = 1, Action.TeamCache.Friendly.Size do 
-							local cUnit = Action.TeamCache.Friendly.Type .. j 
-							if CompareUnitIDwithUnitName(cUnit, sname) then
-								unit = cUnit
-								break 
-							end 
-						end 
-						
-						if not unit then 
-							for j = 1, Action.TeamCache.Enemy.Size do 
-								local cUnit = Action.TeamCache.Enemy.Type .. j 
-								if CompareUnitIDwithUnitName(cUnit, sname) then
-									unit = cUnit
-									break 
-								end 
-							end 					
-						end 
-					end 
-				end
-				]]			
-				
-				if unit then 
-					if RunLua(v.LUA, unit) then 
-						-- Note: Regarding "player" unit here is a lot of profiles which don't support slot 6 and mostly 6 slot is valid for healer which has different @target always [Affected Retail only]
-						-- Since damager / tank always has @target an enemy then "player" will be applied even if spell will be launched in slot 3-4 
-						if unit:match("raid") or unit:match("party") then 		
-							if MSG.group[unit] then 
-								MSG.set.Unit = unit
-								MSG.set.MetaSlot = MSG.group[unit].meta 							
-								Action.MacroQueue(v.Key, MSG.set)
-							else 
+					end 	
+					
+					if unit then 
+						if RunLua(v.LUA, unit) then 
+							-- Note: Regarding "player" unit here, a lot of profiles which don't support slot 6 and mostly 6 slot is valid for healer which has different @target always [Affected Retail only]
+							-- Since damager / tank always has @target an enemy then "player" will be applied even if spell will be launched in slot 3-4 
+							if unit:match("raid") or unit:match("party") then 		
 								for j = 1, #MSG.group do 
 									if UnitIsUnit(unit, MSG.group[j].u) then 	
-										MSG.set.Unit = MSG.group[j].u
-										MSG.set.MetaSlot = MSG.group[j].meta
-										Action.MacroQueue(v.Key, MSG.set)							
+										if MSG.group[j].u == "player" then 
+											MSG.set.MetaSlot = Action.IamHealer and 3 or nil 
+										else 
+											MSG.set.MetaSlot = MSG.group[j].meta											
+										end 
+										MSG.set.UnitID = MSG.group[j].u
+										A_MacroQueue(v.Key, MSG.set)							
 										break 
 									end 
-								end 			
+								end 											
+							elseif unit:match("arena") then
+								if MSG.arena[unit] then 
+									MSG.set.UnitID 		= unit
+									MSG.set.MetaSlot 	= MSG.arena[unit] 							
+									A_MacroQueue(v.Key, MSG.set)
+								end 
+							else 
+								MSG.set.UnitID 			= unit 
+								A_MacroQueue(v.Key, MSG.set)
 							end 
-						elseif unit:match("arena") then
-							if MSG.arena[unit] then 
-								MSG.set.Unit = unit
-								MSG.set.MetaSlot = MSG.arena[unit].meta 							
-								Action.MacroQueue(v.Key, MSG.set)
-							end 
-						elseif unit == "player" then 
-							MSG.set.Unit = "player"
-							Action.MacroQueue(v.Key, MSG.set) 
-						else 
-							MSG.set.Unit = unit 
-							Action.MacroQueue(v.Key, MSG.set)
 						end 
-					end 
-				else
-					if v.LUA ~= nil and v.LUA ~= "" and Obj:HasRange() then 
-						unit = ((Obj:IsHarmful() or (Obj:IsHelpful() and (Obj.Type == "Spell" or Action.IamHealer))) and "target") or (Obj.Type ~= "Spell" and ((not Action.IamHealer and "player") or "target")) or "player"
-					end 
-				
-					if RunLua(v.LUA, unit or "target") then
-						MSG.set.Unit = unit -- or "target"
-						Action.MacroQueue(v.Key, MSG.set)
-					end 
-				end	
-			end 
-		end        
-    end  
-end 
+					else
+						if v.LUA ~= nil and v.LUA ~= "" and Obj:HasRange() then 
+							unit = ((Obj:IsHarmful() or (Obj:IsHelpful() and (Obj.Type == "Spell" or Action.IamHealer))) and "target") or (Obj.Type ~= "Spell" and ((not Action.IamHealer and "player") or "target")) or "player"
+						end 
+					
+						if RunLua(v.LUA, unit or "target") then
+							MSG.set.UnitID = unit -- or "target"
+							A_MacroQueue(v.Key, MSG.set)
+						end 
+					end	
+					
+					return 
+				end							 
+			end        
+		end 	
+	end,
+	Reset 					= function(self)
+		A_Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY")
+		A_Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY_LEADER")
+		A_Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID")
+		A_Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER")	
+	end,
+	Initialize				= function(self)
+		if A_GetToggle(7, "MSG_Toggle") then 
+			A_Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_PARTY", 			self.OnEvent)
+			A_Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_PARTY_LEADER", 	self.OnEvent)
+			A_Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_RAID", 			self.OnEvent)
+			A_Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER", 	self.OnEvent)
+		else 
+			self:Reset()
+		end 	
+	end,
+}	
 
-function Action.ToggleMSG(isLaunch)
-	if not isLaunch and Action.IsInitialized then 
-		Action.SetToggle({7, "MSG_Toggle", L["TAB"][7]["MSG"] .. " : "})
-	end
-	
-	Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY")
-	Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY_LEADER")
-	Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID")
-	Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER")	
-	
-	if Action.GetToggle(7, "MSG_Toggle") then 
-		Action.Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_PARTY", 			UpdateChat)
-		Action.Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_PARTY_LEADER", 	UpdateChat)
-		Action.Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_RAID", 			UpdateChat)
-		Action.Listener:Add("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER", 	UpdateChat)
-	end 	
-	
-	if Action.MainUI and Action.Data.ProfileUI and Action.Data.ProfileUI[7] and Action.Data.ProfileUI[7][Action.PlayerClass] and next(Action.Data.ProfileUI[7][Action.PlayerClass]) then 
-		local spec = Action.PlayerClass .. CL
-		local tab = tabFrame.tabs[7]
-		if tab and tab.childs[spec] then 
-			local anchor = GetAnchor(tab, spec)
-			local kids = GetKids(tab, spec)
-			for _, child in ipairs(kids) do 				
-				if child.Identify and child.Identify.Toggle == "DisableReToggle" then 
-					if Action.GetToggle(7, "MSG_Toggle") then 
-						child:Enable()
-					else 
-						child:Disable()
-					end 
-					break 
-				end 
+function Action.ToggleMSG()
+	MSG.SetToggle[3] = L["TAB"][7]["MSG"] .. ": "
+	A_SetToggle(MSG.SetToggle)
+	MSG:Initialize()	
+	if tabFrame then 
+		local spec 	= Action.PlayerClass .. CL
+		local tab 	= tabFrame.tabs[7]
+		local kid 	= tab and tab.childs[spec] and tab.childs[spec].toggleWidgets and tab.childs[spec].toggleWidgets.DisableReToggle
+		if kid then 
+			if A_GetToggle(7, "MSG_Toggle") then 
+				kid:Enable()
+			else 
+				kid:Disable()
 			end 
 		end 
 	end 
+end 
+
+-- [8] Healing Engine 
+local HealingEngine 		= {
+	canSetToggle			= {
+		PredictOptions		= {8, "PredictOptions"},
+		SelectStopOptions	= {8, "SelectStopOptions"}, 
+	},
+	canSetUnitIDs			= {
+		UnitIDs				= {8, "UnitIDs", nil, true},
+	},	
+	printAllNotEqual		= function(self, t1, t2, text)
+		for k, v in pairs(t1) do 
+			if v ~= t2[k] then 
+				A_Print(text .. L["TAB"][8][k:upper()] .. " = ", t2[k])
+			end 
+		end 
+	end,
+	tempNormalToggle		= {8},
+	tMergeProfile			= function(self, fromLoad, toLoad)
+		for k, v in pairs(fromLoad) do 
+			if toLoad[k] ~= nil then 
+				if type(v) == "table" then 
+					if self.canSetToggle[k] then 
+						local useSetToggle
+						
+						for k1, v1 in ipairs(A_GetToggle(8, k)) do 
+							if v1 ~= v[k1] then 
+								useSetToggle = true 
+								break
+							end 
+						end 
+						
+						if useSetToggle then 
+							self.canSetToggle[k][3] = L["TAB"][8][k:upper()] .. ": "
+							A_SetToggle(self.canSetToggle[k], v)
+						end 
+					elseif self.canSetUnitIDs[k] then 
+						A_SetToggle(self.canSetUnitIDs[k], v)
+						
+						-- Due how SetToggle released we can't use print inside, so we will do it here 						
+						for unitID, unitData in pairs(toLoad.UnitIDs) do 
+							self:printAllNotEqual(unitData, v[unitID], unitID .. ": ")							
+						end 
+					else
+						A_Print(L["DEBUG"] .. "invalid " .. k .. ". Func: HealingEngine.tMergeProfile")
+					end 					
+				else 
+					if A_GetToggle(8, k) ~= v then 
+						self.tempNormalToggle[2] = k 
+						self.tempNormalToggle[3] = L["TAB"][8][k:upper()] .. ": "
+						A_SetToggle(self.tempNormalToggle, v)
+					end 
+				end 
+			end 
+		end 
+	end,
+	tSaveProfile			= function(self, fromSave, toSave)
+		for k, v in pairs(fromSave) do 
+			if k ~= "Profiles" and k ~= "Profile" then 
+				if type(v) == "table" then 
+					toSave[k] = {}
+					self:tSaveProfile(v, toSave[k])
+				else 
+					toSave[k] = v
+				end 
+			end 
+		end 
+	end,
+	HasErrors				= function(self, profileName)
+		if not ActionHasRunningDB then 
+			A_Print(L["DEBUG"] .. L["TAB"][8]["PROFILEERRORDB"])
+			return true
+		end 
+		
+		if (not isClassic and not Action.IamHealer) or (isClassic and not A_Unit("player"):IsHealerClass()) then 
+			A_Print(L["DEBUG"] .. L["TAB"][8]["PROFILEERRORNOTAHEALER"])
+			return true
+		end 
+		
+		if (type(profileName) ~= "string" and type(profileName) ~= "number") or profileName == "" then 
+			A_Print(L["DEBUG"] .. L["TAB"][8]["PROFILEERRORINVALIDNAME"])
+			return true
+		end 		
+	end,
+	GetCurrentProfile 		= function(self)
+		-- @return table 
+		if not isClassic then 
+			return pActionDB[8][Action.PlayerSpec]
+		else 
+			return pActionDB[8]
+		end 
+	end,
+}
+
+function Action.HealingEngineProfileLoad(profileName)
+	-- Debug 
+	if HealingEngine:HasErrors(profileName) then 
+		return 
+	end 
+	
+	-- Work 
+	local profileCurrent = HealingEngine:GetCurrentProfile()
+	local profileNew = profileCurrent.Profiles[profileName]
+	if not profileNew then
+		A_Print(L["DEBUG"] .. profileName .. L["ISNOTFOUND"])		
+		return 
+	end 
+	
+	local profileCurrent = HealingEngine:GetCurrentProfile()
+	HealingEngine:tMergeProfile(profileNew, profileCurrent)
+	profileCurrent.Profile = profileName -- Don't touch..
+	--TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_UPDATE") -- no need, SetToggle for UnitIDs key will fire it 
+	A_Print(L["TAB"][8]["PROFILELOADED"] .. profileName)
+	TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Loaded", profileName) -- Don't touch..
+end 
+
+function Action.HealingEngineProfileSave(profileName)
+	-- Debug 
+	if HealingEngine:HasErrors(profileName) then 
+		return 
+	end 
+	
+	-- Work 
+	local profileCurrent = HealingEngine:GetCurrentProfile()
+	if not profileCurrent.Profiles[profileName] then 
+		profileCurrent.Profiles[profileName] = {}
+	else 
+		wipe(profileCurrent.Profiles[profileName])
+	end 
+	
+	HealingEngine:tSaveProfile(profileCurrent, profileCurrent.Profiles[profileName])
+	profileCurrent.Profile = profileName -- Don't touch..
+	A_Print(L["TAB"][8]["PROFILESAVED"] .. profileName)
+	TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Saved", profileName) -- Don't touch..
+end 
+
+function Action.HealingEngineProfileDelete(profileName)
+	-- Debug 
+	if HealingEngine:HasErrors(profileName) then 
+		return 
+	end 
+	
+	-- Work 
+	local profileCurrent = HealingEngine:GetCurrentProfile()
+	if not profileCurrent.Profiles[profileName] then 
+		A_Print(L["DEBUG"] .. profileName .. L["ISNOTFOUND"])		
+		return 
+	end 
+	
+	local _, _, _, macroID = MacroLibrary:GetInfo(profileName)
+	if macroID then 
+		MacroLibrary:DeleteMacro(macroID)
+	end 
+	
+	wipe(profileCurrent.Profiles[profileName])
+	profileCurrent.Profiles[profileName] = nil
+	profileCurrent.Profile = "" -- Don't touch..
+	A_Print(L["TAB"][8]["PROFILEDELETED"] .. profileName)
+	TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Deleted", profileCurrent.Profile) -- Don't touch..
 end 
 
 -------------------------------------------------------------------------------
 -- UI: Toggles
 -------------------------------------------------------------------------------
-function Action.SetToggle(arg, custom)
-	-- @usage: Action.SetToggle({ tab.name (@number), key (@string ActionDB), text (@string optional for Print), silence (@boolean optional for Print) }, custom (@any value to set - optional))
-	if not TMWdb.profile.ActionDB then 
-		Action.Print(TMWdb:GetCurrentProfile() .. "  " .. L["NOSUPPORT"])
-		return
+local OnToggleHandler		= {
+	-- Tabs 
+	[1]						= {
+		-- Toggles 
+		Burst				= function() 
+			TMW:Fire("TMW_ACTION_BURST_CHANGED")
+			TMW:Fire("TMW_ACTION_CD_MODE_CHANGED") -- Taste's callback 
+		end,
+		Role 				= function()
+			Action:PLAYER_SPECIALIZATION_CHANGED()	
+			TMW:Fire("TMW_ACTION_ROLE_CHANGED")
+		end,
+		ReTarget			= function() 
+			Re:Initialize()
+		end,
+		LOSCheck			= function() 
+			LineOfSight:Initialize() 
+		end,
+		HE_AnyRole			= function()
+			TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
+		end,
+	},
+	[2]						= {
+		-- Toggles 
+		AoE			= function() 
+			TMW:Fire("TMW_ACTION_AOE_CHANGED")
+			TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED") -- Taste's callback 
+		end,
+	},
+	[4]						= {
+		-- Toggles 
+		BlackList			= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		MainPvE				= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		MousePvE			= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		MainPvP				= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		MousePvP			= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		Heal				= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+		PvP					= function()
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_UPDATE")			
+		end,
+	},
+	[6]						= {
+		-- Toggles 
+		UseLeft				= function() 
+			Cursor:Initialize() 
+		end,
+		UseRight			= function() 
+			Cursor:Initialize() 
+		end,
+	},
+	[8]						= {
+		-- Toggles 
+		UnitIDs 			= function() 
+			TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_UPDATE") 
+			TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "") 
+		end,
+	},	
+}; Action.OnToggleHandler = OnToggleHandler
+local function tCustomMerge(db, custom, n, toggle, text, silence, opposite)
+	for k, v in pairs(custom) do
+		if db[k] ~= nil and type(db[k]) == type(v) then 
+			if type(v) == "table" then 
+				tCustomMerge(db[k], v, n, toggle, text, silence, opposite)
+			else 
+				db[k] = v					
+				if not silence and text then A_Print(text .. " " .. k .. " = ", db[k]) end 
+			end 
+		else
+			if not silence 				then A_Print(L["DEBUG"] .. n .. " " .. toggle .. " " .. k .. " = " .. toStr[v] .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle") end 
+		end 
 	end 
 	
-	local bool 
-	local n, toggle, text, silence = arg[1], arg[2], arg[3], arg[4]
-	if TMWdb.global.ActionDB[toggle] ~= nil then 
-		if custom ~= nil then 
-			TMWdb.global.ActionDB[toggle] = custom		
-		else 
-			TMWdb.global.ActionDB[toggle] = not TMWdb.global.ActionDB[toggle]	
+	-- Set opposite values in remain toggles for shared table 
+	if opposite then 
+		for k, v in pairs(db) do 
+			if custom[k] == nil and type(v) == "boolean" then
+				db[k] = not v	
+				if not silence and text then A_Print(text .. " " .. k .. " = ", db[k]) end 
+			end
 		end 
-		
-		bool = TMWdb.global.ActionDB[toggle] 		
-	elseif Factory[n] and Factory[n][toggle] ~= nil and type(Factory[n][toggle]) ~= "table" then 
-		if custom ~= nil then 
-			TMWdb.profile.ActionDB[n][toggle] = custom 	
+	end 
+end 
+
+function Action.SetToggle(arg, custom, opposite)
+	-- @usage: Action.SetToggle({ tab.name (@number), key (@string ActionDB)[, text (@string optional for Print), silence (@boolean optional for Print)] }[, custom (@any value to set - optional)[, opposite (@boolean)]])
+	-- Syntax: Action.SetToggle({ n, key[, text, silence] } [, custom[, opposite]])
+	-- 'opposite' designed only for 'custom' use as table, 'opposite' if specified as 'true' will set opposite statement for remain booleans in the shared tables
+	-- Note: Search by profile toggles and then by global 
+	if not ActionHasRunningDB then 
+		A_Print(Action.CurrentProfile .. " " .. L["NOSUPPORT"])
+		return
+	end 
+
+	local n, toggle, text, silence 	= unpack(arg); n = n or "nil"; toggle = toggle or "nil"
+	local owner						= Action[owner]
+	local db 						= pActionDB[n]	
+	
+	-- Check if exist 
+	if not db or (db[toggle] == nil and (db[owner] == nil or db[owner][toggle] == nil)) then 
+		if gActionDB[n] and gActionDB[n][toggle] then 
+			db = gActionDB[n]	
+		elseif gActionDB[toggle] then 
+			db = gActionDB
 		else 
-			TMWdb.profile.ActionDB[n][toggle] = not TMWdb.profile.ActionDB[n][toggle]	
+			if not silence then A_Print(L["DEBUG"] .. n .. " " .. toggle .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle") end
+			return 
 		end 
-		
-		bool = TMWdb.profile.ActionDB[n][toggle] 
-	elseif TMWdb.profile.ActionDB[n] == nil or TMWdb.profile.ActionDB[n][toggle] == nil then
-		if not silence then 
-			Action.Print(L["DEBUG"] .. (n or "") .. " " .. (toggle or "") .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle")
-		end
-		return 
-	else 
-		if custom ~= nil then 
-			if type(custom) == "table" then 
-				for k, v in pairs(custom) do
-					if TMWdb.profile.ActionDB[n][toggle][k] ~= nil and type(TMWdb.profile.ActionDB[n][toggle][k]) == type(v) then 
-						TMWdb.profile.ActionDB[n][toggle][k] = v
-						
-						if not silence and text then 
-							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
-						end 
-					else
-						if not silence then 
-							Action.Print(L["DEBUG"] .. (n or "") .. " " .. (toggle or "") .. " " .. (k or "") .. " = " .. tostring(v) .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle")
-						end
-					end 
+	elseif db[toggle] == nil then 
+		db = db[owner]
+	end 
+
+	-- Run set 
+	if custom ~= nil then 
+		if type(custom) == "table" then 
+			-- We will assume what db is also a table without check it
+			local db = db[toggle]
+			tCustomMerge(db, custom, n, toggle, text, silence, opposite)
+		else 
+			db[toggle] = custom 	
+		end 
+	elseif type(db[toggle]) == "table" then 
+		-- Usually only for Dropdown in multi, usable for asoc too for boolean values. Logic is simply:
+		-- 1 Create (or refresh) cache of all instances in DB if any is ON (true or with value), then turn all OFF if anything was ON. 
+		-- 2 Or if all OFF then:
+		-- 2.1 If no cache (means all was OFF) then make ON all (next time it will repeat 1 step to create cache)
+		-- 2.2 If cache exist then turn ON from cache 
+		-- /run TMW.db.profile.ActionDB[1][Action.PlayerSpec].Trinkets.Cache = nil		
+		local db = db[toggle]
+		local anyIsON = false
+		for k, v in pairs(db) do 
+			if v == true then 
+				if not db.Cache then 
+					db.Cache = {}								
+				else 
+					wipe(db.Cache)
 				end 
-			else 
-				TMWdb.profile.ActionDB[n][toggle] = custom 	
-			end 			
-		elseif type(TMWdb.profile.ActionDB[n][toggle]) == "table" then 
-			-- Usually only for Dropdown in multi. Logic is simply:
-			-- 1 Create (or refresh) cache of all instances in DB if any is ON (true or with value), then turn all OFF if anything was ON. 
-			-- 2 Or if all OFF then:
-			-- 2.1 If no cache (means all was OFF) then make ON all (next time it will repeat 1 step to create cache)
-			-- 2.2 If cache exist then turn ON from cache 
-			-- /run TMWdb.profile.ActionDB[1].Trinkets.Cache = nil
-			local anyIsON = false
-			for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do 
-				if TMWdb.profile.ActionDB[n][toggle][k] and k ~= "Cache" and not anyIsON then 
-					TMWdb.profile.ActionDB[n][toggle].Cache = {}								
-					for k1, v1 in pairs(TMWdb.profile.ActionDB[n][toggle]) do 
-						if k1 ~= "Cache" then 
-							TMWdb.profile.ActionDB[n][toggle].Cache[k1] = v1
-						end
-					end										
-					anyIsON = true 
-					break 
+				
+				for k1, v1 in pairs(db) do 
+					if k1 ~= "Cache" then 
+						db.Cache[k1] = v1
+					end
+				end		
+				
+				anyIsON = true 
+				break 
+			end 
+		end 
+		
+		if anyIsON then 
+			for k, v in pairs(db) do
+				if k ~= "Cache" and v == true then 
+					--
+						db[k] = not v					
+						if not silence and text then A_Print(text .. " " .. k .. " = ", db[k]) end 
+					--
+				end 
+			end 
+		elseif db.Cache then 			
+			for k, v in pairs(db.Cache) do	
+				if k ~= "Cache" then 
+					if db[k] ~= nil then 
+						db[k] = v	
+						if not silence and text then A_Print(text .. " " .. k .. " = ", db[k]) end		
+					else
+						-- Conflict, cache contain unexist anymore key, so delete it..
+						db.Cache[k] = nil 
+						if not silence 			then A_Print(L["DEBUG"] .. n .. " " .. toggle .. " " .. k .. " = " .. toStr[v] .. " " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle. " .. L["RESETED"] .. "!") end
+					end 
+				else 
+						-- Conflict, delete cache from cache.. 
+						db.Cache[k] = nil 
+						if not silence 			then A_Print(L["DEBUG"] .. n .. " " .. toggle .. " " .. k .. " = {} " .. L["ISNOTFOUND"] .. ". Func: Action.SetToggle. " .. L["RESETED"] .. "!") end
+				end 
+			end 
+		else 
+			for k, v in pairs(db) do
+				if k ~= "Cache" and type(v) == "boolean" then 
+					--
+						db[k] = not v					
+						if not silence and text then A_Print(text .. " " .. k .. " = ", db[k]) end	
+					-- 
+				end
+			end 				
+		end 
+	else 
+		db[toggle] = not db[toggle]			 			
+	end
+	
+	-- Run Handlers 		
+	if OnToggleHandler[n] and OnToggleHandler[n][toggle] then 
+		OnToggleHandler[n][toggle](db)
+	end 
+	
+	-- For Print and UI 
+	local dbValue = db[toggle]
+	
+	-- Run Print 
+	local printType = type(dbValue)
+	if printType ~= "nil" and printType ~= "table" and not silence and text then 
+		-- Print for "table" working above, this print for boolean, number and string 
+		A_Print(text, dbValue)
+	end 		
+			
+	-- Run UI refresh 
+	-- Note: Any changes done here must be synchronized with InterfaceLanguage
+	if tabFrame then 		
+		local spec 	= owner .. CL
+		local tab 	= tabFrame.tabs[n]
+		local kid	= tab and tab.childs[spec] and tab.childs[spec].toggleWidgets and tab.childs[spec].toggleWidgets[toggle]
+		if kid then 
+			if kid.Identify.Type == "Checkbox" then
+				if n == 4 or n == 8 then 
+					-- Exception to trigger OnValueChanged callback 
+					kid:SetChecked(dbValue)
+				else 
+					kid.isChecked = dbValue 
+					if kid.isChecked then
+						kid.checkedTexture:Show()
+					else 
+						kid.checkedTexture:Hide()
+					end							
+				end
+			end 
+			
+			if kid.Identify.Type == "Dropdown" then						
+				if kid.multi then 
+					for i, v in ipairs(kid.optsFrame.scrollChild.items) do 
+						v.isChecked  = dbValue[i]
+						kid.value[i] = dbValue[i]
+						if v.isChecked then 
+							v.checkedTexture:Show()									
+						else 
+							v.checkedTexture:Hide()
+						end 
+					end 						
+					kid:SetText(kid:FindValueText(dbValue))
+				else 
+					kid.value = dbValue
+					kid:SetText(kid:FindValueText(dbValue))
 				end 
 			end 
 			
-			if anyIsON then 
-				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do
-					if TMWdb.profile.ActionDB[n][toggle][k] and k ~= "Cache" then 
-						--if custom ~= nil then 
-							--TMWdb.profile.ActionDB[n][toggle][k] = custom
-						--else 
-							TMWdb.profile.ActionDB[n][toggle][k] = not v
-						--end 
-						
-						if not silence and text then 
-							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
-						end 
-					end 
-				end 
-			elseif TMWdb.profile.ActionDB[n][toggle].Cache then 			
-				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle].Cache) do	
-					if k ~= "Cache" then 
-						TMWdb.profile.ActionDB[n][toggle][k] = v	
-						if not silence and text then 
-							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
-						end
-					end
-				end 
-			else 
-				for k, v in pairs(TMWdb.profile.ActionDB[n][toggle]) do
-					if k ~= "Cache" then 
-						--if custom ~= nil then 
-							--TMWdb.profile.ActionDB[n][toggle][k] = custom
-						--else 
-							TMWdb.profile.ActionDB[n][toggle][k] = not v 
-						--end 
-						
-						if not silence and text then 
-							Action.Print(text .. " " .. k .. ": ", TMWdb.profile.ActionDB[n][toggle][k])
-						end		
-					end
-				end 				
-			end 
-		else 
-			TMWdb.profile.ActionDB[n][toggle] = not TMWdb.profile.ActionDB[n][toggle]				 			
-		end
-		bool = TMWdb.profile.ActionDB[n][toggle] 
-	end 
-		
-	if toggle == "ReTarget" then 
-		Re:Initialize()
-	end 
-	
-	if toggle == "LOSCheck" then 
-		LineOfSight:Initialize()
-	end 
-	
-	if toggle == "HE_AnyRole" then 
-		TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
-	end 
-	
-	if text and type(bool) ~= "table" then 
-		local boolprint = bool
-		if type(bool) == "number" and bool < 0 then 			
-			if toggle ~= "FPS" then 
-				boolprint = "|cffff0000OFF|r"
-			else 
-				boolprint = "|cff00ff00AUTO|r"
-			end 
-		end 
-		if toggle == "HE_Toggle" then 
-			boolprint = L["TAB"][1][bool]
-		end 
-		
-		if not silence then
-			Action.Print(text, boolprint)
-		end 
-	end
-
-	-- Fires callback for AoE to display DogTag
-	if n == 1 and toggle == "Burst" then 
-		TMW:Fire("TMW_ACTION_BURST_CHANGED")
-		TMW:Fire("TMW_ACTION_CD_MODE_CHANGED") -- Taste's callback 		 
-	elseif n == 2 and strlowerCache[toggle] == "aoe" then 
-		TMW:Fire("TMW_ACTION_AOE_CHANGED")
-		TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED") -- Taste's callback 
-	end 		
-	
-	if Action.MainUI then 		
-		local spec = Action.PlayerClass .. CL
-		local tab = tabFrame.tabs[n]
-		if tab and tab.childs[spec] then 
-			local anchor = GetAnchor(tab, spec)
-			local kids = GetKids(tab, spec)
-			for _, child in ipairs(kids) do 				
-				if child.Identify and child.Identify.Toggle == toggle then 
-					-- SetValue not uses here because it will trigger OnValueChanged which we don't need in case of performance optimization
-					if child.Identify.Type == "Checkbox" then
-						if n == 4 then 
-							-- Exception to trigger OnValueChanged callback 
-							child:SetChecked(bool)
-						else 
-							child.isChecked = bool 
-							if child.isChecked then
-								child.checkedTexture:Show()
-							else 
-								child.checkedTexture:Hide()
-							end							
-						end
-					elseif child.Identify.Type == "Dropdown" then						
-						if child.multi then 
-							local SetVal = {}
-							for i = 1, #child.optsFrame.scrollChild.items do 													
-								child.optsFrame.scrollChild.items[i].isChecked = TMWdb.profile.ActionDB[tab.name][toggle][i]								
-								if child.optsFrame.scrollChild.items[i].isChecked then 
-									child.optsFrame.scrollChild.items[i].checkedTexture:Show()
-									tinsert(SetVal, child.optsFrame.scrollChild.items[i].value)
-								else 
-									child.optsFrame.scrollChild.items[i].checkedTexture:Hide()										
-								end 
-							end 							
-							child.value = SetVal
-							child:SetText(child:FindValueText(SetVal))
-						else 
-							child.value = bool
-							if toggle == "HE_Toggle" then 
-								child:SetText(L["TAB"][1][bool])
-							else 
-								child:SetText(child:FindValueText(bool))
-							end
-						end 
-					elseif child.Identify.Type == "Slider" then							
-						child:SetValue(bool) 
-					end 
-					return  
-				end
-			end 	
-		end		
+			if kid.Identify.Type == "Slider" then							
+				kid:SetValue(dbValue) 
+			end
+			
+			-- ScrollTable should be updated through events/callbacks
+		end 			
 	end 		 	
 end 	
 
-local function failedReturn(n, toggle)
-	if n == 1 then 
-		if toggle == "FPS" then
-			return TMWdb.global.Interval
-		end 	
-		
-		if toggle == "DisableMinimap" or toggle == "DisableRotationDisplay" or toggle == "DisableClassPortraits" then 
-			return true
-		end 
-		
-		if toggle == "Role" then 
-			return "AUTO"
-		end 
-		
-		if toggle == "HE_Toggle" then 
-			return "ALL"
-		end 
-		
-		if toggle == "HE_Pets" or "HE_AnyRole" then 
-			return false 
-		end 
-	end 
-	
-	if n == 2 then 
-		if toggle == "Runes" then 
-			return 
-		else  
-			Action.Print(TMWdb:GetCurrentProfile() .. " - Toggle: [" .. (n or "") .. "] " .. toggle .. " " .. (L and L["NOSUPPORT"] or ""))
-			return 
-		end 
-	end 
-	
-	if TMWdb then 
-		Action.Print(TMWdb:GetCurrentProfile() .. " - Toggle: [" .. (n or "") .. "] " .. toggle .. " " .. (L and L["NOSUPPORT"] or ""), nil, true)
-	end 
-	return
-end 
 function Action.GetToggle(n, toggle)
 	-- @usage: Action.GetToggle(tab.name (@number), key (@string ActionDB))
 	if not ActionHasRunningDB then 		
-		return failedReturn(n, toggle)
+		if toggle == "FPS" then
+			return TMWdbglobal.Interval
+		end 
+		if ActionHasFinishedLoading then 
+			A_Print(Action.CurrentProfile .. " - Toggle: [" .. (n or "") .. "] " .. toggle .. " " .. (L and L["NOSUPPORT"] or ""), nil, true)
+		end
+		return
 	end 
 	
-	local bool 
-	if TMWdb.global.ActionDB[toggle] ~= nil then 	
-		bool = TMWdb.global.ActionDB[toggle] 		
-	elseif TMWdb.profile.ActionDB[n] == nil then 
-		return failedReturn(n, toggle)
-	else
-		bool = TMWdb.profile.ActionDB[n][toggle] 	
+	if gActionDB[toggle] ~= nil then 	
+		return gActionDB[toggle] 
+	elseif pActionDB[n] then 
+		return pActionDB[n][toggle] 
 	end 
-	
-	return bool	
 end 	
 
+ActionDataPrintCache.DisableMinimap = {1, "DisableMinimap"}
 function Action.ToggleMinimap(state)
 	if Action.Minimap then 
 		if type(state) == "nil" then 
 			if Action.IsInitialized then 
-				Action.SetToggle({1, "DisableMinimap", L["TAB"][1]["DISABLEMINIMAP"] .. " : "})
+				ActionDataPrintCache.DisableMinimap[3] = L["TAB"][1]["DISABLEMINIMAP"] .. " : "
+				A_SetToggle(ActionDataPrintCache.DisableMinimap)
 			end
-			if Action.GetToggle(1, "DisableMinimap") then 
+			if not (pActionDB and not pActionDB[1].DisableMinimap) then 
 				LibDBIcon:Hide("ActionUI")
 			else 
 				LibDBIcon:Show("ActionUI")
@@ -6629,161 +9075,269 @@ function Action.MinimapIsShown()
 end 
 
 function Action.ToggleMainUI()
-	if not Action.MainUI and not Action.IsInitialized then 
+	if not Action.PlayerClass or (not Action.MainUI and not Action.IsInitialized) then 
 		return 
 	end 
-	local profile = TMWdb:GetCurrentProfile()
-	local spec = Action.PlayerClass .. CL
-	if Action.MainUI then 	
-		if Action.MainUI:IsShown() then 
-			Action.MainUI:SetShown(not Action.MainUI:IsShown())
+	local specID, specName 	= Action.PlayerClass, Action.PlayerClassName 
+	local spec 				= Action.PlayerClass .. Action.GetCL()
+	local MainUI			= Action.MainUI
+	if MainUI then 	
+		if MainUI:IsShown() then 
+			MainUI:SetShown(not MainUI:IsShown())
 			return
+		elseif not pActionDB then -- MainUI.Profiles.OnValueChanged
+			return 
 		else 
-			Action.MainUI:SetShown(not Action.MainUI:IsShown())	
-			Action.MainUI.PDateTime:SetText(TMWdb:GetCurrentProfile() .. "\n" .. (Action.Data.ProfileUI.DateTime or ""))			
+			MainUI:SetShown(not MainUI:IsShown())	
+			MainUI.PDateTime:SetText(Action.Data.ProfileUI.DateTime or "")	
+			MainUI.Profiles:SetText(Action.CurrentProfile or "")
 		end 
 	else 
-		Action.MainUI = StdUi:Window(UIParent, 540, 640, "The Action")	
-		Action.MainUI.titlePanel.label:SetFontSize(20)
-		Action.MainUI.default_w = Action.MainUI:GetWidth()
-		Action.MainUI.default_h = Action.MainUI:GetHeight()
-		Action.MainUI.titlePanel:SetPoint("TOP", 0, -15)
-		Action.MainUI:SetFrameStrata("HIGH")
-		Action.MainUI:SetPoint("CENTER")
-		Action.MainUI:SetShown(true) 
-		Action.MainUI:RegisterEvent("UI_SCALE_CHANGED")
-		Action.MainUI:RegisterEvent("CRAFT_SHOW")
-		Action.MainUI:SetScript("OnEvent", function(self, event, ...)
-			if event == "CRAFT_SHOW" then 
-				if self:IsShown() then 
-					self:Hide()
-				end 
+		Action.MainUI = StdUi:Window(UIParent, 540, 640, "The Action")
+		MainUI		  = Action.MainUI		
+		MainUI.titlePanel.label:SetFontSize(20)
+		MainUI.default_w = MainUI:GetWidth()
+		MainUI.default_h = MainUI:GetHeight()
+		MainUI.titlePanel:SetPoint("TOP", 0, -20)
+		MainUI:SetFrameStrata("HIGH")
+		MainUI:SetPoint("CENTER")
+		MainUI:SetShown(true) 
+		MainUI:RegisterEvent("UI_SCALE_CHANGED")
+		MainUI:RegisterEvent("CRAFT_SHOW")
+		MainUI:RegisterEvent("CRAFT_CLOSE")
+		MainUI:SetScript("OnEvent", function(self, event, ...)
+			if (event == "CRAFT_SHOW" or event == "CRAFT_CLOSE") and self:IsShown() then 
+				self:Hide()
 			end 
 			
 			if event == "UI_SCALE_CHANGED" then 
-				Action.TimerSetRefreshAble("ACTION_UI_SCALE_SET", 0.001, SetProperlyScale)
+				Action.TimerSetRefreshAble("ACTION_UI_SCALE_SET", 0.001, StdUi.SetProperlyScale)
 			end 
 		end)
 				
-		Action.MainUI:EnableKeyboard(true)
-		Action.MainUI:SetPropagateKeyboardInput(true)
-		--- Catches the game menu bind just before it fires.
-		Action.MainUI:SetScript("OnKeyDown", function (self, Key)				
-			if GetBindingFromClick(Key) == "TOGGLEGAMEMENU" and Action.MainUI:IsShown() then 
+		MainUI:EnableKeyboard(true)
+		MainUI:SetPropagateKeyboardInput(true)
+		-- Catches the game menu bind just before it fires.
+		MainUI:SetScript("OnKeyDown", function(self, Key)				
+			if GetBindingFromClick(Key) == "TOGGLEGAMEMENU" and self:IsShown() then 
 				Action.ToggleMainUI()
 			end 
 		end)
-		--- Disallows closing the dialogs once the game menu bind is processed.
+		-- Disallows closing the dialogs once the game menu bind is processed.
 		hooksecurefunc("ToggleGameMenu", function()			
-			if Action.MainUI:IsShown() then 
+			if MainUI:IsShown() then 
 				Action.ToggleMainUI()
 			end 
 		end)	
-		--- Catches shown (aka clicks) on default "?" GameMenu 
-		Action.MainUI.GameMenuFrame = CreateFrame("Frame", nil, _G["GameMenuFrame"])
-		Action.MainUI.GameMenuFrame:SetScript("OnShow", function()
-			if Action.MainUI:IsShown() then 
+		-- Catches shown (aka clicks) on default "?" GameMenu 
+		MainUI.GameMenuFrame = _G.GameMenuFrame
+		MainUI.GameMenuFrame:HookScript("OnShow", function()
+			if MainUI:IsShown() then 
 				Action.ToggleMainUI()
 			end 
 		end)
 		
-		Action.MainUI.PDateTime = StdUi:Subtitle(Action.MainUI, TMWdb:GetCurrentProfile() .. "\n" .. (Action.Data.ProfileUI.DateTime or ""))
-		Action.MainUI.PDateTime:SetJustifyH("RIGHT")
-		Action.MainUI.GDateTime = StdUi:Subtitle(Action.MainUI, L["GLOBALAPI"] .. DateTime)	
-		Action.MainUI.GDateTime:SetJustifyH("RIGHT")
-		StdUi:GlueBefore(Action.MainUI.PDateTime, Action.MainUI.closeBtn, -5, 0)
-		StdUi:GlueBelow(Action.MainUI.GDateTime, Action.MainUI.PDateTime, 0, 0, "RIGHT")
-		
-		Action.MainUI.AllReset = StdUi:Button(Action.MainUI, 100, 35, L["TAB"]["RESETBUTTON"])
-		StdUi:ButtonAutoWidth(Action.MainUI.AllReset)
-		StdUi:GlueTop(Action.MainUI.AllReset, Action.MainUI, 10, -10, "LEFT")
-		Action.MainUI.AllReset:SetScript('OnClick', function()
-			Action.MainUI.ResetQuestion:SetShown(not Action.MainUI.ResetQuestion:IsShown())
+		MainUI.Session = StdUi:Subtitle(MainUI, L["TAB"]["SESSION"] .. Action.GetSession())
+		MainUI.Session:SetFontSize(select(2, MainUI.Session:GetFont()) * 1.05)
+		MainUI.Session.OnTimerTick = function() 			
+			local remain, isStop = Action.GetSession()
+			MainUI.Session:SetText(L["TAB"]["SESSION"] .. remain)
+			if isStop then 
+				Action.TimerDestroy("Session")
+			end 
+		end		
+		StdUi:GlueTop(MainUI.Session, MainUI, 11, -10, "LEFT")
+		MainUI:HookScript("OnShow", function(self)
+			MainUI.Session.OnTimerTick()
+			Action.TimerSetTicker("Session", 0.5, MainUI.Session.OnTimerTick)
 		end)
+		MainUI:HookScript("OnHide", function(self)
+			Action.TimerDestroy("Session")
+		end)
+		Action.TimerSetTicker("Session", 0.5, MainUI.Session.OnTimerTick)
 		
-		Action.MainUI.ResetQuestion = StdUi:Window(Action.MainUI, 350, 250, L["TAB"]["RESETQUESTION"])
-		Action.MainUI.ResetQuestion:SetPoint("CENTER")
-		Action.MainUI.ResetQuestion:SetFrameStrata("TOOLTIP")
-		Action.MainUI.ResetQuestion:SetFrameLevel(50)
-		Action.MainUI.ResetQuestion:SetBackdropColor(0, 0, 0, 1)
-		Action.MainUI.ResetQuestion:SetMovable(false)
-		Action.MainUI.ResetQuestion:SetShown(false)
-		Action.MainUI.ResetQuestion:SetScript("OnDragStart", nil)
-		Action.MainUI.ResetQuestion:SetScript("OnDragStop", nil)
-		Action.MainUI.ResetQuestion:SetScript("OnReceiveDrag", nil)
+		MainUI.PDateTime = StdUi:Subtitle(MainUI, Action.Data.ProfileUI.DateTime or "")
+		MainUI.PDateTime:SetJustifyH("RIGHT")
 		
-		Action.MainUI.CheckboxSaveActions = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEACTIONS"], 250)
-		Action.MainUI.CheckboxSaveInterrupt = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEINTERRUPT"], 250)			
-		Action.MainUI.CheckboxSaveDispel = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEDISPEL"], 250)
-		Action.MainUI.CheckboxSaveMouse	= StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMOUSE"], 250)	
-		Action.MainUI.CheckboxSaveMSG = StdUi:Checkbox(Action.MainUI.ResetQuestion, L["TAB"]["SAVEMSG"], 250)
+		MainUI.GDateTime = StdUi:Subtitle(MainUI, L["GLOBALAPI"] .. Action.DateTime)	
+		MainUI.GDateTime:SetJustifyH("RIGHT")
 		
-		Action.MainUI.Yes = StdUi:Button(Action.MainUI.ResetQuestion, 150, 35, L["YES"])		
-		StdUi:GlueBottom(Action.MainUI.Yes, Action.MainUI.ResetQuestion, 20, 20, "LEFT")
-		Action.MainUI.Yes:SetScript("OnClick", function()
+		local r, g, b, a = MainUI.GDateTime:GetTextColor()
+		MainUI.Profiles = StdUi:Dropdown(MainUI, 170, MainUI.GDateTime:GetHeight() * 1.5)
+		MainUI.Profiles:SetText(Action.CurrentProfile or "")
+		MainUI.Profiles:SetBackdropColor(0, 0, 0, 0)
+		MainUI.Profiles:SetBackdropBorderColor(r, g, b, 0.25)
+		MainUI.Profiles:RegisterForClicks("LeftButtonUp")
+		MainUI.Profiles:SetScript("OnClick", function(self, button, down)
+			if InCombatLockdown() then 
+				if self.optsFrame:IsVisible() then 
+					self:ToggleOptions()
+				end 			
+			else 
+				if not self.opts then 
+					self.opts = {}
+				else 
+					wipe(self.opts)
+				end 
+				
+				for profile in pairs(TMWdb.profiles) do 
+					self.opts[#self.opts + 1] = { text = profile, value = profile }
+				end 
+				
+				tsort(self.opts, self.SortDSC)
+				
+				self:SetOptions(self.opts)
+				self:ToggleOptions()
+				
+				local height = MainUI:GetHeight() - 40
+				self.optsFrame:SetHeight(math_min(#self.opts * 20 + 4, height))
+				self.optsFrame.scrollChild:SetHeight(math_min(#self.opts * 20, height))
+			end 
+		end)				
+		MainUI.Profiles.OnValueChanged = function(self, val)          
+			if InCombatLockdown() then
+				self.value = Action.CurrentProfile or ""
+				self:SetText(Action.CurrentProfile or "")
+				if self.optsFrame:IsVisible() then 
+					self:ToggleOptions()
+				end 
+			else 
+				TMWdb:SetProfile(val)
+				Action.ToggleMainUI()
+			end 
+		end		
+		MainUI.Profiles.SortDSC = function(a, b)
+			return a.text:lower() < b.text:lower()
+		end
+		MainUI.Profiles.dropTex:ClearAllPoints()
+		MainUI.Profiles.text:SetJustifyH("RIGHT")		
+		MainUI.Profiles.text:SetTextColor(r, g, b, a)	
+		MainUI.Profiles.optsFrame:SetBackdropColor(0, 0, 0, 1)
+		MainUI.Profiles.optsFrame:SetFrameStrata("TOOLTIP")
+		StdUi:GlueAcross(MainUI.Profiles.text, MainUI.Profiles, 19, -2, -2, 2)
+		
+		StdUi:GlueLeft(MainUI.Profiles.dropTex, MainUI.Profiles, 5, 0, true)
+		StdUi:GlueRight(MainUI.Profiles.text, MainUI.Profiles, 0, 0, true)
+		StdUi:GlueBefore(MainUI.Profiles, MainUI.closeBtn, -5, 2)
+		StdUi:GlueBelow(MainUI.PDateTime, MainUI.Profiles, 0, 0, "RIGHT")
+		StdUi:GlueBelow(MainUI.GDateTime, MainUI.PDateTime, 0, 0, "RIGHT")
+		
+		MainUI.AllReset = StdUi:SquareButton(MainUI, MainUI.closeBtn:GetWidth(), MainUI.Profiles:GetHeight())	
+		MainUI.AllReset:SetBackdropColor(0, 0, 0, 0)		
+		MainUI.AllReset:SetBackdropBorderColor(0, 0, 0, 0)		
+		MainUI.AllReset:SetIcon([[Interface\Buttons\UI-RefreshButton]], MainUI.closeBtn:GetWidth(), MainUI.Profiles:GetHeight(), true)		
+		MainUI.AllReset:SetScript("OnClick", function()
+			MainUI.ResetQuestion:SetShown(not MainUI.ResetQuestion:IsShown())
+		end)
+		StdUi:FrameTooltip(MainUI.AllReset, L["TAB"]["RESETBUTTON"], nil, "TOP", true)	
+		StdUi:GlueLeft(MainUI.AllReset, MainUI.Profiles, -1, 0)
+		
+		MainUI.ResetQuestion = StdUi:Window(MainUI, 350, 270, L["TAB"]["RESETQUESTION"])
+		MainUI.ResetQuestion:SetPoint("CENTER")
+		MainUI.ResetQuestion:SetFrameStrata("TOOLTIP")
+		MainUI.ResetQuestion:SetFrameLevel(50)
+		MainUI.ResetQuestion:SetBackdropColor(0, 0, 0, 1)
+		MainUI.ResetQuestion:SetMovable(false)
+		MainUI.ResetQuestion:SetShown(false)
+		MainUI.ResetQuestion:SetScript("OnDragStart", nil)
+		MainUI.ResetQuestion:SetScript("OnDragStop", nil)
+		MainUI.ResetQuestion:SetScript("OnReceiveDrag", nil)
+		
+		MainUI.CheckboxSaveActions 		= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEACTIONS"], 300)
+		MainUI.CheckboxSaveInterrupt 	= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEINTERRUPT"], 300)			
+		MainUI.CheckboxSaveDispel 		= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEDISPEL"], 300)
+		MainUI.CheckboxSaveMouse		= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEMOUSE"], 300)	
+		MainUI.CheckboxSaveMSG 			= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEMSG"], 300)
+		MainUI.CheckboxSaveHE 			= StdUi:Checkbox(MainUI.ResetQuestion, L["TAB"]["SAVEHE"], 300)
+		
+		MainUI.Yes = StdUi:Button(MainUI.ResetQuestion, 150, 35, L["YES"])		
+		StdUi:GlueBottom(MainUI.Yes, MainUI.ResetQuestion, 20, 20, "LEFT")
+		MainUI.Yes:SetScript("OnClick", function()
 			local ProfileSave, GlobalSave = {}, {}
-			if Action.MainUI.CheckboxSaveActions:GetChecked() then 
+			
+			local profileVer = pActionDB.Ver
+			local globalVer  = gActionDB.Ver 
+			
+			if MainUI.CheckboxSaveActions:GetChecked() then 
 				ProfileSave[3] = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[3]) do 
+				for k, v in pairs(pActionDB[3]) do 
 					if type(v) == "table" then
 						ProfileSave[3][k] = v					
 					end 
 				end
 			end 
-			if Action.MainUI.CheckboxSaveInterrupt:GetChecked() then 
+			if MainUI.CheckboxSaveInterrupt:GetChecked() then 
 				ProfileSave[4] = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[4]) do 	
-					if type(v) == "table" then 	
-						ProfileSave[4][k] = v
+				for k, v in pairs(pActionDB[4]) do 
+					if type(v) == "table" then 
+						v.Min = nil 
+						v.Max = nil 
 					end 
+					
+					ProfileSave[4][k] = v
 				end
 			end 
-			if Action.MainUI.CheckboxSaveDispel:GetChecked() then 
+			if MainUI.CheckboxSaveDispel:GetChecked() then 
 				GlobalSave[5] = {}
-				for k, v in pairs(TMWdb.global.ActionDB[5]) do					
+				for k, v in pairs(gActionDB[5]) do					
 					GlobalSave[5][k] = v					
 				end
 			end 
-			if Action.MainUI.CheckboxSaveMouse:GetChecked() then 	
+			if MainUI.CheckboxSaveMouse:GetChecked() then 	
 				ProfileSave[6] = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[6]) do
+				for k, v in pairs(pActionDB[6]) do
 					if type(v) == "table" then 
 						ProfileSave[6][k] = v
 					end 
 				end
 			end 
-			if Action.MainUI.CheckboxSaveMSG:GetChecked() then 	
+			if MainUI.CheckboxSaveMSG:GetChecked() then 	
 				ProfileSave[7] = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[7]) do
+				for k, v in pairs(pActionDB[7]) do
 					if type(v) == "table" then 	
-						ProfileSave[7][k] = v						
+						ProfileSave[7][k] = v
 					end 
 				end
 			end 
-			wipe(TMWdb.global.ActionDB)
-			wipe(TMWdb.profile.ActionDB)
-			if next(ProfileSave) or #ProfileSave > 0 then 
-				TMWdb.profile.ActionDB = ProfileSave				
+			if MainUI.CheckboxSaveHE:GetChecked() then 	
+				ProfileSave[8] = {}
+				for k, v in pairs(pActionDB[8]) do
+					ProfileSave[8][k] = v
+				end
 			end 
-			if next(GlobalSave) or #GlobalSave > 0 then 
-				TMWdb.global.ActionDB = GlobalSave
-			end
+			
+			wipe(gActionDB)
+			wipe(pActionDB)
+			if next(ProfileSave) then 		
+				ProfileSave.Ver = profileVer 
+				TMWdbprofile.ActionDB = ProfileSave					
+			else
+				TMWdbprofile.ActionDB = nil 
+			end 
+			if next(GlobalSave) then 
+				GlobalSave.Ver = globalVer
+				TMWdbglobal.ActionDB = GlobalSave
+			else 
+				TMWdbglobal.ActionDB = nil 
+			end 
+			
 			C_UI.Reload()	
 		end)
 		
-		Action.MainUI.No = StdUi:Button(Action.MainUI.ResetQuestion, 150, 35, L["NO"])
-		StdUi:GlueBottom(Action.MainUI.No, Action.MainUI.ResetQuestion, -20, 20, "RIGHT")
-		Action.MainUI.No:SetScript("OnClick", function()
-			Action.MainUI.ResetQuestion:Hide()
+		MainUI.No = StdUi:Button(MainUI.ResetQuestion, 150, 35, L["NO"])
+		StdUi:GlueBottom(MainUI.No, MainUI.ResetQuestion, -20, 20, "RIGHT")
+		MainUI.No:SetScript("OnClick", function()
+			MainUI.ResetQuestion:Hide()
 		end)			
 
-		StdUi:GlueBottom(Action.MainUI.CheckboxSaveActions, Action.MainUI.ResetQuestion, 20, 30 + Action.MainUI.Yes:GetHeight(), "LEFT")
-		StdUi:GlueAbove(Action.MainUI.CheckboxSaveInterrupt, Action.MainUI.CheckboxSaveActions, 0, 10, "LEFT")
-		StdUi:GlueAbove(Action.MainUI.CheckboxSaveDispel, Action.MainUI.CheckboxSaveInterrupt, 0, 10, "LEFT")
-		StdUi:GlueAbove(Action.MainUI.CheckboxSaveMouse, Action.MainUI.CheckboxSaveDispel, 0, 10, "LEFT")
-		StdUi:GlueAbove(Action.MainUI.CheckboxSaveMSG, Action.MainUI.CheckboxSaveMouse, 0, 10, "LEFT")
+		StdUi:GlueBelow(MainUI.CheckboxSaveActions, MainUI.ResetQuestion.titlePanel.label, -10, -5, "LEFT") -- 30 + MainUI.Yes:GetHeight()
+		StdUi:GlueBelow(MainUI.CheckboxSaveInterrupt, MainUI.CheckboxSaveActions, 0, -10, "LEFT")
+		StdUi:GlueBelow(MainUI.CheckboxSaveDispel, MainUI.CheckboxSaveInterrupt, 0, -10, "LEFT")
+		StdUi:GlueBelow(MainUI.CheckboxSaveMouse, MainUI.CheckboxSaveDispel, 0, -10, "LEFT")
+		StdUi:GlueBelow(MainUI.CheckboxSaveMSG, MainUI.CheckboxSaveMouse, 0, -10, "LEFT")
+		StdUi:GlueBelow(MainUI.CheckboxSaveHE, MainUI.CheckboxSaveMSG, 0, -10, "LEFT")
 		
-		tabFrame = StdUi:TabPanel(Action.MainUI, nil, nil, {
+		tabFrame = StdUi:TabPanel(MainUI, nil, nil, {
 			{
 				name = 1,
 				title = L["TAB"][1]["HEADBUTTON"],
@@ -6791,7 +9345,7 @@ function Action.ToggleMainUI()
 			},
 			{
 				name = 2,
-				title = Action.PlayerClassName,
+				title = specName,
 				childs = {},
 			},
 			{
@@ -6816,99 +9370,176 @@ function Action.ToggleMainUI()
 			},			
 			{
 				name = 7,
-				title = "MSG",	
+				title = L["TAB"][7]["HEADBUTTON"],	
 				childs = {},
 			},
-		})
-		StdUi:GlueAcross(tabFrame, Action.MainUI, 10, -50, -10, 10)
-		tabFrame.container:SetPoint('TOPLEFT', tabFrame.buttonContainer, 'BOTTOMLEFT', 0, 0)
-		tabFrame.container:SetPoint('TOPRIGHT', tabFrame.buttonContainer, 'BOTTOMRIGHT', 0, 0)	
+			{
+				name = 8,
+				title = L["TAB"][8]["HEADBUTTON"],
+				childs = {},
+			},
+		}); MainUI.tabFrame = tabFrame
+		StdUi:GlueAcross(tabFrame, MainUI, 10, -50, -10, 10)
+		tabFrame.container:SetPoint("TOPLEFT", tabFrame.buttonContainer, "BOTTOMLEFT", 0, 0)
+		tabFrame.container:SetPoint("TOPRIGHT", tabFrame.buttonContainer, "BOTTOMRIGHT", 0, 0)	
+		
+		-- Redraw buttons to split them into second line above 
+		tabFrame.OriginalDrawButtons = tabFrame.DrawButtons
+		tabFrame.CustomDrawButtons = function(self)
+			local usedWidth = 0
+			local containerWidth = self.buttonContainer:GetWidth()
+			
+			local prevBtn
+			for i = 1, #self.tabs do 
+				usedWidth = usedWidth + self.tabs[i].button:GetWidth()
+				self.tabs[i].button:ClearAllPoints()
+				
+				if not prevBtn then 
+					self.stdUi:GlueTop(self.tabs[i].button, self.buttonContainer, 0, 0, "LEFT")
+				elseif usedWidth > containerWidth then 
+					usedWidth = usedWidth - containerWidth
+					self.stdUi:GlueAbove(self.tabs[i].button, self.buttonContainer, 0, 1, "LEFT")
+				else 
+					self.stdUi:GlueRight(self.tabs[i].button, prevBtn, 5, 0)
+				end 
+				
+				usedWidth = usedWidth + 5
+				prevBtn = self.tabs[i].button
+			end 
+		end 
+		tabFrame.DrawButtons = function(self)
+			self:OriginalDrawButtons()
+			self:CustomDrawButtons()
+		end 
 		
 		-- Create resizer		
-		Action.MainUI.resizer = CreateResizer(Action.MainUI)
-		if Action.MainUI.resizer then 			
-			function Action.MainUI.UpdateResize() 
-				tabFrame:EnumerateTabs(function(tab)
-					for spec in pairs(tab.childs) do						
-						local specCL = spec:gsub(Action.PlayerClass, "")
-						if tab.childs[spec] and specCL == CL then									
-							-- Easy Layout (main)
-							local anchor = GetAnchor(tab, spec)							
-							if anchor.layout then 
-								anchor:DoLayout()
-							end	
-						
-							local kids = GetKids(tab, spec)
-							for _, child in ipairs(kids) do								
-								-- EasyLayout (additional)
-								if child.layout then 
-									child:DoLayout()
-								end 	
-								-- Dropdown 
-								if child.dropTex then 
-									-- EasyLayout will resize button so we can don't care
-									-- Resize scroll "panel" (container) 
-									child.optsFrame:SetWidth(child:GetWidth())
-									-- Resize scroll "lines" (list grid)
-									for i = 1, #child.optsFrame.scrollChild.items do 
-										child.optsFrame.scrollChild.items[i]:SetWidth(child:GetWidth())									
-									end 									
-								end 
-								-- ScrollTable
-								if child.data and child.columns then 
-									for i = 1, #child.columns do 										
-										if child.columns[i].index == "Name" then
-											-- Column by Name resize
-											child.columns[i].width = round(child.columns[i].defaultwidth + (Action.MainUI:GetWidth() - Action.MainUI.default_w), 0)
-											child:SetColumns(child.columns)	
-											-- Row resize
-											child.numberOfRows = child.defaultrows.numberOfRows + round((Action.MainUI:GetHeight() - Action.MainUI.default_h) / child.defaultrows.rowHeight, 0)
-											child:SetDisplayRows(child.numberOfRows, child.defaultrows.rowHeight)
-											break 
-										end 
-									end
-									break
-								end 
-							end 						
-						end 						
+		MainUI.resizer = StdUi:CreateResizer(MainUI)
+		if MainUI.resizer then 							
+			function MainUI.UpdateResizeForKids(kids)
+				for _, kid in ipairs(kids) do								
+					-- EasyLayout (kid parent)
+					if kid.layout then 
+						kid:DoLayout()
+					end 	
+					-- Dropdown (kid parent)
+					if kid.dropTex then 
+						-- EasyLayout will resize button so we can don't care
+						-- Resize scroll "panel" (container) 
+						local dropdownWidth = kid:GetWidth()
+						kid.optsFrame:SetWidth(dropdownWidth)
+						-- Resize scroll "lines" (list grid)
+						for _, item in ipairs(kid.optsFrame.scrollChild.items) do 
+							item:SetWidth(dropdownWidth)									
+						end 									
 					end 
-				end)
-			end 
-			Action.MainUI:HookScript("OnSizeChanged", Action.MainUI.UpdateResize)
+					-- ScrollTable (kid parent)
+					if kid.data and kid.columns then 
+						local currWidth, needRowResize
+						local remainWidth, c = 0, 0
+
+						for i, column in ipairs(kid.columns) do 
+							if column.defaultwidth then
+								c = c + 1										
+								if not currWidth then 
+									currWidth = MainUI:GetWidth()
+								end 
+								
+								-- Column resize
+								column.width = round(column.defaultwidth + remainWidth + ((currWidth - MainUI.default_w) / (column.resizeDivider or 1)), 0)
+								if column.maxwidth and column.width > column.maxwidth then 
+									-- If column limited to width then we can add remain width to rest columns
+									-- Note: Currently works only if first found indexes have it, don't want to add more code here due performance waste
+									-- If need to reverse of adding remain width column must have 'column.addwidthtoprevious = true'
+									remainWidth = remainWidth + (column.width - column.maxwidth)
+									column.width = column.maxwidth
+								end 
+								
+								if column.addwidthtoprevious then 
+									kid.columns[i - 1]:SetWidth(kid.columns[i - 1].width + remainWidth)
+									remainWidth = 0
+								end 
+								
+								column:SetWidth(column.width)
+								needRowResize = true 
+
+								if not column.resizeDivider or c >= column.resizeDivider then 
+									break 
+								end
+							end 
+						end
+						
+						if needRowResize then 
+							-- Fix StdUi 
+							-- Another bug in Lib.. without this rows will jumps down if base parent has scrollchild as well 
+							if not kid.hasClampDisabled then 
+								kid.scrollFrame:SetClampedToScreen(false)
+								kid.hasClampDisabled = true 
+							end 
+							-- Row resize
+							kid.numberOfRows = kid.defaultrows.numberOfRows + round((MainUI:GetHeight() - MainUI.default_h) / kid.defaultrows.rowHeight, 0)
+							kid:SetDisplayRows(kid.numberOfRows, kid.rowHeight)	
+						end 
+					end 
+				end 	
+			end
+
+			local lastUpdate	
+			function MainUI.UpdateResize(manual) 
+				if manual ~= true and TMW.time - (lastUpdate or 0) < 0.02 then 
+					return 
+				end 
+				
+				tabFrame:CustomDrawButtons()
+				lastUpdate 	= manual == true and 0 or TMW.time 												
+				local spec	= Action.PlayerClass .. CL
+				for _, tab in ipairs(tabFrame.tabs) do	
+					if tab.childs[spec] then									
+						-- Easy Layout (base parent)
+						local anchor = StdUi:GetAnchor(tab, spec)							
+						if anchor.layout then 
+							anchor:DoLayout()
+						end	
+
+						MainUI.UpdateResizeForKids(StdUi:GetAnchorKids(tab, spec))		
+					end 	
+				end 
+			end
+			
+			MainUI.resizer.resizer.resizeButton:HookScript("OnMouseUp", function()				
+				MainUI.UpdateResize(true)
+			end)
+			MainUI:HookScript("OnSizeChanged", MainUI.UpdateResize)
 			-- I don't know how to fix layout overleap problem caused by resizer after hide, so I did some trick through this:
 			-- If you have a better idea let me know 
-			Action.MainUI:HookScript("OnHide", function(self) 
-				Action.MainUI.RememberTab = tabFrame.selected 
+			MainUI:HookScript("OnHide", function(self) 
+				MainUI.RememberTab = tabFrame.selected 
 				tabFrame:SelectTab(tabFrame.tabs[1].name)		
-				Action.MainUI.UpdateResize()
+				MainUI.UpdateResize(true)
 			end)
-			Action.MainUI:HookScript("OnShow", function(self)
-				if Action.MainUI.RememberTab then 
-					tabFrame:SelectTab(tabFrame.tabs[Action.MainUI.RememberTab].name)
+			MainUI:HookScript("OnShow", function(self)
+				if MainUI.RememberTab then 
+					tabFrame:SelectTab(tabFrame.tabs[MainUI.RememberTab].name)
 				end 				
-				Action.MainUI.UpdateResize()
+				MainUI.UpdateResize(true)
 				TMW:TT(self.resizer.resizer.resizeButton, L["RESIZE"], L["RESIZE_TOOLTIP"], 1, 1)
 			end)
 		end 
 	end 
-	
-	if not Action.GetToggle(1, "DisableSounds") then 
-		PlaySound(5977)
-	end 
-	
-	SetProperlyScale()
+
+	StdUi:SetProperlyScale()
+	Action.PlaySound(5977)
 	
 	tabFrame:EnumerateTabs(function(tab)
-		for k in pairs(tab.childs) do
+		for k, v in pairs(tab.childs) do
 			if k ~= spec then 
-				tab.childs[k]:Hide()
+				v:Hide()
 			end 
 		end		
 		if tab.childs[spec] then 
-			tab.childs[spec]:Show()			
+			tab.childs[spec]:Show()				
 			return
-		end  
-		if tab.name == 1 or tab.name == 2 then 
+		end   
+		if tab.name == 1 or tab.name == 2 or tab.name == 8 then 
 			tab.childs[spec] = StdUi:ScrollFrame(tab.frame, tab.frame:GetWidth(), tab.frame:GetHeight()) 			
 			tab.childs[spec]:SetAllPoints()
 			tab.childs[spec]:Show()			
@@ -6917,74 +9548,93 @@ function Action.ToggleMainUI()
 			tab.childs[spec]:SetAllPoints()		
 			tab.childs[spec]:Show()
 		end
+		--tab.childs[spec].specID = specID -- Retail uses it for InterfaceLanguage.OnValueChanged
+			
+		local MainUI			= Action.MainUI
+		local ActionConst		= Action.Const
+		local ActionData		= Action.Data
+		local themeON			= ActionData.theme.on
+		local themeOFF			= ActionData.theme.off
+		local themeHeight		= ActionData.theme.dd.height
+		local themeWidth		= ActionData.theme.dd.width		
 		
-		local anchor = GetAnchor(tab, spec)
+		local anchor 			= StdUi:GetAnchor(tab, spec) 		
+		local tabName			= tab.name
+		local tabDB				= pActionDB[tabName]
+		local specDB 			= tabDB -- and tabDB[specID]		
+		TMW:RegisterCallback("TMW_ACTION_DB_UPDATED", function()
+			if pActionDB then 
+				tabDB			= pActionDB[tabName]
+				specDB 			= tabDB -- and tabDB[specID]
+			end 
+		end)
 		
+		-- Tab Title 
 		local UI_Title = StdUi:Subtitle(anchor, tab.title)
 		UI_Title:SetFont(UI_Title:GetFont(), 15)
-        StdUi:GlueTop(UI_Title, anchor, 0, -10)
+		StdUi:GlueTop(UI_Title, anchor, 0, -10)
 		if not StdUi.config.font.color.yellow then 
 			local colored = { UI_Title:GetTextColor() }
 			StdUi.config.font.color.yellow = { r = colored[1], g = colored[2], b = colored[3], a = colored[4] }
 		end 
 		
-		local UI_Separator = StdUi:Subtitle(anchor, '')
-        StdUi:GlueBelow(UI_Separator, UI_Title, 0, -5)
+		local UI_Separator = StdUi:Subtitle(anchor, "")
+		StdUi:GlueBelow(UI_Separator, UI_Title, 0, -5)
 		
 		-- We should leave "OnShow" handlers because user can swap language, otherwise in performance case better remove it 		
-		if tab.name == 1 then 	
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])
+		if tabName == 1 then 	
+			UI_Title:SetText(L["TAB"][tabName]["HEADTITLE"])
 			-- Fix StdUi 
 			-- Lib has missed scrollframe as widget
-			StdUi:InitWidget(anchor)
+			StdUi:InitWidget(anchor)			
+			StdUi:EasyLayout(anchor, { padding = { top = 40, right = 10 + 20 } })
 			
-			StdUi:EasyLayout(anchor, { padding = { top = 40, right = 10 + 20 } }) -- { padding = { top = 40 } })	
-			
-			local PvEPvPToggle = StdUi:Button(anchor, GetWidthByColumn(anchor, 5.5), ActionDatatheme.dd.height, L["TOGGLEIT"])
+			local PvEPvPToggle = StdUi:Button(anchor, StdUi:GetWidthByColumn(anchor, 5.5), themeHeight, L["TOGGLEIT"])
 			PvEPvPToggle:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			PvEPvPToggle:SetScript('OnClick', function(self, button, down)
+			PvEPvPToggle:SetScript("OnClick", function(self, button, down)
 				if button == "LeftButton" then 
 					Action.ToggleMode()
 				elseif button == "RightButton" then 
-					CraftMacro("PvEPvPToggle", [[/run Action.ToggleMode()]])	
+					Action.CraftMacro("PvEPvPToggle", [[/run Action.ToggleMode()]])	
 				end 
 			end)
-			StdUi:FrameTooltip(PvEPvPToggle, L["TAB"][tab.name]["PVEPVPTOGGLETOOLTIP"], nil, "TOPRIGHT", true)
-			PvEPvPToggle.FontStringTitle = StdUi:Subtitle(PvEPvPToggle, L["TAB"][tab.name]["PVEPVPTOGGLE"])
+			StdUi:FrameTooltip(PvEPvPToggle, L["TAB"][tabName]["PVEPVPTOGGLETOOLTIP"], nil, "TOPRIGHT", true)
+			PvEPvPToggle.FontStringTitle = StdUi:Subtitle(PvEPvPToggle, L["TAB"][tabName]["PVEPVPTOGGLE"])
 			StdUi:GlueAbove(PvEPvPToggle.FontStringTitle, PvEPvPToggle)
 			
 			local PvEPvPresetbutton = StdUi:SquareButton(anchor, PvEPvPToggle:GetHeight(), PvEPvPToggle:GetHeight(), "DELETE")
-			PvEPvPresetbutton:SetScript('OnClick', function()
+			PvEPvPresetbutton:SetScript("OnClick", function()
 				Action.IsLockedMode = false
 				Action.IsInPvP = Action:CheckInPvP()	
 				Action.Print(L["RESETED"] .. ": " .. (Action.IsInPvP and "PvP" or "PvE"))
 				TMW:Fire("TMW_ACTION_MODE_CHANGED")
 			end)
-			StdUi:FrameTooltip(PvEPvPresetbutton, L["TAB"][tab.name]["PVEPVPRESETTOOLTIP"], nil, "TOPRIGHT", true)
-			StdUi:GlueAfter(PvEPvPresetbutton, PvEPvPToggle, 0, 0)			
+			StdUi:FrameTooltip(PvEPvPresetbutton, L["TAB"][tabName]["PVEPVPRESETTOOLTIP"], nil, "TOPRIGHT", true)	
+			StdUi:GlueAfter(PvEPvPresetbutton, PvEPvPToggle, 0, 0)		
 
 			local InterfaceLanguages = {
-				{ text = "Auto", value = "Auto" },	
+				{ text = L["TAB"]["AUTO"], value = "Auto" },	
 			}
 			for Language in pairs(Localization) do 
-				tinsert(InterfaceLanguages, { text = Language, value = Language })
+				tinsert(InterfaceLanguages, { text = Language .. " " .. Localization[Language]["TAB"]["LANGUAGE"], value = Language })
 			end 
-			anchor.InterfaceLanguage = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, InterfaceLanguages)         
-			anchor.InterfaceLanguage:SetValue(TMWdb.global.ActionDB.InterfaceLanguage)
-			anchor.InterfaceLanguage.OnValueChanged = function(self, val)                				
-				TMWdb.global.ActionDB.InterfaceLanguage = val				
-				Action.GetLocalization()						
-				Action.MainUI.AllReset.text:SetText(L["TAB"]["RESETBUTTON"])
-				StdUi:ButtonAutoWidth(Action.MainUI.AllReset)
-				Action.MainUI.GDateTime:SetText(L["GLOBALAPI"] .. DateTime)
-				Action.MainUI.ResetQuestion.titlePanel.label:SetText(L["TAB"]["RESETQUESTION"])
-				Action.MainUI.Yes.text:SetText(L["YES"])
-				Action.MainUI.No.text:SetText(L["NO"])
-				Action.MainUI.CheckboxSaveActions:SetText(L["TAB"]["SAVEACTIONS"])
-				Action.MainUI.CheckboxSaveInterrupt:SetText(L["TAB"]["SAVEINTERRUPT"])
-				Action.MainUI.CheckboxSaveDispel:SetText(L["TAB"]["SAVEDISPEL"])
-				Action.MainUI.CheckboxSaveMouse:SetText(L["TAB"]["SAVEMOUSE"])
-				Action.MainUI.CheckboxSaveMSG:SetText(L["TAB"]["SAVEMSG"])
+			local InterfaceLanguage = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, InterfaceLanguages)         
+			InterfaceLanguage:SetValue(gActionDB.InterfaceLanguage)
+			InterfaceLanguage.OnValueChanged = function(self, val)              				
+				gActionDB.InterfaceLanguage = val				
+				Action.GetLocalization()	
+				
+				MainUI.AllReset.stdUiTooltip:SetText(L["TAB"]["RESETBUTTON"])
+				MainUI.GDateTime:SetText(L["GLOBALAPI"] .. DateTime)
+				MainUI.ResetQuestion.titlePanel.label:SetText(L["TAB"]["RESETQUESTION"])				
+				MainUI.Yes.text:SetText(L["YES"])
+				MainUI.No.text:SetText(L["NO"])
+				MainUI.CheckboxSaveActions:SetText(L["TAB"]["SAVEACTIONS"])
+				MainUI.CheckboxSaveInterrupt:SetText(L["TAB"]["SAVEINTERRUPT"])
+				MainUI.CheckboxSaveDispel:SetText(L["TAB"]["SAVEDISPEL"])
+				MainUI.CheckboxSaveMouse:SetText(L["TAB"]["SAVEMOUSE"])
+				MainUI.CheckboxSaveMSG:SetText(L["TAB"]["SAVEMSG"])
+				MainUI.CheckboxSaveHE:SetText(L["TAB"]["SAVEHE"])
 				
 				if StdUi.colorPickerFrame then 
 					StdUi.colorPickerFrame.okButton.text:SetText(L["APPLY"])
@@ -6992,366 +9642,283 @@ function Action.ToggleMainUI()
 					StdUi.colorPickerFrame.resetButton.text:SetText(L["RESET"])
 				end 
 				
-				tabFrame.tabs[1].title = L["TAB"][1]["HEADBUTTON"]
-				tabFrame.tabs[3].title = L["TAB"][3]["HEADBUTTON"]
-				tabFrame.tabs[4].title = L["TAB"][4]["HEADBUTTON"]
-				tabFrame.tabs[5].title = L["TAB"][5]["HEADBUTTON"]
-				tabFrame.tabs[6].title = L["TAB"][6]["HEADBUTTON"]			
-				tabFrame:DrawButtons()							
-				spec = Action.PlayerClass .. CL	
-				for i = 1, #tabFrame.tabs do
-					local tab = tabFrame.tabs[i]
-					if tab and tab.childs[spec] then -- don't touch tab.childs[spec]
-						if i == 3 then 	
-							if tab.childs[spec] and tab.childs[spec].ScrollTable then -- in case if profile is Basic without created actions 
-								local ScrollTable = tab.childs[spec].ScrollTable -- don't touch tab.childs[spec]
-								for index = 1, #ScrollTable.data do 								
-									if ScrollTable.data[index]:IsBlocked() then 
-										ScrollTable.data[index].Enabled = "False"
+				for i = 1, #tabFrame.tabs do 
+					tabFrame.tabs[i].title = L["TAB"][i] and L["TAB"][i]["HEADBUTTON"] or tabFrame.tabs[i].title
+				end 
+				tabFrame:DrawButtons()
+								
+				local ScrollTable
+				local frameLimit = 0
+				for _, thisTab in ipairs(tabFrame.tabs) do
+					for childSpec, child in pairs(thisTab.childs) do 
+						if childSpec ~= spec then 
+							for toggle, kid in pairs(child.toggleWidgets) do 
+								--local dbValue = Action.GetToggle(thisTab.name, toggle, child.specID)
+								local dbValue = Action.GetToggle(thisTab.name, toggle)
+								
+								-- SetValue not uses here because it will trigger OnValueChanged which we don't need in case of performance optimization
+								if kid.Identify.Type == "Checkbox" then
+									if n == 4 or n == 8 then 
+										-- Exception to trigger OnValueChanged callback 
+										kid:SetChecked(dbValue)
 									else 
-										ScrollTable.data[index].Enabled = "True"
-									end								
-								end
-								ScrollTable:ClearSelection()			
-							end 
-						else 
-							-- Redraw statement by Identify if that langue frame is already drawed							
-							local kids = GetKids(tab, spec)
-							for _, child in ipairs(kids) do 				
-								if child.Identify and child.Identify.Toggle then 
-									-- SetValue not uses here because it will trigger OnValueChanged which we don't need in case of performance optimization
-									if child.Identify.Type == "Checkbox" then
-										child.isChecked = Action.GetToggle(i, child.Identify.Toggle)
-										if child.isChecked then
-											child.checkedTexture:Show()
+										kid.isChecked = dbValue
+										if kid.isChecked then
+											kid.checkedTexture:Show()
 										else 
-											child.checkedTexture:Hide()
+											kid.checkedTexture:Hide()
 										end
-									elseif child.Identify.Type == "Dropdown" then						
-										if child.multi then 
-											local SetVal = {}
-											for item = 1, #child.optsFrame.scrollChild.items do 													
-												child.optsFrame.scrollChild.items[item].isChecked = Action.GetToggle(i, child.Identify.Toggle)[item]								
-												if child.optsFrame.scrollChild.items[item].isChecked then 
-													child.optsFrame.scrollChild.items[item].checkedTexture:Show()
-													tinsert(SetVal, child.optsFrame.scrollChild.items[item].value)
-												else 
-													child.optsFrame.scrollChild.items[item].checkedTexture:Hide()										
-												end 
-											end 							
-											child.value = SetVal
-											child:SetText(child:FindValueText(SetVal))
-										else 
-											child.value = Action.GetToggle(i, child.Identify.Toggle)
-											--child.text:SetText(child.value)
-											child.text:SetText(child:FindValueText(child.value))
-										end 
-									elseif child.Identify.Type == "Slider" then							
-										child:SetValue(Action.GetToggle(i, child.Identify.Toggle)) 
-									end 								  
-								end
-							end 	
-						end
-					end
-				end							
+									end 
+								end 
+								
+								if kid.Identify.Type == "Dropdown" then						
+									if kid.multi then 											
+										for i, v in ipairs(kid.optsFrame.scrollChild.items) do 
+											v.isChecked  = dbValue[i]	
+											kid.value[i] = dbValue[i]	
+											if v.isChecked then 
+												v.checkedTexture:Show()									
+											else 
+												v.checkedTexture:Hide()
+											end 
+										end 						
+										kid:SetText(kid:FindValueText(dbValue))
+									else 
+										kid.value = dbValue
+										kid.text:SetText(kid:FindValueText(dbValue))
+									end 
+								end 
+								
+								if kid.Identify.Type == "Slider" then	
+									kid:SetValue(dbValue) 
+								end 
+
+								-- ScrollTable updates every time when tab triggers OnShow event or through additional events/callbacks
+							end
+								
+							frameLimit = frameLimit + #StdUi:GetAnchorKids(thisTab, childSpec)							 
+						end 
+					end 
+				end	
+				
+				if frameLimit >= 1600 then -- 1600 should be super safe zone to don't overleap frame limit, broken limit at 2411+ 
+					C_UI.Reload()
+					return 
+				end 
+				
 				Action.ToggleMainUI()
-				Action.ToggleMainUI()	
+				Action.ToggleMainUI()
 			end			
-			anchor.InterfaceLanguage.Identify = { Type = "Dropdown", Toggle = "InterfaceLanguage" }
-			anchor.InterfaceLanguage.FontStringTitle = StdUi:Subtitle(anchor.InterfaceLanguage, L["TAB"][tab.name]["CHANGELANGUAGE"])
-			StdUi:GlueAbove(anchor.InterfaceLanguage.FontStringTitle, anchor.InterfaceLanguage)
-			anchor.InterfaceLanguage.text:SetJustifyH("CENTER")															
+			InterfaceLanguage.Identify = { Type = "Dropdown", Toggle = "InterfaceLanguage" }
+			InterfaceLanguage.FontStringTitle = StdUi:Subtitle(InterfaceLanguage, L["TAB"][tabName]["CHANGELANGUAGE"])
+			StdUi:GlueAbove(InterfaceLanguage.FontStringTitle, InterfaceLanguage)
+			InterfaceLanguage.text:SetJustifyH("CENTER")													
 			
-			local AutoTarget = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOTARGET"])	
-			AutoTarget:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoTarget)	
+			local AutoTarget = StdUi:Checkbox(anchor, L["TAB"][tabName]["AUTOTARGET"])	
+			AutoTarget:SetChecked(specDB.AutoTarget)	
 			AutoTarget:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			AutoTarget:SetScript('OnClick', function(self, button, down)	
+			AutoTarget:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].AutoTarget = not TMWdb.profile.ActionDB[tab.name].AutoTarget	
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoTarget)	
-					Action.Print(L["TAB"][tab.name]["AUTOTARGET"] .. ": ", TMWdb.profile.ActionDB[tab.name].AutoTarget)	
+					specDB.AutoTarget = not specDB.AutoTarget	
+					self:SetChecked(specDB.AutoTarget)	
+					Action.Print(L["TAB"][tabName]["AUTOTARGET"] .. ": ", specDB.AutoTarget)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["AUTOTARGET"], [[/run Action.SetToggle({]] .. tab.name .. [[, "AutoTarget", "]] .. L["TAB"][tab.name]["AUTOTARGET"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["AUTOTARGET"], [[/run Action.SetToggle({]] .. tabName .. [[, "AutoTarget", "]] .. L["TAB"][tabName]["AUTOTARGET"] .. [[: "})]])	
 				end 
 			end)
 			AutoTarget.Identify = { Type = "Checkbox", Toggle = "AutoTarget" }			
-			StdUi:FrameTooltip(AutoTarget, L["TAB"][tab.name]["AUTOTARGETTOOLTIP"], nil, "TOPRIGHT", true)		
-			AutoTarget.FontStringTitle = StdUi:Subtitle(AutoTarget, L["TAB"][tab.name]["CHARACTERSECTION"])
+			StdUi:FrameTooltip(AutoTarget, L["TAB"][tabName]["AUTOTARGETTOOLTIP"], nil, "TOPRIGHT", true)		
+			AutoTarget.FontStringTitle = StdUi:Subtitle(AutoTarget, L["TAB"][tabName]["CHARACTERSECTION"])
 			StdUi:GlueAbove(AutoTarget.FontStringTitle, AutoTarget)
 			
-			local Potion = StdUi:Checkbox(anchor, L["TAB"][tab.name]["POTION"])		
-			Potion:SetChecked(TMWdb.profile.ActionDB[tab.name].Potion)
+			local Potion = StdUi:Checkbox(anchor, L["TAB"][tabName]["POTION"])		
+			Potion:SetChecked(specDB.Potion)
 			Potion:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Potion:SetScript('OnClick', function(self, button, down)	
-				if not self.isDisabled then 
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].Potion = not TMWdb.profile.ActionDB[tab.name].Potion
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].Potion)	
-						Action.Print(L["TAB"][tab.name]["POTION"] .. ": ", TMWdb.profile.ActionDB[tab.name].Potion)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["POTION"], [[/run Action.SetToggle({]] .. tab.name .. [[, "Potion", "]] .. L["TAB"][tab.name]["POTION"] .. [[: "})]])	
-					end 
+			Potion:SetScript("OnClick", function(self, button, down)	
+				if button == "LeftButton" then 
+					specDB.Potion = not specDB.Potion
+					self:SetChecked(specDB.Potion)	
+					Action.Print(L["TAB"][tabName]["POTION"] .. ": ", specDB.Potion)	
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["POTION"], [[/run Action.SetToggle({]] .. tabName .. [[, "Potion", "]] .. L["TAB"][tabName]["POTION"] .. [[: "})]])	
 				end 
 			end)
-			Potion.Identify = { Type = "Checkbox", Toggle = "Potion" }	
-			StdUi:FrameTooltip(Potion, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
-			local function PotionCheckboxUpdate()
+			Potion.Identify = { Type = "Checkbox", Toggle = "Potion" }				
+			Potion:SetScript("OnShow", function()
 				if Action.IsBasicProfile then 
 					if not Potion.isDisabled then 
 						Potion:Disable()
 						Potion:SetChecked(false)
 					end 
 				elseif Potion.isDisabled then  					
-					Potion:SetChecked(TMWdb.profile.ActionDB[tab.name].Potion)
+					Potion:SetChecked(specDB.Potion)
 					Potion:Enable()
 				end 			
-			end 
-			Potion:SetScript("OnShow", PotionCheckboxUpdate)
-			PotionCheckboxUpdate()
+			end)
+			Potion:GetScript("OnShow")()
+			StdUi:FrameTooltip(Potion, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true) 
 
-			local Racial = StdUi:Checkbox(anchor, L["TAB"][tab.name]["RACIAL"])			
-			Racial:SetChecked(TMWdb.profile.ActionDB[tab.name].Racial)
+			local Racial = StdUi:Checkbox(anchor, L["TAB"][tabName]["RACIAL"])			
+			Racial:SetChecked(specDB.Racial)
 			Racial:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Racial:SetScript('OnClick', function(self, button, down)	
+			Racial:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].Racial = not TMWdb.profile.ActionDB[tab.name].Racial
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].Racial)	
-					Action.Print(L["TAB"][tab.name]["RACIAL"] .. ": ", TMWdb.profile.ActionDB[tab.name].Racial)	
+					specDB.Racial = not specDB.Racial
+					self:SetChecked(specDB.Racial)	
+					Action.Print(L["TAB"][tabName]["RACIAL"] .. ": ", specDB.Racial)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["RACIAL"], [[/run Action.SetToggle({]] .. tab.name .. [[, "Racial", "]] .. L["TAB"][tab.name]["RACIAL"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["RACIAL"], [[/run Action.SetToggle({]] .. tabName .. [[, "Racial", "]] .. L["TAB"][tabName]["RACIAL"] .. [[: "})]])	
 				end 
 			end)
 			Racial.Identify = { Type = "Checkbox", Toggle = "Racial" }
-			StdUi:FrameTooltip(Racial, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
+			StdUi:FrameTooltip(Racial, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)		
 
-			local StopCast = StdUi:Checkbox(anchor, L["TAB"][tab.name]["STOPCAST"])			
-			StopCast:SetChecked(TMWdb.profile.ActionDB[tab.name].StopCast)
+			local StopCast = StdUi:Checkbox(anchor, L["TAB"][tabName]["STOPCAST"])			
+			StopCast:SetChecked(specDB.StopCast)
 			StopCast:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			StopCast:SetScript('OnClick', function(self, button, down)	
+			StopCast:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].StopCast = not TMWdb.profile.ActionDB[tab.name].StopCast
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].StopCast)	
-					Action.Print(L["TAB"][tab.name]["STOPCAST"] .. ": ", TMWdb.profile.ActionDB[tab.name].StopCast)	
+					specDB.StopCast = not specDB.StopCast
+					self:SetChecked(specDB.StopCast)	
+					Action.Print(L["TAB"][tabName]["STOPCAST"] .. ": ", specDB.StopCast)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["STOPCAST"], [[/run Action.SetToggle({]] .. tab.name .. [[, "StopCast", "]] .. L["TAB"][tab.name]["STOPCAST"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["STOPCAST"], [[/run Action.SetToggle({]] .. tabName .. [[, "StopCast", "]] .. L["TAB"][tabName]["STOPCAST"] .. [[: "})]])	
 				end 
 			end)
 			StopCast.Identify = { Type = "Checkbox", Toggle = "StopCast" }
 			StdUi:FrameTooltip(StopCast, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
 			
 			local ReTarget = StdUi:Checkbox(anchor, "ReTarget")			
-			ReTarget:SetChecked(TMWdb.profile.ActionDB[tab.name].ReTarget)
+			ReTarget:SetChecked(specDB.ReTarget)
 			ReTarget:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			ReTarget:SetScript('OnClick', function(self, button, down)	
+			ReTarget:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].ReTarget = not TMWdb.profile.ActionDB[tab.name].ReTarget
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].ReTarget)	
-					Action.Print("ReTarget" .. ": ", TMWdb.profile.ActionDB[tab.name].ReTarget)	
+					specDB.ReTarget = not specDB.ReTarget
+					self:SetChecked(specDB.ReTarget)	
+					Action.Print("ReTarget" .. ": ", specDB.ReTarget)	
 					Re:Initialize()
 				elseif button == "RightButton" then 
-					CraftMacro("ReTarget", [[/run Action.SetToggle({]] .. tab.name .. [[, "ReTarget", "]] .. "ReTarget" .. [[: "})]])	
+					Action.CraftMacro("ReTarget", [[/run Action.SetToggle({]] .. tabName .. [[, "ReTarget", "]] .. "ReTarget" .. [[: "})]])	
 				end 
 			end)
 			ReTarget.Identify = { Type = "Checkbox", Toggle = "ReTarget" }
-			StdUi:FrameTooltip(ReTarget, L["TAB"][tab.name]["RETARGET"], nil, "TOPRIGHT", true)
-			ReTarget.FontStringTitle = StdUi:Subtitle(ReTarget, L["TAB"][tab.name]["PVPSECTION"])
-			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)						
+			StdUi:FrameTooltip(ReTarget, L["TAB"][tabName]["RETARGET"], nil, "TOPRIGHT", true)
+			ReTarget.FontStringTitle = StdUi:Subtitle(ReTarget, L["TAB"][tabName]["PVPSECTION"])
+			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)			
 			
-			local LosSystem = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSYSTEM"])
-			LosSystem:SetChecked(TMWdb.profile.ActionDB[tab.name].LOSCheck)
+			local LosSystem = StdUi:Checkbox(anchor, L["TAB"][tabName]["LOSSYSTEM"])
+			LosSystem:SetChecked(specDB.LOSCheck)
 			LosSystem:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			LosSystem:SetScript('OnClick', function(self, button, down)	
+			LosSystem:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].LOSCheck = not TMWdb.profile.ActionDB[tab.name].LOSCheck
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].LOSCheck)	
-					Action.Print(L["TAB"][tab.name]["LOSSYSTEM"] .. ": ", TMWdb.profile.ActionDB[tab.name].LOSCheck)
+					specDB.LOSCheck = not specDB.LOSCheck
+					self:SetChecked(specDB.LOSCheck)	
+					Action.Print(L["TAB"][tabName]["LOSSYSTEM"] .. ": ", specDB.LOSCheck)
 					LineOfSight:Initialize()	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["LOSSYSTEM"], [[/run Action.SetToggle({]] .. tab.name .. [[, "LOSCheck", "]] .. L["TAB"][tab.name]["LOSSYSTEM"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["LOSSYSTEM"], [[/run Action.SetToggle({]] .. tabName .. [[, "LOSCheck", "]] .. L["TAB"][tabName]["LOSSYSTEM"] .. [[: "})]])	
 				end 
 			end)
 			LosSystem.Identify = { Type = "Checkbox", Toggle = "LOSCheck" }				
-			StdUi:FrameTooltip(LosSystem, L["TAB"][tab.name]["LOSSYSTEMTOOLTIP"], nil, "TOPLEFT", true)
-			LosSystem.FontStringTitle = StdUi:Subtitle(LosSystem, L["TAB"][tab.name]["SYSTEMSECTION"])
-			StdUi:GlueAbove(LosSystem.FontStringTitle, LosSystem)								
+			StdUi:FrameTooltip(LosSystem, L["TAB"][tabName]["LOSSYSTEMTOOLTIP"], nil, "TOPLEFT", true)
+			LosSystem.FontStringTitle = StdUi:Subtitle(LosSystem, L["TAB"][tabName]["SYSTEMSECTION"])
+			StdUi:GlueAbove(LosSystem.FontStringTitle, LosSystem)									
 			
-			local DBMFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DBM"])
-			DBMFrame:SetChecked(TMWdb.profile.ActionDB[tab.name].DBM)
-			DBMFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			DBMFrame:SetScript('OnClick', function(self, button, down)	
+			local BossMods = StdUi:Checkbox(anchor, L["TAB"][tabName]["BOSSTIMERS"])
+			BossMods:SetChecked(specDB.BossMods)
+			BossMods:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			BossMods:SetScript("OnClick", function(self, button, down)	
 				if not self.isDisabled then 	
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].DBM = not TMWdb.profile.ActionDB[tab.name].DBM
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].DBM)					
-						Action.Print(L["TAB"][tab.name]["DBM"] .. ": ", TMWdb.profile.ActionDB[tab.name].DBM)	
+						specDB.BossMods = not specDB.BossMods
+						self:SetChecked(specDB.BossMods)					
+						Action.Print(L["TAB"][tabName]["BOSSTIMERS"] .. ": ", specDB.BossMods)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["DBM"], [[/run Action.SetToggle({]] .. tab.name .. [[, "DBM", "]] .. L["TAB"][tab.name]["DBM"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["BOSSTIMERS"], [[/run Action.SetToggle({]] .. tabName .. [[, "BossMods", "]] .. L["TAB"][tabName]["BOSSTIMERS"] .. [[: "})]])	
 					end 
 				end
 			end)
-			DBMFrame.Identify = { Type = "Checkbox", Toggle = "DBM" }
-			DBMFrame:SetScript("OnShow", function()
-				if not DBM then 
-					DBMFrame:Disable()
+			BossMods.Identify = { Type = "Checkbox", Toggle = "BossMods" }
+			BossMods:SetScript("OnShow", function()
+				if not Action.BossMods:HasAnyAddon() then 
+					BossMods:Disable()
+					-- Just for visual update what it's complete turned off
+					BossMods:SetChecked(false)
 				else 
-					DBMFrame:Enable()
+					BossMods:Enable()
+					BossMods:SetChecked(specDB.BossMods)
 				end 
 			end)
-			if not DBM then 
-				DBMFrame:Disable()
-			end 
-			StdUi:FrameTooltip(DBMFrame, "Deadly Boss Mods\n" .. L["TAB"][tab.name]["DBMTOOLTIP"], nil, "TOPLEFT", true)
+			BossMods:GetScript("OnShow")()
+			StdUi:FrameTooltip(BossMods, L["TAB"][tabName]["BOSSTIMERSTOOLTIP"], nil, "TOPLEFT", true)
 			
-			local HE_AnyRole = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HEALINGENGINEANYROLE"])		
-			HE_AnyRole:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_AnyRole)
+			local HE_AnyRole = StdUi:Checkbox(anchor, L["TAB"][tabName]["HEALINGENGINEANYROLE"])		
+			HE_AnyRole:SetChecked(specDB.HE_AnyRole)
 			HE_AnyRole:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			HE_AnyRole:SetScript('OnClick', function(self, button, down)	
+			HE_AnyRole:SetScript("OnClick", function(self, button, down)	
 				if not self.isDisabled then 				
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].HE_AnyRole = not TMWdb.profile.ActionDB[tab.name].HE_AnyRole
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_AnyRole)							
-						Action.Print(L["TAB"][tab.name]["HEALINGENGINEANYROLE"] .. ": ", TMWdb.profile.ActionDB[tab.name].HE_AnyRole)	
+						specDB.HE_AnyRole = not specDB.HE_AnyRole
+						self:SetChecked(specDB.HE_AnyRole)							
+						Action.Print(L["TAB"][tabName]["HEALINGENGINEANYROLE"] .. ": ", specDB.HE_AnyRole)	
 						TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["HEALINGENGINEANYROLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HE_AnyRole", "]] .. L["TAB"][tab.name]["HEALINGENGINEANYROLE"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["HEALINGENGINEANYROLE"], [[/run Action.SetToggle({]] .. tabName .. [[, "HE_AnyRole", "]] .. L["TAB"][tabName]["HEALINGENGINEANYROLE"] .. [[: "})]])	
 					end 
 				end 
 			end)
 			HE_AnyRole.Identify = { Type = "Checkbox", Toggle = "HE_AnyRole" }
-			StdUi:FrameTooltip(HE_AnyRole, L["TAB"][tab.name]["HEALINGENGINEANYROLETOOLTIP"], nil, "TOPLEFT", true)
-			local isUnavailableByClass = {
-				WARRIOR = true, 
-				HUNTER = true,
-				ROGUE = true,
-				MAGE = true,
-				WARLOCK = true,				
-			}
-			local function HE_AnyRoleCheckboxUpdate()
-				if Action.IsBasicProfile or isUnavailableByClass[Action.PlayerClass] then 
+			HE_AnyRole:SetScript("OnShow", function()
+				if Action.IsBasicProfile or not Action.Unit("player"):IsHealerClass() then 
 					if not HE_AnyRole.isDisabled then 
 						HE_AnyRole:Disable()
-						TMWdb.profile.ActionDB[tab.name].HE_AnyRole = false
-						HE_AnyRole:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_AnyRole)
+						specDB.HE_AnyRole = false
+						HE_AnyRole:SetChecked(specDB.HE_AnyRole)
 					end 
 				elseif HE_AnyRole.isDisabled then  					
-					HE_AnyRole:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_AnyRole)
+					HE_AnyRole:SetChecked(specDB.HE_AnyRole)
 					HE_AnyRole:Enable()
 				end 			
-				TMW:Fire("TMW_ACTION_HEALINGENGINE_ANY_ROLE")
-			end 
-			HE_AnyRole:SetScript("OnShow", HE_AnyRoleCheckboxUpdate)
-			HE_AnyRoleCheckboxUpdate()			
-			
-			local HE_PetsFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HEALINGENGINEPETS"])		
-			HE_PetsFrame:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_Pets)
-			HE_PetsFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			HE_PetsFrame:SetScript('OnClick', function(self, button, down)	
-				if not self.isDisabled then 				
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].HE_Pets = not TMWdb.profile.ActionDB[tab.name].HE_Pets
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].HE_Pets)							
-						Action.Print(L["TAB"][tab.name]["HEALINGENGINEPETS"] .. ": ", TMWdb.profile.ActionDB[tab.name].HE_Pets)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["HEALINGENGINEPETS"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HE_Pets", "]] .. L["TAB"][tab.name]["HEALINGENGINEPETS"] .. [[: "})]])	
-					end 
-				end 
 			end)
-			HE_PetsFrame.Identify = { Type = "Checkbox", Toggle = "HE_Pets" }			
-			local function UpdateHealingEngineCheckbox()
-				if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then 
-					HE_PetsFrame:Disable()
-				else 
-					HE_PetsFrame:Enable()
-				end 			
-			end 
-			HE_PetsFrame:SetScript("OnShow", UpdateHealingEngineCheckbox)
-			if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then
-				HE_PetsFrame:Disable()
-			end 
-			StdUi:FrameTooltip(HE_PetsFrame, L["TAB"][tab.name]["HEALINGENGINEPETSTOOLTIP"], nil, "TOPLEFT", true)
-			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineCheckbox) 
-			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineCheckbox) 
+			HE_AnyRole:GetScript("OnShow")()
+			StdUi:FrameTooltip(HE_AnyRole, L["TAB"][tabName]["HEALINGENGINEANYROLETOOLTIP"], nil, "TOPLEFT", true)
 			
-			local HE_ToggleFrame = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), 20, {
-				{ text = L["TAB"][tab.name]["ALL"], value = "ALL" },
-				{ text = L["TAB"][tab.name]["RAID"], value = "RAID" },				
-				{ text = L["TAB"][tab.name]["TANK"], value = "TANK" },
-				{ text = L["TAB"][tab.name]["DAMAGER"], value = "DAMAGER" },
-				{ text = L["TAB"][tab.name]["HEALER"], value = "HEALER" },
-				{ text = L["TAB"][tab.name]["TANKANDPARTY"], value = "TANKANDPARTY" },
-				{ text = L["TAB"][tab.name]["PARTY"], value = "PARTY" },				
-			})		          
-			HE_ToggleFrame:SetValue(TMWdb.profile.ActionDB[tab.name].HE_Toggle)
-			HE_ToggleFrame.OnValueChanged = function(self, val)                
-				TMWdb.profile.ActionDB[tab.name].HE_Toggle = val 
-				Action.Print("HealingEngine" .. ": ", L["TAB"][tab.name][TMWdb.profile.ActionDB[tab.name].HE_Toggle])
-			end
-			local function UpdateHealingEngineDropDown()
-				if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then 
-					HE_ToggleFrame:Disable()
-				else 
-					HE_ToggleFrame:Enable()
-				end 			
-			end 
-			HE_ToggleFrame:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			HE_ToggleFrame:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then 
-					if button == "LeftButton" then 
-						self:ToggleOptions()
-					elseif button == "RightButton" then 
-						CraftMacro("HealingEngine", [[/run Action.ToggleHE()]])	
-					end
-				end 
-			end)	
-			HE_ToggleFrame:SetScript("OnShow", UpdateHealingEngineDropDown)				
-			if not Action.IamHealer and not Action.GetToggle(1, "HE_AnyRole") then
-				HE_ToggleFrame:Disable()
-			end 
-			HE_ToggleFrame.Identify = { Type = "Dropdown", Toggle = "HE_Toggle" }
-			StdUi:FrameTooltip(HE_ToggleFrame, L["TAB"][tab.name]["HEALINGENGINETOOLTIP"], nil, "TOPLEFT", true)
-			HE_ToggleFrame.FontStringTitle = StdUi:Subtitle(HE_ToggleFrame, "HealingEngine")
-			StdUi:GlueAbove(HE_ToggleFrame.FontStringTitle, HE_ToggleFrame)	
-			HE_ToggleFrame.text:SetJustifyH("CENTER")			
-			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					UpdateHealingEngineDropDown) 
-			TMW:RegisterCallback("TMW_ACTION_HEALINGENGINE_ANY_ROLE", 							UpdateHealingEngineDropDown) 
-			
-			local StopAtBreakAble = StdUi:Checkbox(anchor, L["TAB"][tab.name]["STOPATBREAKABLE"], 50)			
-			StopAtBreakAble:SetChecked(TMWdb.profile.ActionDB[tab.name].StopAtBreakAble)
+			local StopAtBreakAble = StdUi:Checkbox(anchor, L["TAB"][tabName]["STOPATBREAKABLE"], 50)			
+			StopAtBreakAble:SetChecked(specDB.StopAtBreakAble)
 			StopAtBreakAble:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			StopAtBreakAble:SetScript("OnClick", function(self, button, down)	
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].StopAtBreakAble = not TMWdb.profile.ActionDB[tab.name].StopAtBreakAble
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].StopAtBreakAble)	
-						Action.Print(L["TAB"][tab.name]["STOPATBREAKABLE"] .. ": ", TMWdb.profile.ActionDB[tab.name].StopAtBreakAble)	
+						specDB.StopAtBreakAble = not specDB.StopAtBreakAble
+						self:SetChecked(specDB.StopAtBreakAble)	
+						Action.Print(L["TAB"][tabName]["STOPATBREAKABLE"] .. ": ", specDB.StopAtBreakAble)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["STOPATBREAKABLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "StopAtBreakAble", "]] .. L["TAB"][tab.name]["STOPATBREAKABLE"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["STOPATBREAKABLE"], [[/run Action.SetToggle({]] .. tabName .. [[, "StopAtBreakAble", "]] .. L["TAB"][tabName]["STOPATBREAKABLE"] .. [[: "})]])	
 					end 
 				end 
 			end)
 			StopAtBreakAble.Identify = { Type = "Checkbox", Toggle = "StopAtBreakAble" }
-			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"][tab.name]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
-			local function StopAtBreakAbleCheckboxUpdate()
-				if profile == "[GGL] Rogue" then 
+			StopAtBreakAble:SetScript("OnShow", function()
+				if Action.CurrentProfile == "[GGL] Rogue" then 
 					if not StopAtBreakAble.isDisabled then 
 						StopAtBreakAble:Disable()
 						StopAtBreakAble:SetChecked(false)
-						if TMWdb.profile.ActionDB[tab.name].StopAtBreakAble then 
-							TMWdb.profile.ActionDB[tab.name].StopAtBreakAble = not TMWdb.profile.ActionDB[tab.name].StopAtBreakAble
+						if specDB.StopAtBreakAble then 
+							specDB.StopAtBreakAble = not specDB.StopAtBreakAble
 						end 
 					end 
 				elseif StopAtBreakAble.isDisabled then  					
 					StopAtBreakAble:Enable()
 				end 			
-			end 
-			StopAtBreakAble:SetScript("OnShow", StopAtBreakAbleCheckboxUpdate)
-			StopAtBreakAbleCheckboxUpdate()
+			end)
+			StopAtBreakAble:GetScript("OnShow")()
+			StdUi:FrameTooltip(StopAtBreakAble, L["TAB"][tabName]["STOPATBREAKABLETOOLTIP"], nil, "TOPLEFT", true)	
 			
-			local FPS = StdUi:Slider(anchor, GetWidthByColumn(anchor, 5.8), ActionDatatheme.dd.height, TMWdb.profile.ActionDB[tab.name].FPS, false, -0.01, 1.5)
+			local FPS = StdUi:Slider(anchor, StdUi:GetWidthByColumn(anchor, 5.8), themeHeight, specDB.FPS, false, -0.01, 1.5)
 			FPS:SetPrecision(2)
-			FPS:SetScript('OnMouseUp', function(self, button, down)
+			FPS:SetScript("OnMouseUp", function(self, button, down)
 				if button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["FPS"], [[/run Action.SetToggle({]] .. tab.name .. [[, "FPS", "]] .. L["TAB"][tab.name]["FPS"] .. [[: "}, ]] .. TMWdb.profile.ActionDB[tab.name].FPS .. [[)]])	
+					Action.CraftMacro(L["TAB"][tabName]["FPS"], [[/run Action.SetToggle({]] .. tabName .. [[, "FPS", "]] .. L["TAB"][tabName]["FPS"] .. [[: "}, ]] .. specDB.FPS .. [[)]])	
 				end					
 			end)		
 			FPS.Identify = { Type = "Slider", Toggle = "FPS" }		
@@ -7359,53 +9926,53 @@ function Action.ToggleMainUI()
 				if value < 0 then 
 					value = -0.01
 				end 
-				TMWdb.profile.ActionDB[tab.name].FPS = value
-				FPS.FontStringTitle:SetText(L["TAB"][tab.name]["FPS"] .. ": |cff00ff00" .. (value < 0 and "AUTO" or (value .. L["TAB"][tab.name]["FPSSEC"])))
+				specDB.FPS = value
+				FPS.FontStringTitle:SetText(L["TAB"][tabName]["FPS"] .. ": |cff00ff00" .. (value < 0 and "AUTO" or (value .. L["TAB"][tabName]["FPSSEC"])))
 			end
-			StdUi:FrameTooltip(FPS, L["TAB"][tab.name]["FPSTOOLTIP"], nil, "TOPRIGHT", true)	
-			FPS.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tab.name]["FPS"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].FPS < 0 and "AUTO" or (TMWdb.profile.ActionDB[tab.name].FPS .. L["TAB"][tab.name]["FPSSEC"])))
-			StdUi:GlueAbove(FPS.FontStringTitle, FPS)					
+			StdUi:FrameTooltip(FPS, L["TAB"][tabName]["FPSTOOLTIP"], nil, "TOPRIGHT", true)	
+			FPS.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tabName]["FPS"] .. ": |cff00ff00" .. (specDB.FPS < 0 and "AUTO" or (specDB.FPS .. L["TAB"][tabName]["FPSSEC"])))
+			StdUi:GlueAbove(FPS.FontStringTitle, FPS)							
 			
-			local Trinkets = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, {
-				{ text = L["TAB"][tab.name]["TRINKET"] .. " 1", value = 1 },
-				{ text = L["TAB"][tab.name]["TRINKET"] .. " 2", value = 2 },
-			}, nil, true)
-			Trinkets:SetPlaceholder(" -- " .. L["TAB"][tab.name]["TRINKETS"] .. " -- ") 
-			for i = 1, #Trinkets.optsFrame.scrollChild.items do 
-				Trinkets.optsFrame.scrollChild.items[i]:SetChecked(TMWdb.profile.ActionDB[tab.name].Trinkets[i])
-			end 			
+			local Trinkets = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, {
+				{ text = L["TAB"][tabName]["TRINKET"] .. " 1", value = 1 },
+				{ text = L["TAB"][tabName]["TRINKET"] .. " 2", value = 2 },
+			}, nil, true, true)
+			Trinkets:SetPlaceholder(" -- " .. L["TAB"][tabName]["TRINKETS"] .. " -- ") 	
+			for i, v in ipairs(Trinkets.optsFrame.scrollChild.items) do 
+				v:SetChecked(specDB.Trinkets[i])
+			end			
 			Trinkets.OnValueChanged = function(self, value)			
-				for i = 1, #self.optsFrame.scrollChild.items do 					
-					if TMWdb.profile.ActionDB[tab.name].Trinkets[i] ~= self.optsFrame.scrollChild.items[i]:GetChecked() then
-						TMWdb.profile.ActionDB[tab.name].Trinkets[i] = self.optsFrame.scrollChild.items[i]:GetChecked()
-						Action.Print(L["TAB"][tab.name]["TRINKET"] .. " " .. i .. ": ", TMWdb.profile.ActionDB[tab.name].Trinkets[i])
+				for i, v in ipairs(self.optsFrame.scrollChild.items) do 					
+					if specDB.Trinkets[i] ~= v:GetChecked() then
+						specDB.Trinkets[i] = v:GetChecked()
+						Action.Print(L["TAB"][tabName]["TRINKET"] .. " " .. i .. ": ", specDB.Trinkets[i])
 					end 				
 				end 				
 			end				
 			Trinkets:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Trinkets:SetScript('OnClick', function(self, button, down)
-					if button == "LeftButton" then 
-						self:ToggleOptions()
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["TRINKETS"], [[/run Action.SetToggle({]] .. tab.name .. [[, "Trinkets", "]] .. L["TAB"][tab.name]["TRINKET"] .. [[ "})]])	
-					end
+			Trinkets:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["TRINKETS"], [[/run Action.SetToggle({]] .. tabName .. [[, "Trinkets", "]] .. L["TAB"][tabName]["TRINKET"] .. [[:"})]])	
+				end
 			end)		
 			Trinkets.Identify = { Type = "Dropdown", Toggle = "Trinkets" }			
-			Trinkets.FontStringTitle = StdUi:Subtitle(Trinkets, L["TAB"][tab.name]["TRINKETS"])
+			Trinkets.FontStringTitle = StdUi:Subtitle(Trinkets, L["TAB"][tabName]["TRINKETS"])
 			StdUi:FrameTooltip(Trinkets, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)
 			StdUi:GlueAbove(Trinkets.FontStringTitle, Trinkets)
-			Trinkets.text:SetJustifyH("CENTER")		
+			Trinkets.text:SetJustifyH("CENTER")	
 
 			local function GetProfileRole()
 				local temp = {}
-				tinsert(temp, { text = "Auto", value = "AUTO" })
+				temp[#temp + 1] = { text = L["TAB"]["AUTO"], value = "AUTO" }
 				
 				local roles = Action.GetCurrentSpecializationRoles()
 				local isUsed = {}
 				if roles then 
 					for role in pairs(roles) do 
 						if not isUsed[role] then 
-							tinsert(temp, { text = _G[role], value = role })
+							temp[#temp + 1] = { text = L["TAB"][8][role] or _G[role], value = role }
 							isUsed[role] = true 
 						end 
 					end 
@@ -7413,10 +9980,10 @@ function Action.ToggleMainUI()
 				
 				return temp 				
 			end 
-			local Role = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, GetProfileRole())		          
-			Role:SetValue(TMWdb.profile.ActionDB[tab.name].Role)
+			local Role = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, GetProfileRole())		          
+			Role:SetValue(specDB.Role)
 			Role.OnValueChanged = function(self, val)				
-				TMWdb.profile.ActionDB[tab.name].Role = val 				
+				specDB.Role = val 				
 				if val ~= "AUTO" then 
 					ActionDataTG["Role"] = val
 				end 
@@ -7424,100 +9991,99 @@ function Action.ToggleMainUI()
 				TMW:Fire("TMW_ACTION_ROLE_CHANGED")
 			end
 			Role:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Role:SetScript('OnClick', function(self, button, down)
-					if button == "LeftButton" then 
-						self:ToggleOptions()
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][5]["ROLE"], [[/run Action.ToggleRole()]])	
-					end
+			Role:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][5]["ROLE"], [[/run Action.ToggleRole()]])	
+				end
 			end)		
 			Role.Identify = { Type = "Dropdown", Toggle = "Role" }	
-			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(Role, L["TAB"][tabName]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
 			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][5]["ROLE"])
 			StdUi:GlueAbove(Role.FontStringTitle, Role)	
 			Role.text:SetJustifyH("CENTER")				
 			TMW:RegisterCallback("TMW_ACTION_ROLE_CHANGED", function() 
-				local textRole = TMWdb.profile.ActionDB[tab.name].Role 
+				local textRole = specDB.Role 
 				Role.text:SetText(Role:FindValueText(textRole))
 			end) 
 	
-			local Burst = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, {
-				{ text = "Everything", value = "Everything" },
-				{ text = "Auto", value = "Auto" },				
-				{ text = "Off", value = "Off" },
+			local Burst = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, {
+				{ text = L["TAB"][tabName]["BURSTEVERYTHING"], 	value = "Everything" 	},
+				{ text = L["TAB"]["AUTO"], 						value = "Auto" 			},				
+				{ text = "Off", 								value = "Off" 			},
 			})		          
-			Burst:SetValue(TMWdb.profile.ActionDB[tab.name].Burst)
+			Burst:SetValue(specDB.Burst)
 			Burst.OnValueChanged = function(self, val)                
-				TMWdb.profile.ActionDB[tab.name].Burst = val 
+				specDB.Burst = val 
 				TMW:Fire("TMW_ACTION_BURST_CHANGED")
 				TMW:Fire("TMW_ACTION_CD_MODE_CHANGED") -- Taste's callback 
 				if val ~= "Off" then 
-					ActionDataTG["Burst"] = val
+					ActionData.TG["Burst"] = val
 				end 
-				Action.Print(L["TAB"][tab.name]["BURST"] .. ": ", TMWdb.profile.ActionDB[tab.name].Burst)
+				Action.Print(L["TAB"][tabName]["BURST"] .. ": ", specDB.Burst)
 			end
 			Burst:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Burst:SetScript('OnClick', function(self, button, down)
-					if button == "LeftButton" then 
-						self:ToggleOptions()
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["BURST"], [[/run Action.ToggleBurst()]])	
-					end
+			Burst:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["BURST"], [[/run Action.ToggleBurst()]])	
+				end
 			end)		
 			Burst.Identify = { Type = "Dropdown", Toggle = "Burst" }	
-			StdUi:FrameTooltip(Burst, L["TAB"][tab.name]["BURSTTOOLTIP"], nil, "TOPLEFT", true)
-			Burst.FontStringTitle = StdUi:Subtitle(Burst, L["TAB"][tab.name]["BURST"])
+			StdUi:FrameTooltip(Burst, L["TAB"][tabName]["BURSTTOOLTIP"], nil, "TOPLEFT", true)
+			Burst.FontStringTitle = StdUi:Subtitle(Burst, L["TAB"][tabName]["BURST"])
 			StdUi:GlueAbove(Burst.FontStringTitle, Burst)	
-			Burst.text:SetJustifyH("CENTER")				
+			Burst.text:SetJustifyH("CENTER")			
 
-			local HealthStone = StdUi:Slider(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, TMWdb.profile.ActionDB[tab.name].HealthStone, false, -1, 100)	
-			HealthStone:SetScript('OnMouseUp', function(self, button, down)
-					if button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["HEALTHSTONE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "HealthStone", "]] .. L["TAB"][tab.name]["HEALTHSTONE"] .. [[: "}, ]] .. TMWdb.profile.ActionDB[tab.name].HealthStone .. [[)]])	
-					end					
+			local HealthStone = StdUi:Slider(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, specDB.HealthStone, false, -1, 100)	
+			HealthStone:SetScript("OnMouseUp", function(self, button, down)
+				if button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["HEALTHSTONE"], [[/run Action.SetToggle({]] .. tabName .. [[, "HealthStone", "]] .. L["TAB"][tabName]["HEALTHSTONE"] .. [[: "}, ]] .. specDB.HealthStone .. [[)]])	
+				end					
 			end)		
 			HealthStone.Identify = { Type = "Slider", Toggle = "HealthStone" }		
 			HealthStone.OnValueChanged = function(self, value)
 				local value = math_floor(value) 
-				TMWdb.profile.ActionDB[tab.name].HealthStone = value
-				self.FontStringTitle:SetText(L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value >= 100 and "|cff00ff00AUTO|r" or value))
+				specDB.HealthStone = value
+				self.FontStringTitle:SetText(L["TAB"][tabName]["HEALTHSTONE"] .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value >= 100 and "|cff00ff00AUTO|r" or value))
 			end
-			StdUi:FrameTooltip(HealthStone, L["TAB"][tab.name]["HEALTHSTONETOOLTIP"], nil, "TOPLEFT", true)	
-			HealthStone.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tab.name]["HEALTHSTONE"] .. ": |cff00ff00" .. (TMWdb.profile.ActionDB[tab.name].HealthStone < 0 and "|cffff0000OFF|r" or TMWdb.profile.ActionDB[tab.name].HealthStone >= 100 and "|cff00ff00AUTO|r" or TMWdb.profile.ActionDB[tab.name].HealthStone))
+			StdUi:FrameTooltip(HealthStone, L["TAB"][tabName]["HEALTHSTONETOOLTIP"], nil, "TOPLEFT", true)	
+			HealthStone.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tabName]["HEALTHSTONE"] .. ": |cff00ff00" .. (specDB.HealthStone < 0 and "|cffff0000OFF|r" or specDB.HealthStone >= 100 and "|cff00ff00AUTO|r" or specDB.HealthStone))
 			StdUi:GlueAbove(HealthStone.FontStringTitle, HealthStone)
 			
-			local AutoAttack = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOATTACK"])			
-			AutoAttack:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoAttack)
+			local AutoAttack = StdUi:Checkbox(anchor, L["TAB"][tabName]["AUTOATTACK"])			
+			AutoAttack:SetChecked(specDB.AutoAttack)
 			AutoAttack:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			AutoAttack:SetScript("OnClick", function(self, button, down)	
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].AutoAttack = not TMWdb.profile.ActionDB[tab.name].AutoAttack
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoAttack)	
-					Action.Print(L["TAB"][tab.name]["AUTOATTACK"] .. ": ", TMWdb.profile.ActionDB[tab.name].AutoAttack)	
+					specDB.AutoAttack = not specDB.AutoAttack
+					self:SetChecked(specDB.AutoAttack)	
+					Action.Print(L["TAB"][tabName]["AUTOATTACK"] .. ": ", specDB.AutoAttack)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["AUTOATTACK"], [[/run Action.SetToggle({]] .. tab.name .. [[, "AutoAttack", "]] .. L["TAB"][tab.name]["AUTOATTACK"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["AUTOATTACK"], [[/run Action.SetToggle({]] .. tabName .. [[, "AutoAttack", "]] .. L["TAB"][tabName]["AUTOATTACK"] .. [[: "})]])	
 				end 
 			end)
 			AutoAttack.Identify = { Type = "Checkbox", Toggle = "AutoAttack" }
 			StdUi:FrameTooltip(AutoAttack, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
 			
-			local AutoShoot = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AUTOSHOOT"])			
-			AutoShoot:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoShoot)
+			local AutoShoot = StdUi:Checkbox(anchor, L["TAB"][tabName]["AUTOSHOOT"])			
+			AutoShoot:SetChecked(specDB.AutoShoot)
 			AutoShoot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			AutoShoot:SetScript("OnClick", function(self, button, down)	
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].AutoShoot = not TMWdb.profile.ActionDB[tab.name].AutoShoot
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoShoot)	
-						Action.Print(L["TAB"][tab.name]["AUTOSHOOT"] .. ": ", TMWdb.profile.ActionDB[tab.name].AutoShoot)	
+						specDB.AutoShoot = not specDB.AutoShoot
+						self:SetChecked(specDB.AutoShoot)	
+						Action.Print(L["TAB"][tabName]["AUTOSHOOT"] .. ": ", specDB.AutoShoot)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["AUTOSHOOT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "AutoShoot", "]] .. L["TAB"][tab.name]["AUTOSHOOT"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["AUTOSHOOT"], [[/run Action.SetToggle({]] .. tabName .. [[, "AutoShoot", "]] .. L["TAB"][tabName]["AUTOSHOOT"] .. [[: "})]])	
 					end 
 				end
 			end)
 			AutoShoot.Identify = { Type = "Checkbox", Toggle = "AutoShoot" }
-			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
-			local function AutoShootCheckBoxUpdate()
+			AutoShoot.MakeUpdate = function()
 				if Action.PlayerClass ~= "WARRIOR" and Action.PlayerClass ~= "ROGUE" and Action.PlayerClass ~= "HUNTER" and not HasWandEquipped() then 
 					if not AutoShoot.isDisabled then 
 						AutoShoot:Disable()
@@ -7526,30 +10092,32 @@ function Action.ToggleMainUI()
 					AutoShoot:Enable()
 				end 				
 			end 
-			AutoShoot:SetScript("OnShow", AutoShootCheckBoxUpdate) 
+			AutoShoot:SetScript("OnShow", AutoShoot.MakeUpdate) 
 			AutoShoot:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")
 			AutoShoot:SetScript("OnEvent", function(self, event)
 				if event == "PLAYER_EQUIPMENT_CHANGED" then 
-					AutoShootCheckBoxUpdate()
+					AutoShoot.MakeUpdate()
 				end 
 			end)
-			AutoShootCheckBoxUpdate()
+			AutoShoot:GetScript("OnShow")()
+			StdUi:FrameTooltip(AutoShoot, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)
 			
+			local ColorPicker	= Action.ColorPicker
 			local Color 		= { 
-				Title 			= StdUi:Subtitle(anchor, L["TAB"][tab.name]["COLORTITLE"]),
+				Title 			= StdUi:Subtitle(anchor, L["TAB"][tabName]["COLORTITLE"]),
 				Elements 		= {}, 	-- Stores static array like table for 'Element' dropdown 
 				Options 		= {},	-- Stores dynamic array like table for 'Option' dropdown depends on 'Element' choice
 				Themes			= {},	-- Stores static array like table for 'Theme' dropdown
 				SetupStates 	= function(self)
 					-- Switches between enabled and disabled 
-					if not TMWdb.profile.ActionDB[tab.name].ColorPickerUse then -- don't touch
+					if not tabDB.ColorPickerUse then -- don't touch
 						self.Picker:Disable()
 						self.Element:Disable()
 						self.Option:Disable()
 						self.Theme:Disable()	
 						self.ThemeApplyButton:Disable()
 						-- Set back manual custom backdrop color 
-						Action.MainUI.ResetQuestion:SetBackdropColor(0, 0, 0, 1)
+						MainUI.ResetQuestion:SetBackdropColor(0, 0, 0, 1)
 					else
 						self.Picker:Enable()
 						self.Element:Enable()
@@ -7574,14 +10142,14 @@ function Action.ToggleMainUI()
 			}				
 			
 			Color.Title:SetAllPoints()			
-			Color.Title:SetJustifyH('MIDDLE')
+			Color.Title:SetJustifyH("MIDDLE")
 			Color.Title:SetFontSize(14)
 
-			Color.UseColor = StdUi:Checkbox(anchor, L["TAB"][tab.name]["COLORUSE"])
-			Color.UseColor:SetChecked(TMWdb.profile.ActionDB[tab.name].ColorPickerUse)
+			Color.UseColor = StdUi:Checkbox(anchor, L["TAB"][tabName]["COLORUSE"], 250)
+			Color.UseColor:SetChecked(tabDB.ColorPickerUse)
 			Color.UseColor.OnValueChanged = function(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].ColorPickerUse = state		
-				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLORUSE"] .. ": ", state)
+				tabDB.ColorPickerUse = state		
+				Action.Print(L["TAB"][tabName]["COLORTITLE"] .. " - " .. L["TAB"][tabName]["COLORUSE"] .. ": ", state)
 				ColorPicker:Initialize()
 				Color:SetupStates()
 
@@ -7591,9 +10159,9 @@ function Action.ToggleMainUI()
 				end 
 			end	
 			Color.UseColor.Identify = { Type = "Checkbox", Toggle = "ColorPickerUse" }
-			StdUi:FrameTooltip(Color.UseColor, L["TAB"][tab.name]["COLORUSETOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(Color.UseColor, L["TAB"][tabName]["COLORUSETOOLTIP"], nil, "TOPRIGHT", true)
 			
-			Color.Picker = StdUi:ColorInput(anchor, L["TAB"][tab.name]["COLORPICKER"])
+			Color.Picker = StdUi:ColorInput(anchor, L["TAB"][tabName]["COLORPICKER"])
 			Color.Picker.prevRGBA = {} -- Stores previous state of color with alpha (associative table)
 			Color.Picker.okCallback = function(cpf)
 				wipe(Color.Picker.prevRGBA)
@@ -7635,7 +10203,7 @@ function Action.ToggleMainUI()
 					self.stdUi.colorPickerFrame.resetButton:RegisterForClicks("LeftButtonUp")
 					self.stdUi.colorPickerFrame.resetButton:SetScript("OnClick", function(this, button, down)
 						if not this.isDisabled then
-							local e, o = TMWdb.profile.ActionDB[tab.name].ColorPickerElement, TMWdb.profile.ActionDB[tab.name].ColorPickerOption -- don't touch 
+							local e, o = tabDB.ColorPickerElement, tabDB.ColorPickerOption -- don't touch 
 							ColorPicker:ResetOn(e, o)	
 							self.stdUi.colorPickerFrame:SetColor(ColorPicker:tFindByOption(ColorPicker.Cache[e], o))							
 						end 
@@ -7652,7 +10220,7 @@ function Action.ToggleMainUI()
 					self.stdUi.colorPickerFrame.cancelButton.text:SetText(L["CLOSE"])									
 					
 					-- Create hook to hide with main UI
-					Action.MainUI:HookScript("OnHide", function(this)
+					MainUI:HookScript("OnHide", function(this)
 						if self.stdUi.colorPickerFrame:IsVisible() then 
 							self.stdUi.colorPickerFrame:Hide()
 						end 
@@ -7690,19 +10258,19 @@ function Action.ToggleMainUI()
 			Color.Picker.OnValueChanged = function(self, v)  
 				if not self.isDisabled then 
 					local e, o 			= Color.Element:GetValue(), Color.Option:GetValue()
-					local t 			= ColorPicker:tFindByOption(TMWdb.profile.ActionDB[tab.name].ColorPickerConfig[e], o)
+					local t 			= ColorPicker:tFindByOption(tabDB.ColorPickerConfig[e], o)
 					t.r, t.g, t.b, t.a 	= v.r, v.g, v.b, v.a
 					ColorPicker:MakeOn(e, o, v)										
 				end 
 			end
 			-- We don't use Identify here since pointless with dropdowns 
-			StdUi:FrameTooltip(Color.Picker, L["TAB"][tab.name]["COLORPICKERTOOLTIP"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(Color.Picker, L["TAB"][tabName]["COLORPICKERTOOLTIP"], nil, "TOPLEFT", true)
 			
-			Color.Element = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, ColorPicker:SetElementsIn(Color.Elements))		
-			Color.Element:SetValue(TMWdb.profile.ActionDB[tab.name].ColorPickerElement)
+			Color.Element = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, ColorPicker:SetElementsIn(Color.Elements))		
+			Color.Element:SetValue(tabDB.ColorPickerElement)
 			Color.Element.OnValueChanged = function(self, val)      
-				TMWdb.profile.ActionDB[tab.name].ColorPickerElement = val 
-				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLORELEMENT"] .. ": ", val)				
+				tabDB.ColorPickerElement = val 
+				Action.Print(L["TAB"][tabName]["COLORTITLE"] .. " - " .. L["TAB"][tabName]["COLORELEMENT"] .. ": ", val)				
 				
 				-- Change table structure for 'Option' dropdown and resize height
 				Color.Option:SetOptions(ColorPicker:SetOptionsIn(Color.Options, val))				
@@ -7731,15 +10299,15 @@ function Action.ToggleMainUI()
 				end 
 			end)		
 			Color.Element.Identify = { Type = "Dropdown", Toggle = "ColorPickerElement" }	
-			Color.Element.FontStringTitle = StdUi:Subtitle(Color.Element, L["TAB"][tab.name]["COLORELEMENT"])
+			Color.Element.FontStringTitle = StdUi:Subtitle(Color.Element, L["TAB"][tabName]["COLORELEMENT"])
 			StdUi:GlueAbove(Color.Element.FontStringTitle, Color.Element)	
-			Color.Element.text:SetJustifyH("CENTER")	
+			Color.Element.text:SetJustifyH("CENTER")		
 			
-			Color.Option = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, ColorPicker:SetOptionsIn(Color.Options, Color.Element:GetValue()))		
-			Color.Option:SetValue(TMWdb.profile.ActionDB[tab.name].ColorPickerOption)
+			Color.Option = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, ColorPicker:SetOptionsIn(Color.Options, Color.Element:GetValue()))		
+			Color.Option:SetValue(tabDB.ColorPickerOption)
 			Color.Option.OnValueChanged = function(self, val)                
-				TMWdb.profile.ActionDB[tab.name].ColorPickerOption = val 				
-				Action.Print(L["TAB"][tab.name]["COLORTITLE"] .. " - " .. L["TAB"][tab.name]["COLOROPTION"] .. ": ", TMWdb.profile.ActionDB[tab.name].ColorPickerOption)
+				tabDB.ColorPickerOption = val 				
+				Action.Print(L["TAB"][tabName]["COLORTITLE"] .. " - " .. L["TAB"][tabName]["COLOROPTION"] .. ": ", tabDB.ColorPickerOption)
 				
 				-- Refresh RGBA of checkbox and color frame
 				Color:SetupPicker()
@@ -7751,12 +10319,12 @@ function Action.ToggleMainUI()
 				end 
 			end)		
 			Color.Option.Identify = { Type = "Dropdown", Toggle = "ColorPickerOption" }	
-			Color.Option.FontStringTitle = StdUi:Subtitle(Color.Option, L["TAB"][tab.name]["COLOROPTION"])
+			Color.Option.FontStringTitle = StdUi:Subtitle(Color.Option, L["TAB"][tabName]["COLOROPTION"])
 			StdUi:GlueAbove(Color.Option.FontStringTitle, Color.Option)	
 			Color.Option.text:SetJustifyH("CENTER")
 			
-			Color.Theme = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 9), ActionDatatheme.dd.height, ColorPicker:SetThemesIn(Color.Themes))	
-			Color.Theme:SetPlaceholder(L["TAB"][tab.name]["THEMEHOLDER"])
+			Color.Theme = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 9), themeHeight, ColorPicker:SetThemesIn(Color.Themes))	
+			Color.Theme:SetPlaceholder(L["TAB"][tabName]["THEMEHOLDER"])
 			Color.Theme.OnValueChanged = function(self, val) 
 				if not self.isDisabled then 
 					if Color.currentTheme == val then 
@@ -7776,11 +10344,11 @@ function Action.ToggleMainUI()
 					self:ToggleOptions()
 				end 
 			end)		
-			Color.Theme.FontStringTitle = StdUi:Subtitle(Color.Theme, L["TAB"][tab.name]["SELECTTHEME"])
+			Color.Theme.FontStringTitle = StdUi:Subtitle(Color.Theme, L["TAB"][tabName]["SELECTTHEME"])
 			StdUi:GlueAbove(Color.Theme.FontStringTitle, Color.Theme)	
 			Color.Theme.text:SetJustifyH("CENTER")
 			
-			Color.ThemeApplyButton = StdUi:Button(anchor, GetWidthByColumn(anchor, 2), ActionDatatheme.dd.height, L["APPLY"])
+			Color.ThemeApplyButton = StdUi:Button(anchor, StdUi:GetWidthByColumn(anchor, 2), themeHeight, L["APPLY"])
 			Color.ThemeApplyButton:RegisterForClicks("LeftButtonUp")
 			Color.ThemeApplyButton:SetScript("OnClick", function(self, button, down)
 				if not self.isDisabled then 		
@@ -7790,7 +10358,7 @@ function Action.ToggleMainUI()
 						ColorPicker:MakeColors(ColorPicker.Themes[currentTheme])
 
 						-- Save selected theme to db 
-						TMWdb.profile.ActionDB[tab.name].ColorPickerConfig = tMerge(TMWdb.profile.ActionDB[tab.name].ColorPickerConfig, ColorPicker.Themes[currentTheme])
+						tabDB.ColorPickerConfig = tMerge(tabDB.ColorPickerConfig, ColorPicker.Themes[currentTheme])
 						
 						-- Refresh rest  
 						Color:SetupPicker()
@@ -7805,151 +10373,150 @@ function Action.ToggleMainUI()
 			Color:SetupStates()
 			Color:SetupPicker()			
 			
-			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 450, L["TAB"][tab.name]["PAUSECHECKS"])
-			StdUi:GlueTop(PauseChecksPanel.titlePanel, PauseChecksPanel, 0, -5)
+			local PauseChecksPanel = StdUi:PanelWithTitle(anchor, tab.frame:GetWidth() - 30, 450, L["TAB"][tabName]["PAUSECHECKS"])
 			PauseChecksPanel.titlePanel.label:SetFontSize(14)
-			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = PauseChecksPanel.titlePanel.label:GetHeight() + 10 } })			
+			StdUi:EasyLayout(PauseChecksPanel, { padding = { top = 10 } })		
 			
-			local CheckDeadOrGhost = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DEADOFGHOSTPLAYER"])	
-			CheckDeadOrGhost:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhost)
+			local CheckDeadOrGhost = StdUi:Checkbox(anchor, L["TAB"][tabName]["DEADOFGHOSTPLAYER"])	
+			CheckDeadOrGhost:SetChecked(tabDB.CheckDeadOrGhost)
 			function CheckDeadOrGhost:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhost = not TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhost		
-				Action.Print(L["TAB"][tab.name]["DEADOFGHOSTPLAYER"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhost)
+				tabDB.CheckDeadOrGhost = not tabDB.CheckDeadOrGhost		
+				Action.Print(L["TAB"][tabName]["DEADOFGHOSTPLAYER"] .. ": ", tabDB.CheckDeadOrGhost)
 			end		
 			CheckDeadOrGhost.Identify = { Type = "Checkbox", Toggle = "CheckDeadOrGhost" }
 			
-			local CheckDeadOrGhostTarget = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DEADOFGHOSTTARGET"])
-			CheckDeadOrGhostTarget:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhostTarget)
+			local CheckDeadOrGhostTarget = StdUi:Checkbox(anchor, L["TAB"][tabName]["DEADOFGHOSTTARGET"])
+			CheckDeadOrGhostTarget:SetChecked(tabDB.CheckDeadOrGhostTarget)
 			function CheckDeadOrGhostTarget:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhostTarget = not TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhostTarget
-				Action.Print(L["TAB"][tab.name]["DEADOFGHOSTTARGET"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckDeadOrGhostTarget)
+				tabDB.CheckDeadOrGhostTarget = not tabDB.CheckDeadOrGhostTarget
+				Action.Print(L["TAB"][tabName]["DEADOFGHOSTTARGET"] .. ": ", tabDB.CheckDeadOrGhostTarget)
 			end	
 			CheckDeadOrGhostTarget.Identify = { Type = "Checkbox", Toggle = "CheckDeadOrGhostTarget" }
-			StdUi:FrameTooltip(CheckDeadOrGhostTarget, L["TAB"][tab.name]["DEADOFGHOSTTARGETTOOLTIP"], nil, "BOTTOMLEFT", true)						
+			StdUi:FrameTooltip(CheckDeadOrGhostTarget, L["TAB"][tabName]["DEADOFGHOSTTARGETTOOLTIP"], nil, "BOTTOMLEFT", true)					
 
-			local CheckCombat = StdUi:Checkbox(anchor, L["TAB"][tab.name]["COMBAT"])	
-			CheckCombat:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckCombat)
+			local CheckCombat = StdUi:Checkbox(anchor, L["TAB"][tabName]["COMBAT"])	
+			CheckCombat:SetChecked(tabDB.CheckCombat)
 			function CheckCombat:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckCombat = not TMWdb.profile.ActionDB[tab.name].CheckCombat	
-				Action.Print(L["TAB"][tab.name]["COMBAT"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckCombat)
+				tabDB.CheckCombat = not tabDB.CheckCombat	
+				Action.Print(L["TAB"][tabName]["COMBAT"] .. ": ", tabDB.CheckCombat)
 			end	
 			CheckCombat.Identify = { Type = "Checkbox", Toggle = "CheckCombat" }
-			StdUi:FrameTooltip(CheckCombat, L["TAB"][tab.name]["COMBATTOOLTIP"], nil, "BOTTOMRIGHT", true)		
+			StdUi:FrameTooltip(CheckCombat, L["TAB"][tabName]["COMBATTOOLTIP"], nil, "BOTTOMRIGHT", true)		
 
-			local CheckMount = StdUi:Checkbox(anchor, L["TAB"][tab.name]["MOUNT"])
-			CheckMount:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckMount)
+			local CheckMount = StdUi:Checkbox(anchor, L["TAB"][tabName]["MOUNT"])
+			CheckMount:SetChecked(tabDB.CheckMount)
 			function CheckMount:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckMount = not TMWdb.profile.ActionDB[tab.name].CheckMount
-				Action.Print(L["TAB"][tab.name]["MOUNT"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckMount)
+				tabDB.CheckMount = not tabDB.CheckMount
+				Action.Print(L["TAB"][tabName]["MOUNT"] .. ": ", tabDB.CheckMount)
 			end	
-			CheckMount.Identify = { Type = "Checkbox", Toggle = "CheckMount" }			
+			CheckMount.Identify = { Type = "Checkbox", Toggle = "CheckMount" }		
 
-			local CheckSpellIsTargeting = StdUi:Checkbox(anchor, L["TAB"][tab.name]["SPELLISTARGETING"])		
-			CheckSpellIsTargeting:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckSpellIsTargeting)
+			local CheckSpellIsTargeting = StdUi:Checkbox(anchor, L["TAB"][tabName]["SPELLISTARGETING"])		
+			CheckSpellIsTargeting:SetChecked(tabDB.CheckSpellIsTargeting)
 			function CheckSpellIsTargeting:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckSpellIsTargeting = not TMWdb.profile.ActionDB[tab.name].CheckSpellIsTargeting
-				Action.Print(L["TAB"][tab.name]["SPELLISTARGETING"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckSpellIsTargeting)
+				tabDB.CheckSpellIsTargeting = not tabDB.CheckSpellIsTargeting
+				Action.Print(L["TAB"][tabName]["SPELLISTARGETING"] .. ": ", tabDB.CheckSpellIsTargeting)
 			end	
 			CheckSpellIsTargeting.Identify = { Type = "Checkbox", Toggle = "CheckSpellIsTargeting" }
-			StdUi:FrameTooltip(CheckSpellIsTargeting, L["TAB"][tab.name]["SPELLISTARGETINGTOOLTIP"], nil, "BOTTOMRIGHT", true)	
+			StdUi:FrameTooltip(CheckSpellIsTargeting, L["TAB"][tabName]["SPELLISTARGETINGTOOLTIP"], nil, "BOTTOMRIGHT", true)
 
-			local CheckLootFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOOTFRAME"])
-			CheckLootFrame:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckLootFrame)
+			local CheckLootFrame = StdUi:Checkbox(anchor, L["TAB"][tabName]["LOOTFRAME"])
+			CheckLootFrame:SetChecked(tabDB.CheckLootFrame)
 			function CheckLootFrame:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckLootFrame = not TMWdb.profile.ActionDB[tab.name].CheckLootFrame	
-				Action.Print(L["TAB"][tab.name]["LOOTFRAME"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckLootFrame)
+				tabDB.CheckLootFrame = not tabDB.CheckLootFrame	
+				Action.Print(L["TAB"][tabName]["LOOTFRAME"] .. ": ", tabDB.CheckLootFrame)
 			end	
 			CheckLootFrame.Identify = { Type = "Checkbox", Toggle = "CheckLootFrame" }	
 
-			local CheckEatingOrDrinking = StdUi:Checkbox(anchor, L["TAB"][tab.name]["EATORDRINK"])
-			CheckEatingOrDrinking:SetChecked(TMWdb.profile.ActionDB[tab.name].CheckEatingOrDrinking)
+			local CheckEatingOrDrinking = StdUi:Checkbox(anchor, L["TAB"][tabName]["EATORDRINK"])
+			CheckEatingOrDrinking:SetChecked(tabDB.CheckEatingOrDrinking)
 			function CheckEatingOrDrinking:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].CheckEatingOrDrinking = not TMWdb.profile.ActionDB[tab.name].CheckEatingOrDrinking	
-				Action.Print(L["TAB"][tab.name]["EATORDRINK"] .. ": ", TMWdb.profile.ActionDB[tab.name].CheckEatingOrDrinking)
+				tabDB.CheckEatingOrDrinking = not tabDB.CheckEatingOrDrinking	
+				Action.Print(L["TAB"][tabName]["EATORDRINK"] .. ": ", tabDB.CheckEatingOrDrinking)
 			end	
-			CheckEatingOrDrinking.Identify = { Type = "Checkbox", Toggle = "CheckEatingOrDrinking" }	
+			CheckEatingOrDrinking.Identify = { Type = "Checkbox", Toggle = "CheckEatingOrDrinking" }
 			
-			local Misc = StdUi:Header(PauseChecksPanel, L["TAB"][tab.name]["MISC"])
+			local Misc = StdUi:Header(PauseChecksPanel, L["TAB"][tabName]["MISC"])
 			Misc:SetAllPoints()			
-			Misc:SetJustifyH('MIDDLE')
+			Misc:SetJustifyH("MIDDLE")
 			Misc:SetFontSize(14)
 			
-			local DisableRotationDisplay = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEROTATIONDISPLAY"])
-			DisableRotationDisplay:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableRotationDisplay)
+			local DisableRotationDisplay = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEROTATIONDISPLAY"])
+			DisableRotationDisplay:SetChecked(tabDB.DisableRotationDisplay)
 			function DisableRotationDisplay:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisableRotationDisplay = not TMWdb.profile.ActionDB[tab.name].DisableRotationDisplay		
-				Action.Print(L["TAB"][tab.name]["DISABLEROTATIONDISPLAY"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableRotationDisplay)
+				tabDB.DisableRotationDisplay = not tabDB.DisableRotationDisplay		
+				Action.Print(L["TAB"][tabName]["DISABLEROTATIONDISPLAY"] .. ": ", tabDB.DisableRotationDisplay)
 			end				
 			DisableRotationDisplay.Identify = { Type = "Checkbox", Toggle = "DisableRotationDisplay" }
-			StdUi:FrameTooltip(DisableRotationDisplay, L["TAB"][tab.name]["DISABLEROTATIONDISPLAYTOOLTIP"], nil, "BOTTOMRIGHT", true)	
+			StdUi:FrameTooltip(DisableRotationDisplay, L["TAB"][tabName]["DISABLEROTATIONDISPLAYTOOLTIP"], nil, "BOTTOMRIGHT", true)	
 			
-			local DisableBlackBackground = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEBLACKBACKGROUND"])
-			DisableBlackBackground:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableBlackBackground)
+			local DisableBlackBackground = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEBLACKBACKGROUND"])
+			DisableBlackBackground:SetChecked(tabDB.DisableBlackBackground)
 			function DisableBlackBackground:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisableBlackBackground = not TMWdb.profile.ActionDB[tab.name].DisableBlackBackground	
-				Action.Print(L["TAB"][tab.name]["DISABLEBLACKBACKGROUND"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableBlackBackground)
-				Action.BlackBackgroundSet(not TMWdb.profile.ActionDB[tab.name].DisableBlackBackground)
+				tabDB.DisableBlackBackground = not tabDB.DisableBlackBackground	
+				Action.Print(L["TAB"][tabName]["DISABLEBLACKBACKGROUND"] .. ": ", tabDB.DisableBlackBackground)
+				Action.BlackBackgroundSet(not tabDB.DisableBlackBackground)
 			end				
 			DisableBlackBackground.Identify = { Type = "Checkbox", Toggle = "DisableBlackBackground" }
-			StdUi:FrameTooltip(DisableBlackBackground, L["TAB"][tab.name]["DISABLEBLACKBACKGROUNDTOOLTIP"], nil, "BOTTOMLEFT", true)	
+			StdUi:FrameTooltip(DisableBlackBackground, L["TAB"][tabName]["DISABLEBLACKBACKGROUNDTOOLTIP"], nil, "BOTTOMLEFT", true)	
 
-			local DisablePrint = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEPRINT"])
-			DisablePrint:SetChecked(TMWdb.profile.ActionDB[tab.name].DisablePrint)
+			local DisablePrint = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEPRINT"])
+			DisablePrint:SetChecked(tabDB.DisablePrint)
 			function DisablePrint:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisablePrint = not TMWdb.profile.ActionDB[tab.name].DisablePrint		
-				Action.Print(L["TAB"][tab.name]["DISABLEPRINT"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisablePrint, true)
+				tabDB.DisablePrint = not tabDB.DisablePrint		
+				Action.Print(L["TAB"][tabName]["DISABLEPRINT"] .. ": ", tabDB.DisablePrint, true)
 			end				
 			DisablePrint.Identify = { Type = "Checkbox", Toggle = "DisablePrint" }
-			StdUi:FrameTooltip(DisablePrint, L["TAB"][tab.name]["DISABLEPRINTTOOLTIP"], nil, "BOTTOMRIGHT", true)
+			StdUi:FrameTooltip(DisablePrint, L["TAB"][tabName]["DISABLEPRINTTOOLTIP"], nil, "BOTTOMRIGHT", true)
 
-			local DisableMinimap = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEMINIMAP"])
-			DisableMinimap:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableMinimap)
+			local DisableMinimap = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEMINIMAP"])
+			DisableMinimap:SetChecked(tabDB.DisableMinimap)
 			function DisableMinimap:OnValueChanged(self, state, value)
 				Action.ToggleMinimap()
 			end				
 			DisableMinimap.Identify = { Type = "Checkbox", Toggle = "DisableMinimap" }
-			StdUi:FrameTooltip(DisableMinimap, L["TAB"][tab.name]["DISABLEMINIMAPTOOLTIP"], nil, "BOTTOMLEFT", true)	
+			StdUi:FrameTooltip(DisableMinimap, L["TAB"][tabName]["DISABLEMINIMAPTOOLTIP"], nil, "BOTTOMLEFT", true)
 						
-			local DisableClassPortraits = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEPORTRAITS"])
-			DisableClassPortraits:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableClassPortraits)
+			local DisableClassPortraits = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEPORTRAITS"])
+			DisableClassPortraits:SetChecked(tabDB.DisableClassPortraits)
 			function DisableClassPortraits:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisableClassPortraits = not TMWdb.profile.ActionDB[tab.name].DisableClassPortraits		
-				Action.Print(L["TAB"][tab.name]["DISABLEPORTRAITS"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableClassPortraits)
+				tabDB.DisableClassPortraits = not tabDB.DisableClassPortraits		
+				Action.Print(L["TAB"][tabName]["DISABLEPORTRAITS"] .. ": ", tabDB.DisableClassPortraits)
 			end				
-			DisableClassPortraits.Identify = { Type = "Checkbox", Toggle = "DisableClassPortraits" }	
+			DisableClassPortraits.Identify = { Type = "Checkbox", Toggle = "DisableClassPortraits" }
 
-			local DisableRotationModes = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLEROTATIONMODES"])
-			DisableRotationModes:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableRotationModes)
+			local DisableRotationModes = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEROTATIONMODES"])
+			DisableRotationModes:SetChecked(tabDB.DisableRotationModes)
 			function DisableRotationModes:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisableRotationModes = not TMWdb.profile.ActionDB[tab.name].DisableRotationModes		
-				Action.Print(L["TAB"][tab.name]["DISABLEROTATIONMODES"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableRotationModes)
+				tabDB.DisableRotationModes = not tabDB.DisableRotationModes		
+				Action.Print(L["TAB"][tabName]["DISABLEROTATIONMODES"] .. ": ", tabDB.DisableRotationModes)
 			end				
 			DisableRotationModes.Identify = { Type = "Checkbox", Toggle = "DisableRotationModes" }	
 			
-			local DisableSounds = StdUi:Checkbox(anchor, L["TAB"][tab.name]["DISABLESOUNDS"])
-			DisableSounds:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableSounds)
+			local DisableSounds = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLESOUNDS"])
+			DisableSounds:SetChecked(tabDB.DisableSounds)
 			function DisableSounds:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].DisableSounds = not TMWdb.profile.ActionDB[tab.name].DisableSounds		
-				Action.Print(L["TAB"][tab.name]["DISABLESOUNDS"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableSounds)
+				tabDB.DisableSounds = not tabDB.DisableSounds		
+				Action.Print(L["TAB"][tabName]["DISABLESOUNDS"] .. ": ", tabDB.DisableSounds)
 			end				
 			DisableSounds.Identify = { Type = "Checkbox", Toggle = "DisableSounds" }
 			
-			local HideOnScreenshot = StdUi:Checkbox(anchor, L["TAB"][tab.name]["HIDEONSCREENSHOT"])
-			HideOnScreenshot:SetChecked(TMWdb.profile.ActionDB[tab.name].HideOnScreenshot)
+			local HideOnScreenshot = StdUi:Checkbox(anchor, L["TAB"][tabName]["HIDEONSCREENSHOT"])
+			HideOnScreenshot:SetChecked(tabDB.HideOnScreenshot)
 			function HideOnScreenshot:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].HideOnScreenshot = not TMWdb.profile.ActionDB[tab.name].HideOnScreenshot
-				ScreenshotHider:Initialize(TMWdb.profile.ActionDB[tab.name].HideOnScreenshot)
+				tabDB.HideOnScreenshot = not tabDB.HideOnScreenshot
+				ScreenshotHider:Initialize()
 			end				
 			HideOnScreenshot.Identify = { Type = "Checkbox", Toggle = "HideOnScreenshot" }
-			StdUi:FrameTooltip(HideOnScreenshot, L["TAB"][tab.name]["HIDEONSCREENSHOTTOOLTIP"], nil, "BOTTOMLEFT", true)
+			StdUi:FrameTooltip(HideOnScreenshot, L["TAB"][tabName]["HIDEONSCREENSHOTTOOLTIP"], nil, "BOTTOMLEFT", true)	
 			
-			local cameraDistanceMaxZoomFactor = StdUi:Checkbox(anchor, L["TAB"][tab.name]["CAMERAMAXFACTOR"])
-			cameraDistanceMaxZoomFactor:SetChecked(TMWdb.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor)
+			local cameraDistanceMaxZoomFactor = StdUi:Checkbox(anchor, L["TAB"][tabName]["CAMERAMAXFACTOR"])
+			cameraDistanceMaxZoomFactor:SetChecked(tabDB.cameraDistanceMaxZoomFactor)
 			function cameraDistanceMaxZoomFactor:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor = not TMWdb.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor	
+				tabDB.cameraDistanceMaxZoomFactor = not tabDB.cameraDistanceMaxZoomFactor	
 				
 				local cameraDistanceMaxZoomFactor = GetCVar("cameraDistanceMaxZoomFactor")
-				if TMWdb.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor then 					
+				if tabDB.cameraDistanceMaxZoomFactor then 					
 					if cameraDistanceMaxZoomFactor ~= "4" then 
 						SetCVar("cameraDistanceMaxZoomFactor", 4) 																	
 					end	
@@ -7959,118 +10526,131 @@ function Action.ToggleMainUI()
 					end						
 				end 
 				
-				Action.Print(L["TAB"][tab.name]["CAMERAMAXFACTOR"] .. ": ", TMWdb.profile.ActionDB[tab.name].cameraDistanceMaxZoomFactor)
+				Action.Print(L["TAB"][tabName]["CAMERAMAXFACTOR"] .. ": ", tabDB.cameraDistanceMaxZoomFactor)
 			end				
 			cameraDistanceMaxZoomFactor.Identify = { Type = "Checkbox", Toggle = "cameraDistanceMaxZoomFactor" }		
 
-			local Tools = StdUi:Header(PauseChecksPanel, L["TAB"][tab.name]["TOOLS"])
+			local Tools = StdUi:Header(PauseChecksPanel, L["TAB"][tabName]["TOOLS"])
 			Tools:SetAllPoints()			
-			Tools:SetJustifyH('MIDDLE')
+			Tools:SetJustifyH("MIDDLE")
 			Tools:SetFontSize(14)			
 			
 			local LetMeCast = StdUi:Checkbox(anchor, "LetMeCast")
-			LetMeCast:SetChecked(TMWdb.profile.ActionDB[tab.name].LetMeCast)
+			LetMeCast:SetChecked(tabDB.LetMeCast)
 			function LetMeCast:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].LetMeCast = not TMWdb.profile.ActionDB[tab.name].LetMeCast		
+				tabDB.LetMeCast = not tabDB.LetMeCast		
 				LETMECAST:Initialize()
-				Action.Print("LetMeCast: ", TMWdb.profile.ActionDB[tab.name].LetMeCast)
+				Action.Print("LetMeCast: ", tabDB.LetMeCast)
 			end				
 			LetMeCast.Identify = { Type = "Checkbox", Toggle = "LetMeCast" }	
-			StdUi:FrameTooltip(LetMeCast, L["TAB"][tab.name]["LETMECASTTOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(LetMeCast, L["TAB"][tabName]["LETMECASTTOOLTIP"], nil, "TOPRIGHT", true)
 			
-			local TargetCastBar = StdUi:Checkbox(anchor, L["TAB"][tab.name]["TARGETCASTBAR"])
-			TargetCastBar:SetChecked(TMWdb.profile.ActionDB[tab.name].TargetCastBar)
+			local LetMeDrag = StdUi:Checkbox(anchor, "LetMeDrag")
+			LetMeDrag:SetChecked(tabDB.LetMeDrag)
+			if not LETMEDRAG:CanBeEnabled() then 
+				LetMeDrag:Disable()
+			end
+			function LetMeDrag:OnValueChanged(self, state, value)
+				tabDB.LetMeDrag = not tabDB.LetMeDrag		
+				LETMEDRAG:Initialize()
+				Action.Print("LetMeDrag: ", tabDB.LetMeDrag)
+			end				
+			LetMeDrag.Identify = { Type = "Checkbox", Toggle = "LetMeDrag" }	
+			StdUi:FrameTooltip(LetMeDrag, L["TAB"][tabName]["LETMEDRAGTOOLTIP"], nil, "TOPLEFT", true)			
+			
+			local TargetCastBar = StdUi:Checkbox(anchor, L["TAB"][tabName]["TARGETCASTBAR"])
+			TargetCastBar:SetChecked(tabDB.TargetCastBar)
 			function TargetCastBar:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].TargetCastBar = not TMWdb.profile.ActionDB[tab.name].TargetCastBar						
-				Action.Print(L["TAB"][tab.name]["TARGETCASTBAR"] .. ": ", TMWdb.profile.ActionDB[tab.name].TargetCastBar)
+				tabDB.TargetCastBar = not tabDB.TargetCastBar						
+				Action.Print(L["TAB"][tabName]["TARGETCASTBAR"] .. ": ", tabDB.TargetCastBar)
 			end				
 			TargetCastBar.Identify = { Type = "Checkbox", Toggle = "TargetCastBar" }	
-			StdUi:FrameTooltip(TargetCastBar, L["TAB"][tab.name]["TARGETCASTBARTOOLTIP"], nil, "TOPLEFT", true)			
+			StdUi:FrameTooltip(TargetCastBar, L["TAB"][tabName]["TARGETCASTBARTOOLTIP"], nil, "TOPLEFT", true)			
 			
-			local TargetRealHealth = StdUi:Checkbox(anchor, L["TAB"][tab.name]["TARGETREALHEALTH"])
-			TargetRealHealth:SetChecked(TMWdb.profile.ActionDB[tab.name].TargetRealHealth)
+			local TargetRealHealth = StdUi:Checkbox(anchor, L["TAB"][tabName]["TARGETREALHEALTH"])
+			TargetRealHealth:SetChecked(tabDB.TargetRealHealth)
 			function TargetRealHealth:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].TargetRealHealth = not TMWdb.profile.ActionDB[tab.name].TargetRealHealth		
+				tabDB.TargetRealHealth = not tabDB.TargetRealHealth		
 				UnitHealthTool:SetupStatusBarText()
-				Action.Print(L["TAB"][tab.name]["TARGETREALHEALTH"] .. ": ", TMWdb.profile.ActionDB[tab.name].TargetRealHealth)
+				Action.Print(L["TAB"][tabName]["TARGETREALHEALTH"] .. ": ", tabDB.TargetRealHealth)
 			end				
 			TargetRealHealth.Identify = { Type = "Checkbox", Toggle = "TargetRealHealth" }	
-			StdUi:FrameTooltip(TargetRealHealth, L["TAB"][tab.name]["TARGETREALHEALTHTOOLTIP"], nil, "TOPLEFT", true)	
+			StdUi:FrameTooltip(TargetRealHealth, L["TAB"][tabName]["TARGETREALHEALTHTOOLTIP"], nil, "TOPLEFT", true)	
 			
-			local TargetPercentHealth = StdUi:Checkbox(anchor, L["TAB"][tab.name]["TARGETPERCENTHEALTH"])
-			TargetPercentHealth:SetChecked(TMWdb.profile.ActionDB[tab.name].TargetPercentHealth)
+			local TargetPercentHealth = StdUi:Checkbox(anchor, L["TAB"][tabName]["TARGETPERCENTHEALTH"])
+			TargetPercentHealth:SetChecked(tabDB.TargetPercentHealth)
 			function TargetPercentHealth:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].TargetPercentHealth = not TMWdb.profile.ActionDB[tab.name].TargetPercentHealth	
+				tabDB.TargetPercentHealth = not tabDB.TargetPercentHealth	
 				UnitHealthTool:SetupStatusBarText()
-				Action.Print(L["TAB"][tab.name]["TARGETPERCENTHEALTH"] .. ": ", TMWdb.profile.ActionDB[tab.name].TargetPercentHealth)
+				Action.Print(L["TAB"][tabName]["TARGETPERCENTHEALTH"] .. ": ", tabDB.TargetPercentHealth)
 			end				
 			TargetPercentHealth.Identify = { Type = "Checkbox", Toggle = "TargetPercentHealth" }	
-			StdUi:FrameTooltip(TargetPercentHealth, L["TAB"][tab.name]["TARGETPERCENTHEALTHTOOLTIP"], nil, "TOPRIGHT", true)	
+			StdUi:FrameTooltip(TargetPercentHealth, L["TAB"][tabName]["TARGETPERCENTHEALTHTOOLTIP"], nil, "TOPRIGHT", true)	
 					
-			local AuraCCPortrait = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AURACCPORTRAIT"])
-			AuraCCPortrait:SetChecked(TMWdb.profile.ActionDB[tab.name].AuraCCPortrait)
+			local AuraCCPortrait = StdUi:Checkbox(anchor, L["TAB"][tabName]["AURACCPORTRAIT"])
+			AuraCCPortrait:SetChecked(tabDB.AuraCCPortrait)
 			AuraCCPortrait:RegisterForClicks("LeftButtonUp")
 			AuraCCPortrait:SetScript("OnClick", function(self, button, down)
 				if not self.isDisabled then 
-					TMWdb.profile.ActionDB[tab.name].AuraCCPortrait = not TMWdb.profile.ActionDB[tab.name].AuraCCPortrait		
-					if TMWdb.profile.ActionDB[tab.name].AuraCCPortrait then 
+					tabDB.AuraCCPortrait = not tabDB.AuraCCPortrait		
+					if tabDB.AuraCCPortrait then 
 						AuraDuration:TurnOnPortrait()
 					else 
 						AuraDuration:TurnOffPortrait()
 					end 
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].AuraCCPortrait)
-					Action.Print(L["TAB"][tab.name]["AURACCPORTRAIT"] .. ": ", TMWdb.profile.ActionDB[tab.name].AuraCCPortrait)
+					self:SetChecked(tabDB.AuraCCPortrait)
+					Action.Print(L["TAB"][tabName]["AURACCPORTRAIT"] .. ": ", tabDB.AuraCCPortrait)
 				end 
 			end)				
 			AuraCCPortrait.Identify = { Type = "Checkbox", Toggle = "AuraCCPortrait" }	
-			StdUi:FrameTooltip(AuraCCPortrait, L["TAB"][tab.name]["AURACCPORTRAITTOOLTIP"], nil, "TOPRIGHT", true)
-			if not Action.GetToggle(1, "AuraDuration") then 
+			StdUi:FrameTooltip(AuraCCPortrait, L["TAB"][tabName]["AURACCPORTRAITTOOLTIP"], nil, "TOPRIGHT", true)
+			if not tabDB.AuraDuration then 
 				AuraCCPortrait:Disable()
 			end 
 			
-			local AuraDurationCheckbox = StdUi:Checkbox(anchor, L["TAB"][tab.name]["AURADURATION"])
-			AuraDurationCheckbox:SetChecked(TMWdb.profile.ActionDB[tab.name].AuraDuration)
+			local AuraDurationCheckbox = StdUi:Checkbox(anchor, L["TAB"][tabName]["AURADURATION"])
+			AuraDurationCheckbox:SetChecked(tabDB.AuraDuration)
 			function AuraDurationCheckbox:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].AuraDuration = not TMWdb.profile.ActionDB[tab.name].AuraDuration	
+				tabDB.AuraDuration = not tabDB.AuraDuration	
 				AuraDuration:Initialize()
-				if TMWdb.profile.ActionDB[tab.name].AuraDuration then 
+				if tabDB.AuraDuration then 
 					AuraCCPortrait:Enable()
 				else 
 					AuraCCPortrait:Disable()
 				end 
-				Action.Print(L["TAB"][tab.name]["AURADURATION"] .. ": ", TMWdb.profile.ActionDB[tab.name].AuraDuration)
+				Action.Print(L["TAB"][tabName]["AURADURATION"] .. ": ", tabDB.AuraDuration)
 			end				
 			AuraDurationCheckbox.Identify = { Type = "Checkbox", Toggle = "AuraDuration" }	
-			StdUi:FrameTooltip(AuraDurationCheckbox, L["TAB"][tab.name]["AURADURATIONTOOLTIP"], nil, "TOPLEFT", true)		
+			StdUi:FrameTooltip(AuraDurationCheckbox, L["TAB"][tabName]["AURADURATIONTOOLTIP"], nil, "TOPLEFT", true)		
 
-			local LossOfControlPlayerFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAME"])
-			LossOfControlPlayerFrame:SetChecked(TMWdb.profile.ActionDB[tab.name].LossOfControlPlayerFrame)
+			local LossOfControlPlayerFrame = StdUi:Checkbox(anchor, L["TAB"][tabName]["LOSSOFCONTROLPLAYERFRAME"])
+			LossOfControlPlayerFrame:SetChecked(tabDB.LossOfControlPlayerFrame)
 			function LossOfControlPlayerFrame:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].LossOfControlPlayerFrame = not TMWdb.profile.ActionDB[tab.name].LossOfControlPlayerFrame	
+				tabDB.LossOfControlPlayerFrame = not tabDB.LossOfControlPlayerFrame	
 				Action.LossOfControl:UpdateFrameData()				
-				Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAME"] .. ": ", TMWdb.profile.ActionDB[tab.name].LossOfControlPlayerFrame)
+				Action.Print(L["TAB"][tabName]["LOSSOFCONTROLPLAYERFRAME"] .. ": ", tabDB.LossOfControlPlayerFrame)
 			end				
 			LossOfControlPlayerFrame.Identify = { Type = "Checkbox", Toggle = "LossOfControlPlayerFrame" }	
-			StdUi:FrameTooltip(LossOfControlPlayerFrame, L["TAB"][tab.name]["LOSSOFCONTROLPLAYERFRAMETOOLTIP"], nil, "TOPRIGHT", true)	
+			StdUi:FrameTooltip(LossOfControlPlayerFrame, L["TAB"][tabName]["LOSSOFCONTROLPLAYERFRAMETOOLTIP"], nil, "TOPRIGHT", true)	
 
-			local LossOfControlRotationFrame = StdUi:Checkbox(anchor, L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAME"])
-			LossOfControlRotationFrame:SetChecked(TMWdb.profile.ActionDB[tab.name].LossOfControlRotationFrame)
+			local LossOfControlRotationFrame = StdUi:Checkbox(anchor, L["TAB"][tabName]["LOSSOFCONTROLROTATIONFRAME"])
+			LossOfControlRotationFrame:SetChecked(tabDB.LossOfControlRotationFrame)
 			function LossOfControlRotationFrame:OnValueChanged(self, state, value)
-				TMWdb.profile.ActionDB[tab.name].LossOfControlRotationFrame = not TMWdb.profile.ActionDB[tab.name].LossOfControlRotationFrame	
+				tabDB.LossOfControlRotationFrame = not tabDB.LossOfControlRotationFrame	
 				Action.LossOfControl:UpdateFrameData()				
-				Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAME"] .. ": ", TMWdb.profile.ActionDB[tab.name].LossOfControlRotationFrame)
+				Action.Print(L["TAB"][tabName]["LOSSOFCONTROLROTATIONFRAME"] .. ": ", tabDB.LossOfControlRotationFrame)
 			end				
 			LossOfControlRotationFrame.Identify = { Type = "Checkbox", Toggle = "LossOfControlRotationFrame" }	
-			StdUi:FrameTooltip(LossOfControlRotationFrame, L["TAB"][tab.name]["LOSSOFCONTROLROTATIONFRAMETOOLTIP"], nil, "TOPLEFT", true)		
+			StdUi:FrameTooltip(LossOfControlRotationFrame, L["TAB"][tabName]["LOSSOFCONTROLROTATIONFRAMETOOLTIP"], nil, "TOPLEFT", true)		
 			
-			local LossOfControlTypes = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, 6), ActionDatatheme.dd.height, {
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL0_CAP, value = 1 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL1_CAP, value = 2 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL2_CAP, value = 3 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL3_CAP, value = 4 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL4_CAP, value = 5 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL5_CAP, value = 6 },
-				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. SPELL_SCHOOL6_CAP, value = 7 },
+			local LossOfControlTypes = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, {
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL0_CAP, value = 1 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL1_CAP, value = 2 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL2_CAP, value = 3 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL3_CAP, value = 4 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL4_CAP, value = 5 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL5_CAP, value = 6 },
+				{ text = _G["LOSS_OF_CONTROL_DISPLAY_INTERRUPT"] .. " " .. _G.SPELL_SCHOOL6_CAP, value = 7 },
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_BANISH"], 			value = 8 },
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_CHARM"],		 	value = 9 },
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_CYCLONE"], 		value = 10 },
@@ -8094,73 +10674,72 @@ function Action.ToggleMainUI()
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_STUN"], 			value = 28 },
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_SILENCE"], 		value = 29 },
 				{ text = _G["LOSS_OF_CONTROL_DISPLAY_FEAR"], 			value = 30 },
-			}, nil, true)
+			}, nil, true, true)
 			LossOfControlTypes:SetPlaceholder(" -- " .. L["NO"] .. " -- ") 
-			for i = 1, #LossOfControlTypes.optsFrame.scrollChild.items do 
-				LossOfControlTypes.optsFrame.scrollChild.items[i]:SetChecked(TMWdb.profile.ActionDB[tab.name].LossOfControlTypes[i])
-			end 			
-			LossOfControlTypes.OnValueChanged = function(self, value)			
-				for i = 1, #self.optsFrame.scrollChild.items do 					
-					if TMWdb.profile.ActionDB[tab.name].LossOfControlTypes[i] ~= self.optsFrame.scrollChild.items[i]:GetChecked() then
-						TMWdb.profile.ActionDB[tab.name].LossOfControlTypes[i] = self.optsFrame.scrollChild.items[i]:GetChecked()
-						Action.Print(L["TAB"][tab.name]["LOSSOFCONTROLTYPES"] .. " " .. self:FindValueText(i) .. ": ", TMWdb.profile.ActionDB[tab.name].LossOfControlTypes[i])
+			for i, v in ipairs(LossOfControlTypes.optsFrame.scrollChild.items) do 
+				v:SetChecked(tabDB.LossOfControlTypes[i])
+			end			
+			LossOfControlTypes.OnValueChanged = function(self, value)	
+				for i, v in ipairs(self.optsFrame.scrollChild.items) do 					
+					if tabDB.LossOfControlTypes[i] ~= v:GetChecked() then
+						tabDB.LossOfControlTypes[i] = v:GetChecked()
+						Action.Print(L["TAB"][tabName]["LOSSOFCONTROLTYPES"] .. " " .. self:FindValueText(i) .. ": ", tabDB.LossOfControlTypes[i])
 					end 				
-				end 	
+				end 					
 				Action.LossOfControl:UpdateFrameData()	
 			end				
 			LossOfControlTypes:RegisterForClicks("LeftButtonUp")
-			LossOfControlTypes:SetScript('OnClick', function(self, button, down)
+			LossOfControlTypes:SetScript("OnClick", function(self, button, down)
 				if button == "LeftButton" then 
 					self:ToggleOptions()
 				end
 			end)		
 			LossOfControlTypes.Identify = { Type = "Dropdown", Toggle = "LossOfControlTypes" }			
-			LossOfControlTypes.FontStringTitle = StdUi:Subtitle(LossOfControlTypes, L["TAB"][tab.name]["LOSSOFCONTROLTYPES"])
+			LossOfControlTypes.FontStringTitle = StdUi:Subtitle(LossOfControlTypes, L["TAB"][tabName]["LOSSOFCONTROLTYPES"])
 			StdUi:GlueAbove(LossOfControlTypes.FontStringTitle, LossOfControlTypes)
 			LossOfControlTypes.text:SetJustifyH("CENTER")
 			
 			local GlobalOverlay = anchor:AddRow()					
 			GlobalOverlay:AddElement(PvEPvPToggle, { column = 5.35 })			
-			GlobalOverlay:AddElement(LayoutSpace(anchor), { column = 0.65 })	
-			GlobalOverlay:AddElement(anchor.InterfaceLanguage, { column = 6 })			
+			GlobalOverlay:AddElement(StdUi:LayoutSpace(anchor), { column = 0.65 })	
+			GlobalOverlay:AddElement(InterfaceLanguage, { column = 6 })			
 			anchor:AddRow({ margin = { top = 10 } }):AddElements(ReTarget, Trinkets, { column = "even" })			
 			anchor:AddRow():AddElements(Role, Burst, { column = "even" })			
 			local SpecialRow = anchor:AddRow()
 			SpecialRow:AddElement(FPS, { column = 6 })
 			SpecialRow:AddElement(HealthStone, { column = 6 })
-			anchor:AddRow({ margin = { top = 10 } }):AddElements(AutoTarget, LosSystem, { column = "even" })
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(Potion, DBMFrame, { column = "even" })			
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(Racial, HE_PetsFrame, { column = "even" })
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(StopCast, HE_AnyRole, { column = "even" })	
-			anchor:AddRow({ margin = { top = -5 } }):AddElements(AutoAttack, HE_ToggleFrame, { column = "even" })
-			anchor:AddRow({ margin = { top = -10 } }):AddElements(AutoShoot, StopAtBreakAble, { column = "even" })
+			anchor:AddRow({ margin = { top = 10 } }):AddElements(AutoTarget, LosSystem, 		{ column = "even" })
+			anchor:AddRow({ margin = { top = -5 } }):AddElements(Potion, BossMods, 				{ column = "even" })			
+			anchor:AddRow({ margin = { top = -5 } }):AddElements(Racial, StopCast, 				{ column = "even" })
+			anchor:AddRow({ margin = { top = -5 } }):AddElements(AutoAttack, StopAtBreakAble, 	{ column = "even" })	
+			anchor:AddRow({ margin = { top = -5 } }):AddElements(AutoShoot, HE_AnyRole, 		{ column = "even" })	
 			anchor:AddRow():AddElements(Color.Title, { column = "even" })	
 			anchor:AddRow({ margin = { top = -10 } }):AddElements(Color.UseColor, Color.Picker, { column = "even" })	
 			anchor:AddRow():AddElements(Color.Element, Color.Option, { column = "even" })	
 			local ThemeRow = anchor:AddRow({ margin = { top = 5 }})
 			ThemeRow:AddElement(Color.Theme, { column = 9 })
-			ThemeRow:AddElement(Color.ThemeApplyButton, { column = 3})
+			ThemeRow:AddElement(Color.ThemeApplyButton, { column = 3 })
 			anchor:AddRow():AddElement(PauseChecksPanel)		
-			PauseChecksPanel:AddRow({ margin = { top = 10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
+			PauseChecksPanel:AddRow():AddElement(PauseChecksPanel.titlePanel.label, { column = 12 })
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckSpellIsTargeting, CheckLootFrame, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckEatingOrDrinking, CheckDeadOrGhost, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckMount, CheckDeadOrGhostTarget, { column = "even" })	
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckCombat, LayoutSpace(anchor), { column = "even" })	
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(CheckCombat, StdUi:LayoutSpace(anchor), { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -15 } }):AddElement(Misc)		
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableRotationDisplay, DisableBlackBackground, { column = "even" })	
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisablePrint, DisableMinimap, { column = "even" })			
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableClassPortraits, DisableRotationModes, { column = "even" })		
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(DisableSounds, HideOnScreenshot, { column = "even" })	
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(cameraDistanceMaxZoomFactor, LayoutSpace(anchor), { column = "even" })
-			PauseChecksPanel:AddRow({ margin = { top = -5 } }):AddElement(Tools)
-			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LetMeCast, TargetCastBar, { column = "even" })
+			PauseChecksPanel:AddRow({ margin = { top = -5  } }):AddElement(Tools)
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LetMeCast, LetMeDrag, { column = "even" })
+			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(cameraDistanceMaxZoomFactor, TargetCastBar, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(TargetPercentHealth, TargetRealHealth, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(AuraCCPortrait, AuraDurationCheckbox, { column = "even" })
 			PauseChecksPanel:AddRow({ margin = { top = -10 } }):AddElements(LossOfControlPlayerFrame, LossOfControlRotationFrame, { column = "even" })
-			PauseChecksPanel:AddRow({ margin = { top = 5 } }):AddElement(LossOfControlTypes)
+			PauseChecksPanel:AddRow({ margin = { top = 5   } }):AddElement(LossOfControlTypes)
 			PauseChecksPanel:DoLayout()		
 			-- Add empty space for scrollframe after all elements 
-			--anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12 })	
-			anchor:AddRow():AddElement(LayoutSpace(anchor), { column = 12, margin = { top = 10 } })	
+			anchor:AddRow():AddElement(StdUi:LayoutSpace(anchor))	
 			-- Fix StdUi 			
 			-- Lib is not optimized for resize since resizer changes only source parent, this is deep child parent 
 			function anchor:DoLayout()
@@ -8177,27 +10756,30 @@ function Action.ToggleMainUI()
 			anchor:DoLayout()
 		end 
 		
-		if tab.name == 2 then 	
-            UI_Title:SetText(Action.PlayerClassName)			
-			tab.title = Action.PlayerClassName
-			tabFrame:DrawButtons()	
-			-- Fix StdUi 
-			-- Lib has missed scrollframe as widget
+		if tabName == 2 then 	
+            -- Fix StdUi 
+			-- Lib has missed scrollframe as widget (need to have function GetChildrenWidgets)
 			StdUi:InitWidget(anchor)
 			
-			if not Action.Data.ProfileUI or not Action.Data.ProfileUI[tab.name] or not next(Action.Data.ProfileUI[tab.name]) then 
+            UI_Title:SetText(specName)			
+			tab.title = specName
+			tabFrame:DrawButtons()	
+			
+			local ProfileUI = ActionData.ProfileUI
+			if not ProfileUI or not ProfileUI[tabName] or not next(ProfileUI[tabName]) then -- Classic hasn't next level table
 				UI_Title:SetText(L["TAB"]["NOTHING"])
 				return 
-			end 				
+			end 
+			local TabProfileUI = ProfileUI[tabName] -- Classic hasn't next level table
 
-			local options = Action.Data.ProfileUI[tab.name].LayoutOptions
+			local options = TabProfileUI.LayoutOptions
 			if options then 
 				if not options.padding then 
 					options.padding = {}
 				end 
 				
 				if not options.padding.top then 
-					options.padding.top = 40 
+					options.padding.top = 35 
 				end 	
 
 				-- Cut out scrollbar 
@@ -8206,65 +10788,74 @@ function Action.ToggleMainUI()
 				elseif options.padding.right < 20 then 
 					options.padding.right = options.padding.right + 20
 				end 
-			end 			
+			end 		
 			
-			StdUi:EasyLayout(anchor, options or { padding = { top = 40, right = 10 + 20 } })			
-			for row = 1, #Action.Data.ProfileUI[tab.name] do 
-				local SpecRow = anchor:AddRow(Action.Data.ProfileUI[tab.name][row].RowOptions)	
-				for element = 1, #Action.Data.ProfileUI[tab.name][row] do 
-					local config = Action.Data.ProfileUI[tab.name][row][element]	
+			StdUi:EasyLayout(anchor, options or { padding = { top = 35, right = 10 + 20 } })
+			local interfaceLanguage = gActionDB.InterfaceLanguage
+			local specRow, obj			
+			for row = 1, #TabProfileUI do 
+				specRow = anchor:AddRow(TabProfileUI[row].RowOptions)	
+				for element = 1, #TabProfileUI[row] do 
+					local config 	= TabProfileUI[row][element]	
+					local cL	 	= (config.L  and (interfaceLanguage and interfaceLanguage ~= "Auto" and config.L[interfaceLanguage]  and interfaceLanguage or config.L[GameLocale]  and GameLocale)) or "enUS"
+					local cTT 		= (config.TT and (interfaceLanguage and interfaceLanguage ~= "Auto" and config.TT[interfaceLanguage] and interfaceLanguage or config.TT[GameLocale] and GameLocale)) or "enUS"	
 					
-					local db_InterfaceLanguage = TMWdb and TMWdb.global.ActionDB and TMWdb.global.ActionDB.InterfaceLanguage
-					local CL = (config.L and (db_InterfaceLanguage and db_InterfaceLanguage ~= "Auto" and config.L[db_InterfaceLanguage] and db_InterfaceLanguage or config.L[GameLocale] and GameLocale)) or "enUS"
-					local CTT = (config.TT and (db_InterfaceLanguage and db_InterfaceLanguage ~= "Auto" and config.TT[db_InterfaceLanguage] and db_InterfaceLanguage or config.TT[GameLocale] and GameLocale)) or "enUS"
-					
-					local obj					
 					if config.E == "Label" then 
-						obj = StdUi:Label(anchor, config.L.ANY or config.L[CL], config.S or 14)
-					elseif config.E == "Header" then 
-						obj = StdUi:Header(anchor, config.L.ANY or config.L[CL])
+						obj = StdUi:Label(anchor, config.L.ANY or config.L[cL], config.S or 14)
+					end
+					
+					if config.E == "Header" then 
+						obj = StdUi:Header(anchor, config.L.ANY or config.L[cL])
 						obj:SetAllPoints()			
 						obj:SetJustifyH("MIDDLE")						
 						obj:SetFontSize(config.S or 14)	
-					elseif config.E == "Button" then 
-						obj = StdUi:Button(anchor, GetWidthByColumn(anchor, math_floor(12 / #Action.Data.ProfileUI[tab.name][row])), config.H or 20, config.L.ANY or config.L[CL])
+					end 
+					
+					if config.E == "Button" then 
+						obj = StdUi:Button(anchor, StdUi:GetWidthByColumn(anchor, math_floor(12 / #TabProfileUI[row])), config.H or 20, config.L.ANY or config.L[cL])
 						obj:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-						obj:SetScript("OnClick", function(self, button, down)
-							if not self.isDisabled then 
-								config.OnClick(self, button, down) 
-							end 
-						end)
-						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
-						--obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[CL])
+						if config.OnClick then 
+							obj:SetScript("OnClick", function(self, button, down)
+								if not self.isDisabled then 
+									config.OnClick(self, button, down) 
+								end 
+							end)
+						end 
+						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[cTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
+						--obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[cL])
 						--StdUi:GlueAbove(obj.FontStringTitle, obj)
 						if config.isDisabled then 
 							obj:Disable()
 						end 
-					elseif config.E == "Checkbox" then 						
-						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[CL], 35)
-						obj:SetChecked(TMWdb.profile.ActionDB[tab.name][config.DB])
+					end 
+					
+					if config.E == "Checkbox" then 						
+						obj = StdUi:Checkbox(anchor, config.L.ANY or config.L[cL])
+						obj:SetChecked(specDB[config.DB])
 						obj:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 						obj:SetScript("OnClick", function(self, button, down)	
 							if not self.isDisabled then 	
 								if button == "LeftButton" then 
-									TMWdb.profile.ActionDB[tab.name][config.DB] = not TMWdb.profile.ActionDB[tab.name][config.DB]
-									self:SetChecked(TMWdb.profile.ActionDB[tab.name][config.DB])	
-									if strlowerCache[self.Identify.Toggle] == "aoe" then 
+									specDB[config.DB] = not specDB[config.DB]
+									self:SetChecked(specDB[config.DB])	
+									if config.DB == "AoE" then 
 										TMW:Fire("TMW_ACTION_AOE_CHANGED")
 										TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED") -- Taste's callback 
 									end 
-									Action.Print((config.L.ANY or config.L[CL]) .. ": ", TMWdb.profile.ActionDB[tab.name][config.DB])	
+									Action.Print((config.L.ANY or config.L[cL]) .. ": ", specDB[config.DB])	
 								elseif button == "RightButton" and config.M then 
-									CraftMacro( config.L.ANY or config.L[CL], config.M.Custom or ([[/run Action.SetToggle({]] .. (config.M.TabN or tab.name) .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[CL]) .. [[: "}, ]] .. (config.M.Value or "nil") .. [[)]]), 1 )	
+									Action.CraftMacro( config.L.ANY or config.L[cL], config.M.Custom or ([[/run Action.SetToggle({]] .. (config.M.TabN or tabName) .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[cL]) .. [[: "}, ]] .. (config.M.Value or "nil") .. [[)]]), 1 )	
 								end 
 							end
 						end)
 						obj.Identify = { Type = config.E, Toggle = config.DB }
-						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
+						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[cTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)
 						if config.isDisabled then 
 							obj:Disable()
 						end 
-					elseif config.E == "Dropdown" then
+					end 
+					
+					if config.E == "Dropdown" then
 						-- Get formated by localization in OT
 						local FormatedOT 
 						for p = 1, #config.OT do 
@@ -8274,37 +10865,37 @@ function Action.ToggleMainUI()
 									if type(config.OT[j].text) ~= "table" then 
 										FormatedOT[#FormatedOT + 1] = config.OT[j]
 									else
-										local OT = db_InterfaceLanguage and db_InterfaceLanguage ~= "Auto" and config.OT[j].text[db_InterfaceLanguage] and db_InterfaceLanguage or config.OT[j].text[GameLocale] and GameLocale or "enUS"
+										local OT = interfaceLanguage and interfaceLanguage ~= "Auto" and config.OT[j].text[interfaceLanguage] and interfaceLanguage or config.OT[j].text[GameLocale] and GameLocale or "enUS"
 										FormatedOT[#FormatedOT + 1] = { text = config.OT[j].text.ANY or config.OT[j].text[OT], value = config.OT[j].value }
 									end 
 								end
 								break 
 							end 
 						end 
-						obj = StdUi:Dropdown(anchor, GetWidthByColumn(anchor, math_floor(12 / #Action.Data.ProfileUI[tab.name][row])), config.H or 20, FormatedOT or config.OT, nil, config.MULT)
+						obj = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, math_floor(12 / #TabProfileUI[row])), config.H or 20, FormatedOT or config.OT, nil, config.MULT, config.MULT or false)
 						if config.SetPlaceholder then 
-							obj:SetPlaceholder(config.SetPlaceholder.ANY or config.SetPlaceholder[CL])
+							obj:SetPlaceholder(config.SetPlaceholder.ANY or config.SetPlaceholder[cL])
 						end 
 						if config.MULT then 
-							for i = 1, #obj.optsFrame.scrollChild.items do 
-								obj.optsFrame.scrollChild.items[i]:SetChecked(TMWdb.profile.ActionDB[tab.name][config.DB][i])
+							for i, v in ipairs(obj.optsFrame.scrollChild.items) do 
+								v:SetChecked(specDB[config.DB][i])
 							end
 							obj.OnValueChanged = function(self, value)			
-								for i = 1, #self.optsFrame.scrollChild.items do 					
-									if TMWdb.profile.ActionDB[tab.name][config.DB][i] ~= self.optsFrame.scrollChild.items[i]:GetChecked() then
-										TMWdb.profile.ActionDB[tab.name][config.DB][i] = self.optsFrame.scrollChild.items[i]:GetChecked()
-										Action.Print((config.L.ANY or config.L[CL]) .. " " .. i .. ": ", TMWdb.profile.ActionDB[tab.name][config.DB][i])
+								for i, v in ipairs(self.optsFrame.scrollChild.items) do 					
+									if specDB[config.DB][i] ~= v:GetChecked() then
+										specDB[config.DB][i] = v:GetChecked()
+										Action.Print((config.L.ANY or config.L[cL]) .. ": " .. self.options[i].text .. " = ", specDB[config.DB][i])
 									end 				
 								end 				
 							end
 						else 
-							obj:SetValue(TMWdb.profile.ActionDB[tab.name][config.DB])
+							obj:SetValue(specDB[config.DB])
 							obj.OnValueChanged = function(self, val)                
-								TMWdb.profile.ActionDB[tab.name][config.DB] = val 
+								specDB[config.DB] = val 
 								if (config.isNotEqualVal and val ~= config.isNotEqualVal) or (config.isNotEqualVal == nil and val ~= "Off" and val ~= "OFF" and val ~= 0) then 
-									ActionDataTG[config.DB] = val
+									ActionData.TG[config.DB] = val
 								end 
-								Action.Print((config.L.ANY or config.L[CL]) .. ": ", TMWdb.profile.ActionDB[tab.name][config.DB])
+								Action.Print((config.L.ANY or config.L[cL]) .. ": ", specDB[config.DB])
 							end
 						end 
 						obj:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -8313,40 +10904,42 @@ function Action.ToggleMainUI()
 								if button == "LeftButton" then 
 									self:ToggleOptions()
 								elseif button == "RightButton" and config.M then 
-									CraftMacro( config.L.ANY or config.L[CL], config.M.Custom or ([[/run Action.SetToggle({]] .. (config.M.TabN or tab.name) .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[CL]) .. [[: "}, ]] .. (config.M.Value or (not config.MULT and obj:GetValue() and ([["]] .. obj:GetValue() .. [["]])) or "nil") .. [[)]]), 1 )								
+									Action.CraftMacro( config.L.ANY or config.L[cL], config.M.Custom or ([[/run Action.SetToggle({]] .. (config.M.TabN or tabName) .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[cL]) .. [[: "}, ]] .. (config.M.Value or (not config.MULT and self:GetValue() and ([["]] .. self:GetValue() .. [["]])) or "nil") .. [[)]]), 1 )								
 								end
 							end
 						end)
 						obj.Identify = { Type = config.E, Toggle = config.DB }
-						obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[CL])
+						obj.FontStringTitle = StdUi:Subtitle(obj, config.L.ANY or config.L[cL])
 						obj.FontStringTitle:SetJustifyH("CENTER")
 						obj.text:SetJustifyH("CENTER")
 						StdUi:GlueAbove(obj.FontStringTitle, obj)						
-						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)	
+						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[cTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)	
 						if config.isDisabled then 
 							obj:Disable()
 						end 
-					elseif config.E == "Slider" then	
-						obj = StdUi:Slider(anchor, math_floor(12 / #Action.Data.ProfileUI[tab.name][row]), config.H or 20, TMWdb.profile.ActionDB[tab.name][config.DB], false, config.MIN or -1, config.MAX or 100)	
+					end 
+					
+					if config.E == "Slider" then	
+						obj = StdUi:Slider(anchor, math_floor(12 / #TabProfileUI[row]), config.H or 20, specDB[config.DB], false, config.MIN or -1, config.MAX or 100)	
 						if config.Precision then 
 							obj:SetPrecision(config.Precision)
 						end
 						if config.M then 
 							obj:SetScript("OnMouseUp", function(self, button, down)
 									if button == "RightButton" then 
-										CraftMacro( config.L.ANY or config.L[CL], [[/run Action.SetToggle({]] .. tab.name .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[CL]) .. [[: "}, ]] .. TMWdb.profile.ActionDB[tab.name][config.DB] .. [[)]], 1 )	
+										Action.CraftMacro( config.L.ANY or config.L[cL], [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[cL]) .. [[: "}, ]] .. specDB[config.DB] .. [[)]], 1 )	
 									end					
 							end)
 						end 
-						local function ONOFF(value)
+						local ONOFF = function(value)
 							if config.ONLYON then 
-								return (config.L.ANY or config.L[CL]) .. ": |cff00ff00" .. (value >= config.MAX and "|cff00ff00AUTO|r" or value)
+								return (config.L.ANY or config.L[cL]) .. ": |cff00ff00" .. (value >= config.MAX and "|cff00ff00AUTO|r" or value)
 							elseif config.ONLYOFF then 
-								return (config.L.ANY or config.L[CL]) .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value)
+								return (config.L.ANY or config.L[cL]) .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value)
 							elseif config.ONOFF then 
-								return (config.L.ANY or config.L[CL]) .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value >= config.MAX and "|cff00ff00AUTO|r" or value)
+								return (config.L.ANY or config.L[cL]) .. ": |cff00ff00" .. (value < 0 and "|cffff0000OFF|r" or value >= config.MAX and "|cff00ff00AUTO|r" or value)
 							else
-								return (config.L.ANY or config.L[CL]) .. ": |cff00ff00" .. value .. "|r"
+								return (config.L.ANY or config.L[cL]) .. ": |cff00ff00" .. value .. "|r"
 							end 
 						end 
 						obj.OnValueChanged = function(self, value)
@@ -8355,29 +10948,29 @@ function Action.ToggleMainUI()
 							elseif value < 0 then 
 								value = config.MIN or -1
 							end
-							TMWdb.profile.ActionDB[tab.name][config.DB] = value
+							specDB[config.DB] = value
 							self.FontStringTitle:SetText(ONOFF(value))
 						end
 						obj.Identify = { Type = config.E, Toggle = config.DB }						
-						obj.FontStringTitle = StdUi:Subtitle(obj, ONOFF(TMWdb.profile.ActionDB[tab.name][config.DB]))
+						obj.FontStringTitle = StdUi:Subtitle(obj, ONOFF(specDB[config.DB]))
 						obj.FontStringTitle:SetJustifyH("CENTER")						
 						StdUi:GlueAbove(obj.FontStringTitle, obj)						
-						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[CTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)						
-					elseif config.E == "LayoutSpace" then	
-						obj = LayoutSpace(anchor)
+						StdUi:FrameTooltip(obj, (config.TT and (config.TT.ANY or config.TT[cTT])) or config.M and L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOM", true)						
+					end 
+					
+					if config.E == "LayoutSpace" then	
+						obj = StdUi:LayoutSpace(anchor)
 					end 
 					
 					local margin = config.ElementOptions and config.ElementOptions.margin or { top = 10 } 					
-					SpecRow:AddElement(obj, { column = math_floor(12 / #Action.Data.ProfileUI[tab.name][row]), margin = margin })
+					specRow:AddElement(obj, { column = math_floor(12 / #TabProfileUI[row]), margin = margin })
 				end
 			end
 			
 			-- Add some empty space after all elements 
-			if #Action.Data.ProfileUI[tab.name] > 12 then 
+			if #TabProfileUI > 12 then 
 				for row = 1, 2 do 
-					local SpecRow = anchor:AddRow()		
-					local obj = LayoutSpace(anchor)
-					SpecRow:AddElement(obj, { column = 12, margin = { top = 10 } })
+					anchor:AddRow():AddElement(StdUi:LayoutSpace(anchor), { column = 12, margin = { top = 10 } })	
 				end 
 			end 
 			
@@ -8394,150 +10987,118 @@ function Action.ToggleMainUI()
 				end
 			end			
 
-			anchor:DoLayout()	
+			anchor:DoLayout()
 		end 
 		
-		if tab.name == 3 then 
-			if not Action[Action.PlayerClass] then 
+		if tabName == 3 then
+			if not Action[specID] then -- specID is Action.PlayerClass 
 				UI_Title:SetText(L["TAB"]["NOTHING"])
-				return 
+				return
 			end 
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])
+			UI_Title:SetText(L["TAB"][tabName]["HEADTITLE"])
+			StdUi:EasyLayout(anchor, { padding = { top = 50 } })	
 			
-			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 50 } })	
-			local QLuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height - 3, "QLUA")
-			QLuaButton.FontStringLUA = StdUi:Subtitle(QLuaButton, ActionDatatheme.off)
-			local QLuaEditor = CreateLuaEditor(tab.childs[spec], "QUEUE " .. L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
-			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height - 3, "LUA")
-			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
-			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
-			local Key = StdUi:SimpleEditBox(tab.childs[spec], 50, ActionDatatheme.dd.height, "")							
-						
-			local hasdata = {}			
-			local function OnPairs(k, v, ToggleAutoHidden)
-				if type(v) == "table" and not v.Hidden and v.Type and v.ID and v.Desc then 
-					local Enabled = "True"
-					if v:IsBlocked() then 
-						Enabled = "False"
+			local Scroll, ScrollTable, Key, SetQueue, SetBlocker, LuaButton, LuaEditor, QLuaButton, QLuaEditor, AutoHidden
+			
+			local AutoHiddenEvents				= {
+				--["ACTIVE_TALENT_GROUP_CHANGED"]	= true, -- Not exist in Classic 
+				["BAG_UPDATE"]					= true,
+				["BAG_UPDATE_COOLDOWN"]			= true,
+				["PLAYER_EQUIPMENT_CHANGED"]	= true,
+				["UNIT_INVENTORY_CHANGED"]		= true,
+				--["UI_INFO_MESSAGE"]			= true, -- Classic: No war mode 
+				--["UNIT_PET"] 					= true, -- Replaced by callbacks "TMW_ACTION_PET_LIBRARY_MAIN_PET_UP" and "TMW_ACTION_PET_LIBRARY_MAIN_PET_DOWN"
+				--["PLAYER_LEVEL_UP"]			= true,	-- Classic: Spells are learn able only by teachers
+			}
+			local AutoHiddenToggle				= function()
+				local script 					= ScrollTable:GetScript("OnEvent")
+				if Action.GetToggle(tabName, "AutoHidden") then 
+					-- Registers events 
+					for k in pairs(AutoHiddenEvents) do 
+						ScrollTable:RegisterEvent(k)
 					end 
 					
-					local isShown = true 
-					-- AutoHidden unavailable 
-					if ToggleAutoHidden and v.ID ~= ACTION_CONST_PICKPOCKET then 								
-						if v.Type == "SwapEquip" then 
-							if not v:IsExists() then 
-								isShown = false 
-							end 
-						elseif v.Type == "Spell" then 															
-							if not v:IsExists() or v:IsBlockedBySpellBook() then 
-								isShown = false 
-							end 
-						else 
-							if v.Type == "Trinket" then 
-								if not v:GetEquipped() then 
-									isShown = false 
-								end 
-							else 
-								if v:GetCount() <= 0 or not v:GetEquipped() then 
-									isShown = false 
-								end 
-							end								
-						end 
-					end 
-					
-					if isShown then 
-						tinsert(hasdata, setmetatable({ 
-							Enabled = Enabled, 				
-							Name = v:Info(),
-							Icon = v:Icon(),
-							TableKeyName = k,
-						}, { __index = Action[Action.PlayerClass][k] or Action }))
-					end 
-				end			
-			end 			
-			local function ScrollTableActionsData()
-				wipe(hasdata)
-				local ToggleAutoHidden = Action.GetToggle(tab.name, "AutoHidden")
-				if Action[Action.PlayerClass] then 					
-					for k, v in pairs(Action[Action.PlayerClass]) do 
-						OnPairs(k, v, ToggleAutoHidden)
-					end
-				end 
-				for k, v in pairs(Action) do 
-					OnPairs(k, v, ToggleAutoHidden)
-				end
-				return hasdata
-			end							
-			local function ScrollTableUpdateData()
-				local fspec = Action.PlayerClass .. CL
-				
-				tab.childs[fspec].ScrollTable:SetData(ScrollTableActionsData())
-				tab.childs[fspec].ScrollTable:SortData(tab.childs[fspec].ScrollTable.SORTBY)
-			end 	
-			local function ScrollTableUpdateSelection()
-				local fspec = Action.PlayerClass .. CL
-				
-				local index = tab.childs[fspec].ScrollTable:GetSelection()
-				if not index then 
-					Key:SetText("")
-					Key:ClearFocus() 
+					-- Registers callback (Classic: Callback fires in the next priority talents -> spellbook)				
+					TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", 			script)
+					TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", 		script)
+					TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_DOWN", 	script)
 				else 
-					local data = tab.childs[fspec].ScrollTable:GetRow(index)
-					if data then 
-						if data.TableKeyName ~= Key:GetText() then 
-							Key:SetText(data.TableKeyName)
-						end 
-					else 
-						Key:SetText("")
-						Key:ClearFocus() 
+					-- Unregisters events 
+					for k in pairs(AutoHiddenEvents) do 
+						ScrollTable:UnregisterEvent(k)
 					end 
+					
+					-- Unregisters callback 
+					TMW:UnregisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", 		script)
+					TMW:UnregisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", 	script)
+					TMW:UnregisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_DOWN",  script)
 				end 
-			end 			
-			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
-				if button == "LeftButton" then		
-					local luaCode = rowData:GetLUA() or ""
-					LuaEditor.EditBox:SetText(luaCode)
-					if luaCode and luaCode ~= "" then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
-					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
-					end 
-					
-					local QluaCode = rowData:GetQLUA() or ""
-					QLuaEditor.EditBox:SetText(QluaCode)
-					if QluaCode and QluaCode ~= "" then 
-						QLuaButton.FontStringLUA:SetText(ActionDatatheme.on)
-					else 
-						QLuaButton.FontStringLUA:SetText(ActionDatatheme.off)
-					end 					
-					
-					Key:SetText(rowData.TableKeyName)
-					Key:ClearFocus()
-					
-					if columnData.index == "Enabled" then
-						rowData:SetBlocker()
-						tab.childs[spec].ScrollTable:ClearSelection()
-					end 
-				end 				
-			end 
-			
-			tab.childs[spec].ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
+			end 						
+						
+			-- UI: Scroll
+			Scroll 						= setmetatable({
+				OnClickCell 			= function(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
+					if button == "LeftButton" then		
+						local luaCode = rowData:GetLUA() or ""
+						LuaEditor.EditBox:SetText(luaCode)
+						if luaCode and luaCode ~= "" then 
+							LuaButton.FontStringLUA:SetText(themeON)
+						else 
+							LuaButton.FontStringLUA:SetText(themeOFF)
+						end 
+						
+						local QluaCode = rowData:GetQLUA() or ""
+						QLuaEditor.EditBox:SetText(QluaCode)
+						if QluaCode and QluaCode ~= "" then 
+							QLuaButton.FontStringLUA:SetText(themeON)
+						else 
+							QLuaButton.FontStringLUA:SetText(themeOFF)
+						end 					
+						
+						Key:SetText(rowData.TableKeyName)
+						Key:ClearFocus()
+						
+						if columnData.index == "Enabled" then
+							rowData:SetBlocker()
+							table:ClearSelection()
+						elseif IsShiftKeyDown() then
+							local actionLink 
+							if BindPadFrame and BindPadFrame:IsVisible() then 
+								actionLink = rowData:Info()
+							else 
+								actionLink = rowData:Link()
+							end 
+							
+							ChatEdit_InsertLink(actionLink)				
+						end 
+					end
+				end,
+				OnClickHeader 			= function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
+					if button == "LeftButton" then
+						ScrollTable.SORTBY = columnIndex
+						Key:ClearFocus()	
+					end	
+				end, 
+				ColorTrue 				= { r = 0, g = 1, b = 0, a = 1 },
+				ColorFalse 				= { r = 1, g = 0, b = 0, a = 1 },
+			}, { __index 				= function(t, v) return t.Table[v] end })
+			Scroll.Table 				= StdUi:ScrollTable(anchor, {
                 {
-                    name = L["TAB"][tab.name]["ENABLED"],
+                    name = L["TAB"][tabName]["ENABLED"],
                     width = 70,
                     align = "LEFT",
                     index = "Enabled",
                     format = "string",
                     color = function(table, value, rowData, columnData)
                         if value == "True" then
-                            return { r = 0, g = 1, b = 0, a = 1 }
+                            return Scroll.ColorTrue
                         end
                         if value == "False" then
-                            return { r = 1, g = 0, b = 0, a = 1 }
+                            return Scroll.ColorFalse
                         end
                     end,
 					events = {
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
                 {
@@ -8547,32 +11108,36 @@ function Action.ToggleMainUI()
                     index = "ID",
                     format = "number",  
 					events = {
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
                 {
-                    name = L["TAB"][tab.name]["NAME"],
+                    name = L["TAB"][tabName]["NAME"],
                     width = 197,
 					defaultwidth = 197,
+					resizeDivider = 2,
+					defaultSort = "dsc",
                     align = "LEFT",
                     index = "Name",
                     format = "string",
 					events = {
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
 				{
-                    name = L["TAB"][tab.name]["DESC"],
+                    name = L["TAB"][tabName]["DESC"],
                     width = 90,
+					defaultwidth = 90,
+					resizeDivider = 2,
                     align = "LEFT",
                     index = "Desc",
                     format = "string",
 					events = {
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
                 {
-                    name = L["TAB"][tab.name]["ICON"],
+                    name = L["TAB"][tabName]["ICON"],
                     width = 50,
                     align = "LEFT",
                     index = "Icon",
@@ -8580,104 +11145,151 @@ function Action.ToggleMainUI()
                     sortable = false,
                     events = {
                         OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
-                            ShowTooltip(cellFrame, true, rowData.ID, rowData.Type)    							
+                            StdUi:ShowTooltip(cellFrame, true, rowData.ID, rowData.Type)    							
                         end,
                         OnLeave = function(rowFrame, cellFrame)
-                            ShowTooltip(cellFrame, false)   							
+                            StdUi:ShowTooltip(cellFrame, false)   							
                         end,
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
                     },
                 },
             }, 16, 25)
-			local headerEvents = {
-				OnClick = function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
-					if button == "LeftButton" then
-						tab.childs[spec].ScrollTable.SORTBY = columnIndex
-						Key:ClearFocus()	
-					end	
-				end, 
-			}
-			tab.childs[spec].ScrollTable:RegisterEvents(nil, headerEvents)
-			tab.childs[spec].ScrollTable.SORTBY = 3
-			tab.childs[spec].ScrollTable.defaultrows = { numberOfRows = tab.childs[spec].ScrollTable.numberOfRows, rowHeight = tab.childs[spec].ScrollTable.rowHeight }
-            tab.childs[spec].ScrollTable:EnableSelection(true)  
-			tab.childs[spec].ScrollTable:SetScript("OnShow", function(self)			
-				ScrollTableUpdateData()
-				ScrollTableUpdateSelection()				
-			end)
-
-			-- AutoHidden update ScrollTable events 			
-			local EVENTS = {
-				--["UNIT_PET"] 						= true,
-				--["PLAYER_LEVEL_UP"]				= true,
-				--["CHARACTER_POINTS_CHANGED"]		= true,
-				--["CONFIRM_TALENT_WIPE"]			= true,
-				["BAG_UPDATE_DELAYED"]				= true,
-				["PLAYER_EQUIPMENT_CHANGED"]		= true,
-				--["LEARNED_SPELL_IN_TAB"]			= true, 
-			}
-			tab.childs[spec].ScrollTable.OnCallback = function()
-				if tab.childs[spec] and tab.childs[spec].ScrollTable and tab.childs[spec].ScrollTable:IsVisible() and TMW.time ~= tab.childs[spec].ScrollTable.ts and Action.GetToggle(tab.name, "AutoHidden") then 
-					tab.childs[spec].ScrollTable.ts = TMW.time
-					ScrollTableUpdateData()
-					ScrollTableUpdateSelection()
-				end 
+			ScrollTable					= Scroll.Table 	-- Shortcut
+			anchor.ScrollTable 			= ScrollTable 	-- For SetBlocker reference					
+			ScrollTable.defaultrows 	= { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
+			ScrollTable.Data 			= {}
+			ScrollTable.SORTBY 			= 3
+			ScrollTable:SortData(ScrollTable.SORTBY)
+			ScrollTable:SortData(ScrollTable.SORTBY)
+			ScrollTable:RegisterEvents(nil, { OnClick = Scroll.OnClickHeader })
+            ScrollTable:EnableSelection(true)			
+			ScrollTable.OnPairs			= function(self, k, v, isAutoHidden)
+				if type(v) == "table" and not v.Hidden and v.Type and v.ID and v.Desc then  
+					local Enabled = v:IsBlocked() and "False" or "True"
+					local isShown = true 
+					
+					-- AutoHidden unavailable 
+					if isAutoHidden and v.ID ~= ActionConst.PICKPOCKET then 								
+						if v.Type == "SwapEquip" then 
+							if not v:IsExists() then 
+								isShown = false 
+							end 
+						elseif v.Type == "Spell" then 															
+							if not v:IsExists(v.isReplacement) or v:IsBlockedBySpellBook() or (v.isTalent and not v:IsSpellLearned()) then 
+								isShown = false 
+							end 
+						else 
+							if v.Type == "Trinket" then 
+								if not v:GetEquipped() then 
+									isShown = false 
+								end 
+							else 
+								if not (v:GetCount() > 0 or v:GetEquipped()) then 
+									isShown = false 
+								end 
+							end								
+						end 
+					end 
+					
+					if isShown then 
+						tinsert(self.Data, setmetatable({ 
+							Enabled = Enabled, 				
+							Name = (v:Info()),
+							Icon = (v:Icon()),
+							TableKeyName = k,
+						}, { __index = Action[specID][k] or Action }))
+					end 
+				end
 			end 
+			ScrollTable.MakeUpdate		= function(self)
+				local isAutoHidden 		= Action.GetToggle(tabName, "AutoHidden")
 				
-			local function EventsAndCallbacksInit() 
-				if Action.GetToggle(tab.name, "AutoHidden") then 
-					-- Registers events 
-					for k in pairs(EVENTS) do 
-						tab.childs[spec].ScrollTable:RegisterEvent(k)
-					end 
-					
-					-- Registers callback (callback fires in the next priority talents -> spellbook)
-					TMW:RegisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", tab.childs[spec].ScrollTable.OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
+				wipe(ScrollTable.Data)					
+				for k, v in pairs(Action[specID]) do 
+					ScrollTable:OnPairs(k, v, isAutoHidden)
+				end
+				for k, v in pairs(Action) do 
+					ScrollTable:OnPairs(k, v, isAutoHidden)
+				end
+				
+				ScrollTable:SetData(ScrollTable.Data)
+				ScrollTable:SortData(ScrollTable.SORTBY)
+				
+				-- Update selection
+				local index = ScrollTable:GetSelection()
+				if not index then 
+					Key:SetText("")
+					Key:ClearFocus() 
 				else 
-					-- Unregisters events 
-					for k in pairs(EVENTS) do 
-						tab.childs[spec].ScrollTable:UnregisterEvent(k)
+					local data = ScrollTable:GetRow(index)
+					if data then 
+						if data.TableKeyName ~= Key:GetText() then 
+							Key:SetText(data.TableKeyName)
+						end 
+					else 
+						Key:SetText("")
+						Key:ClearFocus() 
 					end 
-					
-					-- Unregisters callback 
-					TMW:UnregisterCallback("TMW_ACTION_SPELL_BOOK_CHANGED", tab.childs[spec].ScrollTable.OnCallback, "TMW_ACTION_SPELL_BOOK_CHANGED_ACTIONS_TAB")
-				end 
-			end 	
-			EventsAndCallbacksInit() 						
-			tab.childs[spec].ScrollTable.ts = 0
-			tab.childs[spec].ScrollTable:SetScript("OnEvent", function(self, event, ...)
-				if self:IsVisible() and TMW.time ~= self.ts and Action.GetToggle(tab.name, "AutoHidden") and EVENTS[event] then 
-					self.ts = TMW.time
-					
+				end
+			end 
+			ScrollTable:SetScript("OnShow", ScrollTable.MakeUpdate)
+			ScrollTable:SetScript("OnEvent", function(self, event, ...)				
+				if ScrollTable:IsVisible() and Action.GetToggle(tabName, "AutoHidden") then 
 					-- Update ScrollTable 
 					-- If pet has been gone or summoned or swaped
-					if event == "UNIT_PET" then 
+					if event == "UNIT_PET" or event == "UNIT_INVENTORY_CHANGED" then 
 						if ... == "player" then 						
-							ScrollTableUpdateData()
+							ScrollTable:MakeUpdate()
 						end 
-					-- If items have been updated 
+					-- If war mode has been changed 
+					--elseif event == "UI_INFO_MESSAGE" then 
+						--if Action.UI_INFO_MESSAGE_IS_WARMODE(...) then 
+							--ScrollTable:MakeUpdate()
+						--end
+					-- If items/talents have been updated 
 					else 		
-						ScrollTableUpdateData()
+						ScrollTable:MakeUpdate()
 					end 
-					
-					ScrollTableUpdateSelection()
+				end  
+			end)
+			hooksecurefunc(ScrollTable, "ClearSelection", function()				
+				LuaEditor.EditBox:SetText("")
+				if LuaEditor:IsShown() then 
+					LuaEditor.closeBtn:Click()
+				end 
+				
+				QLuaEditor.EditBox:SetText("")
+				if QLuaEditor:IsShown() then 
+					QLuaEditor.closeBtn:Click()
+				end 				
+			end)
+			TMW:RegisterCallback("TMW_ACTION_SET_BLOCKER_CHANGED", function(callbackEvent, callbackAction)
+				if ScrollTable:IsVisible() then 
+					local Identify = callbackAction:GetTableKeyIdentify()
+					for i = 1, #ScrollTable.data do 
+						if Identify == ScrollTable.data[i]:GetTableKeyIdentify() then 
+							if callbackAction:IsBlocked() then 
+								ScrollTable.data[i].Enabled = "False"
+							else 
+								ScrollTable.data[i].Enabled = "True"
+							end								 			
+						end 
+					end		
+					ScrollTable:ClearSelection() 
 				end 
 			end)
 			
-			-- If we had return back to this tab then handler will be skipped 
-			if Action.MainUI.RememberTab == tab.name then
-				ScrollTableUpdateData()
-				ScrollTableUpdateSelection()
-			end 
-					
-			Key:SetJustifyH("CENTER")
-			Key.FontString = StdUi:Subtitle(Key, L["TAB"]["KEY"]) 
+			-- UI: Key 
+			Key 						= StdUi:SimpleEditBox(anchor, 150, themeHeight, "")	
+			Key.FontString 				= StdUi:Subtitle(Key, L["TAB"]["KEY"]) 
+			Key:SetJustifyH("CENTER")			
 			Key:SetScript("OnTextChanged", function(self)
-				local index = tab.childs[spec].ScrollTable:GetSelection()				
+				local index = ScrollTable:GetSelection()				
 				if not index then 
+					self:SetText("")
 					return
 				else 
-					local data = tab.childs[spec].ScrollTable:GetRow(index)						
+					local data = ScrollTable:GetRow(index)						
 					if data and data.TableKeyName ~= self:GetText() then 
 						self:SetText(data.TableKeyName)
 					end 
@@ -8690,75 +11302,55 @@ function Action.ToggleMainUI()
 				self:ClearFocus() 
             end)	
 			StdUi:GlueAbove(Key.FontString, Key)		
-			StdUi:FrameTooltip(Key, L["TAB"][tab.name]["KEYTOOLTIP"], nil, "TOP", true)			
+			StdUi:FrameTooltip(Key, L["TAB"][tabName]["KEYTOOLTIP"], nil, "TOP", true)	
 			
-			local AutoHidden = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["AUTOHIDDEN"])		
-			AutoHidden:SetChecked(TMWdb.profile.ActionDB[tab.name].AutoHidden)
-			AutoHidden:RegisterForClicks("LeftButtonUp")
-			AutoHidden.ToggleTable = {tab.name, "AutoHidden", L["TAB"][tab.name]["AUTOHIDDEN"] .. ": "}
-			AutoHidden:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then 
-					if button == "LeftButton" then 				
-						Action.SetToggle(self.ToggleTable)
-						ScrollTableUpdateData()	
-						ScrollTableUpdateSelection()
-						EventsAndCallbacksInit() 						
-					end 
-				end 
-			end)
-			AutoHidden.Identify = { Type = "Checkbox", Toggle = "AutoHidden" }
-			StdUi:FrameTooltip(AutoHidden, L["TAB"][tab.name]["AUTOHIDDENTOOLTIP"], nil, "TOP", true)		
-			
-			local SetBlocker = StdUi:Button(tab.childs[spec], tab.childs[spec]:GetWidth() / 2 - 22, 30, L["TAB"][tab.name]["SETBLOCKER"])
-			SetBlocker:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			SetBlocker:SetScript("OnClick", function(self, button, down)
-				local spec = Action.PlayerClass .. CL
-				local index = tab.childs[spec].ScrollTable:GetSelection()				
-				if not index then 
-					Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
-				else 
-					local data = tab.childs[spec].ScrollTable:GetRow(index)
-					if button == "LeftButton" then 
-						data:SetBlocker()						
-					elseif button == "RightButton" then 						
-						CraftMacro("Block: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroBlocker("]] .. data.TableKeyName .. [[")]], 1, true, true)	
-					end
-				end 
-			end)			         
-            StdUi:FrameTooltip(SetBlocker, L["TAB"][tab.name]["SETBLOCKERTOOLTIP"], nil, "TOPRIGHT", true)
-			
-			local SetQueue = StdUi:Button(tab.childs[spec], tab.childs[spec]:GetWidth() / 2 - 22, 30, L["TAB"][tab.name]["SETQUEUE"])
+			-- UI: SetQueue
+			SetQueue 					= StdUi:Button(anchor, anchor:GetWidth() / 2 + 20, 30, L["TAB"][tabName]["SETQUEUE"])
+			SetQueue.SetToggleOptions 	= { Priority = 1 }
 			SetQueue:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			SetQueue:SetScript("OnClick", function(self, button, down)
-				local spec = Action.PlayerClass .. CL
-				local index = tab.childs[spec].ScrollTable:GetSelection()				
+				local index = ScrollTable:GetSelection()				
 				if not index then 
-					Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
+					Action.Print(L["TAB"][tabName]["SELECTIONERROR"]) 
 				else 
-					local data = tab.childs[spec].ScrollTable:GetRow(index)
-					if data.QueueForbidden or ((data.Type == "Trinket" or data.Type == "Item") and not GetItemSpell(data.ID)) then 
+					local data = ScrollTable:GetRow(index)
+					if data.QueueForbidden or ((data.Type == "Trinket" or data.Type == "Item") and not data:GetItemSpell()) then 
 						Action.Print(L["DEBUG"] .. data:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"])
 					-- I decided unlocked Queue for blocked actions
 					--elseif data:IsBlocked() and not data.Queued then 
 						--Action.Print(L["DEBUG"] .. data:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"])
 					else
 						if button == "LeftButton" then 	
-							Action.MacroQueue(data.TableKeyName, { Priority = 1 })							
+							data:SetQueue(self.SetToggleOptions)							
 						elseif button == "RightButton" then 						
-							CraftMacro("Queue: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroQueue("]] .. data.TableKeyName .. [[", { Priority = 1 })]], 1, true, true)	
+							Action.CraftMacro("Queue: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroQueue("]] .. data.TableKeyName .. [[", { Priority = 1 })]], 1, true, true)	
 						end
 					end 
 				end 
 			end)			         
-            StdUi:FrameTooltip(SetQueue, L["TAB"][tab.name]["SETQUEUETOOLTIP"], nil, "TOPLEFT", true)		
+            StdUi:FrameTooltip(SetQueue, L["TAB"][tabName]["SETQUEUETOOLTIP"], nil, "TOPLEFT", true)	
 			
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(tab.childs[spec].ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = 70 } }):AddElement(Key)
-			tab.childs[spec]:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElement(AutoHidden)
-			tab.childs[spec]:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElements(SetBlocker, SetQueue, { column = "even" })
-			tab.childs[spec]:DoLayout()
+			-- UI: SetBlocker
+			SetBlocker 					= StdUi:Button(anchor, anchor:GetWidth() / 2 + 20, 30, L["TAB"][tabName]["SETBLOCKER"])
+			SetBlocker:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			SetBlocker:SetScript("OnClick", function(self, button, down)
+				local index = ScrollTable:GetSelection()				
+				if not index then 
+					Action.Print(L["TAB"][tabName]["SELECTIONERROR"]) 
+				else 
+					local data = ScrollTable:GetRow(index)
+					if button == "LeftButton" then 
+						data:SetBlocker()						
+					elseif button == "RightButton" then 						
+						Action.CraftMacro("Block: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroBlocker("]] .. data.TableKeyName .. [[")]], 1, true, true)	
+					end
+				end 
+			end)			         
+            StdUi:FrameTooltip(SetBlocker, L["TAB"][tabName]["SETBLOCKERTOOLTIP"], nil, "TOPRIGHT", true)
 			
-			-- Action LUA 
+			-- UI: LuaButton
+			LuaButton 					= StdUi:Button(anchor, 50, themeHeight - 3, "LUA")
+			LuaButton.FontStringLUA 	= StdUi:Subtitle(LuaButton, themeOFF)
 			LuaButton:SetScript("OnClick", function()		
 				if QLuaEditor:IsShown() then 
 					QLuaEditor.closeBtn:Click()
@@ -8766,10 +11358,9 @@ function Action.ToggleMainUI()
 				end 
 				
 				if not LuaEditor:IsShown() then 
-					local fspec = Action.PlayerClass .. CL
-					local index = tab.childs[fspec].ScrollTable:GetSelection()				
+					local index = ScrollTable:GetSelection()				
 					if not index then 
-						Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
+						Action.Print(L["TAB"][tabName]["SELECTIONERROR"]) 
 					else 				
 						LuaEditor:Show()
 					end 
@@ -8779,14 +11370,15 @@ function Action.ToggleMainUI()
 			end)
 			StdUi:GlueAbove(LuaButton, SetQueue, 0, 0, "RIGHT")
 			StdUi:GlueLeft(LuaButton.FontStringLUA, LuaButton, 0, 0)
-
+			
+			-- UI: LuaEditor
+			LuaEditor 					= StdUi:CreateLuaEditor(anchor, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			LuaEditor:HookScript("OnHide", function(self)
-				local fspec = Action.PlayerClass .. CL
-				local index = tab.childs[fspec].ScrollTable:GetSelection()
-				local data = index and tab.childs[fspec].ScrollTable:GetRow(index) or nil
+				local index = ScrollTable:GetSelection()
+				local data = index and ScrollTable:GetRow(index) or nil
 				if not self.EditBox.LuaErrors and data then 
 					local luaCode = self.EditBox:GetText()
-					local Identify = GetTableKeyIdentify(data)
+					local Identify = data:GetTableKeyIdentify()
 					if luaCode == "" then 
 						luaCode = nil 
 					end 
@@ -8794,20 +11386,22 @@ function Action.ToggleMainUI()
 					
 					data:SetLUA(luaCode)
 					if data:GetLUA() then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+						LuaButton.FontStringLUA:SetText(themeON)
 						if isChanged then 
-							Action.Print(L["TAB"][tab.name]["LUAAPPLIED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
+							Action.Print(L["TAB"][tabName]["LUAAPPLIED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
 						end 
 					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)	
+						LuaButton.FontStringLUA:SetText(themeOFF)	
 						if isChanged then 
-							Action.Print(L["TAB"][tab.name]["LUAREMOVED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
+							Action.Print(L["TAB"][tabName]["LUAREMOVED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
 						end 
 					end 
 				end 
 			end)
 			
-			-- Queue LUA
+			-- UI: QLuaButton	
+			QLuaButton					= StdUi:Button(anchor, 50, themeHeight - 3, "QLUA")
+			QLuaButton.FontStringLUA 	= StdUi:Subtitle(QLuaButton, themeOFF)
 			QLuaButton:SetScript("OnClick", function()		
 				if LuaEditor:IsShown() then 
 					LuaEditor.closeBtn:Click()
@@ -8815,13 +11409,12 @@ function Action.ToggleMainUI()
 				end 
 				
 				if not QLuaEditor:IsShown() then 
-					local fspec = Action.PlayerClass .. CL
-					local index = tab.childs[fspec].ScrollTable:GetSelection()				
+					local index = ScrollTable:GetSelection()				
 					if not index then 
-						Action.Print(L["TAB"][tab.name]["SELECTIONERROR"]) 
-					else 			
-						local data = tab.childs[fspec].ScrollTable:GetRow(index)
-						if not data:GetQLUA() and (data.QueueForbidden or ((data.Type == "Trinket" or data.Type == "Item") and not GetItemSpell(data.ID))) then 
+						Action.Print(L["TAB"][tabName]["SELECTIONERROR"]) 
+					else 		
+						local data = ScrollTable:GetRow(index)
+						if not data:GetQLUA() and (data.QueueForbidden or ((data.Type == "Trinket" or data.Type == "Item") and not data:GetItemSpell())) then 
 							Action.Print(L["DEBUG"] .. data:Link() .. " " .. L["TAB"][3]["ISFORBIDDENFORQUEUE"] .. " " .. L["TAB"][3]["KEY"] .. data.TableKeyName .. "]")
 						else 
 							QLuaEditor:Show()
@@ -8833,14 +11426,15 @@ function Action.ToggleMainUI()
 			end)
 			StdUi:GlueAbove(QLuaButton, LuaButton, 0, 0)
 			StdUi:GlueLeft(QLuaButton.FontStringLUA, QLuaButton, 0, 0)
-
+			
+			-- UI: QLuaEditor
+			QLuaEditor					= StdUi:CreateLuaEditor(anchor, "Queue " .. L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"])
 			QLuaEditor:HookScript("OnHide", function(self)
-				local fspec = Action.PlayerClass .. CL
-				local index = tab.childs[fspec].ScrollTable:GetSelection()
-				local data = index and tab.childs[fspec].ScrollTable:GetRow(index) or nil
+				local index = ScrollTable:GetSelection()
+				local data = index and ScrollTable:GetRow(index) or nil
 				if not self.EditBox.LuaErrors and data then 
 					local luaCode = self.EditBox:GetText()
-					local Identify = GetTableKeyIdentify(data)
+					local Identify = data:GetTableKeyIdentify()
 					if luaCode == "" then 
 						luaCode = nil 
 					end 
@@ -8848,166 +11442,423 @@ function Action.ToggleMainUI()
 					
 					data:SetQLUA(luaCode)
 					if data:GetQLUA() then 
-						QLuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+						QLuaButton.FontStringLUA:SetText(themeON)
 						if isChanged then 
-							Action.Print("Queue " .. L["TAB"][tab.name]["LUAAPPLIED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
+							Action.Print("Queue " .. L["TAB"][tabName]["LUAAPPLIED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
 						end 
 					else 
-						QLuaButton.FontStringLUA:SetText(ActionDatatheme.off)	
+						QLuaButton.FontStringLUA:SetText(themeOFF)	
 						if isChanged then 
-							Action.Print("Queue " .. L["TAB"][tab.name]["LUAREMOVED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
+							Action.Print("Queue " .. L["TAB"][tabName]["LUAREMOVED"] .. data:Link() .. " " .. L["TAB"][3]["KEY"] .. Identify .. "]")
 						end 
 					end 
 				end 
-			end)			
-			
-			hooksecurefunc(tab.childs[spec].ScrollTable, "ClearSelection", function()				
-				LuaEditor.EditBox:SetText("")
-				if LuaEditor:IsShown() then 
-					LuaEditor.closeBtn:Click()
-				end 
-				
-				QLuaEditor.EditBox:SetText("")
-				if QLuaEditor:IsShown() then 
-					QLuaEditor.closeBtn:Click()
-				end 				
 			end)
+			
+			-- UI: AutoHidden
+			AutoHiddenToggle() -- Initialize
+			AutoHidden 					= StdUi:Checkbox(anchor, L["TAB"][tabName]["AUTOHIDDEN"])
+			AutoHidden:SetChecked(tabDB.AutoHidden)
+			AutoHidden:RegisterForClicks("LeftButtonUp")
+			AutoHidden.ToggleTable = {tabName, "AutoHidden", L["TAB"][tabName]["AUTOHIDDEN"] .. ": "}
+			AutoHidden:SetScript("OnClick", function(self, button, down)
+				if not self.isDisabled then 
+					if button == "LeftButton" then 					
+						Action.SetToggle(self.ToggleTable)
+						ScrollTable:MakeUpdate()
+						AutoHiddenToggle()
+					end 
+				end 
+			end)
+			AutoHidden.Identify = { Type = "Checkbox", Toggle = "AutoHidden" }
+			StdUi:FrameTooltip(AutoHidden, L["TAB"][tabName]["AUTOHIDDENTOOLTIP"], nil, "TOP", true)				
+
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(ScrollTable)
+			anchor:AddRow({ margin = { left = -15, right = 70 } }):AddElement(Key)
+			anchor:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElement(AutoHidden)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(SetBlocker, SetQueue, { column = "even" })
+			anchor:DoLayout()
+			
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then
+				ScrollTable:MakeUpdate()
+			end 	
 		end 
 		
-		if tab.name == 4 then					
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])			
-
-			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 50 } })
-			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 145, L["TAB"][tab.name]["CONFIGPANEL"])	
-			ConfigPanel.titlePanel.label:SetFontSize(14)
-			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
-			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
-			local KickHealOnlyHealers = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["KICKHEALONLYHEALER"])
-			local KickPvPOnlySmart = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["KICKPVPONLYSMART"]) 
-			local KickHeal = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["KICKHEAL"])
-			local KickPvP = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["KICKPVP"])			
-			local KickTargetMouseover = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["KICKTARGETMOUSEOVER"])
-			local useKick = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEKICK"])
-			local useCC = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USECC"])
-			local useRacial = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USERACIAL"])
-			local InputBox = StdUi:SearchEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tab.name]["SEARCH"])
-			local How = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12), 25, {				
-				{ text = L["TAB"]["GLOBAL"], value = "GLOBAL" },				
-				{ text = L["TAB"]["ALLSPECS"], value = "ALLSPECS" },
-			}, "ALLSPECS")
-			local TargetMouseoverList = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["TARGETMOUSEOVERLIST"])
-			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
-			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
-			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
-			local Add = StdUi:Button(tab.childs[spec], InputBox:GetWidth(), 25, L["TAB"][tab.name]["ADD"])
-			local Remove = StdUi:Button(tab.childs[spec], InputBox:GetWidth(), 25, L["TAB"][tab.name]["REMOVE"])					
-			local InterruptUnits = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), ActionDatatheme.dd.height, {
-				{ text = "BlackList", value = "BlackList" },
-				{ text = "[Main]PvE: @target / @mouseover / @targettarget", value = "PvETargetMouseover" },
-				{ text = "[Main]PvP: @target / @mouseover / @targettarget", value = "PvPTargetMouseover" },				
-				{ text = "[Heal] @arena1-3", value = "Heal" },				
-				{ text = "[PvP] @arena1-3", value = "PvP" },
-			}, (Action.IsInPvP and "PvP" or "PvE") .. "TargetMouseover")	
-			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
-				if button == "LeftButton" then		
-					LuaEditor.EditBox:SetText(rowData.LUA or "")
-					if rowData.LUA and rowData.LUA ~= "" then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
-					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+		if tabName == 4 then					
+			UI_Title:Hide()		
+			StdUi:EasyLayout(anchor)
+						
+			local Category,			Scroll,			SliderMin,			SliderMax,
+				  UseMain, 			UseMouse,		UseHeal, 			UsePvP, 		-- Checkbox (Toggle "Main", "Mouse", "PvP", "Heal" -> Checkbox)
+				  MainAuto, 		MouseAuto,		HealOnlyHealers, 	PvPOnlySmart, 	-- Sub-Checkbox
+				  ConfigPanel, 		ResetButton, 	LuaButton, 			LuaEditor,				  
+				  InputBox, 		How,  			Add, 				Remove		
+			local ScrollTable
+			
+			local function ValidateSliderColor()
+				local min, max = SliderMin:GetValue(), SliderMax:GetValue()				
+				if max - min < 17 then 
+					local category  = Category:GetValue()
+					if tabDB[category].Min and tabDB[category].Max then 
+						SliderMin.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cffff0000" .. min .. "%|r")			 
+						SliderMax.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cffff0000" .. max .. "%|r")	
 					end 
-					InputBox:SetNumber(rowData.ID)
-					InputBox.val = rowData.ID 
-					InputBox:ClearFocus()					
-					useKick:SetChecked(		(columnData.index == "useKickIndex" 	and not rowData.useKick) 	or (columnData.index ~= "useKickIndex" 		and rowData.useKick)	)
-					useCC:SetChecked(		(columnData.index == "useCCIndex" 		and not rowData.useCC) 		or (columnData.index ~= "useCCIndex" 		and rowData.useCC)		)
-					useRacial:SetChecked(	(columnData.index == "useRacialIndex" 	and not rowData.useRacial) 	or (columnData.index ~= "useRacialIndex" 	and rowData.useRacial)	)
-					if columnData.index == "useKickIndex" or columnData.index == "useCCIndex" or columnData.index == "useRacialIndex" then 
-						Action.Print(Action.GetSpellLink(rowData.ID) .. " " .. columnData.name .. ": ", not rowData[columnData.index:gsub("Index", "")])
-						Add:Click()
-						tab.childs[spec].RefferenceScrollTable:ClearSelection()
-					end 
-				end 				
+				else				
+					SliderMin.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cff00ff00" .. min .. "%|r")			 
+					SliderMax.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cff00ff00" .. max .. "%|r")	
+				end 
 			end 
-			local ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
+						
+			local function CheckboxsMakeUpdate()	
+				tab.isUpdatingCheckboxes = true 
+				
+				local category = Category:GetValue()
+		
+				if category == "MainPvE" or category == "MainPvP" then 
+					-- Checkbox 
+					UseMain:Enable()
+					UseMouse:Disable()
+					UseHeal:Disable()
+					UsePvP:Disable()
+					-- Sub-Checkbox
+					if Action.InterruptIsON("Main") then 
+						MainAuto:Enable()
+					else 
+						MainAuto:Disable()
+					end 
+					MouseAuto:Disable()
+					HealOnlyHealers:Disable()
+					PvPOnlySmart:Disable()
+					
+					tab.isUpdatingCheckboxes = nil 
+					return 
+				end 
+				
+				if category == "MousePvE" or category == "MousePvP" then 
+					-- Checkbox 
+					UseMain:Disable()
+					UseMouse:Enable()
+					UseHeal:Disable()
+					UsePvP:Disable()
+					-- Sub-Checkbox
+					MainAuto:Disable()
+					if Action.InterruptIsON("Mouse") then 
+						MouseAuto:Enable()
+					else 
+						MouseAuto:Disable()
+					end 
+					HealOnlyHealers:Disable()
+					PvPOnlySmart:Disable()
+					
+					tab.isUpdatingCheckboxes = nil 
+					return 
+				end 
+				
+				if category == "Heal" then 
+					-- Checkbox 
+					UseMain:Disable()
+					UseMouse:Disable()
+					UseHeal:Enable()
+					UsePvP:Disable()
+					-- Sub-Checkbox
+					MainAuto:Disable()
+					MouseAuto:Disable()
+					if Action.InterruptIsON("Heal") then 
+						HealOnlyHealers:Enable()
+					else 
+						HealOnlyHealers:Disable()
+					end 					
+					PvPOnlySmart:Disable()
+					
+					tab.isUpdatingCheckboxes = nil 
+					return 
+				end
+				
+				if category == "PvP" then 
+					-- Checkbox 
+					UseMain:Disable()
+					UseMouse:Disable()
+					UseHeal:Disable()
+					UsePvP:Enable()
+					-- Sub-Checkbox
+					MainAuto:Disable()
+					MouseAuto:Disable()
+					HealOnlyHealers:Disable()
+					if Action.InterruptIsON("PvP") then 
+						PvPOnlySmart:Enable()
+					else 
+						PvPOnlySmart:Disable()
+					end 
+
+					tab.isUpdatingCheckboxes = nil 
+					return 					
+				end
+				
+				-- BlackList or custom category
+				-- Checkbox 
+				UseMain:Disable()
+				UseMouse:Disable()
+				UseHeal:Disable()
+				UsePvP:Disable()
+				-- Sub-Checkbox
+				MainAuto:Disable()
+				MouseAuto:Disable()
+				HealOnlyHealers:Disable()
+				PvPOnlySmart:Disable()
+					
+				tab.isUpdatingCheckboxes = nil 
+			end 
+			
+			local function CreateCheckbox(db)
+				local thisL  = L["TAB"][tabName][db:upper()]
+				local thisTT = L["TAB"][tabName][(db:upper() or "nil") .. "TOOLTIP"]
+				local Checkbox = StdUi:Checkbox(anchor, thisL, 250)
+				Checkbox:SetChecked(specDB[db])
+				Checkbox:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+				Checkbox:SetScript("OnClick", function(self, button, down)
+					if not self.isDisabled then						
+						if button == "LeftButton" then 
+							specDB[db] = not specDB[db]	
+							self:SetChecked(specDB[db])	
+							Action.Print(thisL .. ": ", specDB[db])	
+						elseif button == "RightButton" then 
+							Action.CraftMacro(thisL, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. db .. [[", "]] .. thisL .. [[: "})]])	
+						end
+					end 
+					
+					InputBox:ClearFocus()
+				end)
+				Checkbox.OnValueChanged = function(self, state, val)
+					if not tab.isUpdatingCheckboxes then 
+						CheckboxsMakeUpdate()
+					end 
+				end
+				Checkbox.Identify = { Type = "Checkbox", Toggle = db }		
+				if thisTT then 
+					StdUi:FrameTooltip(Checkbox, thisTT, nil, "TOP", true)
+				end 
+				return Checkbox
+			end 
+			
+			local function TabUpdate()
+				tab.isUpdating = true 
+				ScrollTable:MakeUpdate()
+				SliderMin:MakeUpdate()
+				SliderMax:MakeUpdate()
+				ValidateSliderColor()
+				ConfigPanel:MakeUpdate()
+				CheckboxsMakeUpdate()				
+				tab.isUpdating = nil 			
+			end 
+			
+			-- UI: Category
+			Category = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), themeHeight, {
+				{ text = L["TAB"]["BLACKLIST"], 												value = "BlackList" 			},
+				{ text = "[MainPvE] @target" .. (Action.IamHealer and "||targettarget" or ""), 	value = "MainPvE" 				},
+				{ text = "[MainPvP] @target" .. (Action.IamHealer and "||targettarget" or ""), 	value = "MainPvP" 				},	
+				{ text = "[MousePvE] @mouseover", 												value = "MousePvE" 				},	
+				{ text = "[MousePvP] @mouseover", 												value = "MousePvP" 				},
+				{ text = "[Heal] @arena1-3", 													value = "Heal" 					},				
+				{ text = "[PvP] @arena1-3", 													value = "PvP" 					},
+			}, "Main" .. (Action.IsInPvP and "PvP" or "PvE"))	
+			Category.OnValueChanged = TabUpdate
+			Category.text:SetJustifyH("CENTER")	
+			TMW:Fire("TMW_ACTION_INTERRUPTS_UI_CREATE_CATEGORY", Category) -- Need for push custom options 
+									
+			-- UI: Scroll
+			Scroll = setmetatable({
+				OnClickCell = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
+					if button == "LeftButton" then		
+						if IsShiftKeyDown() then
+							if not columnData.db then 
+								local actionLink 
+								if BindPadFrame and BindPadFrame:IsVisible() then 
+									actionLink = rowData.Name
+								else 
+									actionLink = Action.GetSpellLink(rowData.ID)
+								end 
+								
+								ChatEdit_InsertLink(actionLink)		
+							end 
+						else  								
+							if columnData.db then 
+								local category = Category:GetValue()
+								tabDB[category][GameLocale][rowData.Name][columnData.db] = not tabDB[category][GameLocale][rowData.Name][columnData.db]
+								
+								local status = tabDB[category][GameLocale][rowData.Name][columnData.db] 
+								if status then 
+									rowData[columnData.index] = "ON"
+								else 
+									rowData[columnData.index] = "OFF"
+								end 
+								
+								Action.Print(Action.GetSpellLink(rowData.ID) .. " " .. columnData.name .. ": " .. rowData[columnData.index])	
+								table:ClearSelection()
+							else 
+								LuaEditor.EditBox:SetText(rowData.LUA or "")
+								if rowData.LUA and rowData.LUA ~= "" then 
+									LuaButton.FontStringLUA:SetText(themeON)
+								else 
+									LuaButton.FontStringLUA:SetText(themeOFF)
+								end 
+									
+								InputBox:SetNumber(rowData.ID)
+								InputBox.val = rowData.ID 														
+							end 							
+						end												
+					elseif button == "RightButton" then 
+						local macroName 
+						local category = Category:GetValue()
+						
+						if IsShiftKeyDown() then
+							if columnData.db then
+								-- Make macro to set exact same current ceil data and set opposite for others ceils (only booleans)								
+								local spellDB = tabDB[category][GameLocale][rowData.Name]
+								macroName = category .. ";" .. rowData.ID .. ";opposite;" .. columnData.db
+								Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. category .. [[", "]] .. category .. [[;]] .. rowData.Name .. [[:"}, {]] .. GameLocale .. [[ = {]] .. [[["]] .. rowData.Name .. [["] = {Enabled = true, ]] .. columnData.db .. [[ = ]] .. Action.toStr[spellDB[columnData.db]] .. [[}}}, true)]], true)
+							else 
+								-- Make macro to set opposite current row data (only booleans)
+								macroName = category .. ";" .. rowData.ID .. ";opposite"
+								Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. category .. [[", "]] .. category .. [[;]] .. rowData.Name .. [[:"}, {]] .. GameLocale .. [[ = {]] .. [[["]] .. rowData.Name .. [["] = {Enabled = true}}}, true)]], true)
+							end 
+						elseif columnData.db then
+							-- Make macro to set exact same current ceil data
+							local spellDB = tabDB[category][GameLocale][rowData.Name]
+							macroName = category .. ";" .. rowData.ID .. ";" .. columnData.db
+							Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. category .. [[", "]] .. category .. [[;]] .. rowData.Name .. [[:"}, {]] .. GameLocale .. [[ = {]] .. [[["]] .. rowData.Name .. [["] = {]] .. columnData.db .. [[ = ]] .. Action.toStr[spellDB[columnData.db]] .. [[}}})]], true)
+						else 
+							-- Make macro to set exact same current row data
+							local spellDB = tabDB[category][GameLocale][rowData.Name]
+							macroName = category .. ";" .. rowData.ID
+							Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. category .. [[", "]] .. category .. [[;]] .. rowData.Name .. [[:"}, {]] .. GameLocale .. [[ = {]] .. [[["]] .. rowData.Name .. [["] = { useKick = ]] .. Action.toStr[spellDB.useKick] .. [[, useCC = ]] .. Action.toStr[spellDB.useCC] .. [[, useRacial = ]] .. Action.toStr[spellDB.useRacial] .. [[}}})]], true)								
+						end 
+					end 	
+					
+					InputBox:ClearFocus()						
+				end,
+				OnClickHeader = function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
+					if button == "LeftButton" then
+						table.SORTBY = columnIndex						
+					end	
+					
+					InputBox:ClearFocus()	
+				end, 
+				ColorON 				= { r = 0, g = 1, b = 0, a = 1 },
+				ColorOFF 				= { r = 1, g = 0, b = 0, a = 1 },
+			}, { __index = function(t, v) return t.Table[v] end })
+			Scroll.Table = StdUi:ScrollTable(anchor, {
                 {
-                    name = L["TAB"][tab.name]["ID"],
+                    name = L["TAB"][tabName]["ID"],
                     width = 60,
                     align = "LEFT",
                     index = "ID",
                     format = "number",  
 					events = {
-						OnClick = OnClickCell,
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"]["ROWCREATEMACRO"])       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
                 {
-                    name = L["TAB"][tab.name]["NAME"],
+                    name = L["TAB"][tabName]["NAME"],
                     width = 172,
 					defaultwidth = 172,
+					defaultSort = "dsc",
                     align = "LEFT",
                     index = "Name",
                     format = "string",
 					events = {
-						OnClick = OnClickCell,
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"]["ROWCREATEMACRO"])       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
                 {
-                    name = L["TAB"][tab.name]["USEKICK"],
+                    name = L["TAB"][tabName]["USEKICK"],
                     width = 65,
                     align = "CENTER",
                     index = "useKickIndex",
+					db = "useKick",
                     format = "string",
                     color = function(table, value, rowData, columnData)
                         if value == "ON" then
-                            return { r = 0, g = 1, b = 0, a = 1 }
+                            return Scroll.ColorON
                         end
                         if value == "OFF" then
-                            return { r = 1, g = 0, b = 0, a = 1 }
+                            return Scroll.ColorOFF
                         end
                     end,
 					events = {
-						OnClick = OnClickCell,
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.name, rowData[columnData.index], columnData.name))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
 				{
-                    name = L["TAB"][tab.name]["USECC"],
+                    name = L["TAB"][tabName]["USECC"],
                     width = 65,
                     align = "CENTER",
                     index = "useCCIndex",
+					db = "useCC",
                     format = "string",
                     color = function(table, value, rowData, columnData)
                         if value == "ON" then
-                            return { r = 0, g = 1, b = 0, a = 1 }
+                            return Scroll.ColorON
                         end
                         if value == "OFF" then
-                            return { r = 1, g = 0, b = 0, a = 1 }
+                            return Scroll.ColorOFF
                         end
                     end,
 					events = {
-						OnClick = OnClickCell,
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.name, rowData[columnData.index], columnData.name))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
 				{
-                    name = L["TAB"][tab.name]["USERACIAL"],
+                    name = L["TAB"][tabName]["USERACIAL"],
                     width = 65,
                     align = "CENTER",
                     index = "useRacialIndex",
+					db = "useRacial",
                     format = "string",
                     color = function(table, value, rowData, columnData)
                         if value == "ON" then
-                            return { r = 0, g = 1, b = 0, a = 1 }
+                            return Scroll.ColorON
                         end
                         if value == "OFF" then
-                            return { r = 1, g = 0, b = 0, a = 1 }
+                            return Scroll.ColorOFF
                         end
                     end,
 					events = {
-						OnClick = OnClickCell,
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.name, rowData[columnData.index], columnData.name))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = Scroll.OnClickCell,
 					},
                 },
 				{
-                    name = L["TAB"][tab.name]["ICON"],
+                    name = L["TAB"][tabName]["ICON"],
                     width = 50,
                     align = "LEFT",
                     index = "Icon",
@@ -9015,214 +11866,196 @@ function Action.ToggleMainUI()
                     sortable = false,
                     events = {
                         OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
-                            ShowTooltip(cellFrame, true, rowData.ID, "Spell")       							 
+                            StdUi:ShowTooltip(cellFrame, true, rowData.ID, "Spell")       							 
                         end,
                         OnLeave = function(rowFrame, cellFrame)
-                            ShowTooltip(cellFrame, false)  							
+                            StdUi:ShowTooltip(cellFrame, false)  							
                         end,
-						OnClick = OnClickCell,
+						OnClick = Scroll.OnClickCell,
                     },
                 },
-            }, 9, 25)			
-			local headerEvents = {
-				OnClick = function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
-					if button == "LeftButton" then
-						ScrollTable.SORTBY = columnIndex
-						InputBox:ClearFocus()	
-					end	
-				end, 
-			}
-			ScrollTable:RegisterEvents(nil, headerEvents)
+            }, 10, 25)	
+			ScrollTable = Scroll.Table
+			ScrollTable:RegisterEvents(nil, { OnClick = Scroll.OnClickHeader })
 			ScrollTable.SORTBY = 2
 			ScrollTable.defaultrows = { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
 			ScrollTable:EnableSelection(true)	
-			-- For refference
-			tab.childs[spec].RefferenceScrollTable = ScrollTable
-			
-			local function Reset()
-				InputBox:ClearFocus()
-				InputBox:SetText("")
-				InputBox.val = ""
-				LuaEditor.EditBox:SetText("")
-				LuaButton.FontStringLUA:SetText(ActionDatatheme.off)	
-				useKick:SetChecked(false)
-				useCC:SetChecked(false)
-				useRacial:SetChecked(false)
-			end 
-			local function ScrollTableInterruptData(InterruptUnits)
-				local data = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[4][InterruptUnits][GameLocale]) do 
+			ScrollTable:SetScript("OnShow", TabUpdate) 
+			ScrollTable.MakeUpdate = function()		
+				if not anchor:IsShown() then -- anchor here because it's scroll child and methods :IsVisible and :IsShown can skip it in theory 
+					return 
+				end 
+				
+				local self = ScrollTable
+				if not self.Data then 
+					self.Data = {}
+				else 
+					wipe(self.Data)
+				end 
+				
+				local category = Category:GetValue()
+				for spellName, v in pairs(tabDB[category][GameLocale]) do 
 					if v.Enabled then 
 						local useKickIndex, useCCIndex, useRacialIndex = v.useKick, v.useCC, v.useRacial
 						useKickIndex 	= useKickIndex 		and "ON" or "OFF"
 						useCCIndex 		= useCCIndex 		and "ON" or "OFF"
 						useRacialIndex 	= useRacialIndex 	and "ON" or "OFF"
-						tinsert(data, setmetatable({ 									
-								Name 			= k,
-								Icon 			= select(3, Action.GetSpellInfo(v.ID)),	
-								useKickIndex 	= useKickIndex,
-								useCCIndex 		= useCCIndex,
-								useRacialIndex 	= useRacialIndex,
-							}, {__index = v}))
+						tinsert(self.Data, setmetatable({ 									
+							Name 			= spellName,
+							Icon 			= (select(3, Action.GetSpellInfo(v.ID))),	
+							useKickIndex 	= useKickIndex,
+							useCCIndex 		= useCCIndex,
+							useRacialIndex 	= useRacialIndex,
+						}, { __index = v }))
 					end 
 				end
-				return data
+				
+				self:ClearSelection()			
+				self:SetData(self.Data)
+				self:SortData(self.SORTBY)
 			end
-			local function ScrollTableUpdate()
-				ScrollTable:ClearSelection()			
-				ScrollTable:SetData(ScrollTableInterruptData(InterruptUnits:GetValue()))					
-				ScrollTable:SortData(ScrollTable.SORTBY)			
-			end 	
-			local function CheckboxsUpdate()				
-				local val = InterruptUnits:GetValue()			
-				
-				if val == "BlackList" then 
-					-- TargetMouseover
-					if not KickTargetMouseover.isDisabled then KickTargetMouseover:Disable() end 
-					if not TargetMouseoverList.isDisabled then TargetMouseoverList:Disable() end 
-					-- Heal
-					if not KickHeal.isDisabled then KickHeal:Disable() end 
-					if not KickHealOnlyHealers.isDisabled then KickHealOnlyHealers:Disable() end
-					-- PvP 
-					if not KickPvP.isDisabled then KickPvP:Disable() end 
-					if not KickPvPOnlySmart.isDisabled then KickPvPOnlySmart:Disable() end 
-					-- Disable use checkboxs
-					useKick:SetChecked(false)
-					useCC:SetChecked(false)
-					useRacial:SetChecked(false)
-					if not useKick.isDisabled then useKick:Disable() end 
-					if not useCC.isDisabled then useCC:Disable() end 
-					if not useRacial.isDisabled then useRacial:Disable() end 
-				else 
-					-- Enable use checkboxs 
-					if useKick.isDisabled then useKick:Enable() end 
-					if useCC.isDisabled then useCC:Enable() end 
-					if useRacial.isDisabled then useRacial:Enable() end 
-				end 
-				
-				if val:match("TargetMouseover") then 
-					if KickTargetMouseover.isDisabled then KickTargetMouseover:Enable() end
-					if Action.InterruptIsON("TargetMouseover") then 
-						if TargetMouseoverList.isDisabled then TargetMouseoverList:Enable() end 
-					elseif not TargetMouseoverList.isDisabled then 
-						TargetMouseoverList:Disable()
-					end 
-				else 
-					if not KickTargetMouseover.isDisabled then KickTargetMouseover:Disable() end 
-					if not TargetMouseoverList.isDisabled then TargetMouseoverList:Disable() end 
-				end
-				
-				if val == "Heal" then 
-					if KickHeal.isDisabled then KickHeal:Enable() end 
-					if Action.InterruptIsON(val) then
-						if KickHealOnlyHealers.isDisabled then KickHealOnlyHealers:Enable() end 
-					elseif not KickHealOnlyHealers.isDisabled then 
-						KickHealOnlyHealers:Disable()						
-					end 
-				else 
-					if not KickHeal.isDisabled then KickHeal:Disable() end 
-					if not KickHealOnlyHealers.isDisabled then KickHealOnlyHealers:Disable() end
-				end 
-				
-				if val == "PvP" then 
-					if KickPvP.isDisabled then KickPvP:Enable() end 
-					if Action.InterruptIsON(val) then
-						if KickPvPOnlySmart.isDisabled then KickPvPOnlySmart:Enable() end
-					elseif not KickPvPOnlySmart.isDisabled then  
-						KickPvPOnlySmart:Disable()
-					end 
-				else 
-					if not KickPvP.isDisabled then KickPvP:Disable() end 
-					if not KickPvPOnlySmart.isDisabled then KickPvPOnlySmart:Disable() end 
-				end
-				
-			end 		
+			TMW:RegisterCallback("TMW_ACTION_INTERRUPTS_UI_UPDATE", ScrollTable.MakeUpdate)	-- Fired from SetToggle for 'Category'		
 			
-			InterruptUnits.OnValueChanged = function(self, val)   
-				ScrollTableUpdate()	
-				CheckboxsUpdate()				
-			end	
-			StdUi:FrameTooltip(InterruptUnits, L["TAB"][tab.name]["INTERRUPTTOOLTIP"], nil, "TOP", true)		
-			InterruptUnits.FontStringTitle = StdUi:Subtitle(InterruptUnits, L["TAB"][tab.name]["INTERRUPTFRONTSTRINGTITLE"])
-			StdUi:GlueAbove(InterruptUnits.FontStringTitle, InterruptUnits)	
-			InterruptUnits.text:SetJustifyH("CENTER")			
-
-			Add:SetScript("OnClick", function(self, button, down)	
-				if LuaEditor:IsShown() then
-					Action.Print(L["TAB"]["CLOSELUABEFOREADD"])
-					return 
-				elseif LuaEditor.EditBox.LuaErrors then 
-					Action.Print(L["TAB"]["FIXLUABEFOREADD"])
-					return 
-				end 
-				local SpellID = InputBox.val
-				local Name = Action.GetSpellInfo(SpellID)	
-				if not SpellID or Name == nil or Name == "" or SpellID <= 1 then 
-					Action.Print(L["TAB"][tab.name]["ADDERROR"]) 
-				else 
-					local InterruptList = InterruptUnits:GetValue()
-					local CodeLua = LuaEditor.EditBox:GetText()
-					if CodeLua == "" then 
-						CodeLua = nil 
+			-- UI: SliderMin
+			SliderMin = StdUi:Slider(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, tabDB[Category:GetValue()][GameLocale].Min or 0, false, 0, 99)							
+			SliderMin.OnValueChanged = function(self, value)
+				if not tab.isUpdating then 
+					if not self.isDisabled then 
+						local category = Category:GetValue()
+						if tabDB[category].Min then 
+							tabDB[category].Min = value
+							self.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cff00ff00" .. value .. "%|r")
+							
+							if value > SliderMax:GetValue() then 
+								SliderMax:SetValue(value)
+							end 
+							
+							ValidateSliderColor()
+						end 												
+					else 
+						self:SetValue(0)
+						self.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cffff0000OFF|r")
 					end 
 					
-					local Kick, CC, Racial = useKick:GetChecked(), useCC:GetChecked(), useRacial:GetChecked()
-					
-					local HowTo = How:GetValue()
-					if HowTo == "GLOBAL" then 
-						for _, profile in pairs(TMWdb.profiles) do 
-							if profile.ActionDB and profile.ActionDB[tab.name] and profile.ActionDB[tab.name][InterruptList] and profile.ActionDB[tab.name][InterruptList][GameLocale] then 	
-								profile.ActionDB[tab.name][InterruptList][GameLocale][Name] = { Enabled = true, ID = SpellID, Name = Name, LUA = CodeLua, useKick = Kick, useCC = CC, useRacial = Racial }
-							end 
-						end 					
-					else
-						TMWdb.profile.ActionDB[tab.name][InterruptList][GameLocale][Name] = { Enabled = true, ID = SpellID, Name = Name, LUA = CodeLua, useKick = Kick, useCC = CC, useRacial = Racial }
-					end 					
-
-					ScrollTableUpdate()	
 					InputBox:ClearFocus()
-					InputBox:SetText("")
-					InputBox.val = ""
-					-- Clear checkboxs 
-					useKick:SetChecked(false)
-					useCC:SetChecked(false)
-					useRacial:SetChecked(false)
 				end 
-			end)          
-            StdUi:FrameTooltip(Add, L["TAB"][tab.name]["ADDTOOLTIP"], nil, "TOPRIGHT", true)		
-		
-			Remove:SetScript("OnClick", function(self, button, down)
-				Reset()
-				local index = ScrollTable:GetSelection()				
-				if not index then 
-					Action.Print(L["TAB"][3]["SELECTIONERROR"]) 
-				else 
-					local data = ScrollTable:GetRow(index)
-					local InterruptList = InterruptUnits:GetValue()					
-					local HowTo = How:GetValue()
-					if HowTo == "GLOBAL" then 
-						for _, profile in pairs(TMWdb.profiles) do 
-							if profile.ActionDB and profile.ActionDB[tab.name] and profile.ActionDB[tab.name][InterruptList] and profile.ActionDB[tab.name][InterruptList][GameLocale] then 
-								if Factory[tab.name][InterruptList][GameLocale][data.ID] and profile.ActionDB[tab.name][InterruptList][GameLocale][data.Name] then 
-									profile.ActionDB[tab.name][InterruptList][GameLocale][data.Name].Enabled = false
-								else 
-									profile.ActionDB[tab.name][InterruptList][GameLocale][data.Name] = nil
-								end 														
+			end
+			SliderMin.MakeUpdate = function(self)
+				local category  = Category:GetValue()
+				local value 	= tabDB[category].Min 
+				
+				if value then 
+					self.isDisabled = false 
+					self:SetValue(value)
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cff00ff00" .. value .. "%|r")
+				else
+					self.isDisabled = true 
+					self:SetValue(0)
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MIN"] .. "|cffff0000OFF|r")
+				end 								
+			end 
+			StdUi:FrameTooltip(SliderMin, L["TAB"][tabName]["SLIDERTOOLTIP"], nil, "BOTTOM", true)	
+			SliderMin.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tabName]["MIN"] .. "|cff00ff00" .. SliderMin:GetValue() .. "%|r")
+			StdUi:GlueAbove(SliderMin.FontStringTitle, SliderMin)
+			
+			-- UI: SliderMax
+			SliderMax = StdUi:Slider(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, tabDB[Category:GetValue()][GameLocale].Max or 0, false, 0, 99)							
+			SliderMax.OnValueChanged = function(self, value)
+				if not tab.isUpdating then 
+					if not self.isDisabled then  
+						local category = Category:GetValue()
+						if tabDB[category].Max then 
+							tabDB[category].Max = value
+							self.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cff00ff00" .. value .. "%|r")
+							
+							if value < SliderMin:GetValue() then 
+								SliderMin:SetValue(value)
 							end 
+							
+							ValidateSliderColor()
 						end 
-					else
-						if Factory[tab.name][InterruptList][GameLocale][data.ID] then 
-							TMWdb.profile.ActionDB[tab.name][InterruptList][GameLocale][data.Name].Enabled = false
-						else 
-							TMWdb.profile.ActionDB[tab.name][InterruptList][GameLocale][data.Name] = nil
-						end 	
+					else 
+						self:SetValue(0)
+						self.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cffff0000OFF|r")
 					end 
-					ScrollTableUpdate()					
+					
+					InputBox:ClearFocus()
 				end 
-			end)           
-            StdUi:FrameTooltip(Remove, L["TAB"][tab.name]["REMOVETOOLTIP"], nil, "TOPLEFT", true)				
-								
-            InputBox:SetScript("OnTextChanged", function(self)
+			end
+			SliderMax.MakeUpdate = function(self)
+				local category 	= Category:GetValue()
+				local value 	= tabDB[category].Max
+				
+				if value then 
+					self.isDisabled = false 
+					self:SetValue(value)
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cff00ff00" .. value .. "%|r")
+				else
+					self.isDisabled = true 
+					self:SetValue(0)
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MAX"] .. "|cffff0000OFF|r")
+				end 								
+			end 
+			StdUi:FrameTooltip(SliderMax, L["TAB"][tabName]["SLIDERTOOLTIP"], nil, "BOTTOM", true)	
+			SliderMax.FontStringTitle = StdUi:Subtitle(anchor, L["TAB"][tabName]["MAX"] .. "|cff00ff00" .. SliderMax:GetValue() .. "%|r")
+			StdUi:GlueAbove(SliderMax.FontStringTitle, SliderMax)
+			
+			-- UI: Checkboxs
+			UseMain 		= CreateCheckbox("UseMain")
+			MainAuto 		= CreateCheckbox("MainAuto")
+			UseMouse 		= CreateCheckbox("UseMouse")
+			MouseAuto 		= CreateCheckbox("MouseAuto")
+			UseHeal 		= CreateCheckbox("UseHeal")
+			HealOnlyHealers = CreateCheckbox("HealOnlyHealers")
+			UsePvP 			= CreateCheckbox("UsePvP")
+			PvPOnlySmart 	= CreateCheckbox("PvPOnlySmart")		
+			
+			-- UI: ConfigPanel
+			ConfigPanel = StdUi:PanelWithTitle(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), themeHeight * 2 + 10, L["TAB"]["CONFIGPANEL"])	
+			ConfigPanel.titlePanel.label:SetFontSize(12)
+			ConfigPanel.MakeUpdate = function(self)
+				ResetButton:Click()
+			end 
+			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
+			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
+			
+			-- UI: ResetButton
+			ResetButton = StdUi:Button(anchor, 70, themeHeight, L["RESET"])
+			ResetButton:SetScript("OnClick", function(self, button, down)
+				InputBox:ClearFocus()
+				InputBox:SetText("")
+				InputBox.val = ""
+				LuaEditor.EditBox:SetText("")
+				LuaButton.FontStringLUA:SetText(themeOFF)
+			end)
+			StdUi:GlueTop(ResetButton, ConfigPanel, 0, 0, "LEFT")	
+
+			-- UI: LuaButton
+			LuaButton = StdUi:Button(anchor, 50, themeHeight, "LUA")
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, themeOFF)
+			LuaButton:SetScript("OnClick", function()
+				if not LuaEditor:IsShown() then 
+					LuaEditor:Show()
+				else 
+					LuaEditor.closeBtn:Click()
+				end 
+			end)
+			StdUi:GlueTop(LuaButton, ConfigPanel, 0, 0, "RIGHT")
+			StdUi:GlueLeft(LuaButton.FontStringLUA, LuaButton, -5, 0)
+			
+			-- UI: LuaEditor
+			LuaEditor = StdUi:CreateLuaEditor(anchor, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"])
+			LuaEditor:HookScript("OnHide", function(self)
+				if self.EditBox:GetText() ~= "" then 
+					LuaButton.FontStringLUA:SetText(themeON)
+				else 
+					LuaButton.FontStringLUA:SetText(themeOFF)
+				end 
+			end)
+											
+			-- UI: InputBox
+			InputBox = StdUi:SearchEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tabName]["SEARCH"])
+			InputBox:SetScript("OnTextChanged", function(self)
 				local text = self:GetNumber()
 				if text == 0 then 
 					text = self:GetText()
@@ -9233,16 +12066,16 @@ function Action.ToggleMainUI()
 						self.val = text					
 						if self.val > 9999999 then 						
 							self.val = ""
-							self:SetNumber(self.val)							
-							Action.Print(L["DEBUG"] .. L["TAB"][tab.name]["INTEGERERROR"]) 
+							self:SetNumber("")							
+							Action.Print(L["DEBUG"] .. L["TAB"][tabName]["INTEGERERROR"]) 
 							return 
 						end 
-						ShowTooltip(self, true, self.val, "Spell") 
+						StdUi:ShowTooltip(self, true, self.val, "Spell") 
 					else 
-						ShowTooltip(self, false)
+						StdUi:ShowTooltip(self, false)
 						Action.TimerSetRefreshAble("ConvertSpellNameToID", 1, function() 
-							self.val = ConvertSpellNameToID(text)
-							ShowTooltip(self, true, self.val, "Spell") 							
+							self.val = Action.ConvertSpellNameToID(text)
+							StdUi:ShowTooltip(self, true, self.val, "Spell") 							
 						end)
 					end 					
 					self.placeholder.icon:Hide()
@@ -9251,261 +12084,206 @@ function Action.ToggleMainUI()
 					self.val = ""
 					self.placeholder.icon:Show()
 					self.placeholder.label:Show()
-					ShowTooltip(self, false)
+					StdUi:ShowTooltip(self, false)
 				end 
             end)
 			InputBox:SetScript("OnEnterPressed", function(self)
-                ShowTooltip(self, false)
+                StdUi:ShowTooltip(self, false)
 				Add:Click()                
             end)
 			InputBox:SetScript("OnEscapePressed", function(self)
-                ShowTooltip(self, false)
+                StdUi:ShowTooltip(self, false)
 				self.val = ""
 				self:SetNumber("")
 				self:ClearFocus() 
             end)			
 			InputBox:HookScript("OnHide", function(self)
-				ShowTooltip(self, false)
+				StdUi:ShowTooltip(self, false)
 			end)
 			InputBox.val = ""
-			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTBOXTITLE"])			
-			StdUi:FrameTooltip(InputBox, L["TAB"][tab.name]["INPUTBOXTOOLTIP"], nil, "TOP", true)
-			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)		
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tabName]["INPUTBOXTITLE"])			
+			StdUi:FrameTooltip(InputBox, L["TAB"][tabName]["INPUTBOXTOOLTIP"], nil, "TOP", true)
+			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
 
+			-- UI: How
+			How = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 12), 25, {				
+				{ text = L["TAB"]["GLOBAL"], 	value = "GLOBAL" 	},				
+				{ text = L["TAB"]["ALLSPECS"], 	value = "ALLSPECS" 	},
+			}, "ALLSPECS")
+			How:HookScript("OnClick", function()
+				InputBox:ClearFocus()
+			end)
 			How.text:SetJustifyH("CENTER")	
 			How.FontStringTitle = StdUi:Subtitle(How, L["TAB"]["HOW"])
 			StdUi:FrameTooltip(How, L["TAB"]["HOWTOOLTIP"], nil, "TOP", true)
-			StdUi:GlueAbove(How.FontStringTitle, How)	
-			How:HookScript("OnClick", function()
-				InputBox:ClearFocus()
-			end)				
+			StdUi:GlueAbove(How.FontStringTitle, How)					
 			
-			KickPvP:SetChecked(TMWdb.profile.ActionDB[tab.name].KickPvP)
-			KickPvP:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			KickPvP:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].KickPvP = not TMWdb.profile.ActionDB[tab.name].KickPvP	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].KickPvP)	
-						Action.Print(L["TAB"][tab.name]["KICKPVPPRINT"] .. ": ", TMWdb.profile.ActionDB[tab.name].KickPvP)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["KICKPVPPRINT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "KickPvP", "]] .. L["TAB"][tab.name]["KICKPVPPRINT"] .. [[: "})]])	
-					end 
+			-- UI: Add 
+			Add = StdUi:Button(anchor, InputBox:GetWidth(), 25, L["TAB"][tabName]["ADD"])
+			Add:SetScript("OnClick", function(self, button, down)	
+				if LuaEditor:IsShown() then
+					Action.Print(L["TAB"]["CLOSELUABEFOREADD"])
+					return 
+				elseif LuaEditor.EditBox.LuaErrors then 
+					Action.Print(L["TAB"]["FIXLUABEFOREADD"])
+					return 
 				end 
-			end)
-			KickPvP.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()
-			end
-			KickPvP.Identify = { Type = "Checkbox", Toggle = "KickPvP" }				
-			StdUi:FrameTooltip(KickPvP, L["TAB"][tab.name]["KICKPVPTOOLTIP"], nil, "TOPRIGHT", true)	
-			
-			KickHeal:SetChecked(TMWdb.profile.ActionDB[tab.name].KickHeal)
-			KickHeal:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			KickHeal:SetScript("OnClick", function(self, button, down)	
-				if not self.isDisabled then
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].KickHeal = not TMWdb.profile.ActionDB[tab.name].KickHeal	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].KickHeal)	
-						Action.Print(L["TAB"][tab.name]["KICKHEALPRINT"] .. ": ", TMWdb.profile.ActionDB[tab.name].KickHeal)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["KICKHEALPRINT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "KickHeal", "]] .. L["TAB"][tab.name]["KICKHEALPRINT"] .. [[: "})]])	
+				
+				local spellID 	= InputBox.val
+				local spellName = Action.GetSpellInfo(spellID)	
+				if not spellID or not spellName or spellName == "" or spellID <= 1 then 
+					Action.Print(L["TAB"][tabName]["ADDERROR"]) 
+				else 
+					local category 	= Category:GetValue()
+					local codeLua 	= LuaEditor.EditBox:GetText()
+					if codeLua == "" then 
+						codeLua = nil 
 					end 
-				end
-			end)
-			KickHeal.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()
-			end
-			KickHeal.Identify = { Type = "Checkbox", Toggle = "KickHeal" }					
-			StdUi:FrameTooltip(KickHeal, L["TAB"][tab.name]["KICKHEALTOOLTIP"], nil, "TOP", true)				
-			
-			TargetMouseoverList:SetChecked(TMWdb.profile.ActionDB[tab.name].TargetMouseoverList)	
-			TargetMouseoverList:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			TargetMouseoverList:SetScript("OnClick", function(self, button, down)	
-				if not self.isDisabled then 
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].TargetMouseoverList = not TMWdb.profile.ActionDB[tab.name].TargetMouseoverList	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].TargetMouseoverList)	
-						Action.Print(L["TAB"][tab.name]["TARGETMOUSEOVERLIST"] .. ": ", TMWdb.profile.ActionDB[tab.name].TargetMouseoverList)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["TARGETMOUSEOVERLIST"], [[/run Action.SetToggle({]] .. tab.name .. [[, "TargetMouseoverList", "]] .. L["TAB"][tab.name]["TARGETMOUSEOVERLIST"] .. [[: "})]])	
+					
+					local index = ScrollTable:GetSelection()	
+					local data  = index and ScrollTable:GetRow(index)	
+					local useKick, useCC, useRacial = true, true, true 
+					if data then 
+						useKick, useCC, useRacial = data.useKick, data.useCC, data.useRacial
 					end 
-				end
-			end)
-			TargetMouseoverList.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()				
-			end
-			TargetMouseoverList.Identify = { Type = "Checkbox", Toggle = "TargetMouseoverList" }			
-			StdUi:FrameTooltip(TargetMouseoverList, L["TAB"][tab.name]["TARGETMOUSEOVERLISTTOOLTIP"], nil, "TOPLEFT", true)	
-			
-			KickPvPOnlySmart:SetChecked(TMWdb.profile.ActionDB[tab.name].KickPvPOnlySmart)
-			KickPvPOnlySmart:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			KickPvPOnlySmart:SetScript("OnClick", function(self, button, down)	
-				if not self.isDisabled then
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].KickPvPOnlySmart = not TMWdb.profile.ActionDB[tab.name].KickPvPOnlySmart	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].KickPvPOnlySmart)	
-						Action.Print(L["TAB"][tab.name]["KICKPVPONLYSMART"] .. ": ", TMWdb.profile.ActionDB[tab.name].KickPvPOnlySmart)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["KICKPVPONLYSMART"], [[/run Action.SetToggle({]] .. tab.name .. [[, "KickPvPOnlySmart", "]] .. L["TAB"][tab.name]["KICKPVPONLYSMART"] .. [[: "})]])	
-					end 
-				end 
-			end)
-			KickPvPOnlySmart.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()
-			end
-			KickPvPOnlySmart.Identify = { Type = "Checkbox", Toggle = "KickPvPOnlySmart" }						
-			StdUi:FrameTooltip(KickPvPOnlySmart, L["TAB"][tab.name]["KICKPVPONLYSMARTTOOLTIP"], nil, "TOPRIGHT", true)												
+					local howTo = How:GetValue()					
+					if howTo == "GLOBAL" then 
+						for _, profile in pairs(TMWdb.profiles) do 
+							if profile.ActionDB and profile.ActionDB[tabName] and profile.ActionDB[tabName][category] and profile.ActionDB[tabName][category][GameLocale] then 	
+								profile.ActionDB[tabName][category][GameLocale][spellName] = { Enabled = true, ID = spellID, Name = spellName, LUA = codeLua, useKick = useKick, useCC = useCC, useRacial = useRacial }
+							end 
+						end 					
+					elseif howTo == "ALLSPECS" then 
+						tabDB[category][GameLocale][spellName] = { Enabled = true, ID = spellID, Name = spellName, LUA = codeLua, useKick = useKick, useCC = useCC, useRacial = useRacial }
+					end 			
 
-			KickHealOnlyHealers:SetChecked(TMWdb.profile.ActionDB[tab.name].KickHealOnlyHealers)
-			KickHealOnlyHealers:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			KickHealOnlyHealers:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].KickHealOnlyHealers = not TMWdb.profile.ActionDB[tab.name].KickHealOnlyHealers	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].KickHealOnlyHealers)	
-						Action.Print(L["TAB"][tab.name]["KICKHEALONLYHEALER"] .. ": ", TMWdb.profile.ActionDB[tab.name].KickHealOnlyHealers)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["KICKHEALONLYHEALER"], [[/run Action.SetToggle({]] .. tab.name .. [[, "KickHealOnlyHealers", "]] .. L["TAB"][tab.name]["KICKHEALONLYHEALER"] .. [[: "})]])	
-					end
+					ScrollTable:MakeUpdate()	
+					ResetButton:Click()
 				end 
-			end)
-			KickHealOnlyHealers.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()
-			end
-			KickHealOnlyHealers.Identify = { Type = "Checkbox", Toggle = "KickHealOnlyHealers" }				
-			StdUi:FrameTooltip(KickHealOnlyHealers, L["TAB"][tab.name]["KICKHEALONLYHEALERTOOLTIP"], nil, "TOP", true)		
-
-			KickTargetMouseover:SetChecked(TMWdb.profile.ActionDB[tab.name].KickTargetMouseover)
-			KickTargetMouseover:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			KickTargetMouseover:SetScript("OnClick", function(self, button, down)
-				if not self.isDisabled then
-					InputBox:ClearFocus()
-					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].KickTargetMouseover = not TMWdb.profile.ActionDB[tab.name].KickTargetMouseover	
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].KickTargetMouseover)	
-						Action.Print(L["TAB"][tab.name]["KICKTARGETMOUSEOVER"] .. ": ", TMWdb.profile.ActionDB[tab.name].KickTargetMouseover)	
-					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["KICKTARGETMOUSEOVER"], [[/run Action.SetToggle({]] .. tab.name .. [[, "KickTargetMouseover", "]] .. L["TAB"][tab.name]["KICKTARGETMOUSEOVER"] .. [[: "})]])	
+			end)          
+            StdUi:FrameTooltip(Add, L["TAB"][tabName]["ADDTOOLTIP"], nil, "TOPRIGHT", true)
+			
+			-- UI: Remove 
+			Remove = StdUi:Button(anchor, InputBox:GetWidth(), 25, L["TAB"][tabName]["REMOVE"])	
+			Remove:SetScript("OnClick", function(self, button, down)
+				local index = ScrollTable:GetSelection()				
+				if not index then 
+					Action.Print(L["TAB"][3]["SELECTIONERROR"]) 
+				else 
+					local category 	= Category:GetValue()
+					local data 		= ScrollTable:GetRow(index)									
+					local howTo 	= How:GetValue()
+					if howTo == "GLOBAL" then 
+						for _, profile in pairs(TMWdb.profiles) do 
+							if profile.ActionDB and profile.ActionDB[tabName] and profile.ActionDB[tabName][category] and profile.ActionDB[tabName][category][GameLocale] then 
+								if StdUi.Factory[tabName][category][GameLocale][data.ID] and profile.ActionDB[tabName][category][GameLocale][data.Name] then 
+									profile.ActionDB[tabName][category][GameLocale][data.Name].Enabled = false
+								else 
+									profile.ActionDB[tabName][category][GameLocale][data.Name] = nil
+								end 														
+							end 
+						end 
+					elseif howTo == "ALLSPECS" then 
+						if StdUi.Factory[tabName][category][GameLocale][data.ID] then 
+							tabDB[category][GameLocale][data.Name].Enabled = false
+						else 
+							tabDB[category][GameLocale][data.Name] = nil
+						end 	
 					end 
-				end
-			end)
-			KickTargetMouseover.OnValueChanged = function(self, state, val)
-				CheckboxsUpdate()				
-			end
-			KickTargetMouseover.Identify = { Type = "Checkbox", Toggle = "KickTargetMouseover" }			
-			StdUi:FrameTooltip(KickTargetMouseover, L["TAB"][tab.name]["KICKTARGETMOUSEOVERTOOLTIP"], nil, "TOPLEFT", true)
-			          		
-			ScrollTable:SetScript("OnShow", function()
-				ScrollTableUpdate()
-				CheckboxsUpdate()
-				Reset()
-			end)
-			-- If we had return back to this tab then handler will be skipped 
-			if Action.MainUI.RememberTab == tab.name then 
-				ScrollTableUpdate()
-				CheckboxsUpdate()
-				Reset()
-			end 
+					
+					ScrollTable:MakeUpdate()
+					ResetButton:Click()
+				end 
+			end)           
+            StdUi:FrameTooltip(Remove, L["TAB"][tabName]["REMOVETOOLTIP"], nil, "TOPLEFT", true)				
 						
-			tab.childs[spec]:AddRow({ margin = { top = -8, left = -15, right = -15 } }):AddElement(InterruptUnits)
-			tab.childs[spec]:AddRow({ margin = { top = 15, left = -15, right = -15 } }):AddElement(ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)						
-			ConfigPanel:AddRow({ margin = { top = -20, left = -10, right = -10 } }):AddElements(KickPvPOnlySmart, KickHealOnlyHealers, KickTargetMouseover, { column = "even" })
-			ConfigPanel:AddRow({ margin = { top = -10, left = -10, right = -10 } }):AddElements(KickPvP, KickHeal, TargetMouseoverList, { column = "even" })
-			ConfigPanel:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElement(InputBox)
-			ConfigPanel:AddRow({ margin = { top = -10, left = -10, right = -10 } }):AddElements(useKick, useCC, useRacial, { column = "even" })
+			anchor:AddRow({ margin = { top = 10, left = -15, right = -15 } }):AddElement(Category)
+			anchor:AddRow({ margin = { top = 15, left = -15, right = -15 } }):AddElement(ScrollTable)
+			anchor:AddRow({ margin = { top = 0, left = -15, right = -15 } }):AddElements(SliderMin, SliderMax, { column = "even" })
+			anchor:AddRow({ margin = { top = -5, left = -15, right = -15 } }):AddElements(UseMain, UseMouse, UseHeal, UsePvP, { column = "even" })
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(MainAuto, MouseAuto, HealOnlyHealers, PvPOnlySmart, { column = "even" })
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)
+			ConfigPanel:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElement(InputBox)
 			ConfigPanel:DoLayout()		
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(How)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
-			tab.childs[spec]:DoLayout()
-
-			ResetConfigPanel:SetScript("OnClick", Reset)
-			StdUi:GlueTop(ResetConfigPanel, ConfigPanel, 0, 0, "LEFT")			
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(How)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
+			anchor:DoLayout()
 			
-			LuaButton:SetScript("OnClick", function()
-				if not LuaEditor:IsShown() then 
-					LuaEditor:Show()
-				else 
-					LuaEditor.closeBtn:Click()
-				end 
-			end)
-			StdUi:GlueTop(LuaButton, ConfigPanel, 0, 0, "RIGHT")
-			StdUi:GlueLeft(LuaButton.FontStringLUA, LuaButton, -5, 0)
-
-			LuaEditor:HookScript("OnHide", function(self)
-				if self.EditBox:GetText() ~= "" then 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
-				else 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
-				end 
-			end)
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then 
+				TabUpdate()
+			end
 		end 
 		
-		if tab.name == 5 then 	
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])							
-			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 10 } })
+		if tabName == 5 then 	
+			UI_Title:SetText(L["TAB"][tabName]["HEADTITLE"])							
+			UI_Title:SetFontSize(13)		
+			StdUi:EasyLayout(anchor, { padding = { top = 10 } })
 			
+			local ActionDataAuras = ActionData.Auras
 			local function GetCategory()
 				local cct = {		
 					{ text = "BlackList", value = "BlackList" },
-					{ text = L["TAB"][tab.name]["POISON"], value = "Poison" },				
-					{ text = L["TAB"][tab.name]["DISEASE"], value = "Disease" },
-					{ text = L["TAB"][tab.name]["CURSE"], value = "Curse" },				
-					{ text = L["TAB"][tab.name]["MAGIC"], value = "Magic" },			
-					{ text = L["TAB"][tab.name]["PURGEFRIENDLY"], value = "PurgeFriendly" },
-					{ text = L["TAB"][tab.name]["PURGEHIGH"], value = "PurgeHigh" },				
-					{ text = L["TAB"][tab.name]["PURGELOW"], value = "PurgeLow" },
-					{ text = L["TAB"][tab.name]["ENRAGE"], value = "Enrage" },
-					{ text = L["TAB"][tab.name]["USEEXPELFRENZY"], value = "Frenzy" },				
+					{ text = L["TAB"][tabName]["POISON"], value = "Poison" },				
+					{ text = L["TAB"][tabName]["DISEASE"], value = "Disease" },
+					{ text = L["TAB"][tabName]["CURSE"], value = "Curse" },				
+					{ text = L["TAB"][tabName]["MAGIC"], value = "Magic" },			
+					{ text = L["TAB"][tabName]["PURGEFRIENDLY"], value = "PurgeFriendly" },
+					{ text = L["TAB"][tabName]["PURGEHIGH"], value = "PurgeHigh" },				
+					{ text = L["TAB"][tabName]["PURGELOW"], value = "PurgeLow" },
+					{ text = L["TAB"][tabName]["ENRAGE"], value = "Enrage" },
+					{ text = L["TAB"][tabName]["USEEXPELFRENZY"], value = "Frenzy" },				
 				}
+				
 				if Action.PlayerClass == "PALADIN" then 
-					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFPROTECTION"], value = "BlessingofProtection" })
-					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFFREEDOM"], value = "BlessingofFreedom" })
-					tinsert(cct, { text = L["TAB"][tab.name]["BLESSINGOFSACRIFICE"], value = "BlessingofSacrifice" })
+					tinsert(cct, { text = L["TAB"][tabName]["BLESSINGOFPROTECTION"], value = "BlessingofProtection" })
+					tinsert(cct, { text = L["TAB"][tabName]["BLESSINGOFFREEDOM"], value = "BlessingofFreedom" })
+					tinsert(cct, { text = L["TAB"][tabName]["BLESSINGOFSACRIFICE"], value = "BlessingofSacrifice" })
 				end 
+				
+				if Action.PlayerClass == "ROGUE" then 
+					tinsert(cct, { text = L["TAB"][tabName]["VANISH"], value = "Vanish" })
+				end 
+				
 				return cct
 			end 
 			
-			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 60, L["TAB"][tab.name]["USETITLE"])
-			UsePanel.titlePanel.label:SetFontSize(14)
+			local UsePanel = StdUi:PanelWithTitle(anchor, anchor:GetWidth() - 30, 43, L["TAB"][tabName]["USETITLE"])
+			UsePanel.titlePanel.label:SetFontSize(13)
 			UsePanel.titlePanel.label:SetTextColor(UI_Title:GetTextColor())
-			StdUi:GlueTop(UsePanel.titlePanel, UsePanel, 0, -5)
-			StdUi:EasyLayout(UsePanel, { gutter = 0, padding = { top = UsePanel.titlePanel.label:GetHeight() + 10 } })			
-			local UseDispel = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEDISPEL"], 30)
-			local UsePurge = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEPURGE"], 30)	
-			local UseExpelEnrage = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEEXPELENRAGE"], 30)
-			local UseExpelFrenzy = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USEEXPELFRENZY"], 30)
-			local Mode = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), ActionDatatheme.dd.height, {				
+			StdUi:GlueTop(UsePanel.titlePanel, UsePanel, 0, -2)
+			StdUi:EasyLayout(UsePanel, { gutter = 0, padding = { top = UsePanel.titlePanel.label:GetHeight() + 20 } })		
+			local UseDispel = StdUi:Checkbox(anchor, L["TAB"][tabName]["USEDISPEL"], 30)
+			local UsePurge = StdUi:Checkbox(anchor, L["TAB"][tabName]["USEPURGE"], 30)	
+			local UseExpelEnrage = StdUi:Checkbox(anchor, L["TAB"][tabName]["USEEXPELENRAGE"], 30)
+			local UseExpelFrenzy = StdUi:Checkbox(anchor, L["TAB"][tabName]["USEEXPELFRENZY"], 30)
+			local Mode = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6, 15), themeHeight, {				
 				{ text = "PvE", value = "PvE" },				
 				{ text = "PvP", value = "PvP" },
 			}, Action.IsInPvP and "PvP" or "PvE")			
-			local Category = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), ActionDatatheme.dd.height, GetCategory(), "Magic")	
-			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 140, L["TAB"][tab.name]["CONFIGPANEL"])	
+			local Category = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6, 15), themeHeight, GetCategory(), "Magic")	
+			TMW:Fire("TMW_ACTION_AURAS_UI_CREATE_CATEGORY", Category) -- Need for push custom options 
+			local ConfigPanel = StdUi:PanelWithTitle(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), 140, L["TAB"][tabName]["CONFIGPANEL"])	
 			ConfigPanel.titlePanel.label:SetFontSize(14)
 			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
 			StdUi:EasyLayout(ConfigPanel, { gutter = 0, padding = { top = 40 } })
-			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
-			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
-			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])
-			local Role = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, {				
-				{ text = L["TAB"][tab.name]["ANY"], value = "ANY" },				
-				{ text = L["TAB"][tab.name]["HEALER"], value = "HEALER" },
-				{ text = L["TAB"][tab.name]["DAMAGER"], value = "DAMAGER" },
+			local ResetConfigPanel = StdUi:Button(anchor, 70, themeHeight, L["RESET"])
+			local LuaButton = StdUi:Button(anchor, 50, themeHeight, "LUA")
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, themeOFF)
+			local LuaEditor = StdUi:CreateLuaEditor(anchor, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"])
+			local Role = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(ConfigPanel, 4), 25, {				
+				{ text = L["TAB"][tabName]["ANY"], value = "ANY" },				
+				{ text = L["TAB"][tabName]["HEALER"], value = "HEALER" },
+				{ text = L["TAB"][tabName]["DAMAGER"], value = "DAMAGER" },
 			}, "ANY")
-			local Duration = StdUi:EditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, 0)
-			local Stack = StdUi:NumericBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, 0)			
-			local ByID = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["BYID"])
-			local canStealOrPurge = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["CANSTEALORPURGE"])	
-			local onlyBear = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["ONLYBEAR"])	
-			local InputBox = StdUi:SearchEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 12, 15), 20, L["TAB"][4]["SEARCH"])						
-			local Add = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tab.name]["ADD"])
-			local Remove = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tab.name]["REMOVE"])
+			local Duration = StdUi:EditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 4), 25, 0)
+			local Stack = StdUi:NumericBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 4), 25, 0)			
+			local ByID = StdUi:Checkbox(anchor, L["TAB"][tabName]["BYID"])
+			local canStealOrPurge = StdUi:Checkbox(anchor, L["TAB"][tabName]["CANSTEALORPURGE"])	
+			local onlyBear = StdUi:Checkbox(anchor, L["TAB"][tabName]["ONLYBEAR"])	
+			local InputBox = StdUi:SearchEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 12, 15), 20, L["TAB"][4]["SEARCH"])						
+			local Add = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tabName]["ADD"])
+			local Remove = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tabName]["REMOVE"])
 
 			local function ClearAllEditBox(clearInput)
 				if clearInput then 
@@ -9523,36 +12301,48 @@ function Action.ToggleMainUI()
 				else 
 					GameTooltip:SetOwner(parent)				
 					if show == "Role" then
-						GameTooltip:SetText(L["TAB"][tab.name]["ROLETOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)
+						GameTooltip:SetText(L["TAB"][tabName]["ROLETOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)
 					elseif show == "Dur" then 
-						GameTooltip:SetText(L["TAB"][tab.name]["DURATIONTOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)
+						GameTooltip:SetText(L["TAB"][tabName]["DURATIONTOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)
 					elseif show == "Stack" then 
-						GameTooltip:SetText(L["TAB"][tab.name]["STACKSTOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)					
+						GameTooltip:SetText(L["TAB"][tabName]["STACKSTOOLTIP"], StdUi.config.font.color.yellow.r, StdUi.config.font.color.yellow.g, StdUi.config.font.color.yellow.b, 1, true)					
 					end 
 				end
 			end 
 			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
 				if button == "LeftButton" then		
-					LuaEditor.EditBox:SetText(rowData.LUA or "")
-					if rowData.LUA and rowData.LUA ~= "" then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
-					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+					if IsShiftKeyDown() then
+						local actionLink 
+						if BindPadFrame and BindPadFrame:IsVisible() then 
+							actionLink = rowData.Name
+						else 
+							actionLink = Action.GetSpellLink(rowData.ID)
+						end 
+						
+						ChatEdit_InsertLink(actionLink)				
+					else  
+						LuaEditor.EditBox:SetText(rowData.LUA or "")
+						if rowData.LUA and rowData.LUA ~= "" then 
+							LuaButton.FontStringLUA:SetText(themeON)
+						else 
+							LuaButton.FontStringLUA:SetText(themeOFF)
+						end 
+						
+						Role:SetValue(rowData.Role)
+						Duration:SetNumber(rowData.Dur)
+						Stack:SetNumber(rowData.Stack)
+						ByID:SetChecked(rowData.byID)
+						canStealOrPurge:SetChecked(rowData.canStealOrPurge)
+						onlyBear:SetChecked(rowData.onlyBear)
+						InputBox:SetNumber(rowData.ID)					
+						ClearAllEditBox()
 					end 
-					Role:SetValue(rowData.Role)
-					Duration:SetNumber(rowData.Dur)
-					Stack:SetNumber(rowData.Stack)
-					ByID:SetChecked(rowData.byID)
-					canStealOrPurge:SetChecked(rowData.canStealOrPurge)
-					onlyBear:SetChecked(rowData.onlyBear)
-					InputBox:SetNumber(rowData.ID)					
-					ClearAllEditBox()
 				end 				
 			end 			
 			
-			local ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
+			local ScrollTable = StdUi:ScrollTable(anchor, {
 				{
-                    name = L["TAB"][tab.name]["ROLE"],
+                    name = L["TAB"][tabName]["ROLE"],
                     width = 70,
                     align = "LEFT",
                     index = "RoleLocale",
@@ -9568,7 +12358,7 @@ function Action.ToggleMainUI()
                     },
                 },
                 {
-                    name = L["TAB"][tab.name]["ID"],
+                    name = L["TAB"][tabName]["ID"],
                     width = 60,
                     align = "LEFT",
                     index = "ID",
@@ -9578,9 +12368,10 @@ function Action.ToggleMainUI()
                     },
                 },
                 {
-                    name = L["TAB"][tab.name]["NAME"],
+                    name = L["TAB"][tabName]["NAME"],
                     width = 167,
 					defaultwidth = 167,
+					defaultSort = "dsc",
                     align = "LEFT",
                     index = "Name",
                     format = "string",
@@ -9589,7 +12380,7 @@ function Action.ToggleMainUI()
                     },
                 },
 				{
-                    name = L["TAB"][tab.name]["DURATION"],
+                    name = L["TAB"][tabName]["DURATION"],
                     width = 80,
                     align = "LEFT",
                     index = "Dur",
@@ -9605,7 +12396,7 @@ function Action.ToggleMainUI()
                     },
                 },
 				{
-                    name = L["TAB"][tab.name]["STACKS"],
+                    name = L["TAB"][tabName]["STACKS"],
                     width = 50,
                     align = "LEFT",
                     index = "Stack",
@@ -9621,7 +12412,7 @@ function Action.ToggleMainUI()
                     },
                 },
                 {
-                    name = L["TAB"][tab.name]["ICON"],
+                    name = L["TAB"][tabName]["ICON"],
                     width = 50,
                     align = "LEFT",
                     index = "Icon",
@@ -9629,15 +12420,15 @@ function Action.ToggleMainUI()
                     sortable = false,
                     events = {
                         OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
-                            ShowTooltip(cellFrame, true, rowData.ID, "Spell")  							
+                            StdUi:ShowTooltip(cellFrame, true, rowData.ID, "Spell")  							
                         end,
                         OnLeave = function(rowFrame, cellFrame)
-                            ShowTooltip(cellFrame, false)    						
+                            StdUi:ShowTooltip(cellFrame, false)    						
                         end,
 						OnClick = OnClickCell,
                     },
                 },
-            }, 7, 30)
+            }, 10, 25)
 			local headerEvents = {
 				OnClick = function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
 					if button == "LeftButton" then
@@ -9650,6 +12441,7 @@ function Action.ToggleMainUI()
 			ScrollTable.SORTBY = 3
 			ScrollTable.defaultrows = { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
 			ScrollTable:EnableSelection(true)
+			StdUi:ClipScrollTableColumn(ScrollTable, 35)
 			
 			local function ScrollTableData()
 				DispelPurgeEnrageRemap()
@@ -9659,7 +12451,7 @@ function Action.ToggleMainUI()
 				for k, v in pairs(ActionDataAuras[ModeValue][CategoryValue]) do 
 					if v.Enabled then 
 						v.Icon = select(3, Action.GetSpellInfo(v.ID))
-						v.RoleLocale = L["TAB"][tab.name][v.Role]
+						v.RoleLocale = L["TAB"][tabName][v.Role]
 						tinsert(data, v)
 					end 
 				end
@@ -9670,29 +12462,25 @@ function Action.ToggleMainUI()
 				ScrollTable:ClearSelection()			
 				ScrollTable:SetData(ScrollTableData())					
 				ScrollTable:SortData(ScrollTable.SORTBY)						
-			end 						
+			end 					
 			
 			ScrollTable:SetScript("OnShow", function()
 				ScrollTableUpdate()
 				ResetConfigPanel:Click()
-			end)
-			-- If we had return back to this tab then handler will be skipped 
-			if Action.MainUI.RememberTab == tab.name then 
-				ScrollTableUpdate()
-			end
+			end)			
 			-- [ScrollTable] END 
 			
-			UseDispel:SetChecked(TMWdb.profile.ActionDB[tab.name].UseDispel)
+			UseDispel:SetChecked(specDB.UseDispel)
 			UseDispel:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UseDispel:SetScript("OnClick", function(self, button, down)	
 				ClearAllEditBox()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].UseDispel = not TMWdb.profile.ActionDB[tab.name].UseDispel
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].UseDispel)	
-						Action.Print(L["TAB"][tab.name]["USEDISPEL"] .. ": ", TMWdb.profile.ActionDB[tab.name].UseDispel)	
+						specDB.UseDispel = not specDB.UseDispel
+						self:SetChecked(specDB.UseDispel)	
+						Action.Print(L["TAB"][tabName]["USEDISPEL"] .. ": ", specDB.UseDispel)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["USEDISPEL"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseDispel", "]] .. L["TAB"][tab.name]["USEDISPEL"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["USEDISPEL"], [[/run Action.SetToggle({]] .. tabName .. [[, "UseDispel", "]] .. L["TAB"][tabName]["USEDISPEL"] .. [[: "})]])	
 					end
 				end 
 			end)
@@ -9702,17 +12490,17 @@ function Action.ToggleMainUI()
 				UseDispel:Disable()
 			end 
 	
-			UsePurge:SetChecked(TMWdb.profile.ActionDB[tab.name].UsePurge)
+			UsePurge:SetChecked(specDB.UsePurge)
 			UsePurge:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UsePurge:SetScript("OnClick", function(self, button, down)	
 				ClearAllEditBox()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].UsePurge = not TMWdb.profile.ActionDB[tab.name].UsePurge
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].UsePurge)	
-						Action.Print(L["TAB"][tab.name]["USEPURGE"] .. ": ", TMWdb.profile.ActionDB[tab.name].UsePurge)	
+						specDB.UsePurge = not specDB.UsePurge
+						self:SetChecked(specDB.UsePurge)	
+						Action.Print(L["TAB"][tabName]["USEPURGE"] .. ": ", specDB.UsePurge)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["USEPURGE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UsePurge", "]] .. L["TAB"][tab.name]["USEPURGE"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["USEPURGE"], [[/run Action.SetToggle({]] .. tabName .. [[, "UsePurge", "]] .. L["TAB"][tabName]["USEPURGE"] .. [[: "})]])	
 					end 
 				end
 			end)
@@ -9722,17 +12510,17 @@ function Action.ToggleMainUI()
 				UsePurge:Disable()
 			end 			
 
-			UseExpelEnrage:SetChecked(TMWdb.profile.ActionDB[tab.name].UseExpelEnrage)
+			UseExpelEnrage:SetChecked(specDB.UseExpelEnrage)
 			UseExpelEnrage:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UseExpelEnrage:SetScript("OnClick", function(self, button, down)	
 				ClearAllEditBox()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].UseExpelEnrage = not TMWdb.profile.ActionDB[tab.name].UseExpelEnrage
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].UseExpelEnrage)	
-						Action.Print(L["TAB"][tab.name]["USEEXPELENRAGE"] .. ": ", TMWdb.profile.ActionDB[tab.name].UseExpelEnrage)	
+						specDB.UseExpelEnrage = not specDB.UseExpelEnrage
+						self:SetChecked(specDB.UseExpelEnrage)	
+						Action.Print(L["TAB"][tabName]["USEEXPELENRAGE"] .. ": ", specDB.UseExpelEnrage)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["USEEXPELENRAGE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseExpelEnrage", "]] .. L["TAB"][tab.name]["USEEXPELENRAGE"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["USEEXPELENRAGE"], [[/run Action.SetToggle({]] .. tabName .. [[, "UseExpelEnrage", "]] .. L["TAB"][tabName]["USEEXPELENRAGE"] .. [[: "})]])	
 					end 
 				end
 			end)
@@ -9742,17 +12530,17 @@ function Action.ToggleMainUI()
 				UseExpelEnrage:Disable()
 			end 
 			
-			UseExpelFrenzy:SetChecked(TMWdb.profile.ActionDB[tab.name].UseExpelFrenzy)
+			UseExpelFrenzy:SetChecked(specDB.UseExpelFrenzy)
 			UseExpelFrenzy:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UseExpelFrenzy:SetScript("OnClick", function(self, button, down)	
 				ClearAllEditBox()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].UseExpelFrenzy = not TMWdb.profile.ActionDB[tab.name].UseExpelFrenzy
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].UseExpelFrenzy)	
-						Action.Print(L["TAB"][tab.name]["USEEXPELFRENZY"] .. ": ", TMWdb.profile.ActionDB[tab.name].UseExpelFrenzy)	
+						specDB.UseExpelFrenzy = not specDB.UseExpelFrenzy
+						self:SetChecked(specDB.UseExpelFrenzy)	
+						Action.Print(L["TAB"][tabName]["USEEXPELFRENZY"] .. ": ", specDB.UseExpelFrenzy)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["USEEXPELFRENZY"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseExpelFrenzy", "]] .. L["TAB"][tab.name]["USEEXPELFRENZY"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["USEEXPELFRENZY"], [[/run Action.SetToggle({]] .. tabName .. [[, "UseExpelFrenzy", "]] .. L["TAB"][tabName]["USEEXPELFRENZY"] .. [[: "})]])	
 					end 
 				end
 			end)
@@ -9765,7 +12553,7 @@ function Action.ToggleMainUI()
 			Mode.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end	
-			Mode.FontStringTitle = StdUi:Subtitle(Mode, L["TAB"][tab.name]["MODE"])
+			Mode.FontStringTitle = StdUi:Subtitle(Mode, L["TAB"][tabName]["MODE"])
 			StdUi:GlueAbove(Mode.FontStringTitle, Mode)	
 			Mode.text:SetJustifyH("CENTER")	
 			Mode:HookScript("OnClick", ClearAllEditBox)
@@ -9773,15 +12561,15 @@ function Action.ToggleMainUI()
 			Category.OnValueChanged = function(self, val)   
 				ScrollTableUpdate()							
 			end				
-			Category.FontStringTitle = StdUi:Subtitle(Category, L["TAB"][tab.name]["CATEGORY"])			
+			Category.FontStringTitle = StdUi:Subtitle(Category, L["TAB"][tabName]["CATEGORY"])			
 			StdUi:GlueAbove(Category.FontStringTitle, Category)	
 			Category.text:SetJustifyH("CENTER")													
 			Category:HookScript("OnClick", ClearAllEditBox)
 								
 			Role.text:SetJustifyH("CENTER")
-			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][tab.name]["ROLE"])
+			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][tabName]["ROLE"])
 			Role:HookScript("OnClick", ClearAllEditBox)			
-			StdUi:FrameTooltip(Role, L["TAB"][tab.name]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(Role, L["TAB"][tabName]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
 			StdUi:GlueAbove(Role.FontStringTitle, Role)	
 			
 			Duration:SetJustifyH("CENTER")
@@ -9803,9 +12591,9 @@ function Action.ToggleMainUI()
 					self:SetNumber(text:gsub("%.", ""))
 				end 
 			end)
-			local Font = strgsub(strgsub(L["TAB"][tab.name]["DURATION"], "\n", ""), "-", "")
+			local Font = strgsub(strgsub(L["TAB"][tabName]["DURATION"], "\n", ""), "-", "")
 			Duration.FontStringTitle = StdUi:Subtitle(Duration, Font)			
-			StdUi:FrameTooltip(Duration, L["TAB"][tab.name]["DURATIONTOOLTIP"], nil, "TOP", true)
+			StdUi:FrameTooltip(Duration, L["TAB"][tabName]["DURATIONTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(Duration.FontStringTitle, Duration)	
 						
             Stack:SetMaxValue(1000)
@@ -9823,12 +12611,12 @@ function Action.ToggleMainUI()
 					self:SetNumber(0)
 				end 
 			end)
-			local Font = strgsub(L["TAB"][tab.name]["STACKS"], "\n", "")
+			local Font = strgsub(L["TAB"][tabName]["STACKS"], "\n", "")
 			Stack.FontStringTitle = StdUi:Subtitle(Stack, Font)			
-			StdUi:FrameTooltip(Stack, L["TAB"][tab.name]["STACKSTOOLTIP"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(Stack, L["TAB"][tabName]["STACKSTOOLTIP"], nil, "TOPLEFT", true)
 			StdUi:GlueAbove(Stack.FontStringTitle, Stack)				
 
-			StdUi:FrameTooltip(ByID, L["TAB"][tab.name]["BYIDTOOLTIP"], nil, "BOTTOMRIGHT", true)	
+			StdUi:FrameTooltip(ByID, L["TAB"][tabName]["BYIDTOOLTIP"], nil, "BOTTOMRIGHT", true)	
 			ByID:HookScript("OnClick", ClearAllEditBox)			
 
 			canStealOrPurge:HookScript("OnClick", ClearAllEditBox)						
@@ -9849,12 +12637,12 @@ function Action.ToggleMainUI()
 							Action.Print(L["DEBUG"] .. L["TAB"][4]["INTEGERERROR"]) 
 							return 
 						end 
-						ShowTooltip(self, true, self.val, "Spell") 
+						StdUi:ShowTooltip(self, true, self.val, "Spell") 
 					else 
-						ShowTooltip(self, false)
+						StdUi:ShowTooltip(self, false)
 						Action.TimerSetRefreshAble("ConvertSpellNameToID", 1, function() 
-							self.val = ConvertSpellNameToID(text)
-							ShowTooltip(self, true, self.val, "Spell") 							
+							self.val = Action.ConvertSpellNameToID(text)
+							StdUi:ShowTooltip(self, true, self.val, "Spell") 							
 						end)
 					end 					
 					self.placeholder.icon:Hide()
@@ -9863,19 +12651,19 @@ function Action.ToggleMainUI()
 					self.val = ""
 					self.placeholder.icon:Show()
 					self.placeholder.label:Show()
-					ShowTooltip(self, false)
+					StdUi:ShowTooltip(self, false)
 				end 
             end)
 			InputBox:SetScript("OnEnterPressed", function(self)
-                ShowTooltip(self, false)
+                StdUi:ShowTooltip(self, false)
 				Add:Click()				              
             end)
 			InputBox:SetScript("OnEscapePressed", function(self)
-                ShowTooltip(self, false)
+                StdUi:ShowTooltip(self, false)
 				InputBox:ClearFocus()
             end)
 			InputBox:HookScript("OnHide", function(self)
-				ShowTooltip(self, false)
+				StdUi:ShowTooltip(self, false)
 			end)
 			InputBox.val = ""
 			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][4]["INPUTBOXTITLE"])			
@@ -9903,16 +12691,16 @@ function Action.ToggleMainUI()
 					end 
 					-- Prevent overwrite by next time loading if user applied own changes 
 					local LUAVER 
-					if TMWdb.global.ActionDB[tab.name][M][C][SpellID] then 
-						LUAVER = TMWdb.global.ActionDB[tab.name][M][C][SpellID].LUAVER 
+					if gActionDB[tabName][M][C][SpellID] then 
+						LUAVER = gActionDB[tabName][M][C][SpellID].LUAVER 
 					end 
 									
-					TMWdb.global.ActionDB[tab.name][M][C][SpellID] = { 
+					gActionDB[tabName][M][C][SpellID] = { 
 						ID = SpellID, 
 						Name = Name, 
 						enabled = true,
 						role = Role:GetValue(),
-						dur = round(tonumber(Duration:GetNumber()), 3) or 0,
+						dur = round(Action.toNum[Duration:GetNumber()], 3) or 0,
 						stack = Stack:GetNumber() or 0,
 						byID = ByID:GetChecked(),
 						canStealOrPurge = canStealOrPurge:GetChecked(),
@@ -9931,34 +12719,34 @@ function Action.ToggleMainUI()
 					Action.Print(L["TAB"][3]["SELECTIONERROR"]) 
 				else 
 					local data = ScrollTable:GetRow(index)	
-					if GlobalFactory[tab.name][Mode:GetValue()][Category:GetValue()][data.ID] then 
-						TMWdb.global.ActionDB[tab.name][Mode:GetValue()][Category:GetValue()][data.ID].enabled = false						
+					if StdUi.GlobalFactory[tabName][Mode:GetValue()][Category:GetValue()][data.ID] then 
+						gActionDB[tabName][Mode:GetValue()][Category:GetValue()][data.ID].enabled = false						
 					else 
-						TMWdb.global.ActionDB[tab.name][Mode:GetValue()][Category:GetValue()][data.ID] = nil
+						gActionDB[tabName][Mode:GetValue()][Category:GetValue()][data.ID] = nil
 					end 					
 					ScrollTableUpdate()					
 				end 
 			end)            
             StdUi:FrameTooltip(Remove, L["TAB"][4]["REMOVETOOLTIP"], nil, "TOPLEFT", true)							          
 				
-			tab.childs[spec]:AddRow({ margin = { top = -4, left = -15, right = -15 } }):AddElement(UsePanel)	
-			UsePanel:AddRow({ margin = { top = 5 } }):AddElements(UseDispel, UsePurge, UseExpelEnrage, UseExpelFrenzy, { column = "even" })	
+			anchor:AddRow({ margin = { top = -4, left = -15, right = -15 } }):AddElement(UsePanel)	
+			UsePanel:AddRow({ margin = { top = -7 } }):AddElements(UseDispel, UsePurge, UseExpelEnrage, UseExpelFrenzy, { column = "even" })	
 			UsePanel:DoLayout()	
-			tab.childs[spec]:AddRow({ margin = { top = -10 } }):AddElement(UI_Title)			
-			tab.childs[spec]:AddRow({ margin = { top = 0, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
-			tab.childs[spec]:AddRow({ margin = { top = 18, left = -15, right = -15 } }):AddElement(ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)
+			anchor:AddRow({ margin = { top = -10 } }):AddElement(UI_Title)			
+			anchor:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
+			anchor:AddRow({ margin = { top = 13, left = -15, right = -15 } }):AddElement(ScrollTable)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)
 			ConfigPanel:AddRow():AddElements(Role, Duration, Stack, { column = "even" })						
 			ConfigPanel:AddRow({ margin = { top = -10 } }):AddElements(ByID, canStealOrPurge, onlyBear, { column = "even" })
 			ConfigPanel:AddRow({ margin = { top = 5 } }):AddElement(InputBox)
 			ConfigPanel:DoLayout()							
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
-			tab.childs[spec]:DoLayout()				
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
+			anchor:DoLayout()				
 			UI_Title:SetJustifyH("CENTER")
 			
 			ResetConfigPanel:SetScript("OnClick", function()
 				LuaEditor.EditBox:SetText("")
-				LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+				LuaButton.FontStringLUA:SetText(themeOFF)
 				Role:SetValue("ANY")
 				Duration:SetNumber(0)
 				Stack:SetNumber(0)
@@ -9983,62 +12771,69 @@ function Action.ToggleMainUI()
 
 			LuaEditor:HookScript("OnHide", function(self)
 				if self.EditBox:GetText() ~= "" then 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+					LuaButton.FontStringLUA:SetText(themeON)
 				else 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+					LuaButton.FontStringLUA:SetText(themeOFF)
 				end 
 			end)
+			
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then 
+				ScrollTableUpdate()
+			end
 		end 
 		
-		if tab.name == 6 then 	
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])
-			StdUi:GlueTop(UI_Title, tab.childs[spec], 0, -5)			
-			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 20 } })
+		if tabName == 6 then 	
+			UI_Title:SetText(L["TAB"][tabName]["HEADTITLE"])
+			StdUi:GlueTop(UI_Title, anchor, 0, -5)			
+			StdUi:EasyLayout(anchor, { padding = { top = 20 } })
 			
-			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 50, L["TAB"][tab.name]["USETITLE"])
+			local UsePanel = StdUi:PanelWithTitle(anchor, anchor:GetWidth() - 30, 50, L["TAB"][tabName]["USETITLE"])
 			UsePanel.titlePanel.label:SetFontSize(14)
 			UsePanel.titlePanel.label:SetTextColor(UI_Title:GetTextColor())
 			StdUi:GlueTop(UsePanel.titlePanel, UsePanel, 0, -5)
 			StdUi:EasyLayout(UsePanel, { gutter = 0, padding = { top = UsePanel.titlePanel.label:GetHeight() + 10 } })			
-			local UseLeft = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USELEFT"])
-			local UseRight = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["USERIGHT"])
-			local Mode = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), ActionDatatheme.dd.height, {				
+			local UseLeft = StdUi:Checkbox(anchor, L["TAB"][tabName]["USELEFT"])
+			local UseRight = StdUi:Checkbox(anchor, L["TAB"][tabName]["USERIGHT"])
+			local Mode = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6, 15), themeHeight, {				
 				{ text = "PvE", value = "PvE" },				
 				{ text = "PvP", value = "PvP" },
 			}, Action.IsInPvP and "PvP" or "PvE")	
-			local Category = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 6, 15), ActionDatatheme.dd.height, {				
-				{ text = "UnitName", value = "UnitName" },				
-				{ text = "GameToolTip", value = "GameToolTip" },
+			local Category = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6, 15), themeHeight, {				
+				{ text = "UnitName", 				value = "UnitName" },				
+				{ text = "GameToolTip: Objects", 	value = "GameToolTip" },
+				{ text = "GameToolTip: UI", 		value = "UI" },
 			}, "UnitName")	
-			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 95, L["TAB"]["CONFIGPANEL"])	
+			TMW:Fire("TMW_ACTION_CURSOR_UI_CREATE_CATEGORY", Category) -- Need for push custom options 
+			local ConfigPanel = StdUi:PanelWithTitle(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), 95, L["TAB"]["CONFIGPANEL"])	
 			ConfigPanel.titlePanel.label:SetFontSize(14)
 			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
 			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
-			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
-			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
-			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"][tab.name]["LUATOOLTIP"])
-			local Button = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(ConfigPanel, 4), 25, {				
-				{ text = L["TAB"][tab.name]["LEFT"], value = "LEFT" },				
-				{ text = L["TAB"][tab.name]["RIGHT"], value = "RIGHT" },		
+			local ResetConfigPanel = StdUi:Button(anchor, 70, themeHeight, L["RESET"])
+			local LuaButton = StdUi:Button(anchor, 50, themeHeight, "LUA")
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, themeOFF)
+			local LuaEditor = StdUi:CreateLuaEditor(anchor, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"][tabName]["LUATOOLTIP"])
+			local Button = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(ConfigPanel, 4), 25, {				
+				{ text = L["TAB"][tabName]["LEFT"], value = "LEFT" },				
+				{ text = L["TAB"][tabName]["RIGHT"], value = "RIGHT" },		
 			}, "LEFT")
-			local isTotem = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["ISTOTEM"])				
-			local InputBox = StdUi:SearchEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tab.name]["INPUT"])		
-			local How = StdUi:Dropdown(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12), 25, {				
+			local isTotem = StdUi:Checkbox(anchor, L["TAB"][tabName]["ISTOTEM"])				
+			local InputBox = StdUi:SearchEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tabName]["INPUT"])		
+			local How = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 12), 25, {				
 				{ text = L["TAB"]["GLOBAL"], value = "GLOBAL" },				
 				{ text = L["TAB"]["ALLSPECS"], value = "ALLSPECS" },
 			}, "ALLSPECS")	
-			local Add = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tab.name]["ADD"])
-			local Remove = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tab.name]["REMOVE"])
+			local Add = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tabName]["ADD"])
+			local Remove = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][tabName]["REMOVE"])
 			
 			-- [ScrollTable] BEGIN			
 			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
 				if button == "LeftButton" then		
 					LuaEditor.EditBox:SetText(rowData.LUA or "")
 					if rowData.LUA and rowData.LUA ~= "" then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+						LuaButton.FontStringLUA:SetText(themeON)
 					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+						LuaButton.FontStringLUA:SetText(themeOFF)
 					end 
 					Button:SetValue(rowData.Button)
 					isTotem:SetChecked(rowData.isTotem)
@@ -10047,9 +12842,9 @@ function Action.ToggleMainUI()
 				end 				
 			end 			
 			
-			local ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
+			local ScrollTable = StdUi:ScrollTable(anchor, {
 				{
-                    name = L["TAB"][tab.name]["BUTTON"],
+                    name = L["TAB"][tabName]["BUTTON"],
                     width = 120,
                     align = "LEFT",
                     index = "ButtonLocale",
@@ -10059,9 +12854,10 @@ function Action.ToggleMainUI()
                     },
                 },
                 {
-                    name = L["TAB"][tab.name]["NAME"],
+                    name = L["TAB"][tabName]["NAME"],
                     width = 357,
 					defaultwidth = 357,
+					defaultSort = "dsc",
                     align = "LEFT",
                     index = "Name",
                     format = "string",
@@ -10083,20 +12879,21 @@ function Action.ToggleMainUI()
 			ScrollTable.defaultrows = { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
 			ScrollTable:EnableSelection(true)
 			
+			local cacheData = {}
 			local function ScrollTableData()
 				isTotem:SetChecked(false)
 				local CategoryValue = Category:GetValue()
 				local ModeValue = Mode:GetValue()
-				local data = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[tab.name][ModeValue][CategoryValue][GameLocale]) do 
+				wipe(cacheData)
+				for k, v in pairs(specDB[ModeValue][CategoryValue][GameLocale]) do 
 					if v.Enabled then 
-						tinsert(data, setmetatable({ 
+						tinsert(cacheData, setmetatable({ 
 								Name = k, 				
-								ButtonLocale = L["TAB"][tab.name][v.Button],
-							}, {__index = v}))
+								ButtonLocale = L["TAB"][tabName][v.Button],
+							}, { __index = v }))
 					end 
 				end			
-				return data
+				return cacheData
 			end 
 			local function ScrollTableUpdate()
 				InputBox:ClearFocus()
@@ -10110,38 +12907,34 @@ function Action.ToggleMainUI()
 			ScrollTable:SetScript("OnShow", function()
 				ScrollTableUpdate()
 				ResetConfigPanel:Click()
-			end)
-			-- If we had return back to this tab then handler will be skipped 
-			if Action.MainUI.RememberTab == tab.name then 
-				ScrollTableUpdate()
-			end
+			end)			
 			-- [ScrollTable] END 
 			
-			UseLeft:SetChecked(TMWdb.profile.ActionDB[tab.name].UseLeft)
+			UseLeft:SetChecked(specDB.UseLeft)
 			UseLeft:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UseLeft:SetScript("OnClick", function(self, button, down)	
 				InputBox:ClearFocus()				
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].UseLeft = not TMWdb.profile.ActionDB[tab.name].UseLeft
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].UseLeft)	
-					Action.Print(L["TAB"][tab.name]["USELEFT"] .. ": ", TMWdb.profile.ActionDB[tab.name].UseLeft)	
+					specDB.UseLeft = not specDB.UseLeft
+					self:SetChecked(specDB.UseLeft)	
+					Action.Print(L["TAB"][tabName]["USELEFT"] .. ": ", specDB.UseLeft)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["USELEFT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseLeft", "]] .. L["TAB"][tab.name]["USELEFT"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["USELEFT"], [[/run Action.SetToggle({]] .. tabName .. [[, "UseLeft", "]] .. L["TAB"][tabName]["USELEFT"] .. [[: "})]])	
 				end				
 			end)
 			UseLeft.Identify = { Type = "Checkbox", Toggle = "UseLeft" }
-			StdUi:FrameTooltip(UseLeft, L["TAB"][tab.name]["USELEFTTOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(UseLeft, L["TAB"][tabName]["USELEFTTOOLTIP"], nil, "TOPRIGHT", true)
 			
-			UseRight:SetChecked(TMWdb.profile.ActionDB[tab.name].UseRight)
+			UseRight:SetChecked(specDB.UseRight)
 			UseRight:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			UseRight:SetScript("OnClick", function(self, button, down)	
 				InputBox:ClearFocus()				
 				if button == "LeftButton" then 
-					TMWdb.profile.ActionDB[tab.name].UseRight = not TMWdb.profile.ActionDB[tab.name].UseRight
-					self:SetChecked(TMWdb.profile.ActionDB[tab.name].UseRight)	
-					Action.Print(L["TAB"][tab.name]["USERIGHT"] .. ": ", TMWdb.profile.ActionDB[tab.name].UseRight)	
+					specDB.UseRight = not specDB.UseRight
+					self:SetChecked(specDB.UseRight)	
+					Action.Print(L["TAB"][tabName]["USERIGHT"] .. ": ", specDB.UseRight)	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["USERIGHT"], [[/run Action.SetToggle({]] .. tab.name .. [[, "UseRight", "]] .. L["TAB"][tab.name]["USERIGHT"] .. [[: "})]])	
+					Action.CraftMacro(L["TAB"][tabName]["USERIGHT"], [[/run Action.SetToggle({]] .. tabName .. [[, "UseRight", "]] .. L["TAB"][tabName]["USERIGHT"] .. [[: "})]])	
 				end				
 			end)
 			UseRight.Identify = { Type = "Checkbox", Toggle = "UseRight" }
@@ -10172,7 +12965,7 @@ function Action.ToggleMainUI()
 				InputBox:ClearFocus()
 			end)			
 			
-			StdUi:FrameTooltip(isTotem, L["TAB"][tab.name]["ISTOTEMTOOLTIP"], nil, "BOTTOMLEFT", true)	
+			StdUi:FrameTooltip(isTotem, L["TAB"][tabName]["ISTOTEMTOOLTIP"], nil, "BOTTOMLEFT", true)	
 			isTotem:HookScript("OnClick", function(self)
 				if not self.isDisabled then 
 					InputBox:ClearFocus()
@@ -10196,7 +12989,7 @@ function Action.ToggleMainUI()
 			InputBox:SetScript("OnEscapePressed", function()
 				InputBox:ClearFocus()
 			end)
-			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTTITLE"])			
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tabName]["INPUTTITLE"])			
 			StdUi:FrameTooltip(InputBox, L["TAB"][4]["INPUTBOXTOOLTIP"], nil, "TOP", true)
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
 			
@@ -10218,7 +13011,7 @@ function Action.ToggleMainUI()
 				end 
 				local Name = InputBox:GetText()
 				if Name == nil or Name == "" then 
-					Action.Print(L["TAB"][tab.name]["INPUTTITLE"]) 
+					Action.Print(L["TAB"][tabName]["INPUTTITLE"]) 
 				else					
 					Name = Name:lower()
 					local M = Mode:GetValue()
@@ -10230,14 +13023,14 @@ function Action.ToggleMainUI()
 					local HowTo = How:GetValue()
 					if HowTo == "GLOBAL" then 
 						for _, profile in pairs(TMWdb.profiles) do 
-							if profile.ActionDB and profile.ActionDB[tab.name] then 
+							if profile.ActionDB and profile.ActionDB[tabName] then 
 								-- Prevent overwrite by next time loading if user applied own changes 
 								local LUAVER 
-								if profile.ActionDB[tab.name][M][C][GameLocale][Name] then 
-									LUAVER = profile.ActionDB[tab.name][M][C][GameLocale][Name].LUAVER 
+								if profile.ActionDB[tabName][M][C][GameLocale][Name] then 
+									LUAVER = profile.ActionDB[tabName][M][C][GameLocale][Name].LUAVER 
 								end 
 								
-								profile.ActionDB[tab.name][M][C][GameLocale][Name] = { 
+								profile.ActionDB[tabName][M][C][GameLocale][Name] = { 
 									Enabled = true,
 									Button = Button:GetValue(),
 									isTotem = isTotem:GetChecked(),
@@ -10249,11 +13042,11 @@ function Action.ToggleMainUI()
 					else 
 						-- Prevent overwrite by next time loading if user applied own changes 
 						local LUAVER 
-						if TMWdb.profile.ActionDB[tab.name][M][C][GameLocale][Name] then 
-							LUAVER = TMWdb.profile.ActionDB[tab.name][M][C][GameLocale][Name].LUAVER 
+						if specDB[M][C][GameLocale][Name] then 
+							LUAVER = specDB[M][C][GameLocale][Name].LUAVER 
 						end 
 							
-						TMWdb.profile.ActionDB[tab.name][M][C][GameLocale][Name] = { 
+						specDB[M][C][GameLocale][Name] = { 
 							Enabled = true,
 							Button = Button:GetValue(),
 							isTotem = isTotem:GetChecked(),
@@ -10277,43 +13070,43 @@ function Action.ToggleMainUI()
 					local HowTo = How:GetValue()
 					if HowTo == "GLOBAL" then 
 						for _, profile in pairs(TMWdb.profiles) do 
-							if profile.ActionDB and profile.ActionDB[tab.name] then 
-								if profile.ActionDB[tab.name][M] and profile.ActionDB[tab.name][M][C] and profile.ActionDB[tab.name][M][C][GameLocale] then 
-									if Factory[tab.name][M][C][GameLocale][Name] and profile.ActionDB[tab.name][M][C][GameLocale][Name] then 
-										profile.ActionDB[tab.name][M][C][GameLocale][Name].Enabled = false
+							if profile.ActionDB and profile.ActionDB[tabName] then 
+								if profile.ActionDB[tabName][M] and profile.ActionDB[tabName][M][C] and profile.ActionDB[tabName][M][C][GameLocale] then 
+									if StdUi.Factory[tabName][M][C][GameLocale][Name] and profile.ActionDB[tabName][M][C][GameLocale][Name] then 
+										profile.ActionDB[tabName][M][C][GameLocale][Name].Enabled = false
 									else 
-										profile.ActionDB[tab.name][M][C][GameLocale][Name] = nil
+										profile.ActionDB[tabName][M][C][GameLocale][Name] = nil
 									end 
 								end 								 
 							end 
 						end 					  
 					else 
-						if Factory[tab.name][M][C][GameLocale][Name] then 
-							TMWdb.profile.ActionDB[tab.name][M][C][GameLocale][Name].Enabled = false
+						if StdUi.Factory[tabName][M][C][GameLocale][Name] and specDB[M][C][GameLocale][Name] then 
+							specDB[M][C][GameLocale][Name].Enabled = false
 						else 
-							TMWdb.profile.ActionDB[tab.name][M][C][GameLocale][Name] = nil
+							specDB[M][C][GameLocale][Name] = nil
 						end 
 					end 
 					ScrollTableUpdate()					
 				end 
 			end)            							          
 				
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(UsePanel)	
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(UsePanel)	
 			UsePanel:AddRow():AddElements(UseLeft, UseRight, { column = "even" })
 			UsePanel:DoLayout()						
-			tab.childs[spec]:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
-			tab.childs[spec]:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElement(ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)						
+			anchor:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElements(Mode, Category, { column = "even" })			
+			anchor:AddRow({ margin = { top = 5, left = -15, right = -15 } }):AddElement(ScrollTable)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)						
 			ConfigPanel:AddRow({ margin = { top = -20, left = -15, right = -15 } }):AddElements(Button, isTotem, { column = "even" })
 			ConfigPanel:AddRow({ margin = { left = -15, right = -15 } }):AddElement(InputBox)
 			ConfigPanel:DoLayout()							
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(How)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
-			tab.childs[spec]:DoLayout()				
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(How)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
+			anchor:DoLayout()				
 			
 			ResetConfigPanel:SetScript("OnClick", function()
 				LuaEditor.EditBox:SetText("")
-				LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+				LuaButton.FontStringLUA:SetText(themeOFF)
 				isTotem:SetChecked(false)
 				InputBox:SetNumber("")					
 				InputBox:ClearFocus()
@@ -10332,53 +13125,58 @@ function Action.ToggleMainUI()
 
 			LuaEditor:HookScript("OnHide", function(self)
 				if self.EditBox:GetText() ~= "" then 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+					LuaButton.FontStringLUA:SetText(themeON)
 				else 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+					LuaButton.FontStringLUA:SetText(themeOFF)
 				end 
-			end)		
+			end)	
+
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then 
+				ScrollTableUpdate()
+			end	
 		end 
 		
-		if tab.name == 7 then 
-			if not Action.Data.ProfileUI or not Action.Data.ProfileUI[tab.name] or not Action.Data.ProfileUI[tab.name] or not next(Action.Data.ProfileUI[tab.name]) then 
+		if tabName == 7 then 
+			if not Action[specID] then -- specID is Action.PlayerClass 
 				UI_Title:SetText(L["TAB"]["NOTHING"])
 				return 
 			end 		
-			UI_Title:SetText(L["TAB"][tab.name]["HEADTITLE"])
-			StdUi:GlueTop(UI_Title, tab.childs[spec], 0, -5)			
-			StdUi:EasyLayout(tab.childs[spec], { padding = { top = 20 } })
+			UI_Title:SetText(L["TAB"][tabName]["HEADTITLE"])
+			StdUi:GlueTop(UI_Title, anchor, 0, -5)			
+			StdUi:EasyLayout(anchor, { padding = { top = 20 } })
 			
-			local UsePanel = StdUi:PanelWithTitle(tab.childs[spec], tab.childs[spec]:GetWidth() - 30, 50, L["TAB"][tab.name]["USETITLE"])
+			local UsePanel = StdUi:PanelWithTitle(anchor, anchor:GetWidth() - 30, 50, L["TAB"][tabName]["USETITLE"])
 			UsePanel.titlePanel.label:SetFontSize(14)
 			UsePanel.titlePanel.label:SetTextColor(UI_Title:GetTextColor())
 			StdUi:GlueTop(UsePanel.titlePanel, UsePanel, 0, -5)
 			StdUi:EasyLayout(UsePanel, { gutter = 0, padding = { top = UsePanel.titlePanel.label:GetHeight() + 10 } })			
-			local MSG_Toggle = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["MSG"])
-			local DisableReToggle = StdUi:Checkbox(tab.childs[spec], L["TAB"][tab.name]["DISABLERETOGGLE"])
+			local MSG_Toggle = StdUi:Checkbox(anchor, L["TAB"][tabName]["MSG"])
+			local DisableReToggle = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLERETOGGLE"])
 			local ScrollTable 
-			local Macro = StdUi:SimpleEditBox(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12), 20, "")	
-			local ConfigPanel = StdUi:PanelWithTitle(tab.childs[spec], GetWidthByColumn(tab.childs[spec], 12, 30), 100, L["TAB"]["CONFIGPANEL"])	
+			local Macro = StdUi:SimpleEditBox(anchor, StdUi:GetWidthByColumn(anchor, 12), 20, "")	
+			local ConfigPanel = StdUi:PanelWithTitle(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), 100, L["TAB"]["CONFIGPANEL"])	
 			ConfigPanel.titlePanel.label:SetFontSize(13)
 			StdUi:GlueTop(ConfigPanel.titlePanel, ConfigPanel, 0, -5)
 			StdUi:EasyLayout(ConfigPanel, { padding = { top = 50 } })
-			local ResetConfigPanel = StdUi:Button(tab.childs[spec], 70, ActionDatatheme.dd.height, L["RESET"])
-			local LuaButton = StdUi:Button(tab.childs[spec], 50, ActionDatatheme.dd.height, "LUA")
-			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, ActionDatatheme.off)
-			local LuaEditor = CreateLuaEditor(tab.childs[spec], L["TAB"]["LUAWINDOW"], Action.MainUI.default_w, Action.MainUI.default_h, L["TAB"]["LUATOOLTIP"])						
-			local Key = StdUi:SimpleEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 20, "") 
-			local Source = StdUi:SimpleEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 20, "") 
-			local InputBox = StdUi:SearchEditBox(tab.childs[spec], GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tab.name]["INPUT"])			
-			local Add = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][6]["ADD"])
-			local Remove = StdUi:Button(tab.childs[spec], GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][6]["REMOVE"])
+			local ResetConfigPanel = StdUi:Button(anchor, 70, themeHeight, L["RESET"])
+			local LuaButton = StdUi:Button(anchor, 50, themeHeight, "LUA")
+			LuaButton.FontStringLUA = StdUi:Subtitle(LuaButton, themeOFF)
+			local LuaEditor = StdUi:CreateLuaEditor(anchor, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"])						
+			local Key = StdUi:SimpleEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 20, "") 
+			local Source = StdUi:SimpleEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 20, "") 
+			local InputBox = StdUi:SearchEditBox(anchor, StdUi:GetWidthByColumn(ConfigPanel, 12), 20, L["TAB"][tabName]["INPUT"])			
+			local Add = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][6]["ADD"])
+			local Remove = StdUi:Button(anchor, StdUi:GetWidthByColumn(ConfigPanel, 6), 25, L["TAB"][6]["REMOVE"])
 			
 			-- [ScrollTable] BEGIN			
 			local function OnClickCell(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
 				if button == "LeftButton" then		
 					LuaEditor.EditBox:SetText(rowData.LUA or "")
 					if rowData.LUA and rowData.LUA ~= "" then 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+						LuaButton.FontStringLUA:SetText(themeON)
 					else 
-						LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+						LuaButton.FontStringLUA:SetText(themeOFF)
 					end 
 					Macro:SetText(rowData.Name and "/party " .. rowData.Name or "")
 					Macro:ClearFocus()										
@@ -10390,9 +13188,9 @@ function Action.ToggleMainUI()
 					InputBox:ClearFocus()
 				end 				
 			end 
-			ScrollTable = StdUi:ScrollTable(tab.childs[spec], {
+			ScrollTable = StdUi:ScrollTable(anchor, {
 				{
-                    name = L["TAB"][tab.name]["KEY"],
+                    name = L["TAB"][tabName]["KEY"],
                     width = 100,
                     align = "LEFT",
                     index = "Key",
@@ -10402,9 +13200,10 @@ function Action.ToggleMainUI()
                     },
                 },
                 {
-                    name = L["TAB"][tab.name]["NAME"],
+                    name = L["TAB"][tabName]["NAME"],
                     width = 207,
 					defaultwidth = 207,
+					defaultSort = "dsc",
                     align = "LEFT",
                     index = "Name",
                     format = "string",
@@ -10413,7 +13212,7 @@ function Action.ToggleMainUI()
                     },
                 },
 				{
-                    name = L["TAB"][tab.name]["WHOSAID"],
+                    name = L["TAB"][tabName]["WHOSAID"],
                     width = 120,
                     align = "LEFT",
                     index = "Source",
@@ -10423,7 +13222,7 @@ function Action.ToggleMainUI()
                     },
                 },
 				{
-                    name = L["TAB"][tab.name]["ICON"],
+                    name = L["TAB"][tabName]["ICON"],
                     width = 50,
                     align = "LEFT",
                     index = "Icon",
@@ -10431,10 +13230,10 @@ function Action.ToggleMainUI()
                     sortable = false,
                     events = {
                         OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
-                            ShowTooltip(cellFrame, true, rowData.ID, rowData.Type)  							
+                            StdUi:ShowTooltip(cellFrame, true, rowData.ID, rowData.Type)  							
                         end,
                         OnLeave = function(rowFrame, cellFrame)
-                            ShowTooltip(cellFrame, false)    						
+                            StdUi:ShowTooltip(cellFrame, false)    						
                         end,
 						OnClick = OnClickCell,
                     },
@@ -10456,25 +13255,26 @@ function Action.ToggleMainUI()
 			ScrollTable.defaultrows = { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
 			ScrollTable:EnableSelection(true)
 			
+			local cacheData = {}
 			local function ScrollTableData()
-				local data = {}
-				for k, v in pairs(TMWdb.profile.ActionDB[tab.name].msgList) do 
+				wipe(cacheData)
+				for k, v in pairs(specDB.msgList) do 
 					if v.Enabled then 
-						if Action[Action.PlayerClass][v.Key] then 
-							tinsert(data, setmetatable({
+						if Action[specID][v.Key] then -- specID is Action.PlayerClass 
+							tinsert(cacheData, setmetatable({
 								Enabled = v.Enabled,
 								Key = v.Key,
 								Source = v.Source or "",
 								LUA = v.LUA,
 								Name = k, 								
-								Icon = Action[Action.PlayerClass][v.Key]:Icon(),
-							}, {__index = Action[Action.PlayerClass][v.Key]}))
+								Icon = (Action[specID][v.Key]:Icon()),
+							}, { __index = Action[specID][v.Key] }))
 						else 
 							v = nil 
 						end 
 					end 
 				end			
-				return data
+				return cacheData
 			end 
 			local function ScrollTableUpdate()
 				Macro:ClearFocus()				
@@ -10489,14 +13289,10 @@ function Action.ToggleMainUI()
 			ScrollTable:SetScript("OnShow", function()
 				ScrollTableUpdate()
 				ResetConfigPanel:Click()
-			end)
-			-- If we had return back to this tab then handler will be skipped 
-			if Action.MainUI.RememberTab == tab.name then 
-				ScrollTableUpdate()
-			end
+			end)			
 			-- [ScrollTable] END
 			
-			MSG_Toggle:SetChecked(TMWdb.profile.ActionDB[tab.name].MSG_Toggle)
+			MSG_Toggle:SetChecked(specDB.MSG_Toggle)
 			MSG_Toggle:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			MSG_Toggle:SetScript("OnClick", function(self, button, down)	
 				Macro:ClearFocus()	
@@ -10506,13 +13302,13 @@ function Action.ToggleMainUI()
 				if button == "LeftButton" then 
 					Action.ToggleMSG()	
 				elseif button == "RightButton" then 
-					CraftMacro(L["TAB"][tab.name]["MSG"], [[/run Action.ToggleMSG()]])	
+					Action.CraftMacro(L["TAB"][tabName]["MSG"], [[/run Action.ToggleMSG()]])	
 				end				
 			end)
 			MSG_Toggle.Identify = { Type = "Checkbox", Toggle = "MSG_Toggle" }
-			StdUi:FrameTooltip(MSG_Toggle, L["TAB"][tab.name]["MSGTOOLTIP"], nil, "TOPRIGHT", true)
+			StdUi:FrameTooltip(MSG_Toggle, L["TAB"][tabName]["MSGTOOLTIP"], nil, "TOPRIGHT", true)
 			
-			DisableReToggle:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableReToggle)
+			DisableReToggle:SetChecked(specDB.DisableReToggle)
 			DisableReToggle:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 			DisableReToggle:SetScript("OnClick", function(self, button, down)	
 				Macro:ClearFocus()	
@@ -10521,16 +13317,16 @@ function Action.ToggleMainUI()
 				InputBox:ClearFocus()
 				if not self.isDisabled then 
 					if button == "LeftButton" then 
-						TMWdb.profile.ActionDB[tab.name].DisableReToggle = not TMWdb.profile.ActionDB[tab.name].DisableReToggle
-						self:SetChecked(TMWdb.profile.ActionDB[tab.name].DisableReToggle)	
-						Action.Print(L["TAB"][tab.name]["DISABLERETOGGLE"] .. ": ", TMWdb.profile.ActionDB[tab.name].DisableReToggle)	
+						specDB.DisableReToggle = not specDB.DisableReToggle
+						self:SetChecked(specDB.DisableReToggle)	
+						Action.Print(L["TAB"][tabName]["DISABLERETOGGLE"] .. ": ", specDB.DisableReToggle)	
 					elseif button == "RightButton" then 
-						CraftMacro(L["TAB"][tab.name]["DISABLERETOGGLE"], [[/run Action.SetToggle({]] .. tab.name .. [[, "DisableReToggle", "]] .. L["TAB"][tab.name]["DISABLERETOGGLE"] .. [[: "})]])	
+						Action.CraftMacro(L["TAB"][tabName]["DISABLERETOGGLE"], [[/run Action.SetToggle({]] .. tabName .. [[, "DisableReToggle", "]] .. L["TAB"][tabName]["DISABLERETOGGLE"] .. [[: "})]])	
 					end		
 				end 
 			end)
 			DisableReToggle.Identify = { Type = "Checkbox", Toggle = "DisableReToggle" }
-			StdUi:FrameTooltip(DisableReToggle, L["TAB"][tab.name]["DISABLERETOGGLETOOLTIP"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(DisableReToggle, L["TAB"][tabName]["DISABLERETOGGLETOOLTIP"], nil, "TOPLEFT", true)
 			DisableReToggle:SetScript("OnShow", function(self) 
 				if not MSG_Toggle:GetChecked() then 
 					self:Disable()
@@ -10561,9 +13357,9 @@ function Action.ToggleMainUI()
 				self:ClearFocus() 
             end)						
 			Macro:SetJustifyH("CENTER")
-			Macro.FontString = StdUi:Subtitle(Macro, L["TAB"][tab.name]["MACRO"])
+			Macro.FontString = StdUi:Subtitle(Macro, L["TAB"][tabName]["MACRO"])
 			StdUi:GlueAbove(Macro.FontString, Macro) 
-			StdUi:FrameTooltip(Macro, L["TAB"][tab.name]["MACROTOOLTIP"], nil, "TOP", true)			
+			StdUi:FrameTooltip(Macro, L["TAB"][tabName]["MACROTOOLTIP"], nil, "TOP", true)			
 			
 			Key:SetScript("OnEnterPressed", function() 
 				Add:Click()
@@ -10572,9 +13368,9 @@ function Action.ToggleMainUI()
 				self:ClearFocus()
 			end)
 			Key:SetJustifyH("CENTER")
-			Key.FontString = StdUi:Subtitle(Key, L["TAB"][tab.name]["KEY"])
+			Key.FontString = StdUi:Subtitle(Key, L["TAB"][tabName]["KEY"])
 			StdUi:GlueAbove(Key.FontString, Key)	
-			StdUi:FrameTooltip(Key, L["TAB"][tab.name]["KEYTOOLTIP"], nil, "TOPRIGHT", true)	
+			StdUi:FrameTooltip(Key, L["TAB"][tabName]["KEYTOOLTIP"], nil, "TOPRIGHT", true)	
 
 			Source:SetScript("OnEnterPressed", function() 
 				Add:Click()
@@ -10583,9 +13379,9 @@ function Action.ToggleMainUI()
 				self:ClearFocus()
 			end)
 			Source:SetJustifyH("CENTER")
-			Source.FontString = StdUi:Subtitle(Source, L["TAB"][tab.name]["SOURCE"])
+			Source.FontString = StdUi:Subtitle(Source, L["TAB"][tabName]["SOURCE"])
 			StdUi:GlueAbove(Source.FontString, Source)	
-			StdUi:FrameTooltip(Source, L["TAB"][tab.name]["SOURCETOOLTIP"], nil, "TOPLEFT", true)
+			StdUi:FrameTooltip(Source, L["TAB"][tabName]["SOURCETOOLTIP"], nil, "TOPLEFT", true)
 
 			InputBox:SetScript("OnTextChanged", function(self)
 				local text = self:GetText()
@@ -10604,9 +13400,9 @@ function Action.ToggleMainUI()
 			InputBox:SetScript("OnEscapePressed", function(self)
 				self:ClearFocus()
 			end)
-			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tab.name]["INPUTTITLE"])						
+			InputBox.FontStringTitle = StdUi:Subtitle(InputBox, L["TAB"][tabName]["INPUTTITLE"])						
 			StdUi:GlueAbove(InputBox.FontStringTitle, InputBox)	
-			StdUi:FrameTooltip(InputBox, L["TAB"][tab.name]["INPUTTOOLTIP"], nil, "TOP", true)			
+			StdUi:FrameTooltip(InputBox, L["TAB"][tabName]["INPUTTOOLTIP"], nil, "TOP", true)			
 			
 			Add:SetScript("OnClick", function(self, button, down)		
 				if LuaEditor:IsShown() then
@@ -10619,23 +13415,23 @@ function Action.ToggleMainUI()
 				
 				local Name = InputBox:GetText()
 				if Name == nil or Name == "" then 
-					Action.Print(L["TAB"][tab.name]["INPUTERROR"]) 
+					Action.Print(L["TAB"][tabName]["INPUTERROR"]) 
 					return 
 				end 
 				
 				local TableKey = Key:GetText()
 				if TableKey == nil or TableKey == "" then 
-					Action.Print(L["TAB"][tab.name]["KEYERROR"]) 
+					Action.Print(L["TAB"][tabName]["KEYERROR"]) 
 					return 
 				elseif not Action[Action.PlayerClass][TableKey] then 
-					Action.Print(TableKey .. " " .. L["TAB"][tab.name]["KEYERRORNOEXIST"]) 
+					Action.Print(TableKey .. " " .. L["TAB"][tabName]["KEYERRORNOEXIST"]) 
 					return 
 				end 				
 			
 				Name = Name:lower()	
-				for k, v in pairs(TMWdb.profile.ActionDB[tab.name].msgList) do 
+				for k, v in pairs(specDB.msgList) do 
 					if v.Enabled and Name:match(k) and Name ~= k then 
-						Action.Print(Name .. " " .. L["TAB"][tab.name]["MATCHERROR"]) 
+						Action.Print(Name .. " " .. L["TAB"][tabName]["MATCHERROR"]) 
 						return 
 					end
 				end 
@@ -10652,11 +13448,11 @@ function Action.ToggleMainUI()
 				
 				-- Prevent overwrite by next time loading if user applied own changes 
 				local LUAVER 
-				if TMWdb.profile.ActionDB[tab.name].msgList[Name] then 
-					LUAVER = TMWdb.profile.ActionDB[tab.name].msgList[Name].LUAVER
+				if specDB.msgList[Name] then 
+					LUAVER = specDB.msgList[Name].LUAVER
 				end 
 
-				TMWdb.profile.ActionDB[tab.name].msgList[Name] = { 
+				specDB.msgList[Name] = { 
 					Enabled = true,
 					Key = TableKey,
 					Source = SourceName,
@@ -10674,26 +13470,26 @@ function Action.ToggleMainUI()
 				else 
 					local data = ScrollTable:GetRow(index)
 					local Name = data.Name
-					if Action.Data.ProfileDB[tab.name].msgList[Name] then 
-						TMWdb.profile.ActionDB[tab.name].msgList[Name].Enabled = false							
+					if ActionData.ProfileDB[tabName].msgList[Name] then 
+						specDB.msgList[Name].Enabled = false							
 					else 
-						TMWdb.profile.ActionDB[tab.name].msgList[Name] = nil	
+						specDB.msgList[Name] = nil	
 					end 					
 					ScrollTableUpdate()					
 				end 
 			end)            							          
 				
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(UsePanel)	
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(UsePanel)	
 			UsePanel:AddRow():AddElements(MSG_Toggle, DisableReToggle, { column = "even" })
 			UsePanel:DoLayout()								
-			tab.childs[spec]:AddRow({ margin = { top = 10, left = -15, right = -15 } }):AddElement(ScrollTable)
-			tab.childs[spec]:AddRow({ margin = { left = -15, right = -15 } }):AddElement(Macro)
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)						
+			anchor:AddRow({ margin = { top = 10, left = -15, right = -15 } }):AddElement(ScrollTable)
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(Macro)
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(ConfigPanel)						
 			ConfigPanel:AddRow({ margin = { top = -15, left = -15, right = -15 } }):AddElements(Key, Source, { column = "even" })
 			ConfigPanel:AddRow({ margin = { left = -15, right = -15 } }):AddElement(InputBox)
 			ConfigPanel:DoLayout()							
-			tab.childs[spec]:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
-			tab.childs[spec]:DoLayout()				
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElements(Add, Remove, { column = "even" })
+			anchor:DoLayout()				
 			
 			ResetConfigPanel:SetScript("OnClick", function()
 				Macro:SetText("")
@@ -10705,7 +13501,7 @@ function Action.ToggleMainUI()
 				InputBox:SetText("")
 				InputBox:ClearFocus()				
 				LuaEditor.EditBox:SetText("")
-				LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+				LuaButton.FontStringLUA:SetText(themeOFF)
 			end)
 			StdUi:GlueTop(ResetConfigPanel, ConfigPanel, 0, 0, "LEFT")
 			
@@ -10721,16 +13517,1563 @@ function Action.ToggleMainUI()
 
 			LuaEditor:HookScript("OnHide", function(self)
 				if self.EditBox:GetText() ~= "" then 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.on)
+					LuaButton.FontStringLUA:SetText(themeON)
 				else 
-					LuaButton.FontStringLUA:SetText(ActionDatatheme.off)
+					LuaButton.FontStringLUA:SetText(themeOFF)
 				end 
-			end)							
+			end)
+
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then 
+				ScrollTableUpdate()
+			end	
 		end 		
 		
-		if Action.MainUI.resizer then 
-			Action.MainUI.UpdateResize()
+		if tabName == 8 then 
+			local hasHealerSpells = Action.Unit("player"):IsHealerClass()
+			-- Fix StdUi 
+			-- Lib has missed scrollframe as widget (need to have function GetChildrenWidgets)
+			StdUi:InitWidget(anchor)		
+			if not hasHealerSpells then 
+				UI_Title:SetText(L["TAB"]["NOTHING"])
+				return 
+			end 
+			
+			UI_Title:Hide()					
+			StdUi:EasyLayout(anchor, { padding = { top = 2, left = 8, right = 8 + 20 } })
+			
+			local isHealer = (not StdUi.isClassic and Action.IamHealer) or (StdUi.isClassic and hasHealerSpells) -- By this depends which elements we need to use
+			local 	isDemo = false -- Hides player name for demonstration 
+			local 	PanelOptions,
+						ResetOptions, HelpOptions,	-- Other roles available
+						PredictOptions,				-- Other roles available
+						SelectStopOptions, SelectSortMethod,
+						AfterTargetEnemyOrBossDelay, AfterMouseoverEnemyDelay,
+						SelectPets, SelectResurrects,
+					PanelUnitIDs,
+						UnitIDs, 
+						AutoHide,
+					PanelProfiles,
+						ResetProfile, HelpProfile,
+						Profile, 
+						EditBoxProfile,
+						SaveProfile, LoadProfile, RemoveProfile,
+					PanelPriority,
+						ResetPriority, HelpPriority,
+						Multipliers,
+						MultiplierIncomingDamageLimit, 	MultiplierThreat,
+						MultiplierPetsInCombat, 		MultiplierPetsOutCombat,
+						Offsets,
+						OffsetMode,
+						OffsetSelfFocused, 		OffsetSelfUnfocused, 	OffsetSelfDispel,
+						OffsetHealers, 			OffsetTanks, 			OffsetDamagers,
+						OffsetHealersDispel, 	OffsetTanksDispel, 		OffsetDamagersDispel,
+						OffsetHealersShields, 	OffsetTanksShields, 	OffsetDamagersShields, 
+						OffsetHealersHoTs, 		OffsetTanksHoTs, 		OffsetDamagersHoTs, 
+						OffsetHealersUtils, 	OffsetTanksUtils, 		OffsetDamagersUtils,
+					PanelManaManagement,
+						ResetManaManagement, HelpManaManagement,
+						ManaManagementManaBoss,
+						ManaManagementStopAtHP, OR, ManaManagementStopAtTTD,
+					HelpWindow, LuaEditor, 
+					ScrollTable, 				-- Shortcut for UnitIDs.Table 
+					PriorityResetWidgets,		-- Need for button ResetPriority	
+					ResetManaManagementWidges	-- Need for button ResetManaManagement
+			local columnEven, columnFour = { column = "even" }, { column = 4 }
+
+			local function CreatePanel(title, gutter)
+				local panel
+				if title then 
+					panel = StdUi:PanelWithTitle(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), height or 1, title)	
+					panel.titlePanel.label:SetFontSize(15)				
+					StdUi:GlueTop(panel.titlePanel, panel, 0, -5)
+				else 
+					panel = StdUi:Panel(anchor, StdUi:GetWidthByColumn(anchor, 12, 30), height or 1)
+				end 
+				StdUi:EasyLayout(panel, { gutter = gutter, padding = { left = 0, right = 0, bottom = 5 } })
+
+				-- Remap it to make resize able height and ignore for rows which aren't specified for healer 
+				panel.DoLayout = function(self)
+					if self.rows == nil then 
+						return 
+					end 
+					
+					-- Custom update kids of this panel to determine new total height
+					MainUI.UpdateResizeForKids(self:GetChildrenWidgets())
+					
+					local l = self.layout;
+					local width = self:GetWidth() - l.padding.left - l.padding.right;
+
+					local y = -l.padding.top;
+					for i = 1, #self.rows do
+						local row = self.rows[i];
+						y = y - row:DrawRow(width, y);
+					end
+					
+					if not title or not self.hasConfiguredHeight then -- no title means what panel has ScrollTable which need to resize every time 
+						self:SetHeight(-y)						 
+						if not title then 
+							self.hasConfiguredHeight = true 
+						end 
+					end
+				end 
+				
+				return panel 
+			end 
+					
+			local function CreateSliderAfter(db)
+				local title = db:upper()
+				local titleText = L["TAB"][tabName][title]
+				local tooltipText = L["TAB"][tabName][title .. "TOOLTIP"] or L["TAB"][tabName]["CREATEMACRO"]
+				
+				local slider = StdUi:Slider(PanelOptions, StdUi:GetWidthByColumn(PanelOptions, 6), themeHeight, specDB[db], false, 0, 600)
+				slider:SetScript("OnMouseUp", function(self, button, down)
+					if button == "RightButton" then 
+						local macroName = titleText:gsub("\n", " ")
+						Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. db .. [[", "]] .. macroName .. [[: "}, ]] .. specDB[db] .. [[)]], true)
+					end					
+				end)		
+				slider.Identify = { Type = "Slider", Toggle = db }					
+				slider.MakeTextUpdate = function(self, value)
+					if value <= 0 then 
+						self.FontStringTitle:SetText(titleText .. ": |cffff0000OFF|r")
+					else 
+						self.FontStringTitle:SetText(titleText .. ": |cff00ff00" .. value .. "|r")
+					end  
+				end 
+				slider.OnValueChanged = function(self, value)
+					specDB[db] = value
+					self:MakeTextUpdate(value)
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end								
+				slider.FontStringTitle = StdUi:Subtitle(PanelOptions, "")
+				slider.FontStringTitle:SetJustifyH("MIDDLE")
+				slider:MakeTextUpdate(specDB[db])				
+				StdUi:GlueAbove(slider.FontStringTitle, slider)
+				if tooltipText then 
+					StdUi:FrameTooltip(slider, tooltipText, nil, "BOTTOM", true)	
+				end 
+				return slider
+			end 
+			
+			local function CreateCheckbox(parent, db, useMacro, useCallback)
+				local title = db:upper()
+				local titleText = L["TAB"][tabName][title]
+				local tooltipText = L["TAB"][tabName][title .. "TOOLTIP"] or L["TAB"][tabName]["CREATEMACRO"]
+				
+				local checkbox = StdUi:Checkbox(parent, titleText, 250)
+				checkbox:SetChecked(specDB[db])
+				checkbox:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+				checkbox:SetScript("OnClick", function(self, button, down)
+					if not self.isDisabled then						
+						if button == "LeftButton" then 
+							specDB[db] = not specDB[db]	
+							self:SetChecked(specDB[db])	
+							Action.Print(titleText .. ": ", specDB[db])			
+						elseif button == "RightButton" and useMacro then 
+							Action.CraftMacro(titleText, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. db .. [[", "]] .. titleText .. [[: "})]], true)	
+						end						
+					end 
+				end)			
+				checkbox.OnValueChanged = function(self, state, val)	
+					if useCallback then 
+						ScrollTable:MakeUpdate()	
+					end 
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end				 
+				checkbox.Identify = { Type = "Checkbox", Toggle = db }	
+				if tooltipText then 
+					StdUi:FrameTooltip(checkbox, tooltipText, nil, "TOP", true)
+				end 
+				return checkbox			
+			end 
+			
+			local function CreateSliderMultiplier(db)
+				local title = db:upper()
+				local titleText = L["TAB"][tabName][title]
+				local tooltipText = L["TAB"][tabName][title .. "TOOLTIP"] or L["TAB"][tabName]["CREATEMACRO"]
+				
+				local slider = StdUi:Slider(PanelPriority, StdUi:GetWidthByColumn(PanelPriority, 6), themeHeight, specDB[db], false, 0.01, 2)
+				slider:SetPrecision(2)
+				slider:SetScript("OnMouseUp", function(self, button, down)
+					if button == "RightButton" then 
+						local macroName = titleText:gsub("\n", " ")
+						Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. db .. [[", "]] .. macroName .. [[: "}, ]] .. specDB[db] .. [[)]], true)	
+					end					
+				end)		
+				slider.Identify = { Type = "Slider", Toggle = db }					
+				slider.MakeTextUpdate = function(self, value)
+					self.FontStringTitle:SetText(titleText .. ": |cff00ff00" .. value .. "|r")
+				end 
+				slider.OnValueChanged = function(self, value)
+					specDB[db] = value
+					self:MakeTextUpdate(value)
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end								
+				slider.FontStringTitle = StdUi:Subtitle(PanelPriority, "")
+				slider.FontStringTitle:SetJustifyH("RIGHT")
+				slider:MakeTextUpdate(specDB[db])				
+				StdUi:GlueAbove(slider.FontStringTitle, slider, 0, 0, "RIGHT")
+				if tooltipText then 
+					StdUi:FrameTooltip(slider, tooltipText, nil, "BOTTOM", true)	
+				end 
+				return slider
+			end 
+			
+			local function CreateSliderOffset(db)
+				local title = db:upper()
+				local titleText = L["TAB"][tabName][title]
+				local tooltipText = L["TAB"][tabName][title .. "TOOLTIP"] or L["TAB"][tabName]["CREATEMACRO"]
+				
+				local slider = StdUi:Slider(PanelPriority, StdUi:GetWidthByColumn(PanelPriority, 6), themeHeight, specDB[db], false, -100, 100)
+				slider:SetPrecision(0)
+				slider:SetScript("OnMouseUp", function(self, button, down)
+					if button == "RightButton" then 
+						local macroName = titleText:gsub("\n", " ")
+						Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. db .. [[", "]] .. macroName .. [[: "}, ]] .. specDB[db] .. [[)]], true)	
+					end					
+				end)		
+				slider.Identify = { Type = "Slider", Toggle = db }					
+				slider.MakeTextUpdate = function(self, value)
+					if value == 0 then 
+						self.FontStringTitle:SetText(titleText .. ": |cff00ff00AUTO|r")
+					else 
+						self.FontStringTitle:SetText(titleText .. ": |cff00ff00" .. value .. "|r")
+					end  
+				end 
+				slider.OnValueChanged = function(self, value)
+					if value >= -1 and value <= 1 then 
+						self:SetPrecision(-1)
+					else 
+						self:SetPrecision(0)
+					end 
+					specDB[db] = value
+					self:MakeTextUpdate(value)
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end								
+				slider.FontStringTitle = StdUi:Subtitle(PanelPriority, "")
+				slider.FontStringTitle:SetJustifyH("RIGHT")
+				slider:MakeTextUpdate(specDB[db])				
+				StdUi:GlueAbove(slider.FontStringTitle, slider, 0, 0, "RIGHT")
+				if tooltipText then 
+					StdUi:FrameTooltip(slider, tooltipText, nil, "BOTTOM", true)	
+				end 
+				return slider
+			end 
+			
+			local function TabUpdate()
+				if isHealer then 
+					ScrollTable:MakeUpdate()			-- Refresh units 
+					EditBoxProfile:ClearFocus()
+				end 
+			end 						
+			
+			-- UI: PanelOptions
+			PanelOptions = CreatePanel(L["TAB"][tabName]["OPTIONSPANEL"])	
+			
+			-- UI: PanelOptions - ResetOptions
+			ResetOptions = StdUi:Button(PanelOptions, 70, themeHeight, L["RESET"])		
+			ResetOptions:SetScript("OnClick", function(self, button, down)
+				local db 
+				if StdUi.Factory[tabName].PLAYERSPEC then
+					db = StdUi.Factory[tabName].PLAYERSPEC
+				else 
+					db = StdUi.Factory[tabName]
+				end
+				
+				for k, v in pairs(db) do 										
+					if k == "PredictOptions" then 						
+						local isChanged 
+						for k1, v1 in ipairs(v) do 
+							if PredictOptions.value[k1] ~= v1 then 
+								PredictOptions.value[k1] = v1 	
+								isChanged = true 
+							end 
+						end 
+						
+						if isChanged then 
+							PredictOptions:SetValue(PredictOptions.value) 
+							-- OnValueChanged will set specDB and make Action.Print
+						end 
+					end 
+					
+					if k == "SelectStopOptions" then 
+						local isChanged 
+						for k1, v1 in ipairs(v) do 
+							if SelectStopOptions.value[k1] ~= v1 then 
+								SelectStopOptions.value[k1] = v1 	
+								isChanged = true 
+							end 
+						end 
+						
+						if isChanged then 
+							SelectStopOptions:SetValue(SelectStopOptions.value) 
+							-- OnValueChanged will set specDB and make Action.Print
+						end 						
+					end 	
+					
+					if k == "SelectSortMethod" then
+						if SelectSortMethod:GetValue() ~= v then 
+							SelectSortMethod:SetValue(v) 
+							-- OnValueChanged will set specDB and make Action.Print 
+						end 
+					end 
+					
+					if k == "AfterTargetEnemyOrBossDelay" then 
+						if AfterTargetEnemyOrBossDelay:GetValue() ~= v then 
+							AfterTargetEnemyOrBossDelay:SetValue(v) 
+							-- OnValueChanged will set specDB
+							Action.Print(L["TAB"][tabName][k:upper()]:gsub("\n", " ") .. ": ", AfterTargetEnemyOrBossDelay.FontStringTitle:GetText())	
+						end 
+					end 
+					
+					if k == "AfterMouseoverEnemyDelay" then 
+						if AfterMouseoverEnemyDelay:GetValue() ~= v then 
+							AfterMouseoverEnemyDelay:SetValue(v) 
+							-- OnValueChanged will set specDB
+							Action.Print(L["TAB"][tabName][k:upper()]:gsub("\n", " ") .. ": ", AfterMouseoverEnemyDelay.FontStringTitle:GetText())	
+						end 
+					end 
+					
+					if k == "SelectPets" then 
+						if SelectPets:GetChecked() ~= v then 
+							SelectPets:SetChecked(v)
+							specDB[k] = v 
+							Action.Print(L["TAB"][tabName][k:upper()] .. ": ", specDB[k])	
+						end 
+					end 
+					
+					if k == "SelectResurrects" then 
+						if SelectResurrects:GetChecked() ~= v then 
+							SelectResurrects:SetChecked(v)
+							specDB[k] = v 
+							Action.Print(L["TAB"][tabName][k:upper()] .. ": ", specDB[k])
+						end 
+					end 
+				end 
+			end)
+			StdUi:GlueTop(ResetOptions, PanelOptions, 0, 0, "LEFT")			
+			StdUi:ApplyBackdrop(ResetOptions, "panel", "border")
+			
+			-- UI: PanelOptions - HelpOptions
+			HelpOptions = StdUi:Button(PanelOptions, 70, themeHeight, L["TAB"][tabName]["HELP"]) 
+			HelpOptions:SetScript("OnClick", function(self, button, down)
+				HelpWindow:Open(L["TAB"][tabName]["OPTIONSPANELHELP"])
+			end)
+			StdUi:GlueTop(HelpOptions, PanelOptions, 0, 0, "RIGHT")	
+			StdUi:ApplyBackdrop(HelpOptions, "panel", "border")
+			
+			-- UI: PanelOptions - PredictOptions
+			PredictOptions = StdUi:Dropdown(PanelOptions, StdUi:GetWidthByColumn(PanelOptions, 12), themeHeight, {
+				{ text = L["TAB"][tabName]["INCOMINGHEAL"], 		value = 1 },
+				{ text = L["TAB"][tabName]["INCOMINGDAMAGE"], 		value = 2 },
+				{ text = L["TAB"][tabName]["THREATMENT"], 			value = 3 },
+				{ text = L["TAB"][tabName]["SELFHOTS"], 			value = 4 },
+				{ text = L["TAB"][tabName]["ABSORBPOSSITIVE"], 		value = 5 },
+				{ text = L["TAB"][tabName]["ABSORBNEGATIVE"], 		value = 6 },
+			}, nil, true, true)
+			PredictOptions:SetPlaceholder(L["TAB"][tabName]["SELECTOPTIONS"]) 	
+			for i, v in ipairs(PredictOptions.optsFrame.scrollChild.items) do 
+				v:SetChecked(specDB.PredictOptions[i])
+			end			
+			PredictOptions.OnValueChanged = function(self, value)	
+				local isChanged
+				for i, v in ipairs(self.optsFrame.scrollChild.items) do 
+					if specDB.PredictOptions[i] ~= v:GetChecked() then 
+						specDB.PredictOptions[i] = v:GetChecked()
+						Action.Print(L["TAB"][tabName]["PREDICTOPTIONS"] .. ": " .. self.options[i].text .. " = ", specDB.PredictOptions[i])
+						isChanged = true 
+					end 
+				end 
+				
+				if isChanged then 
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end 
+			end				
+			PredictOptions:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			PredictOptions:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["PREDICTOPTIONS"], [[/run Action.SetToggle({]] .. tabName .. [[, "PredictOptions", "]] .. L["TAB"][tabName]["PREDICTOPTIONS"] .. [[:"})]], true)	
+				end
+			end)		
+			PredictOptions.Identify = { Type = "Dropdown", Toggle = "PredictOptions" }			
+			PredictOptions.FontStringTitle = StdUi:Subtitle(PredictOptions, L["TAB"][tabName]["PREDICTOPTIONS"])
+			StdUi:FrameTooltip(PredictOptions, L["TAB"][tabName]["PREDICTOPTIONSTOOLTIP"], nil, "TOP", true)
+			StdUi:GlueAbove(PredictOptions.FontStringTitle, PredictOptions)
+			PredictOptions.text:SetJustifyH("CENTER")		
+			
+			-- UI: PanelOptions - SelectStopOptions
+		if isHealer then -- isHealer START
+			SelectStopOptions = StdUi:Dropdown(PanelOptions, StdUi:GetWidthByColumn(PanelOptions, 6), themeHeight, {
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS1"], 		value = 1 },
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS2"], 		value = 2 },
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS3"], 		value = 3 },
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS4"], 		value = 4 },
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS5"], 		value = 5 },
+			}, nil, true, true)
+			SelectStopOptions:SetPlaceholder(L["TAB"][tabName]["SELECTOPTIONS"]) 				
+			for i, v in ipairs(SelectStopOptions.optsFrame.scrollChild.items) do 
+				v:SetChecked(specDB.SelectStopOptions[i])
+			end	
+			SelectStopOptions.OnValueChanged = function(self, value)
+				local isChanged
+				for i, v in ipairs(self.optsFrame.scrollChild.items) do 
+					if specDB.SelectStopOptions[i] ~= v:GetChecked() then 
+						specDB.SelectStopOptions[i] = v:GetChecked() 
+						Action.Print(L["TAB"][tabName]["SELECTSTOPOPTIONS"] .. ": " .. self.options[i].text .. " = ", specDB.SelectStopOptions[i])
+						isChanged = true 
+					end 
+				end 
+
+				if isChanged then 
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end 
+			end				
+			SelectStopOptions:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			SelectStopOptions:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["SELECTSTOPOPTIONS"], [[/run Action.SetToggle({]] .. tabName .. [[, "SelectStopOptions", "]] .. L["TAB"][tabName]["SELECTSTOPOPTIONS"] .. [[:"})]], true)	
+				end
+			end)		
+			SelectStopOptions.Identify = { Type = "Dropdown", Toggle = "SelectStopOptions" }			
+			SelectStopOptions.FontStringTitle = StdUi:Subtitle(SelectStopOptions, L["TAB"][tabName]["SELECTSTOPOPTIONS"])
+			StdUi:FrameTooltip(SelectStopOptions, L["TAB"][tabName]["SELECTSTOPOPTIONSTOOLTIP"], nil, "TOP", true)
+			StdUi:GlueAbove(SelectStopOptions.FontStringTitle, SelectStopOptions)
+			SelectStopOptions.text:SetJustifyH("CENTER")	 
+			
+			-- UI: PanelOptions - SelectSortMethod	
+			SelectSortMethod = StdUi:Dropdown(PanelOptions, StdUi:GetWidthByColumn(PanelOptions, 6), themeHeight, {
+				{ text = L["TAB"][tabName]["SORTHP"], 		value = "HP"  },
+				{ text = L["TAB"][tabName]["SORTAHP"], 		value = "AHP" },
+			}, specDB.SelectSortMethod)			
+			SelectSortMethod.OnValueChanged = function(self, value)	 
+				if specDB.SelectSortMethod ~= value then 
+					specDB.SelectSortMethod = value 
+					Action.Print(L["TAB"][tabName]["SELECTSORTMETHOD"] .. ": ", L["TAB"][tabName]["SORT" .. value] or value)
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end 				
+			end				
+			SelectSortMethod:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			SelectSortMethod:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["SELECTSORTMETHOD"], [[/run Action.SetToggle({]] .. tabName .. [[, "SelectSortMethod", "]] .. L["TAB"][tabName]["SELECTSORTMETHOD"] .. [[:"}, ]] .. self.value .. [[)]], true)	
+				end
+			end)		
+			SelectSortMethod.Identify = { Type = "Dropdown", Toggle = "SelectSortMethod" }			
+			SelectSortMethod.FontStringTitle = StdUi:Subtitle(SelectSortMethod, L["TAB"][tabName]["SELECTSORTMETHOD"])
+			StdUi:FrameTooltip(SelectSortMethod, L["TAB"][tabName]["SELECTSORTMETHODTOOLTIP"], nil, "TOP", true)
+			StdUi:GlueAbove(SelectSortMethod.FontStringTitle, SelectSortMethod)
+			SelectSortMethod.text:SetJustifyH("CENTER")	
+			
+			-- UI: PanelOptions - AfterTargetEnemyOrBossDelay
+			AfterTargetEnemyOrBossDelay = CreateSliderAfter("AfterTargetEnemyOrBossDelay")
+			
+			-- UI: PanelOptions - AfterMouseoverEnemyDelay
+			AfterMouseoverEnemyDelay = CreateSliderAfter("AfterMouseoverEnemyDelay")
+			
+			-- UI: PanelOptions - SelectPets
+			SelectPets = CreateCheckbox(PanelOptions, "SelectPets", true, true) -- yes macro, yes callback
+			
+			-- UI: PanelOptions - SelectResurrects
+			SelectResurrects = CreateCheckbox(PanelOptions, "SelectResurrects", true) -- yes macro, no callback 
+			if StdUi.isClassic and Action.PlayerClass == "DRUID" then 
+				-- Druid in Classic hasn't ressurect
+				SelectResurrects:Disable()
+				SelectResurrects:SetChecked(false, true) -- only internal 
+				db.SelectResurrects = false 
+			end 
+		end -- isHealer END 
+
+			-- UI: PanelUnitIDs
+		if isHealer then -- isHealer START 
+			PanelUnitIDs = CreatePanel()
+
+			-- UI: PanelUnitIDs - UnitIDs
+			UnitIDs = setmetatable({
+				OnClickCell 	= function(table, cellFrame, rowFrame, rowData, columnData, rowIndex, button)				
+					if button == "LeftButton" then		
+						if IsShiftKeyDown() then
+							if not columnData.db then 
+								ChatEdit_InsertLink(rowData.Name)		
+							end 
+						elseif columnData.db then			
+							if columnData.db ~= "LUA" and type(specDB.UnitIDs[rowData.unitID][columnData.db]) == "boolean" then  
+								specDB.UnitIDs[rowData.unitID][columnData.db] = not specDB.UnitIDs[rowData.unitID][columnData.db]
+								
+								local status = specDB.UnitIDs[rowData.unitID][columnData.db]
+								if status then 
+									rowData[columnData.index] = columnData.db == "Enabled" and "True" or "ON"
+								else 
+									rowData[columnData.index] = columnData.db == "Enabled" and "False" or "OFF"
+								end 
+								
+								Action.Print(columnData.gname .. " " .. rowData.unitID .. (rowData.unitName ~= "" and " (" .. rowData.unitName .. ")" or "") .. ": " .. rowData[columnData.index])									
+								table:Refresh()
+								TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+							end 
+							
+							if columnData.db == "Role" and not rowData.unitID:match("pet") then -- Ignore pets for Role 
+								local currentRole = specDB.UnitIDs[rowData.unitID][columnData.db]
+								
+								if currentRole == "AUTO" then 
+									currentRole = "DAMAGER"
+									specDB.UnitIDs[rowData.unitID][columnData.db] = currentRole 
+									rowData[columnData.index] = "*" .. L["TAB"][tabName][currentRole]
+								elseif currentRole == "DAMAGER" then 
+									currentRole = "HEALER"
+									specDB.UnitIDs[rowData.unitID][columnData.db] = currentRole 
+									rowData[columnData.index] = "*" .. L["TAB"][tabName][currentRole]
+								elseif currentRole == "HEALER" then 
+									currentRole = "TANK"
+									specDB.UnitIDs[rowData.unitID][columnData.db] = currentRole 
+									rowData[columnData.index] = "*" .. L["TAB"][tabName][currentRole]
+								elseif currentRole == "TANK" then 
+									currentRole = "AUTO"
+									specDB.UnitIDs[rowData.unitID][columnData.db] = currentRole 
+									local isSelf = Action.TeamCache.Friendly.UNITs.player == Action.TeamCache.Friendly.UNITs[rowData.unitID]
+									rowData[columnData.index] = L["TAB"][tabName][Action.Unit(rowData.unitID):Role()] or isSelf and L["TAB"][tabName]["HEALER"] or Action.Unit(rowData.unitID):InGroup() and L["TAB"][tabName]["DAMAGER"] or L["TAB"][tabName]["UNKNOWN"]
+								end 
+								
+								Action.Print(rowData.unitID .. (rowData.unitName ~= "" and " (" .. rowData.unitName .. ")" or "") .. " " .. columnData.gname .. ": " .. rowData[columnData.index])									
+								table:Refresh()
+								TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+							end 
+						
+							if columnData.db == "LUA" then 
+								if table.selected ~= rowIndex then 
+									table:SetSelection(rowIndex)
+								end 
+								
+								LuaEditor.lastRow = rowIndex								
+								if not LuaEditor:IsShown() then 									
+									LuaEditor.EditBox:SetText(specDB.UnitIDs[rowData.unitID][columnData.db])
+									LuaEditor:Show()
+								else 
+									LuaEditor.closeBtn:Click()
+								end 								
+							end 
+							
+							return true -- must be true to prevent call default handler (which clears or selects row)
+						end	
+					elseif button == "RightButton" then 
+						local macroName 
+						
+						if IsShiftKeyDown() then
+							if columnData.db then
+								-- Make macro to set exact same current ceil data and set opposite for others ceils (only booleans)								
+								local unitDB = specDB.UnitIDs[rowData.unitID]
+								macroName = rowData.unitID .. ";opposite;" .. columnData.db
+								Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "UnitIDs", "]] .. rowData.unitID .. [[:"}, {]] .. rowData.unitID .. [[ = { ]] .. columnData.db .. [[ = ]] .. ((columnData.db == "LUA" or columnData.db == "Role") and [["]] .. unitDB[columnData.db] .. [["]] or Action.toStr[unitDB[columnData.db]]) .. [[}}, true)]], true)
+							else 
+								-- Make macro to set opposite current row data (only booleans)
+								macroName = rowData.unitID .. ";opposite"
+								Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "UnitIDs", "]] .. rowData.unitID .. [[:"}, {]] .. rowData.unitID .. [[ = {}}, true)]], true)
+							end 
+						elseif columnData.db then
+							-- Make macro to set exact same current ceil data
+							local unitDB = specDB.UnitIDs[rowData.unitID]
+							macroName = rowData.unitID .. ";" .. columnData.db
+							Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "UnitIDs", "]] .. rowData.unitID .. [[:"}, {]] .. rowData.unitID .. [[ = { ]] .. columnData.db .. [[ = ]] .. ((columnData.db == "LUA" or columnData.db == "Role") and [["]] .. unitDB[columnData.db] .. [["]] or Action.toStr[unitDB[columnData.db]]) .. [[}})]], true)
+						else 
+							-- Make macro to set exact same current row data
+							local unitDB = specDB.UnitIDs[rowData.unitID]
+							macroName = rowData.unitID 
+							Action.CraftMacro(macroName, [[/run Action.SetToggle({]] .. tabName .. [[, "UnitIDs", "]] .. rowData.unitID .. [[:"}, {]] .. rowData.unitID .. [[ = { Enabled = ]] .. Action.toStr[unitDB.Enabled] .. [[, Role = "]] .. unitDB.Role .. [[", useDispel = ]] .. Action.toStr[unitDB.useDispel] .. [[, useShields = ]] .. Action.toStr[unitDB.useShields] .. [[, useHoTs = ]] .. Action.toStr[unitDB.useHoTs] .. [[, useUtils = ]] .. Action.toStr[unitDB.useUtils] .. [[}})]], true)		
+						end 
+					end 							
+				end,
+				OnClickHeader 	= function(table, columnFrame, columnHeadFrame, columnIndex, button, ...)
+					if button == "LeftButton" then
+						table.SORTBY = columnIndex						
+					end		
+				end, 
+				ColorTrue 		= { r = 0, g = 1, b = 0, a = 1 },
+				ColorFalse 		= { r = 1, g = 0, b = 0, a = 1 },
+			}, { __index = function(t, v) return t.Table[v] end })
+			UnitIDs.Table = StdUi:ScrollTable(PanelUnitIDs, { 
+				{
+					name = L["TAB"][tabName]["ENABLED"],
+					gname = L["TAB"][tabName]["ENABLED"],
+					textTT = L["TAB"][tabName]["ENABLEDTOOLTIP"],
+                    width = 35,
+                    align = "LEFT",
+                    index = "IndexEnabled",
+					db = "Enabled",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "True" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "False" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, columnData.textTT:format(rowData.unitID) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       			
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+				},
+				{
+                    name = "",
+					gname = "",
+					textTT = L["TAB"]["ROWCREATEMACRO"],
+                    width = 25,
+                    align = "MIDDLE",
+                    index = "IndexIcon",
+                    format = "icon",
+                    events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, columnData.textTT)       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+                    },
+                },
+				{
+                    name = L["TAB"][tabName]["UNITID"],
+					gname = L["TAB"][tabName]["UNITID"],
+					textTT = L["TAB"]["ROWCREATEMACRO"],
+                    width = 62,					
+					defaultSort = "dsc",
+                    align = "LEFT",
+                    index = "IndexUnitID",
+                    format = "string",
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, columnData.textTT)       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },
+                {
+                    name = L["TAB"][tabName]["NAME"],
+					gname = L["TAB"][tabName]["NAME"],
+					textTT = L["TAB"]["ROWCREATEMACRO"],
+                    width = 57,
+					defaultwidth = 57,
+					resizeDivider = 2,
+                    align = "LEFT",
+                    index = "IndexName",
+                    format = "string",
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, columnData.textTT)       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },
+                {
+                    name = L["TAB"][tabName]["ROLE"],
+					gname = L["TAB"][tabName]["ROLE"],
+					textTT = L["TAB"][tabName]["ROLETOOLTIP"],
+                    width = 60,
+					defaultwidth = 60,
+					maxwidth = 90,
+					addwidthtoprevious = true,
+					resizeDivider = 2,
+                    align = "LEFT",
+                    index = "IndexRole",
+					db = "Role",
+                    format = "string",
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, columnData.textTT .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },
+				{
+                    name = L["TAB"][tabName]["USEDISPEL"],
+					gname = L["TAB"][tabName]["USEDISPEL"]:gsub("\n", ""),
+                    width = 50,
+                    align = "MIDDLE",
+                    index = "IndexDispel",
+					db = "useDispel",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "ON" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "OFF" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"][tabName]["USEDISPELTOOLTIP"]:format(rowData.unitID, rowData.unitID) .. L["TAB"][tabName]["GGLPROFILESTOOLTIP"]:format(columnData.gname) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },		
+				{
+                    name = L["TAB"][tabName]["USESHIELDS"],
+					gname = L["TAB"][tabName]["USESHIELDS"]:gsub("\n", ""),
+                    width = 50,
+                    align = "MIDDLE",
+                    index = "IndexShields",
+					db = "useShields",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "ON" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "OFF" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"][tabName]["USESHIELDSTOOLTIP"]:format(rowData.unitID, rowData.unitID) .. L["TAB"][tabName]["GGLPROFILESTOOLTIP"]:format(columnData.gname) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },	
+				{
+                    name = L["TAB"][tabName]["USEHOTS"],
+					gname = L["TAB"][tabName]["USEHOTS"]:gsub("\n", ""),
+                    width = 50,
+                    align = "MIDDLE",
+                    index = "IndexHoTs",
+					db = "useHoTs",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "ON" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "OFF" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"][tabName]["USEHOTSTOOLTIP"]:format(rowData.unitID, rowData.unitID) .. L["TAB"][tabName]["GGLPROFILESTOOLTIP"]:format(columnData.gname) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },	
+				{
+                    name = L["TAB"][tabName]["USEUTILS"],
+					gname = L["TAB"][tabName]["USEUTILS"]:gsub("\n", ""),
+                    width = 50,
+                    align = "MIDDLE",
+                    index = "IndexUtils",
+					db = "useUtils",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "ON" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "OFF" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"][tabName]["USEUTILSTOOLTIP"]:format(rowData.unitID, rowData.unitID) .. L["TAB"][tabName]["GGLPROFILESTOOLTIP"]:format(columnData.gname) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(rowData[columnData.index], columnData.gname, rowData[columnData.index], columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },	
+				{
+                    name = "LUA",
+					gname = "LUA",
+                    width = 35,
+                    align = "MIDDLE",
+                    index = "IndexLUA",
+					db = "LUA",
+                    format = "string",
+                    color = function(table, value, rowData, columnData)
+                        if value == "ON" then
+                            return UnitIDs.ColorTrue
+                        end
+                        if value == "OFF" then
+                            return UnitIDs.ColorFalse
+                        end
+                    end,
+					events = {
+						OnEnter = function(table, cellFrame, rowFrame, rowData, columnData, rowIndex)                        
+                            StdUi:ShowTooltip(cellFrame, true, L["TAB"][tabName]["LUATOOLTIP"]:format(rowData.unitID) .. "\n\n" .. L["TAB"]["CEILCREATEMACRO"]:format(columnData.gname, columnData.gname, columnData.gname, columnData.gname))       							 
+                        end,
+                        OnLeave = function(rowFrame, cellFrame)
+                            StdUi:ShowTooltip(cellFrame, false)  							
+                        end,
+						OnClick = UnitIDs.OnClickCell,
+					},
+                },	
+            }, 12, 25)	
+			ScrollTable = UnitIDs.Table
+			ScrollTable:RegisterEvents(nil, { OnClick = UnitIDs.OnClickHeader })
+			ScrollTable.SORTBY = 3
+			ScrollTable.defaultrows = { numberOfRows = ScrollTable.numberOfRows, rowHeight = ScrollTable.rowHeight }
+			ScrollTable:EnableSelection(true)
+			ScrollTable.MakeUpdate = function()								
+				if not anchor:IsShown() or ScrollTable.IsUpdating then -- anchor here because it's scroll child and methods :IsVisible and :IsShown can skip it in theory 
+					return 
+				end 
+				
+				local self = ScrollTable
+				self.IsUpdating = true 
+				if not self.data then 
+					self.data = {}
+				else 
+					wipe(self.data)
+				end 
+				
+				local useAutoHide 	= specDB.AutoHide
+				local usePets		= specDB.SelectPets			
+				
+				local TeamCache		= Action.TeamCache.Friendly
+				local inGroup		= TeamCache.Type 
+				local guidToUnit	= TeamCache.GUIDs 
+				local unitToGUID	= TeamCache.UNITs
+				
+				local focusGUID		= unitToGUID.focus or (not StdUi.isClassic and UnitGUID("focus"))
+				local playerGUID	= unitToGUID.player
+				
+				for unitID, v in pairs(specDB.UnitIDs) do 					
+					local isPet = unitID:match("pet") 
+					local unitSkip
+					
+					if not usePets and isPet then 
+						unitSkip			= true 
+					end 
+					
+					if useAutoHide then 
+						-- If not exists 
+						if not unitSkip and ((unitID ~= "focus" and not unitToGUID[unitID]) or (unitID == "focus" and not Action.Unit(unitID):IsExists())) then 
+							unitSkip 		= true 
+						end 
+						
+						-- If player and group is 'raid'
+						if not unitSkip and inGroup == "raid" and unitID == "player" then 
+							unitSkip 		= true 
+						end 
+						
+						-- If player/party/raid is 'focus'
+						if not unitSkip and focusGUID and ((unitID ~= "focus" and focusGUID == unitToGUID[unitID]) or (unitID == "focus" and focusGUID == playerGUID)) then 
+							unitSkip 		= true 
+						end 
+						
+						-- Remove party from raid or raid from party 
+						if not unitSkip and inGroup and not unitID:match(inGroup) and (unitID:match("party") or unitID:match("raid")) then 
+							unitSkip 		= true 
+						end 
+					end 
+				
+					if not unitSkip then 
+						local unitName 		= Action.Unit(unitID):Name()
+						if unitName == "none" then 
+							unitName 		= ""
+						elseif isDemo and unitID == "player" then   
+							unitName		= "NameCharacter"
+						end 												
+
+						local IndexEnabled	= v.Enabled 		and "True" 	or "False"
+						local IndexIcon 	= unitName ~= "" 	and ActionConst[isPet and "TRUE_PORTRAIT_PET" or "TRUE_PORTRAIT_" .. Action.Unit(unitID):Class()] or ActionConst.TRUE_PORTRAIT_PICKPOCKET
+						local IndexRole		
+						if v.Role == "AUTO" then 
+							if not isPet then 
+								IndexRole = L["TAB"][tabName][Action.Unit(unitID):Role()] or unitToGUID[unitID] == playerGUID and L["TAB"][tabName]["HEALER"] or Action.Unit(unitID):InGroup() and L["TAB"][tabName]["DAMAGER"] or L["TAB"][tabName]["UNKNOWN"]
+							else 
+								IndexRole = L["TAB"][tabName]["DAMAGER"] 
+							end 
+						else 
+							if not isPet then 
+								IndexRole = L["TAB"][tabName][v.Role] and ("*" .. L["TAB"][tabName][v.Role]) or L["TAB"][tabName]["UNKNOWN"]
+							else 
+								IndexRole = L["TAB"][tabName]["DAMAGER"] 
+							end 
+						end 
+						local IndexDispel 	= v.useDispel 		and "ON" 	or "OFF"						
+						local IndexShields 	= v.useShields 		and "ON" 	or "OFF"						
+						local IndexHoTs 	= v.useHoTs 		and "ON" 	or "OFF"
+						local IndexUtils 	= v.useUtils	 	and "ON" 	or "OFF"
+						local IndexLUA		= v.LUA ~= ""		and "ON"	or "OFF"
+						tinsert(self.data, setmetatable({ 		
+							unitID 			= unitID,
+							unitName		= unitName,	
+							IndexEnabled	= IndexEnabled,
+							IndexIcon		= IndexIcon,							
+							IndexUnitID		= unitID,
+							IndexName 		= unitName,
+							IndexRole		= IndexRole,
+							IndexDispel 	= IndexDispel,
+							IndexShields 	= IndexShields,
+							IndexHoTs 		= IndexHoTs,
+							IndexUtils		= IndexUtils,
+							IndexLUA		= IndexLUA,
+						}, { __index = v })) -- meta index is not used here but why not to add ?
+					end 
+				end
+				
+				self:ClearSelection()			
+				self:SetData(self.data)
+				self:SortData(self.SORTBY)
+				self.IsUpdating = nil 
+			end				
+			ScrollTable.OriginalSetSelection = ScrollTable.SetSelection
+			ScrollTable.SetSelection = function(self, rowIndex, internal)				
+				self:OriginalSetSelection(rowIndex)
+				-- Refresh or reset LuaEditor if row selection changed exactly manual 
+				if not internal and not self.IsUpdating and LuaEditor and LuaEditor:IsShown() then 
+					local rowData = rowIndex and self:GetRow(rowIndex)
+					if rowData then
+						LuaEditor.EditBox:SetText(specDB.UnitIDs[rowData.unitID].LUA)
+					else 
+						LuaEditor.EditBox:SetText("")
+						LuaEditor.closeBtn:Click() 
+					end 
+				end
+			end 
+			ScrollTable.OriginalRefresh = ScrollTable.Refresh 
+			ScrollTable.Refresh = function(self)
+				if LuaEditor and LuaEditor:IsShown() and (not self.selected or not self:GetRow(self.selected)) then 
+					LuaEditor.EditBox:SetText("")
+					LuaEditor.closeBtn:Click()  
+				end
+				self:OriginalRefresh()
+			end 
+			TMW:RegisterCallback("TMW_ACTION_HEALING_ENGINE_UI_UPDATE", ScrollTable.MakeUpdate)	-- Fired from SetToggle for UnitIDs (which is also affected from HealingEngineProfileLoad)
+			TMW:RegisterCallback("TMW_ACTION_GROUP_UPDATE", 			ScrollTable.MakeUpdate) -- Fired from Base.lua 			
+			if not StdUi.isClassic then 
+				-- Retail: Add event for focus change 
+				ScrollTable:RegisterEvent("PLAYER_FOCUS_CHANGED")
+				ScrollTable:SetScript("OnEvent", 						ScrollTable.MakeUpdate)
+			end  
+			StdUi:ClipScrollTableColumn(ScrollTable, 35)
+			
+			-- UI: PanelUnitIDs - AutoHide
+			AutoHide = CreateCheckbox(PanelUnitIDs, "AutoHide", false, true) -- no macro, yes callback  
+		end -- isHealer END 
+			
+			-- UI: PanelProfiles
+		if isHealer then -- isHealer START	
+			PanelProfiles = CreatePanel(L["TAB"][tabName]["PROFILES"], 1)	
+			
+			-- UI: PanelProfiles - ResetProfile (corner button)
+			ResetProfile = StdUi:Button(PanelProfiles, 70, themeHeight, L["RESET"])
+			ResetProfile:SetScript("OnClick", function(self, button, down)
+				for profileName in pairs(specDB.Profiles) do 
+					if profileName and profileName ~= "" then 
+						Action.HealingEngineProfileDelete(profileName)
+					end 
+				end 
+			end)
+			StdUi:GlueTop(ResetProfile, PanelProfiles, 0, 0, "LEFT")	
+			StdUi:ApplyBackdrop(ResetProfile, "panel", "border")
+			
+			-- UI: PanelProfiles - HelpProfile (corner button)
+			HelpProfile = StdUi:Button(PanelProfiles, 70, themeHeight, L["TAB"][tabName]["HELP"])
+			HelpProfile:SetScript("OnClick", function(self, button, down)
+				HelpWindow:Open(L["TAB"][tabName]["PROFILESHELP"])
+			end)
+			StdUi:GlueTop(HelpProfile, PanelProfiles, 0, 0, "RIGHT")
+			StdUi:ApplyBackdrop(HelpProfile, "panel", "border")
+			
+			-- UI: PanelProfiles - Profile
+			local ProfileData = {}
+			local function GetProfiles()
+				wipe(ProfileData)
+				for profileName in pairs(specDB.Profiles) do 
+					ProfileData[#ProfileData + 1] = { text = profileName, value = profileName }
+				end 
+				
+				return ProfileData
+			end
+			TMW:RegisterCallback("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", function(callbackEvent, callbackAction, profileCurrent)
+				if Profile and EditBoxProfile then 
+					if callbackAction == "Saved" or callbackAction == "Deleted" then 
+						Profile:SetOptions(GetProfiles())
+					end 
+					Profile:SetValue(profileCurrent)
+					if EditBoxProfile:IsShown() then 
+						if callbackAction ~= "Changed" then 
+							EditBoxProfile:SetText("")						
+						end 
+						EditBoxProfile:ClearFocus()
+					end 
+				end 
+			end)
+			
+			Profile = StdUi:Dropdown(PanelProfiles, StdUi:GetWidthByColumn(PanelProfiles, 12), themeHeight, GetProfiles(), specDB.Profile)
+			Profile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			Profile:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					if #self.options > 0 then  
+						self:ToggleOptions()
+					end 
+				elseif button == "RightButton" and self.value and self.value ~= "" then 
+					Action.CraftMacro(L["TAB"][tabName]["PROFILE"] .. " " .. L["TAB"][tabName]["PROFILELOAD"] .. ": " .. self.value, [[/run Action.HealingEngineProfileLoad("]] .. self.value .. [[")]], true)	
+				end
+			end)
+			Profile.OnValueChanged = function(self, value)
+				if specDB.Profile ~= value then 
+					specDB.Profile = value or ""
+				end 
+			end
+			Profile:SetPlaceholder(L["TAB"][tabName]["PROFILEPLACEHOLDER"])
+			Profile.Identify = { Type = "Dropdown", Toggle = "Profile" }			
+			Profile.FontStringTitle = StdUi:Subtitle(Profile, L["TAB"][tabName]["PROFILE"])
+			Profile.text:SetJustifyH("CENTER")
+			StdUi:GlueAbove(Profile.FontStringTitle, Profile)
+			StdUi:FrameTooltip(Profile, L["TAB"][tabName]["PROFILETOOLTIP"], nil, "TOP", true)									
+			
+			-- UI: PanelProfiles - EditBoxProfile    
+			EditBoxProfile = StdUi:SearchEditBox(PanelProfiles, StdUi:GetWidthByColumn(PanelProfiles, 12), 20, L["TAB"][tabName]["PROFILEWRITENAME"])
+			EditBoxProfile:SetScript("OnTextChanged", function(self)
+				local text = self:GetText()
+				if text ~= nil and text ~= "" then									
+					self.placeholder.icon:Hide()
+					self.placeholder.label:Hide()					
+				else 
+					self.placeholder.icon:Show()
+					self.placeholder.label:Show()
+				end 
+            end)
+			EditBoxProfile:SetScript("OnEnterPressed", function(self)
+				SaveProfile:Click()                
+            end)
+			EditBoxProfile:SetScript("OnEscapePressed", function(self)
+				self:SetText("")
+				self:ClearFocus() 
+            end)			
+			StdUi:ApplyBackdrop(EditBoxProfile, "panel", "border")
+			
+			-- UI: PanelProfiles - SaveProfile
+			SaveProfile = StdUi:Button(PanelProfiles, 0, 30, L["TAB"][tabName]["PROFILESAVE"])
+			SaveProfile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			SaveProfile:SetScript("OnClick", function(self, button, down)
+				-- First get from editbox field 					
+				local profileCurrent = EditBoxProfile:GetText()
+				
+				-- Secondary get from dropdown 
+				if profileCurrent == nil or profileCurrent == "" then 
+					profileCurrent = Profile:GetValue()
+				end 
+
+				if profileCurrent == nil or profileCurrent == "" then 
+					Action.Print(L["DEBUG"] .. L["TAB"][tabName]["PROFILEERROREMPTY"])
+					return 
+				end 
+				
+				if button == "LeftButton" then 				
+					Action.HealingEngineProfileSave(profileCurrent)
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["PROFILE"] .. " " .. L["TAB"][tabName]["PROFILESAVE"] .. ": " .. profileCurrent, [[/run Action.HealingEngineProfileSave("]] .. profileCurrent .. [[")]], true)					
+				end 
+			end)	
+			StdUi:FrameTooltip(SaveProfile, L["TAB"][tabName]["CREATEMACRO"], nil, "BOTTOM", true)	
+			StdUi:ApplyBackdrop(SaveProfile, "panel", "buttonDisabled")	
+			
+			-- UI: PanelProfiles - LoadProfile
+			LoadProfile = StdUi:Button(PanelProfiles, 0, 30, L["TAB"][tabName]["PROFILELOAD"])
+			LoadProfile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			LoadProfile:SetScript("OnClick", function(self, button, down)
+				local profileCurrent = Profile:GetValue()
+				if profileCurrent == nil or profileCurrent == "" then 
+					Action.Print(L["DEBUG"] .. L["TAB"][tabName]["PROFILEERROREMPTY"])
+					return 
+				end 
+								
+				if button == "LeftButton" then 
+					Action.HealingEngineProfileLoad(profileCurrent) 
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["PROFILE"] .. " " .. L["TAB"][tabName]["PROFILELOAD"] .. ": " .. profileCurrent, [[/run Action.HealingEngineProfileLoad("]] .. profileCurrent .. [[")]], true)					
+				end 
+			end)	
+			StdUi:FrameTooltip(LoadProfile, L["TAB"][tabName]["CREATEMACRO"], nil, "BOTTOM", true)	
+			StdUi:ApplyBackdrop(LoadProfile, "panel", "buttonDisabled")	
+			
+			-- UI: PanelProfiles - RemoveProfile
+			RemoveProfile = StdUi:Button(PanelProfiles, 0, 30, L["TAB"][tabName]["PROFILEDELETE"])
+			RemoveProfile:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			RemoveProfile:SetScript("OnClick", function(self, button, down)
+				local profileCurrent = Profile:GetValue()
+				if profileCurrent == nil or profileCurrent == "" then 
+					Action.Print(L["DEBUG"] .. L["TAB"][tabName]["PROFILEERROREMPTY"])
+					return 
+				end 
+				
+				if button == "LeftButton" then 					
+					Action.HealingEngineProfileDelete(profileCurrent)
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["PROFILE"] .. " " .. L["TAB"][tabName]["PROFILEDELETE"] .. ": " .. profileCurrent, [[/run Action.HealingEngineProfileDelete("]] .. profileCurrent .. [[")]], true)					
+				end 
+			end)	
+			StdUi:FrameTooltip(RemoveProfile, L["TAB"][tabName]["CREATEMACRO"], nil, "BOTTOM", true)
+			StdUi:ApplyBackdrop(RemoveProfile, "panel", "buttonDisabled")	
+		end -- isHealer END 
+		
+			-- UI: PanelPriority and Mana Management 
+		if isHealer then -- isHealer START 
+			PanelPriority = CreatePanel(L["TAB"][tabName]["PRIORITYHEALTH"], 2)	
+			
+			-- UI: PanelPriority - ResetPriority (corner button)
+			ResetPriority = StdUi:Button(PanelPriority, 70, themeHeight, L["RESET"])
+			ResetPriority:SetScript("OnClick", function(self, button, down)
+				local db 
+				if StdUi.Factory[tabName].PLAYERSPEC then
+					db = StdUi.Factory[tabName].PLAYERSPEC
+				else 
+					db = StdUi.Factory[tabName]
+				end
+				
+				for k, v in pairs(db) do 
+					if PriorityResetWidgets[k] and PriorityResetWidgets[k]:GetValue() ~= v then 
+						PriorityResetWidgets[k]:SetValue(v)
+						-- OnValueChanged will set specDB
+						if PriorityResetWidgets[k].Identify.Type == "Slider" then 
+							Action.Print(PriorityResetWidgets[k].FontStringTitle:GetText() or v)	
+						end 
+					end 
+				end 
+			end)
+			StdUi:GlueTop(ResetPriority, PanelPriority, 0, 0, "LEFT")	
+			StdUi:ApplyBackdrop(ResetPriority, "panel", "border")
+			
+			-- UI: PanelPriority - HelpPriority (corner button)
+			HelpPriority = StdUi:Button(PanelPriority, 70, themeHeight, L["TAB"][tabName]["HELP"])
+			HelpPriority:SetScript("OnClick", function(self, button, down)
+				HelpWindow:Open(L["TAB"][tabName]["PRIORITYHELP"])
+			end)
+			StdUi:GlueTop(HelpPriority, PanelPriority, 0, 0, "RIGHT")
+			StdUi:ApplyBackdrop(HelpPriority, "panel", "border")			
+			
+			-- UI: PanelPriority - Multipliers (title)
+			Multipliers = StdUi:Header(PanelPriority, L["TAB"][tabName]["MULTIPLIERS"])
+			Multipliers:SetAllPoints()			
+			Multipliers:SetJustifyH("MIDDLE")
+			Multipliers:SetFontSize(15)	
+			-- UI: PanelPriority - MultiplierIncomingDamageLimit
+			MultiplierIncomingDamageLimit 	= CreateSliderMultiplier("MultiplierIncomingDamageLimit")			
+			-- UI: PanelPriority - MultiplierThreat
+			MultiplierThreat 				= CreateSliderMultiplier("MultiplierThreat")
+			-- UI: PanelPriority - MultiplierPetsInCombat
+			MultiplierPetsInCombat			= CreateSliderMultiplier("MultiplierPetsInCombat")
+			-- UI: PanelPriority - MultiplierPetsOutCombat
+			MultiplierPetsOutCombat			= CreateSliderMultiplier("MultiplierPetsOutCombat")
+			
+			-- UI: PanelPriority - Offsets (title)
+			Offsets = StdUi:Header(PanelPriority, L["TAB"][tabName]["OFFSETS"])
+			Offsets:SetAllPoints()			
+			Offsets:SetJustifyH("MIDDLE")
+			Offsets:SetFontSize(15)
+			
+			-- UI: PanelPriority - OffsetMode 
+			OffsetMode = StdUi:Dropdown(PanelPriority, StdUi:GetWidthByColumn(PanelPriority, 12), themeHeight, {
+				{ text = L["TAB"][tabName]["OFFSETMODEFIXED"], 			value = "FIXED"  },
+				{ text = L["TAB"][tabName]["OFFSETMODEARITHMETIC"], 	value = "ARITHMETIC" },
+			}, specDB.OffsetMode)			
+			OffsetMode.OnValueChanged = function(self, value)	 
+				if specDB.OffsetMode ~= value then 
+					specDB.OffsetMode = value 
+					Action.Print(L["TAB"][tabName]["OFFSETMODE"] .. ": ", L["TAB"][tabName]["OFFSETMODE" .. value] or value)
+					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+				end 				
+			end				
+			OffsetMode:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			OffsetMode:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["OFFSETMODE"], [[/run Action.SetToggle({]] .. tabName .. [[, "OffsetMode", "]] .. L["TAB"][tabName]["OFFSETMODE"] .. [[:"}, ]] .. self.value .. [[)]], true)	
+				end
+			end)		
+			OffsetMode.Identify = { Type = "Dropdown", Toggle = "OffsetMode" }			
+			OffsetMode.FontStringTitle = StdUi:Subtitle(OffsetMode, L["TAB"][tabName]["OFFSETMODE"])
+			StdUi:FrameTooltip(OffsetMode, L["TAB"][tabName]["OFFSETMODETOOLTIP"], nil, "TOP", true)
+			StdUi:GlueAbove(OffsetMode.FontStringTitle, OffsetMode)
+			OffsetMode.text:SetJustifyH("CENTER")	
+			
+			-- UI: PanelPriority - OffsetSelfFocused
+			OffsetSelfFocused				= CreateSliderOffset("OffsetSelfFocused")
+			-- UI: PanelPriority - OffsetSelfUnfocused
+			OffsetSelfUnfocused				= CreateSliderOffset("OffsetSelfUnfocused")
+			-- UI: PanelPriority - OffsetSelfDispel
+			OffsetSelfDispel				= CreateSliderOffset("OffsetSelfDispel")
+			-- UI: PanelPriority - OffsetHealers
+			OffsetHealers					= CreateSliderOffset("OffsetHealers")
+			-- UI: PanelPriority - OffsetTanks
+			OffsetTanks						= CreateSliderOffset("OffsetTanks")
+			-- UI: PanelPriority - OffsetDamagers
+			OffsetDamagers					= CreateSliderOffset("OffsetDamagers")
+			-- UI: PanelPriority - OffsetHealersDispel
+			OffsetHealersDispel				= CreateSliderOffset("OffsetHealersDispel")
+			-- UI: PanelPriority - OffsetTanksDispel
+			OffsetTanksDispel				= CreateSliderOffset("OffsetTanksDispel")
+			-- UI: PanelPriority - OffsetDamagersDispel
+			OffsetDamagersDispel			= CreateSliderOffset("OffsetDamagersDispel")
+			-- UI: PanelPriority - OffsetHealersShields
+			OffsetHealersShields			= CreateSliderOffset("OffsetHealersShields")
+			-- UI: PanelPriority - OffsetTanksShields
+			OffsetTanksShields				= CreateSliderOffset("OffsetTanksShields")
+			-- UI: PanelPriority - OffsetDamagersShields
+			OffsetDamagersShields			= CreateSliderOffset("OffsetDamagersShields")
+			-- UI: PanelPriority - OffsetHealersHoTs
+			OffsetHealersHoTs				= CreateSliderOffset("OffsetHealersHoTs")
+			-- UI: PanelPriority - OffsetTanksHoTs
+			OffsetTanksHoTs					= CreateSliderOffset("OffsetTanksHoTs")
+			-- UI: PanelPriority - OffsetDamagersHoTs
+			OffsetDamagersHoTs				= CreateSliderOffset("OffsetDamagersHoTs")
+			-- UI: PanelPriority - OffsetHealersUtils
+			OffsetHealersUtils				= CreateSliderOffset("OffsetHealersUtils")
+			-- UI: PanelPriority - OffsetTanksUtils
+			OffsetTanksUtils				= CreateSliderOffset("OffsetTanksUtils")
+			-- UI: PanelPriority - OffsetDamagersUtils
+			OffsetDamagersUtils				= CreateSliderOffset("OffsetDamagersUtils")
+			
+			-- UI: PanelManaManagement
+			PanelManaManagement = CreatePanel(L["TAB"][tabName]["MANAMANAGEMENT"], 3)
+			
+			-- UI: PanelManaManagement - ResetManaManagement (corner button)
+			ResetManaManagement = StdUi:Button(PanelManaManagement, 70, themeHeight, L["RESET"])
+			ResetManaManagement:SetScript("OnClick", function(self, button, down)
+				local db 
+				if StdUi.Factory[tabName].PLAYERSPEC then
+					db = StdUi.Factory[tabName].PLAYERSPEC
+				else 
+					db = StdUi.Factory[tabName]
+				end
+				
+				for k, v in pairs(db) do 
+					if ResetManaManagementWidges[k] and ResetManaManagementWidges[k]:GetValue() ~= v then 
+						ResetManaManagementWidges[k]:SetValue(v)
+						-- OnValueChanged will set specDB
+						Action.Print(ResetManaManagementWidges[k].FontStringTitle:GetText())	
+					end 
+				end 
+			end)
+			StdUi:GlueTop(ResetManaManagement, PanelManaManagement, 0, 0, "LEFT")	
+			StdUi:ApplyBackdrop(ResetManaManagement, "panel", "border")
+			
+			-- UI: PanelManaManagement - HelpManaManagement (corner button)
+			HelpManaManagement = StdUi:Button(PanelManaManagement, 70, themeHeight, L["TAB"][tabName]["HELP"])
+			HelpManaManagement:SetScript("OnClick", function(self, button, down)
+				HelpWindow:Open(L["TAB"][tabName]["MANAMANAGEMENTHELP"])
+			end)
+			StdUi:GlueTop(HelpManaManagement, PanelManaManagement, 0, 0, "RIGHT")
+			StdUi:ApplyBackdrop(HelpManaManagement, "panel", "border")
+			
+			-- UI: PanelManaManagement - ManaManagementManaBoss
+			ManaManagementManaBoss = StdUi:Slider(PanelManaManagement, 0, themeHeight, specDB.ManaManagementManaBoss, false, -1, 100)
+			ManaManagementManaBoss:SetScript("OnMouseUp", function(self, button, down)
+				if button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["MANAMANAGEMENTMANABOSS"], [[/run Action.SetToggle({]] .. tabName .. [[, "ManaManagementManaBoss", "]] .. L["TAB"][tabName]["MANAMANAGEMENTMANABOSS"] .. [[: "}, ]] .. specDB.ManaManagementManaBoss .. [[)]], true)	
+				end					
+			end)		
+			ManaManagementManaBoss.Identify = { Type = "Slider", Toggle = "ManaManagementManaBoss" }					
+			ManaManagementManaBoss.MakeTextUpdate = function(self, value)
+				if value < 0 then 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTMANABOSS"] .. ": |cffff0000OFF|r")
+				else 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTMANABOSS"] .. ": |cff00ff00" .. value .. "|r")
+				end  
+			end 
+			ManaManagementManaBoss.OnValueChanged = function(self, value)
+				specDB.ManaManagementManaBoss = value
+				self:MakeTextUpdate(value)
+				TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+			end								
+			ManaManagementManaBoss.FontStringTitle = StdUi:Subtitle(PanelManaManagement, "")
+			ManaManagementManaBoss:MakeTextUpdate(specDB.ManaManagementManaBoss)			
+			ManaManagementManaBoss:SetPrecision(0)		
+			StdUi:GlueAbove(ManaManagementManaBoss.FontStringTitle, ManaManagementManaBoss)
+			StdUi:FrameTooltip(ManaManagementManaBoss, L["TAB"][tabName]["MANAMANAGEMENTMANABOSSTOOLTIP"], nil, "BOTTOM", true)	
+
+			-- UI: PanelManaManagement - ManaManagementStopAtHP
+			ManaManagementStopAtHP = StdUi:Slider(PanelManaManagement, 0, themeHeight, specDB.ManaManagementStopAtHP, false, -1, 99)
+			ManaManagementStopAtHP:SetScript("OnMouseUp", function(self, button, down)
+				if button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["MANAMANAGEMENTSTOPATHP"], [[/run Action.SetToggle({]] .. tabName .. [[, "ManaManagementStopAtHP", "]] .. L["TAB"][tabName]["MANAMANAGEMENTSTOPATHP"] .. [[: "}, ]] .. specDB.ManaManagementStopAtHP .. [[)]], true)	
+				end					
+			end)		
+			ManaManagementStopAtHP.Identify = { Type = "Slider", Toggle = "ManaManagementStopAtHP" }					
+			ManaManagementStopAtHP.MakeTextUpdate = function(self, value)
+				if value >= 100 then 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATHP"] .. ": |cff00ff00AUTO|r")
+				elseif value < 0 then 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATHP"] .. ": |cffff0000OFF|r")
+				else 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATHP"] .. ": |cff00ff00" .. value .. "|r")
+				end  
+			end 
+			ManaManagementStopAtHP.OnValueChanged = function(self, value)
+				specDB.ManaManagementStopAtHP = value
+				self:MakeTextUpdate(value)
+				TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+			end								
+			ManaManagementStopAtHP.FontStringTitle = StdUi:Subtitle(PanelManaManagement, "")
+			ManaManagementStopAtHP:MakeTextUpdate(specDB.ManaManagementStopAtHP)
+			ManaManagementStopAtHP:SetPrecision(0)			
+			StdUi:GlueAbove(ManaManagementStopAtHP.FontStringTitle, ManaManagementStopAtHP)
+			StdUi:FrameTooltip(ManaManagementStopAtHP, L["TAB"][tabName]["MANAMANAGEMENTSTOPATHPTOOLTIP"], nil, "BOTTOM", true)	
+			
+			-- UI: PanelManaManagement - OR 
+			OR = StdUi:Header(PanelManaManagement, L["TAB"][tabName]["OR"])
+			OR:SetAllPoints()			
+			OR:SetJustifyH("MIDDLE")
+			OR:SetFontSize(14)
+			
+			-- UI: PanelManaManagement - ManaManagementStopAtTTD
+			ManaManagementStopAtTTD = StdUi:Slider(PanelManaManagement, 0, themeHeight, specDB.ManaManagementStopAtTTD, false, -1, 99)
+			ManaManagementStopAtTTD:SetScript("OnMouseUp", function(self, button, down)
+				if button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTD"], [[/run Action.SetToggle({]] .. tabName .. [[, "ManaManagementStopAtTTD", "]] .. L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTD"] .. [[: "}, ]] .. specDB.ManaManagementStopAtTTD .. [[)]], true)	
+				end					
+			end)		
+			ManaManagementStopAtTTD.Identify = { Type = "Slider", Toggle = "ManaManagementStopAtTTD" }					
+			ManaManagementStopAtTTD.MakeTextUpdate = function(self, value)
+				if value >= 100 then 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTD"] .. ": |cff00ff00AUTO|r")
+				elseif value < 0 then 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTD"] .. ": |cffff0000OFF|r")
+				else 
+					self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTD"] .. ": |cff00ff00" .. value .. "|r")
+				end  
+			end 
+			ManaManagementStopAtTTD.OnValueChanged = function(self, value)
+				specDB.ManaManagementStopAtTTD = value
+				self:MakeTextUpdate(value)
+				TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+			end								
+			ManaManagementStopAtTTD.FontStringTitle = StdUi:Subtitle(PanelManaManagement, "")
+			ManaManagementStopAtTTD:MakeTextUpdate(specDB.ManaManagementStopAtTTD)	
+			ManaManagementStopAtTTD:SetPrecision(0)
+			StdUi:GlueAbove(ManaManagementStopAtTTD.FontStringTitle, ManaManagementStopAtTTD)
+			StdUi:FrameTooltip(ManaManagementStopAtTTD, L["TAB"][tabName]["MANAMANAGEMENTSTOPATTTDTOOLTIP"], nil, "BOTTOM", true)	
+			
+			-- UI: PanelManaManagement - ManaManagementPredictVariation
+			ManaManagementPredictVariation = StdUi:Slider(PanelManaManagement, 0, themeHeight, specDB.ManaManagementPredictVariation, false, 1, 15)
+			ManaManagementPredictVariation:SetScript("OnMouseUp", function(self, button, down)
+				if button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][tabName]["MANAMANAGEMENTPREDICTVARIATION"], [[/run Action.SetToggle({]] .. tabName .. [[, "ManaManagementPredictVariation", "]] .. L["TAB"][tabName]["MANAMANAGEMENTPREDICTVARIATION"] .. [[: "}, ]] .. specDB.ManaManagementPredictVariation .. [[)]], true)	
+				end					
+			end)		
+			ManaManagementPredictVariation.Identify = { Type = "Slider", Toggle = "ManaManagementPredictVariation" }					
+			ManaManagementPredictVariation.MakeTextUpdate = function(self, value)
+				self.FontStringTitle:SetText(L["TAB"][tabName]["MANAMANAGEMENTPREDICTVARIATION"] .. ": |cff00ff00" .. value .. "|r")  
+			end 
+			ManaManagementPredictVariation.OnValueChanged = function(self, value)
+				specDB.ManaManagementPredictVariation = value
+				self:MakeTextUpdate(value)
+				TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+			end								
+			ManaManagementPredictVariation.FontStringTitle = StdUi:Subtitle(PanelManaManagement, "")
+			ManaManagementPredictVariation:MakeTextUpdate(specDB.ManaManagementPredictVariation)			
+			ManaManagementPredictVariation:SetPrecision(1)		
+			StdUi:GlueAbove(ManaManagementPredictVariation.FontStringTitle, ManaManagementPredictVariation)
+			StdUi:FrameTooltip(ManaManagementPredictVariation, L["TAB"][tabName]["MANAMANAGEMENTPREDICTVARIATIONTOOLTIP"], nil, "BOTTOM", true)	
+		end -- isHealer END
+			
+			-- UI: HelpWindow
+			HelpWindow = StdUi:Window(MainUI, anchor:GetWidth() - 30, anchor:GetHeight() - 60, L["TAB"][tabName]["HELP"]) -- MainUI here for clip anchoring
+			HelpWindow:SetPoint("CENTER")
+			HelpWindow:SetFrameStrata("TOOLTIP")
+			HelpWindow:SetFrameLevel(49)
+			HelpWindow:SetBackdropColor(0, 0, 0, 1)
+			HelpWindow:SetMovable(false)
+			HelpWindow:SetShown(false)
+			HelpWindow:SetScript("OnDragStart", nil)
+			HelpWindow:SetScript("OnDragStop", nil)
+			HelpWindow:SetScript("OnReceiveDrag", nil)			
+			HelpWindow.Open = function(self, text)
+				self:SetShown(not self:IsShown())
+				if self:IsShown() then 
+					self.HelpText:SetText(Action.LTrim(text))	
+				end 
+			end 			
+			HelpWindow.HelpText = StdUi:Label(HelpWindow, "")	
+			HelpWindow.HelpText:SetJustifyH("MIDDLE")
+			HelpWindow.HelpText:SetFontSize(13)
+			StdUi:GlueAcross(HelpWindow.HelpText, HelpWindow, 10, -30, -10, 30)
+			HelpWindow.ButtonOK = StdUi:Button(HelpWindow, HelpWindow:GetWidth() - 30, 35, L["TAB"][tabName]["HELPOK"])		
+			StdUi:GlueBottom(HelpWindow.ButtonOK, HelpWindow, 0, 20, "CENTER")
+			HelpWindow.ButtonOK:SetScript("OnClick", function()
+				HelpWindow:Hide()
+			end)
+			
+			-- UI: LuaEditor
+		if isHealer then 
+			LuaEditor = StdUi:CreateLuaEditor(anchor.scrollFrame, L["TAB"]["LUAWINDOW"], MainUI.default_w, MainUI.default_h, L["TAB"]["LUATOOLTIP"] .. L["TAB"][tabName]["LUATOOLTIPADDITIONAL"])
+			LuaEditor:HookScript("OnHide", function(self)
+				-- Apply or remove LUA if LuaEditor was closed and then refresh scroll table for visual effect 
+				local rowData = ScrollTable.selected and ScrollTable:GetRow(ScrollTable.selected) 
+				if rowData then 
+					local oldCode = specDB.UnitIDs[rowData.unitID].LUA 
+					local luaCode = self.EditBox:GetText()
+														
+					if luaCode ~= "" and not self.EditBox.LuaErrors then 		
+						specDB.UnitIDs[rowData.unitID].LUA = luaCode
+						rowData.IndexLUA = "ON"						
+					else 
+						specDB.UnitIDs[rowData.unitID].LUA = ""
+						rowData.IndexLUA = "OFF"
+					end 	
+					
+					if oldCode ~= specDB.UnitIDs[rowData.unitID].LUA then 		
+						Action.Print(rowData.unitID .. (rowData.unitName ~= "" and " (" .. rowData.unitName .. ")" or "") .. " LUA: " .. rowData.IndexLUA)						
+						ScrollTable:Refresh()
+						TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
+					end 
+				end 
+			end)
+			-- If tab changed 
+			anchor:HookScript("OnHide", function()
+				LuaEditor.EditBox:SetText("")
+				LuaEditor.closeBtn:Click()
+			end)
+		end
+			
+		if isHealer then 
+			PriorityResetWidgets 				= {
+				MultiplierIncomingDamageLimit 	= MultiplierIncomingDamageLimit, 	
+				MultiplierThreat 				= MultiplierThreat,
+				MultiplierPetsInCombat			= MultiplierPetsInCombat, 		
+				MultiplierPetsOutCombat			= MultiplierPetsOutCombat,
+				OffsetMode						= OffsetMode,
+				OffsetSelfFocused				= OffsetSelfFocused, 		
+				OffsetSelfUnfocused				= OffsetSelfUnfocused, 	
+				OffsetSelfDispel				= OffsetSelfDispel,
+				OffsetHealers					= OffsetHealers, 			
+				OffsetTanks						= OffsetTanks, 			
+				OffsetDamagers					= OffsetDamagers,
+				OffsetHealersDispel				= OffsetHealersDispel, 	
+				OffsetTanksDispel				= OffsetTanksDispel, 		
+				OffsetDamagersDispel			= OffsetDamagersDispel,
+				OffsetHealersShields			= OffsetHealersShields, 	
+				OffsetTanksShields				= OffsetTanksShields, 	
+				OffsetDamagersShields			= OffsetDamagersShields, 
+				OffsetHealersHoTs				= OffsetHealersHoTs, 		
+				OffsetTanksHoTs					= OffsetTanksHoTs, 		
+				OffsetDamagersHoTs				= OffsetDamagersHoTs, 
+				OffsetHealersUtils				= OffsetHealersUtils, 	
+				OffsetTanksUtils				= OffsetTanksUtils, 		
+				OffsetDamagersUtils				= OffsetDamagersUtils,
+			}	
+			ResetManaManagementWidges			= {
+				ManaManagementManaBoss			= ManaManagementManaBoss,
+				ManaManagementStopAtHP			= ManaManagementStopAtHP,
+				ManaManagementStopAtTTD			= ManaManagementStopAtTTD,
+				ManaManagementPredictVariation	= ManaManagementPredictVariation,
+			}
+		end 				
+			
+			-- Add PanelOptions					
+			PanelOptions:AddRow({ margin = { top = 36 } }):AddElement(PredictOptions)
+		if isHealer then 
+			PanelOptions:AddRow({ margin = { top = 0  } }):AddElements(SelectStopOptions, 				SelectSortMethod, 												columnEven)
+			PanelOptions:AddRow({ margin = { top = 10 } }):AddElements(AfterTargetEnemyOrBossDelay, 	AfterMouseoverEnemyDelay, 										columnEven)
+			PanelOptions:AddRow({ margin = { top = -10, bottom = 5 } }):AddElements(SelectPets, 		SelectResurrects, 												columnEven)
 		end 
+			PanelOptions:DoLayout()
+			anchor:AddRow({ margin = { left = -15, right = -15 } }):AddElement(PanelOptions)	
+
+			-- Add PanelUnitIDs		
+		if isHealer then 
+			PanelUnitIDs:AddRow({ margin = { top = 25, left = -10, right = -10 } }):AddElement(ScrollTable)
+			PanelUnitIDs:AddRow({ margin = { top = -10, bottom = 5 } }):AddElement(AutoHide)
+			PanelUnitIDs:DoLayout()
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(PanelUnitIDs)
+		end 
+
+			-- Add PanelProfiles
+		if isHealer then 			
+			PanelProfiles:AddRow({ margin = { top = 35, left = 5, right = 5 } }):AddElement(Profile)
+			PanelProfiles:AddRow({ margin = { top = -10, left = 5, right = 5 } }):AddElement(EditBoxProfile)
+			PanelProfiles:AddRow({ margin = { top = -10, left = 5, right = 5, bottom = 10 } }):AddElements(SaveProfile, LoadProfile, RemoveProfile, 					columnFour)
+			PanelProfiles:DoLayout()
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(PanelProfiles)
+		end 
+		
+			-- Add PanelPriority		
+		if isHealer then 				
+			PanelPriority:AddRow({ margin = { top = 35 } }):AddElement(Multipliers)
+			PanelPriority:AddRow({ margin = { top = 0, left = 5, right = 5 } }):AddElements(				MultiplierIncomingDamageLimit, 		MultiplierThreat, 							columnEven)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				MultiplierPetsInCombat, 			MultiplierPetsOutCombat, 					columnEven)	
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElement(Offsets)
+			PanelPriority:AddRow({ margin = { top = 0, left = 5, right = 5 } }):AddElement(OffsetMode)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				OffsetSelfFocused, 		OffsetSelfUnfocused, 	OffsetSelfDispel, 				columnFour)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				OffsetHealers, 			OffsetTanks, 			OffsetDamagers, 				columnFour)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				OffsetHealersDispel, 	OffsetTanksDispel, 		OffsetDamagersDispel, 			columnFour)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				OffsetHealersShields, 	OffsetTanksShields, 	OffsetDamagersShields, 			columnFour)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5 } }):AddElements(				OffsetHealersHoTs, 		OffsetTanksHoTs, 		OffsetDamagersHoTs, 			columnFour)
+			PanelPriority:AddRow({ margin = { top = 10, left = 5, right = 5, bottom = 10 } }):AddElements(	OffsetHealersUtils, 	OffsetTanksUtils, 		OffsetDamagersUtils, 			columnFour)	
+			PanelPriority:DoLayout()
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(PanelPriority)
+		end 
+			
+			-- Add PanelManaManagement
+		if isHealer then 				
+			PanelManaManagement:AddRow({ margin = { top = 40, left = 5, right = 5 } }):AddElement(ManaManagementManaBoss)
+			local PanelManaManagementRow = PanelManaManagement:AddRow({ margin = { top = 15, left = 5, right = 5 } })
+			PanelManaManagementRow:AddElement(ManaManagementStopAtHP,	{ column = 5.5 })
+			PanelManaManagementRow:AddElement(OR,						{ column = 1 })
+			PanelManaManagementRow:AddElement(ManaManagementStopAtTTD,	{ column = 5.5 })
+			PanelManaManagement:AddRow({ margin = { top = 15, left = 5, right = 5 } }):AddElement(ManaManagementPredictVariation)
+			PanelManaManagement:DoLayout()
+			anchor:AddRow({ margin = { top = -10, left = -15, right = -15 } }):AddElement(PanelManaManagement)				
+		end 
+
+			-- Add empty row 
+			anchor:AddRow({ margin = { top = -5 } }):AddElement(StdUi:LayoutSpace(anchor))	
+			
+			-- Fix StdUi 			
+			-- Lib is not optimized for resize since resizer changes only source parent, this is deep child parent 
+			function anchor:DoLayout()
+				local l = self.layout
+				local width = tab.frame:GetWidth() - l.padding.left - l.padding.right
+
+				local y = -l.padding.top
+				for i = 1, #self.rows do
+					local r = self.rows[i]
+					y = y - r:DrawRow(width, y)
+				end
+			end		
+			
+			anchor:DoLayout()	
+			anchor:SetScript("OnShow", TabUpdate)							
+			
+			-- If we had return back to this tab then handler will be skipped 
+			if MainUI.RememberTab == tabName then
+				TabUpdate()
+			end										
+		end 
+		
+		StdUi:EnumerateToggleWidgets(tab.childs[spec], anchor) 
 	end)		
 end
 
@@ -10738,16 +15081,16 @@ end
 -- Debug  
 -------------------------------------------------------------------------------
 function Action.Print(text, bool, ignore)
-	if not ignore and TMWdb and TMWdb.profile.ActionDB and TMWdb.profile.ActionDB[1] and TMWdb.profile.ActionDB[1].DisablePrint then 
+	if not ignore and pActionDB and pActionDB[1] and pActionDB[1].DisablePrint then 
 		return 
 	end 
-    DEFAULT_CHAT_FRAME:AddMessage(strjoin(" ", "|cff00ccffAction:|r", text .. (bool ~= nil and tostring(bool) or "")))
+    DEFAULT_CHAT_FRAME:AddMessage(strjoin(" ", "|cff00ccffAction:|r", text .. (bool ~= nil and toStr[bool] or "")))
 end
 
 function Action.PrintHelpToggle()
-	Action.Print("|cff00cc66Shift+LeftClick|r " .. L["SLASH"]["TOTOGGLEBURST"])
-	Action.Print("|cff00cc66Ctrl+LeftClick|r " .. L["SLASH"]["TOTOGGLEMODE"])
-	Action.Print("|cff00cc66Alt+LeftClick|r " .. L["SLASH"]["TOTOGGLEAOE"])
+	A_Print("|cff00cc66Shift+LeftClick|r " .. L["SLASH"]["TOTOGGLEBURST"])
+	A_Print("|cff00cc66Ctrl+LeftClick|r " .. L["SLASH"]["TOTOGGLEMODE"])
+	A_Print("|cff00cc66Alt+LeftClick|r " .. L["SLASH"]["TOTOGGLEAOE"])
 end 
 
 -------------------------------------------------------------------------------
@@ -10763,7 +15106,7 @@ local classSpecIds = {
 	SHAMAN 		= {262,263,264},
 	WARLOCK 	= {265,266,267},
 	WARRIOR 	= {71,72,73},
-}
+}; ActionData.classSpecIds = classSpecIds
 local specs = {
 	-- 4th index is localizedName of the specialization 
 	[253]	= {"Beast Mastery", 461112, "DAMAGER"},
@@ -10801,7 +15144,7 @@ local specs = {
 	[259]	= {"Assassination", 236270, "DAMAGER"},
 	[260]	= {"Combat", 236286, "DAMAGER"},
 	[261]	= {"Subtlety", 132320, "DAMAGER"},
-}
+}; ActionData.specs = specs
 
 function Action.GetNumSpecializations()
 	-- @return number 
@@ -10872,86 +15215,91 @@ end
 -------------------------------------------------------------------------------
 -- Initialization
 -------------------------------------------------------------------------------
-local HealerSpecs = {
-	[ACTION_CONST_DRUID_RESTORATION]	= true,  
-	[ACTION_CONST_PALADIN_HOLY]  		= true, 
-	[ACTION_CONST_PRIEST_DISCIPLINE] 	= true, 
-	[ACTION_CONST_PRIEST_HOLY] 			= true, 
-	[ACTION_CONST_SHAMAN_RESTORATION] 	= true, 
-}
-local RangerSpecs = {
-	--[ACTION_CONST_PALADIN_HOLY] 		= true,
-	[ACTION_CONST_HUNTER_BEASTMASTERY]	= true,
-	[ACTION_CONST_HUNTER_MARKSMANSHIP]	= true,
-	[ACTION_CONST_HUNTER_SURVIVAL]		= true, 
-	--[ACTION_CONST_PRIEST_DISCIPLINE]	= true,
-	--[ACTION_CONST_PRIEST_HOLY]		= true,
-	[ACTION_CONST_PRIEST_SHADOW]		= true,
-	[ACTION_CONST_SHAMAN_ELEMENTAL]		= true,
-	--[ACTION_CONST_SHAMAN_RESTORATION]	= true,
-	[ACTION_CONST_MAGE_ARCANE]			= true,
-	[ACTION_CONST_MAGE_FIRE]			= true,
-	[ACTION_CONST_MAGE_FROST]			= true,
-	[ACTION_CONST_WARLOCK_AFFLICTION]	= true,
-	[ACTION_CONST_WARLOCK_DEMONOLOGY]	= true,	
-	[ACTION_CONST_WARLOCK_DESTRUCTION]	= true,	
-	[ACTION_CONST_DRUID_BALANCE]		= true,	
-	--[ACTION_CONST_DRUID_RESTORATION]	= true,	
-}
-local tempRoleAssign = {1, "Role", nil, true}
-function Action:PLAYER_SPECIALIZATION_CHANGED(event)
-	if TMW.time == self.PLAYER_SPECIALIZATION_CHANGED_STAMP then 
-		return 
-	end 
-	self.PLAYER_SPECIALIZATION_CHANGED_STAMP = TMW.time 
+local HealerSpecs 						= {
+	[ActionConst.DRUID_RESTORATION]		= true,  
+	[ActionConst.PALADIN_HOLY]  		= true, 
+	[ActionConst.PRIEST_DISCIPLINE] 	= true, 
+	[ActionConst.PRIEST_HOLY] 			= true, 
+	[ActionConst.SHAMAN_RESTORATION] 	= true, 
+}; ActionData.HealerSpecs = HealerSpecs
+local RangerSpecs 						= {
+	--[ActionConst.PALADIN_HOLY] 		= true,
+	[ActionConst.HUNTER_BEASTMASTERY]	= true,
+	[ActionConst.HUNTER_MARKSMANSHIP]	= true,
+	[ActionConst.HUNTER_SURVIVAL]		= true, 
+	--[ActionConst.PRIEST_DISCIPLINE]	= true,
+	--[ActionConst.PRIEST_HOLY]			= true,
+	[ActionConst.PRIEST_SHADOW]			= true,
+	[ActionConst.SHAMAN_ELEMENTAL]		= true,
+	--[ActionConst.SHAMAN_RESTORATION]	= true,
+	[ActionConst.MAGE_ARCANE]			= true,
+	[ActionConst.MAGE_FIRE]				= true,
+	[ActionConst.MAGE_FROST]			= true,
+	[ActionConst.WARLOCK_AFFLICTION]	= true,
+	[ActionConst.WARLOCK_DEMONOLOGY]	= true,	
+	[ActionConst.WARLOCK_DESTRUCTION]	= true,	
+	[ActionConst.DRUID_BALANCE]			= true,	
+	--[ActionConst.DRUID_RESTORATION]	= true,	
+}; ActionData.RangerSpecs = RangerSpecs
+ActionDataPrintCache.RoleAssign = {1, "Role", nil, true}
+function Action:PLAYER_SPECIALIZATION_CHANGED(event, unit)
+	local specID, specName, _, specIcon, specRole, specLocalizedName 	= Action.GetSpecializationInfoByID(Action.GetCurrentSpecializationID())
+	local currRole 														= A_GetToggle(1, "Role")
+	local oldRole														= Action.Role
+	Action.Role 														= currRole == "AUTO" and specRole or currRole
 	
-	local specID, specName, _, specIcon, specRole, specLocalizedName = Action.GetSpecializationInfoByID(Action.GetCurrentSpecializationID())
-	Action.Role = Action.GetToggle(1, "Role") == "AUTO" and specRole or Action.GetToggle(1, "Role")
-	
-	local checkClassRoles 	= Action.GetCurrentSpecializationRoles()
+	local checkClassRoles 												= Action.GetCurrentSpecializationRoles()
 	if checkClassRoles and not checkClassRoles[Action.Role] then 
-		if TMWdb and TMWdb.profile and TMWdb.profile.ActionDB then 
-			Action.SetToggle(tempRoleAssign, "DAMAGER")
+		if pActionDB then 
+			A_SetToggle(ActionDataPrintCache.RoleAssign, "DAMAGER")
 		end 
 		Action.Role = "DAMAGER"		
 	end 
 	
+	if oldRole ~= Action.Role and Action.IsInitialized then 
+		A_Print(strformat(LOOT_SPECIALIZATION_DEFAULT, Action.PlayerSpecName))
+		A_Print(L["TAB"][5]["ROLE"] .. ": " .. (L and L["TAB"][8][Action.Role] or _G[Action.Role]))
+	end 
+	
 	-- The player can be in damager specID but still remain functional as HEALER role (!) 
+	local oldSpec	 		= Action.PlayerSpec
 	Action.PlayerSpec 		= specID
 	Action.PlayerSpecName 	= specLocalizedName
     Action.IamHealer 		= Action.Role == "HEALER" or HealerSpecs[Action.PlayerSpec]
 	Action.IamRanger 		= Action.IamHealer or RangerSpecs[Action.PlayerSpec]
 	Action.IamMelee  		= not Action.IamRanger	
-	
-	Action.Print(strformat(LOOT_SPECIALIZATION_DEFAULT, Action.PlayerSpecName))
-	Action.Print(L["TAB"][5]["ROLE"] .. ": " .. _G[Action.Role])
-	
-	-- For PetLibrary 
-	-- For MultiUnits to initialize CLEU for ranger 
-	-- For HealingEngine to initialize it 
-	TMW:Fire("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED")	
-end
-Action:RegisterEvent("CHARACTER_POINTS_CHANGED", 	"PLAYER_SPECIALIZATION_CHANGED")
-Action:RegisterEvent("CONFIRM_TALENT_WIPE", 		"PLAYER_SPECIALIZATION_CHANGED")
-hooksecurefunc(TMW, "InitializeDatabase", function()
-	if not TMWdb then 
-		TMWdb = TMW.db
+		
+	if oldSpec ~= Action.PlayerSpec then 	
+		-- For PetLibrary 
+		-- For MultiUnits to initialize CLEU for ranger 
+		-- For HealingEngine to initialize it 
+		TMW:Fire("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", "PLAYER_SPECIALIZATION_CHANGED", "player")	
 	end 
+end
+TMW:RegisterSelfDestructingCallback("TMW_DB_INITIALIZED", function()
+	-- Note:
+	-- "PLAYER_SPECIALIZATION_CHANGED" will not be fired if player joins in the instance with spec which is not equal to what was used before loading screen, its not viable for Classic anyway 	
+	-- "TMW_DB_INITIALIZED" callback fires after "PLAYER_LOGIN" but with same time so basically it's "PLAYER_LOGIN" with properly order
+	Action:RegisterEvent("CHARACTER_POINTS_CHANGED", 	"PLAYER_SPECIALIZATION_CHANGED")
+	Action:RegisterEvent("CONFIRM_TALENT_WIPE", 		"PLAYER_SPECIALIZATION_CHANGED")
+	Action:PLAYER_SPECIALIZATION_CHANGED("PLAYER_LOGIN")
+	dbUpdate()
+	return true -- Signal RegisterSelfDestructingCallback to unregister
 end)
 
-local OnInitialize
-function OnInitialize()	
+local function OnInitialize()	
 	-- This function calls only if TMW finished EVERYTHING load
-	-- This will initialize ActionDB for current profile by Action.Data.ProfileUI > Action.Data.ProfileDB (which in profile snippet)
-	if not TMWdb then 
-		TMWdb = TMW.db
-	end 
-	local profile = TMWdb:GetCurrentProfile()
-
-	Action.IsInitialized = nil	
-	Action.IsGGLprofile = profile:match("GGL") and true or false  	-- Don't remove it because this is validance for HealingEngine   	
-	Action.IsBasicProfile = profile == "[GGL] Basic"
-	Action.CurrentProfile = profile
+	-- This will initialize ActionDB for current profile by Action.Data.ProfileUI > Action.Data.ProfileDB (which in profile snippet)	
+		
+	-- Update local variables, fires 2 times here 
+	dbUpdate()
+	local profile 			= TMWdb:GetCurrentProfile()
+	
+	Action.IsInitialized 	= nil	
+	Action.IsLockedMode 	= nil	
+	Action.IsGGLprofile 	= profile:match("GGL") and true or false  	-- Don't remove it because this is validance for HealingEngine   
+	Action.IsBasicProfile 	= profile == "[GGL] Basic"
+	Action.CurrentProfile 	= profile	
 	
 	----------------------------------
 	-- TMW CORE SNIPPETS FIX
@@ -10966,7 +15314,7 @@ function OnInitialize()
 			end		
 			
 			local snippets = {}
-			for k, v in TMW:InNLengthTable(TMWdb.profile.CodeSnippets) do
+			for k, v in TMW:InNLengthTable(TMWdbprofile.CodeSnippets) do
 				snippets[#snippets + 1] = v
 			end 
 			TMW:SortOrderedTables(snippets)
@@ -10983,134 +15331,150 @@ function OnInitialize()
 	----------------------------------
 	-- Register Localization
 	----------------------------------	
-	Action.GetLocalization()
+	A_GetLocalization()
 	
 	----------------------------------
 	-- Profile Manipulation
-	----------------------------------	
+	----------------------------------
+	local PlayerClass		= Action.PlayerClass
+	local DefaultProfile 	= ActionData.DefaultProfile
+	local ProfileEnabled	= ActionData.ProfileEnabled
+	local ProfileUI			= ActionData.ProfileUI
+	local ProfileDB			= ActionData.ProfileDB	
+	
 	-- Load default profile if current profile is generated as default
 	local defaultprofile = UnitName("player") .. " - " .. GetRealmName()
 	if profile == defaultprofile then 
 		local AllProfiles = TMWdb.profiles
 		if AllProfiles then 
-			if ActionDataDefaultProfile[Action.PlayerClass] and AllProfiles[ActionDataDefaultProfile[Action.PlayerClass]] then 
+			if DefaultProfile[PlayerClass] and AllProfiles[DefaultProfile[PlayerClass]] then 
 				if TMW.Locked then 
 					TMW:LockToggle()
 				end 
-				TMWdb:SetProfile(ActionDataDefaultProfile[Action.PlayerClass])
-				return
+				TMWdb:SetProfile(DefaultProfile[PlayerClass])
+				return true -- Signal RegisterSelfDestructingCallback to unregister
 			end		
 		
-			if AllProfiles[ActionDataDefaultProfile["BASIC"]] then 
+			if AllProfiles[DefaultProfile["BASIC"]] then 
 				if TMW.Locked then 
 					TMW:LockToggle()
 				end 
-				TMWdb:SetProfile(ActionDataDefaultProfile["BASIC"])				
-				return 
-			end 
+				TMWdb:SetProfile(DefaultProfile["BASIC"])
+				return true -- Signal RegisterSelfDestructingCallback to unregister 
+			end 	
 		end 
-	end 		
+	end	
 		
 	-- Check if profile support Action
-	if not Action.Data.ProfileEnabled[profile] then 
-		if TMWdb.profile.ActionDB then 
-			TMWdb.profile.ActionDB = nil
-			Action.Print("|cff00cc66" .. profile .. " - profile.ActionDB|r " .. L["RESETED"]:lower())
-		end 			
+	if not ProfileEnabled[profile] then 
+		if TMWdbprofile.ActionDB then 
+			TMWdbprofile.ActionDB = nil
+			
+			-- Update local variables 
+			dbUpdate()
+			
+			A_Print("|cff00cc66" .. profile .. " - profile.ActionDB|r " .. L["RESETED"]:lower())
+		end 
+		
 		if Action.Minimap and LibDBIcon then 
 			LibDBIcon:Hide("ActionUI")
 		end 
-		Queue:OnEventToReset()
-		wipe(Action.Data.ProfileUI)
-		wipe(Action.Data.ProfileDB)	
-		if Action[Action.PlayerClass] then
-			wipe(Action[Action.PlayerClass])
-		end 
-		Action:PLAYER_SPECIALIZATION_CHANGED()
-		return 
-	end 	 
-	
-	-- Action.Data.ProfileUI > Action.Data.ProfileDB creates template to merge in Factory after
-	if next(Action.Data.ProfileUI) or #Action.Data.ProfileUI > 0 then 
-		wipe(Action.Data.ProfileDB)
-		-- Prevent developer's by mistake sensitive wrong assigns 
-		local ReMap = {
-			["mouseover"] = "mouseover",
-			["targettarget"] = "targettarget", 
-			["aoe"] = "AoE",
-		}
-		for i, i_value in pairs(Action.Data.ProfileUI) do
-			if ( i == 2 or i == 7 ) and type(i) == "number" and type(i_value) == "table" then 	-- get tab 
-				if not Action.Data.ProfileDB[i] then 
-					Action.Data.ProfileDB[i] = {}
-				end 
 		
-				if i == 2 then 																-- tab [2] for toggles 					
-					for row = 1, #Action.Data.ProfileUI[i] do 								-- get row for spec in tab 						
-						for element = 1, #Action.Data.ProfileUI[i][row] do 			-- get element in row for spec in tab 
-							local DB = Action.Data.ProfileUI[i][row][element].DB 
+		wipe(ProfileUI)
+		wipe(ProfileDB)
+		Queue.OnEventToReset()		
+
+		ActionHasFinishedLoading = true 
+		return true -- Signal RegisterSelfDestructingCallback to unregister 
+	end 	
+	
+	-- ProfileUI > ProfileDB creates template to merge in Factory after
+	if type(ProfileUI) == "table" and next(ProfileUI) then 
+		wipe(ProfileDB)
+		-- Prevent developer's by mistake sensitive wrong assigns 
+		if not ActionData.ReMapDB then 
+			ActionData.ReMapDB 		= {
+				["mouseover"] 		= "mouseover",
+				["targettarget"] 	= "targettarget", 
+				["aoe"] 			= "AoE",
+			}
+		end 
+		local ReMap = ActionData.ReMapDB
+		
+		local DB, DBV
+		for i, tabVal in pairs(ProfileUI) do
+			if type(i) == "number" and type(tabVal) == "table" then 							-- get tab 
+				if not ProfileDB[i] 		then ProfileDB[i] = {} 			end 		
+				
+				if i == 2 then 																	-- tab [2] for toggles 					
+					for row = 1, #tabVal do 													-- get row for spec in tab 						
+						for element = 1, #tabVal[row] do 										-- get element in row for spec in tab 
+							DB = tabVal[row][element].DB 
 							if ReMap[strlowerCache[DB]] then 
-								Action.Data.ProfileUI[i][row][element].DB = ReMap[strlowerCache[DB]]
 								DB = ReMap[strlowerCache[DB]]
 							end 
 							
-							local DBV = Action.Data.ProfileUI[i][row][element].DBV
-							if DB ~= nil and DBV ~= nil then 								-- if default value for DB inside UI 
-								Action.Data.ProfileDB[i][DB] = DBV
+							DBV = tabVal[row][element].DBV
+							if DB ~= nil and DBV ~= nil then 									-- if default value for DB inside UI 
+								ProfileDB[i][DB] = DBV
 							end 
 						end						
 					end
-				elseif i == 7 then 															-- tab [7] for MSG 	
-					if not Action.Data.ProfileDB[i].msgList then 
-						Action.Data.ProfileDB[i].msgList = {}
-					end 	
-					
-					for Name, Val in pairs(i_value) do 
-						Action.Data.ProfileDB[i].msgList[Name] = Val
-					end 
+				end 
+				
+				if i == 7 then 																	-- tab [7] for MSG 	
+					if not ProfileDB[i].msgList then ProfileDB[i].msgList = {} end 	
+					ProfileDB[i].msgList = tabVal
 				end				 
 			end 
 		end 
 	end 	
 		
 	-- profile	
-	if not TMWdb.profile.ActionDB then 
-		Action.Print("|cff00cc66ActionDB.profile|r " .. L["CREATED"])		
+	if not TMWdbprofile.ActionDB then 
+		A_Print("|cff00cc66ActionDB.profile|r " .. L["CREATED"])
+	else 
+		Upgrade:Perform(TMWdbprofile.ActionDB, Factory)
 	end	
-	TMWdb.profile.ActionDB = tCompare(tMerge(Factory, Action.Data.ProfileDB, true), TMWdb.profile.ActionDB) 
+	TMWdbprofile.ActionDB = tCompare(tMerge(Factory, ProfileDB, true), TMWdbprofile.ActionDB) 
 		
 	-- global
-	if not TMWdb.global.ActionDB then 		
-		Action.Print("|cff00cc66ActionDB.global|r " .. L["CREATED"])
+	if not TMWdbglobal.ActionDB then 		
+		A_Print("|cff00cc66ActionDB.global|r " .. L["CREATED"])
+	else 
+		Upgrade:Perform(TMWdbglobal.ActionDB, GlobalFactory)	
 	end
-	TMWdb.global.ActionDB = tEraseKeys(tCompare(GlobalFactory, TMWdb.global.ActionDB), GlobalFactoryErased)
+	TMWdbglobal.ActionDB = tCompare(GlobalFactory, TMWdbglobal.ActionDB)
 
-	-- to avoid lua errors with calls GetToggle 	
+	-- Avoid lua errors with calls GetToggle 	
 	ActionHasRunningDB = true 
+	ActionHasFinishedLoading = true 
+	-- Again, update local variables: pActionDB and gActionDB mostly 
+	dbUpdate()	
 	
 	----------------------------------
 	-- All remaps and additional sort DB 
 	----------------------------------		
 	-- Note: These functions must be call whenever relative settings in UI has been changed in their certain places!
-	if Action.GetToggle(1, "DisableBlackBackground") then 
-		Action.BlackBackgroundSet(not Action.GetToggle(1, "DisableBlackBackground"))
+	local DisableBlackBackground = A_GetToggle(1, "DisableBlackBackground")
+	if DisableBlackBackground then 
+		A_BlackBackgroundSet(not DisableBlackBackground)
 	end 
-	DispelPurgeEnrageRemap() -- [5] by global to profile
+	DispelPurgeEnrageRemap() -- [5] global -> profile
 	
 	----------------------------------	
 	-- Welcome Notification
 	----------------------------------	
-    Action.Print(L["SLASH"]["LIST"])
-	Action.Print("|cff00cc66/action|r - "  .. L["SLASH"]["OPENCONFIGMENU"])
-	Action.Print("|cff00cc66/action help|r - " .. L["SLASH"]["HELP"])		
-	TMW:UnregisterCallback("TMW_SAFESETUP_COMPLETE", OnInitialize, "ACTION_TMW_SAFESETUP_COMPLETE")
+    A_Print(L["SLASH"]["LIST"])
+	A_Print("|cff00cc66/action|r - "  .. L["SLASH"]["OPENCONFIGMENU"])
+	A_Print("|cff00cc66/action help|r - " .. L["SLASH"]["HELP"])		
 
 	----------------------------------	
 	-- Initialization
 	----------------------------------	
 	-- Disable on Basic non available elements 
 	if Action.IsBasicProfile then 
-		TMWdb.profile.ActionDB[1].Potion = false 
+		pActionDB[1].Potion = false 
 	end 
 	
 	-- Initialization ColorPicker 
@@ -11120,65 +15484,62 @@ function OnInitialize()
 	Re:Initialize()
 	
 	-- Initialization ScreenshotHider
-	ScreenshotHider:Initialize(Action.GetToggle(1, "HideOnScreenshot"))
+	ScreenshotHider:Initialize()
 	
 	-- Initialization LOS System
 	LineOfSight:Initialize()
 	
-	-- Initialization Cursor hooks 
-	Action.CursorInit()
+	-- Initialization Cursor  
+	Cursor:Initialize()
 	
-	-- Unregister from old interface MSG events and use new ones 
-	Action.ToggleMSG(true)
+	-- Initialization MSG System
+	MSG:Initialize()
 	
 	-- LetMeCast 
 	LETMECAST:Initialize()
 	
+	-- LetMeDrag
+	LETMEDRAG:Initialize()
+	
 	-- AuraDuration 
-	AuraDuration:Initialize(true)
+	AuraDuration:Initialize()
 	
 	-- UnitHealthTool
-	UnitHealthTool:Initialize(true)
-
-	-- Initialization Cached functions 
-	if not Action.IsInitializedCachedFunctions then 
-		SmartInterrupt 						= Action.MakeFunctionCachedStatic(SmartInterrupt)		
-		strOnlyBuilder						= Action.strOnlyBuilder
-		Action.IsInitializedCachedFunctions = true 
-	end 
+	UnitHealthTool:Initialize()
 	
 	-- Minimap 
 	if not Action.Minimap and LibDBIcon then 
 		local ldbObject = {
 			type = "launcher",
-			icon = ACTION_CONST_AUTOTARGET,
+			icon = ActionConst.AUTOTARGET, 
 			label = "ActionUI",
 			OnClick = function(self, button)
-				Action.ToggleMainUI()
+				A_ToggleMainUI()
 			end,
 			OnTooltipShow = function(tooltip)
 				tooltip:AddLine("ActionUI")
 			end,
 		}
-		LibDBIcon:Register("ActionUI", ldbObject, TMWdb.global.ActionDB.minimap)
-		LibDBIcon:Refresh("ActionUI", TMWdb.global.ActionDB.minimap)
+		LibDBIcon:Register("ActionUI", ldbObject, gActionDB.minimap)
+		LibDBIcon:Refresh("ActionUI", gActionDB.minimap)
 		Action.Minimap = true 
-		Action.ToggleMinimap()
+		A_ToggleMinimap()
 	else
-		Action.ToggleMinimap()
+		A_ToggleMinimap(A_GetToggle(1, "Minimap"))
 	end 
 		
 	-- Modified update engine of TMW core with additional FPS Optimization	
-	if not Action.IsInitializedModifiedTMW and TMW then do
+	if not Action.IsInitializedModifiedTMW and TMW then
 		-- [[ REMAP ]]
-		local IconsToUpdate = TMW.IconsToUpdate
-		local GroupsToUpdate = TMW.GroupsToUpdate	
+		local IconsToUpdate 	= TMW.IconsToUpdate
+		local GroupsToUpdate 	= TMW.GroupsToUpdate	
+		local UpdateGlobals		= TMW.UpdateGlobals
 		local Locked, Time, FPS, Framerate
 		-- 
 		
 		local LastUpdate = 0
 		local updateInProgress, shouldSafeUpdate
-		local start 
+		local start, group, icon, ConditionObject
 		-- Assume in combat unless we find out otherwise.
 		local inCombatLockdown = 1
 
@@ -11186,23 +15547,23 @@ function OnInitialize()
 		local CoroutineLimit = 50
 		
 		TMW:RegisterEvent("UNIT_FLAGS", function(event, unit)
-				if unit == "player" then
-					inCombatLockdown = InCombatLockdown()
-				end
+			if unit == "player" then
+				inCombatLockdown = InCombatLockdown()
+			end
 		end)	
 		
 		local function checkYield()
-				if inCombatLockdown and debugprofilestop() - start > CoroutineLimit then
-					TMW:Debug("OnUpdate yielded early at %s", Time)
+			if inCombatLockdown and debugprofilestop() - start > CoroutineLimit then
+				TMW:Debug("OnUpdate yielded early at %s", Time)
 
-					coroutine.yield()
-				end
+				coroutine.yield()
+			end
 		end	
 		
 		-- This is the main update engine of TMW.
 		local function OnUpdate()
 			while true do
-				TMW:UpdateGlobals()
+				UpdateGlobals()
 				Locked = TMW.Locked	-- custom 
 				Time = TMW.time 	-- custom
 
@@ -11219,7 +15580,7 @@ function OnInitialize()
 				
 				TMW:Fire("TMW_ONUPDATE_PRE", Time, Locked)
 				-- FPS Optimization
-				FPS = Action.GetToggle(1, "FPS")
+				FPS = A_GetToggle(1, "FPS")
 				if not FPS or FPS < 0 then 
 					Framerate = GetFramerate() or 0
 					if Framerate > 0 and Framerate < 100 then
@@ -11244,8 +15605,8 @@ function OnInitialize()
 					if Locked then
 						for i = 1, #GroupsToUpdate do
 							-- GroupsToUpdate only contains groups with conditions
-							local group = GroupsToUpdate[i]
-							local ConditionObject = group and group.ConditionObject -- Fix for default engine 
+							group = GroupsToUpdate[i]
+							ConditionObject = group and group.ConditionObject -- Fix for default engine 
 							if ConditionObject and (ConditionObject.UpdateNeeded or ConditionObject.NextUpdateTime < Time) then
 								ConditionObject:Check()
 
@@ -11255,7 +15616,7 @@ function OnInitialize()
 				
 						if shouldSafeUpdate then
 							for i = 1, #IconsToUpdate do
-								local icon = IconsToUpdate[i]
+								icon = IconsToUpdate[i]
 								safecall(icon.Update, icon)
 								if inCombatLockdown then checkYield() end
 							end
@@ -11284,6 +15645,7 @@ function OnInitialize()
 		end 
 
 		local Coroutine 
+		local OriginalOnUpdate = TMW.OnUpdate 
 		function TMW:OnUpdate()
 			start = debugprofilestop()			
 			
@@ -11298,29 +15660,34 @@ function OnInitialize()
 			assert(coroutine.resume(Coroutine))
 		end
 
-		local function UnlockExtremelyInterval(forced)
-			if Action.IsInitialized or forced then 
-				local PREV_INTERVAL = TMWdb.global.Interval 
-				TMWdb.global.Interval = 0
-				TMW:Update()
-				TMWdb.global.Interval = PREV_INTERVAL
+		local function CheckInterval()
+			if Action.IsInitialized then 				
+				if TMW:GetScript("OnUpdate") ~= TMW.OnUpdate then 
+					TMW:SetScript("OnUpdate", TMW.OnUpdate)
+				end 
+			else 
+				if TMW:GetScript("OnUpdate") ~= OriginalOnUpdate then 
+					TMW:SetScript("OnUpdate", OriginalOnUpdate)
+				end 
 			end 
 		end
 		
-		TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", function() UnlockExtremelyInterval(true) end) 
+		TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", 		CheckInterval) 
+		TMW:RegisterCallback("TMW_ACTION_IS_INITIALIZED", 	CheckInterval) 
+		TMW:RegisterCallback("TMW_ACTION_ON_PROFILE_POST", 	CheckInterval) 
 		
 		local isIconEditorHooked
 		hooksecurefunc(TMW, "LockToggle", function() 
 			if not isIconEditorHooked then 
 				TellMeWhen_IconEditor:HookScript("OnHide", function() 
 					if TMW.Locked then 
-						UnlockExtremelyInterval()						
+						CheckInterval()						
 					end 
 				end)
 				isIconEditorHooked = true
 			end
-			if TMW.Locked then 
-				UnlockExtremelyInterval()
+			if TMW.Locked then
+				CheckInterval()
 			end 			
 		end)			
 		
@@ -11330,47 +15697,96 @@ function OnInitialize()
 		end 		
 		
 		Action.IsInitializedModifiedTMW = true 
-	end end 
+	end
 			
 	-- Update ranks	and overwrite ID 
 	Action.UpdateSpellBook(true)
 	
 	-- Make frames work able 
-	TMW:Fire("TMW_ACTION_IS_INITIALIZED_PRE")
-	Action.IsInitialized = true 	
+	TMW:Fire("TMW_ACTION_IS_INITIALIZED_PRE", pActionDB, gActionDB)
 	Action:PLAYER_SPECIALIZATION_CHANGED()
-	TMW:Fire("TMW_ACTION_IS_INITIALIZED")
+	Action.IsInitialized = true 		
+	TMW:Fire("TMW_ACTION_IS_INITIALIZED", pActionDB, gActionDB)	
+	return true -- Signal RegisterSelfDestructingCallback to unregister
 end
+local function OnRemap()
+	MacroLibrary						= LibStub("MacroLibrary")	
+	A_Player							= Action.Player 			
+	A_Unit 								= Action.Unit		
+	A_UnitInLOS							= Action.UnitInLOS
+	A_FriendlyTeam						= Action.FriendlyTeam
+	A_EnemyTeam							= Action.EnemyTeam
+	A_TeamCacheFriendlyUNITs			= Action.TeamCache.Friendly.UNITs
+	A_Listener							= Action.Listener		
+	A_SetToggle							= Action.SetToggle
+	A_GetToggle							= Action.GetToggle
+	A_GetLocalization					= Action.GetLocalization
+	A_Print								= Action.Print
+	A_MacroQueue						= Action.MacroQueue
+	A_IsActionTable						= Action.IsActionTable
+	A_OnGCD								= Action.OnGCD	
+	A_IsActiveGCD						= Action.IsActiveGCD
+	A_GetGCD							= Action.GetGCD
+	A_GetCurrentGCD						= Action.GetCurrentGCD
+	A_GetSpellInfo						= Action.GetSpellInfo
+	A_IsQueueRunningAuto				= Action.IsQueueRunningAuto
+	A_WipeTableKeyIdentify				= Action.WipeTableKeyIdentify
+	A_GetActionTableByKey				= Action.GetActionTableByKey
+	A_ToggleMainUI						= Action.ToggleMainUI
+	A_ToggleMinimap						= Action.ToggleMinimap
+	A_MinimapIsShown					= Action.MinimapIsShown
+	A_BlackBackgroundIsShown			= Action.BlackBackgroundIsShown
+	A_BlackBackgroundSet				= Action.BlackBackgroundSet
+	A_InterruptGetSliders				= Action.InterruptGetSliders
+	A_InterruptIsON						= Action.InterruptIsON
+	A_InterruptIsBlackListed			= Action.InterruptIsBlackListed
+	A_InterruptEnabled					= Action.InterruptEnabled
+	A_AuraGetCategory					= Action.AuraGetCategory
+	A_AuraIsON							= Action.AuraIsON
+	A_AuraIsBlackListed					= Action.AuraIsBlackListed
+	toStr								= Action.toStr
+	round 								= _G.round					
+	Interrupts.SmartInterrupt 			= Action.MakeFunctionCachedStatic(Interrupts.SmartInterrupt)		
+	strOnlyBuilder						= Action.strOnlyBuilder
+end 
 
-function Action:OnInitialize()	
+function Action:ADDON_LOADED(event, addonName)	
+	----------------------------------
+	-- OnLoading 
+	----------------------------------
+	if addonName ~= ActionConst.ADDON_NAME then return end  
+	self:UnregisterEvent(event)
+	self.baseName 						= addonName	
 	----------------------------------
 	-- Remap
 	----------------------------------
-	A_Unit 	= Action.Unit	-- Unit.lua
-	round 	= _G.round		-- Tools.lua
+	OnRemap()
+	----------------------------------
+	-- Classic - OnEnable
+	----------------------------------
+	LETMEDRAG:OnEnable()	
 	----------------------------------
 	-- Register Slash Commands
 	----------------------------------
 	local function SlashCommands(input) 
 		if not L then return end -- If we trying show UI before DB finished load locales 
-		local profile = TMWdb:GetCurrentProfile()
-		if not Action.Data.ProfileEnabled[profile] then 
-			Action.Print(profile .. " " .. L["NOSUPPORT"])
+		if not ActionData.ProfileEnabled[Action.CurrentProfile] then 
+			A_Print(Action.CurrentProfile .. " " .. L["NOSUPPORT"])
 			return 
 		end 
 		if not input or #input > 0 then 
 			-- without checks for another options for /action since right now only "help" enough even if user did wrong input 
-			Action.Print(L["SLASH"]["LIST"])
-			Action.Print("|cff00cc66/action|r - " .. L["SLASH"]["OPENCONFIGMENU"])
-			Action.Print('|cff00cc66/run Action.MacroQueue("TABLE_NAME")|r - ' .. L["SLASH"]["QUEUEHOWTO"])
-			Action.Print('|cff00cc66/run Action.MacroQueue("WordofGlory")|r - ' .. L["SLASH"]["QUEUEEXAMPLE"])		
-			Action.Print('|cff00cc66/run Action.MacroBlocker("TABLE_NAME")|r - ' .. L["SLASH"]["BLOCKHOWTO"])
-			Action.Print('|cff00cc66/run Action.MacroBlocker("FelRush")|r - ' .. L["SLASH"]["BLOCKEXAMPLE"])	
-			Action.Print(L["SLASH"]["RIGHTCLICKGUIDANCE"])
-			Action.Print(L["SLASH"]["INTERFACEGUIDANCE"])
-			Action.Print(L["SLASH"]["INTERFACEGUIDANCEGLOBAL"])			
+			A_Print(L["SLASH"]["LIST"])
+			A_Print("|cff00cc66/action|r - " .. L["SLASH"]["OPENCONFIGMENU"])
+			A_Print('|cff00cc66/run Action.MacroQueue("TABLE_NAME")|r - ' .. L["SLASH"]["QUEUEHOWTO"])
+			A_Print('|cff00cc66/run Action.MacroQueue("WordofGlory")|r - ' .. L["SLASH"]["QUEUEEXAMPLE"])		
+			A_Print('|cff00cc66/run Action.MacroBlocker("TABLE_NAME")|r - ' .. L["SLASH"]["BLOCKHOWTO"])
+			A_Print('|cff00cc66/run Action.MacroBlocker("FelRush")|r - ' .. L["SLASH"]["BLOCKEXAMPLE"])	
+			A_Print(L["SLASH"]["RIGHTCLICKGUIDANCE"])
+			A_Print(L["SLASH"]["INTERFACEGUIDANCE"])
+			A_Print(L["SLASH"]["INTERFACEGUIDANCEGLOBAL"])			
 		else 
-			Action.ToggleMainUI()
+			A_ToggleMainUI()
 		end 
 	end 	
 	SLASH_ACTION1 = "/action"
@@ -11381,37 +15797,43 @@ function Action:OnInitialize()
 	local function OnSwap(event, profileEvent, arg2, arg3)				
 		Action.IsInitialized = nil
 		if ActionHasRunningDB then 
+			-- Reset Queue
+			Queue:OnEventToReset() 
 			-- ReTarget 
 			Re:Reset()
-			-- ScreenshotHider
+			-- ScreenshotHider - Only here!!
 			ScreenshotHider:Reset()
-			-- LOSInit 
+			-- LOS System  
 			LineOfSight:Reset()
+			-- Cursor 
+			Cursor:Reset()
+			-- MSG System 
+			MSG:Reset()
 			-- LetMeCast 
 			LETMECAST:Reset()
+			-- LetMeDrag
+			LETMEDRAG:Reset()
 			-- AuraDuration
 			AuraDuration:Reset()
 			-- UnitHealthTool
-			UnitHealthTool:Reset()
-			-- ToggleMSG 
-			Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY")
-			Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_PARTY_LEADER")
-			Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID")
-			Action.Listener:Remove("ACTION_EVENT_MSG", "CHAT_MSG_RAID_LEADER")	
-		end 
-		
+			UnitHealthTool:Reset()	
+		end 		
 		ActionHasRunningDB = nil 
+		ActionHasFinishedLoading = nil 
 		
 		-- Turn off everything 
 		if Action.MainUI and Action.MainUI:IsShown() then 
-			Action.ToggleMainUI()
+			A_ToggleMainUI()
 		end
 		
 		-- TMW has wrong condition which prevent run already running snippets and it cause issue to refresh same variables as example, so let's fix this 
 		-- Note: Can cause issues if there loops, timers, frames or hooks 	
-		if profileEvent == "OnProfileChanged" then			
+		if profileEvent == "OnProfileChanged" then
+			-- Need manual update it one more time here 
+			Action.CurrentProfile = TMW.db:GetCurrentProfile()
+		
 			local snippets = {}
-			for k, v in TMW:InNLengthTable(TMWdb.profile.CodeSnippets) do
+			for k, v in TMW:InNLengthTable(TMW.db.profile.CodeSnippets) do -- Don't touch here TMW.db.profile.CodeSnippets, locales aren't refreshed by dbUpdate at this step!!
 				snippets[#snippets + 1] = v
 			end 
 			TMW:SortOrderedTables(snippets)
@@ -11419,7 +15841,7 @@ function Action:OnInitialize()
 				if snippet.Enabled and TMW.SNIPPETS:HasRanSnippet(snippet) then
 					TMW.SNIPPETS:RunSnippet(snippet)						
 				end										
-			end		
+			end
 			
 			-- Wipe childs otherwise it will cause bug what changed profile will use frames by previous profile 
 			if Action.MainUI then 
@@ -11429,13 +15851,15 @@ function Action:OnInitialize()
 							tab.childs[k]:Hide() 
 						end	
 						wipe(tab.childs)
-					end 
+					end
 				end)
 			end 
-		end 		
-		OnInitialize()	
-		TMW:Fire("TMW_ACTION_ON_PROFILE_POST") -- No assigned callbacks on Classic
+		end 
+
+		OnInitialize()		
+		TMW:Fire("TMW_ACTION_ON_PROFILE_POST") -- Callback for HybridProfile.lua (don't remove in future)
 	end
 	TMW:RegisterCallback("TMW_ON_PROFILE", OnSwap)
-	TMW:RegisterCallback("TMW_SAFESETUP_COMPLETE", OnInitialize, "ACTION_TMW_SAFESETUP_COMPLETE")	
+	TMW:RegisterSelfDestructingCallback("TMW_SAFESETUP_COMPLETE", OnInitialize)
 end
+Action:RegisterEvent("ADDON_LOADED")

@@ -1,7 +1,7 @@
 -- Used by A:IsRequiredGCD()
 -- Update method - through baseGCD = select(2, GetSpellBaseCooldown(spellID)) (return in mileseconds)
 -- Generated using WoW 1.13.2.31882 client data on 2019-09-21
-Action.Enum.TriggerGCD = {
+_G.Action.Enum.TriggerGCD = {
 	[12467] = 0,
 	[24832] = 0,
 	[28693] = 0,

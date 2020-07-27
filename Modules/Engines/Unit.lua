@@ -1,9 +1,13 @@
-local TMW 									= TMW
+local _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error =
+	  _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error 
+	  
+local TMW 									= _G.TMW
 local CNDT 									= TMW.CNDT
 local Env 									= CNDT.Env
 local strlowerCache  						= TMW.strlowerCache
 
-local A   									= Action	
+local A   									= _G.Action	
+local CONST 								= A.Const
 local Listener								= A.Listener
 local insertMulti							= A.TableInsertMulti
 local toNum 								= A.toNum
@@ -37,35 +41,27 @@ local TeamCacheEnemyIndexToPLAYERs			= TeamCacheEnemy.IndexToPLAYERs
 local TeamCacheEnemyIndexToPETs				= TeamCacheEnemy.IndexToPETs
 local ActiveUnitPlates						= MultiUnits:GetActiveUnitPlates()
 local ActiveUnitPlatesAny					= MultiUnits:GetActiveUnitPlatesAny()
-
-local _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error  =
-	  _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error 
 	  
 local ALL_HEALS								= HealComm and HealComm.ALL_HEALS	  
-local ACTION_CONST_INVSLOT_OFFHAND			= _G.ACTION_CONST_INVSLOT_OFFHAND
-local ACTION_CONST_AURAS_MAX_LIMIT			= _G.ACTION_CONST_AURAS_MAX_LIMIT
-local ACTION_CONST_MAX_BOSS_FRAMES			= _G.ACTION_CONST_MAX_BOSS_FRAMES
-local ACTION_CONST_CACHE_DISABLE			= _G.ACTION_CONST_CACHE_DISABLE
-local ACTION_CONST_CACHE_MEM_DRIVE			= _G.ACTION_CONST_CACHE_MEM_DRIVE
-local ACTION_CONST_CACHE_DISABLE			= _G.ACTION_CONST_CACHE_DISABLE
-local ACTION_CONST_CACHE_DEFAULT_TIMER_UNIT = _G.ACTION_CONST_CACHE_DEFAULT_TIMER_UNIT
-local ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE	= _G.ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE
-	
+local CACHE_DEFAULT_TIMER_UNIT				= CONST.CACHE_DEFAULT_TIMER_UNIT
+
 local huge 									= math.huge	  
+local math_max								= math.max 
 local math_floor							= math.floor	
 local math_random							= math.random
 local wipe 									= _G.wipe 
 local strsplit								= _G.strsplit
 local debugstack							= _G.debugstack
-	  
+
+local GameLocale 							= A.FormatGameLocale(_G.GetLocale())	  
 local CombatLogGetCurrentEventInfo			= _G.CombatLogGetCurrentEventInfo	  
 local GetUnitSpeed							= _G.GetUnitSpeed
 local GetSpellInfo							= _G.GetSpellInfo
 local GetPartyAssignment 					= _G.GetPartyAssignment	  
 local UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
 	  UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
 local UnitAura 								= TMW.UnitAura	  
 	  
 --local UnitThreatSituation					= function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
@@ -76,7 +72,7 @@ local UnitDetailedThreatSituation			= function(unit, mob) return ThreatLib:UnitD
 local A_Unit, A_GetSpellInfo, A_GetGCD, A_GetCurrentGCD, A_EnemyTeam, A_GetUnitItem
 
 Listener:Add("ACTION_EVENT_UNIT", "ADDON_LOADED", function(addonName)
-	if addonName == ACTION_CONST_ADDON_NAME then 
+	if addonName == CONST.ADDON_NAME then 
 		A_Unit						= A.Unit		
 		A_GetSpellInfo				= A.GetSpellInfo	
 		A_GetGCD					= A.GetGCD
@@ -117,12 +113,12 @@ local Cache = {
 		else 
 			wipe(this.bufer[func][keyArg].v)
 		end 
-		this.bufer[func][keyArg].t = TMW.time + (inv or ACTION_CONST_CACHE_DEFAULT_TIMER_UNIT) + 0.001  -- Add small delay to make sure what it's not previous corroute  
+		this.bufer[func][keyArg].t = TMW.time + (inv or CACHE_DEFAULT_TIMER_UNIT) + 0.001  -- Add small delay to make sure what it's not previous corroute  
 		insertMulti(this.bufer[func][keyArg].v, func(...))
 		return unpack(this.bufer[func][keyArg].v)
 	end,
 	Wrap = function(this, func, name)
-		if ACTION_CONST_CACHE_DISABLE then 
+		if CONST.CACHE_DISABLE then 
 			return func 
 		end 
 		
@@ -143,7 +139,7 @@ local Cache = {
         end        
     end,
 	Pass = function(this, func, name) 
-		if ACTION_CONST_CACHE_MEM_DRIVE and not ACTION_CONST_CACHE_DISABLE then 
+		if CONST.CACHE_MEM_DRIVE and not CONST.CACHE_DISABLE then 
 			return this:Wrap(func, name)
 		end 
 
@@ -776,6 +772,7 @@ local Info = {
         ["WARRIOR"] 			= true,
         ["PALADIN"] 			= true,
         ["DRUID"] 				= true,	
+		["SHAMAN"]				= true, -- T3 tank in Classic possible 
 	},
 	ClassCanBeMelee				= {
         ["WARRIOR"] 			= true,
@@ -785,62 +782,1057 @@ local Info = {
         ["DRUID"] 				= true,		
 	},
 	AllCC 						= {"Silenced", "Stuned", "Sleep", "Fear", "Disoriented", "Incapacitated"},
-	IsUndead					= {
-		["Undead"]				= true, 
-        ["Untoter"]				= true, 
-        ["No-muerto"]			= true, 
-        ["No-muerto"]			= true, 
-        ["Mort-vivant"]			= true, 
-        ["Non Morto"]			= true, 
-        ["Renegado"]			= true, 
-        ["Нежить"]				= true,  
-		["언데드"]					= true,
-		["亡灵"]				= true,
-		["不死族"]				= true,
-		[""]					= false,		
-	},
-	IsDemon						= {
-		["Demon"]				= true,
-		["Dämon"]				= true,
-		["Demonio"]				= true,
-		["Démon"]				= true,
-		["Demone"]				= true,
-		["Demônio"]				= true,
-		["Демон"]				= true,
-		["악마"]					= true,
-		["恶魔"]				= true,
-		["惡魔"]				= true,
-	},
-	IsHumanoid					= {
-		["Humanoid"]			= true,
-		["Humanoide"]			= true,
-		["Humanoïde"]			= true,
-		["Umanoide"]			= true,
-		["Гуманоид"]			= true,
-		["인간형"]					= true,
-		["人型生物"]				= true,
-		["人型生物"]				= true,
-	},	
-	IsElemental					= {
-		["Elemental"]			= true,
-		["Elementar"]			= true,
-		["Élémentaire"]			= true,
-		["Elementale"]			= true,
-		["Элементаль"]			= true,
-		["정령"]					= true,
-		["元素生物"]				= true,
-		["元素生物"]				= true,
-	},
-	IsTotem 					= {
-		["Totem"]				= true,
-		["Tótem"]				= true,
-		["Totém"]				= true,
-		["Тотем"]				= true,
-		["토템"]					= true,
-		["图腾"]				= true,
-		["圖騰"]				= true,
-		[""]					= false,
-	},
+	CreatureType				= setmetatable(
+		-- Formats localization to English locale
+		-- Revision Classic 1.13.4.33920 April 2020
+		{
+			enUS				= {
+				["Beast"]				= "Beast",				-- [1]
+				["Dragonkin"]			= "Dragonkin",			-- [2]
+				["Demon"]				= "Demon",				-- [3]
+				["Elemental"]			= "Elemental",			-- [4]
+				["Giant"]				= "Giant",				-- [5]
+				["Undead"]				= "Undead",				-- [6]				
+				["Humanoid"]			= "Humanoid",			-- [7]
+				["Critter"]				= "Critter",			-- [8]
+				["Mechanical"]			= "Mechanical",			-- [9]
+				["Not specified"]		= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Totem"]				= "Totem",				-- [11]				
+				--["Non-combat Pet"]	= "Non-combat Pet",		-- [12]	
+				--["Gas Cloud"]			= "Gas Cloud",			-- [13]
+				--["Wild Pet"]			= "Wild Pet",			-- [14]
+				--["Aberration"]		= "Aberration",			-- [15]
+			},
+			ruRU				= {
+				["Животное"]			= "Beast",				-- [1]
+				["Дракон"]				= "Dragonkin",			-- [2]
+				["Демон"]				= "Demon",				-- [3]
+				["Элементаль"]			= "Elemental",			-- [4]
+				["Великан"]				= "Giant",				-- [5]
+				["Нежить"]				= "Undead",				-- [6]				
+				["Гуманоид"]			= "Humanoid",			-- [7]
+				["Существо"]			= "Critter",			-- [8]
+				["Механизм"]			= "Mechanical",			-- [9]
+				["Не указано"]			= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Тотем"]				= "Totem",				-- [11]				
+				--["Спутник"]			= "Non-combat Pet",		-- [12]	
+				--["Облако газа"]		= "Gas Cloud",			-- [13]
+				--["Дикий питомец"]		= "Wild Pet",			-- [14]
+				--["Аберрация"]			= "Aberration",			-- [15]
+			},
+			frFR				= {
+				["Bête"]				= "Beast",				-- [1]
+				["Draconien"]			= "Dragonkin",			-- [2]
+				["Démon"]				= "Demon",				-- [3]
+				["Élémentaire"]			= "Elemental",			-- [4]
+				["Géant"]				= "Giant",				-- [5]
+				["Mort-vivant"]			= "Undead",				-- [6]				
+				["Humanoïde"]			= "Humanoid",			-- [7]
+				["Bestiole"]			= "Critter",			-- [8]
+				["Mécanique"]			= "Mechanical",			-- [9] -- Classic
+				["Machine"]				= "Mechanical",			-- [9] -- Retail
+				["Non spécifié"]		= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Totem"]				= "Totem",				-- [11]				
+				--["Mascotte pacifique"]	= "Non-combat Pet",	-- [12]	
+				--["Nuage de gaz"]		= "Gas Cloud",			-- [13]
+				--["Mascotte sauvage"]	= "Wild Pet",			-- [14]
+				--["Aberration"]		= "Aberration",			-- [15]
+			},
+			deDE				= {
+				["Wildtier"]			= "Beast",				-- [1]
+				["Drachkin"]			= "Dragonkin",			-- [2]
+				["Dämon"]				= "Demon",				-- [3]
+				["Elementar"]			= "Elemental",			-- [4]
+				["Riese"]				= "Giant",				-- [5]
+				["Untoter"]				= "Undead",				-- [6]				
+				["Humanoid"]			= "Humanoid",			-- [7]
+				["Tier"]				= "Critter",			-- [8] -- Classic 
+				["Kleintier"]			= "Critter",			-- [8] -- Retail
+				["Mechanisch"]			= "Mechanical",			-- [9]
+				["Nicht spezifiziert"]	= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Totem"]				= "Totem",				-- [11]				
+				--["Haustier"]			= "Non-combat Pet",		-- [12]	
+				--["Gaswolke"]			= "Gas Cloud",			-- [13]
+				--["Ungezähmtes Tier"]	= "Wild Pet",			-- [14]
+				--["Entartung"]			= "Aberration",			-- [15]
+			},
+			esES				= {
+				["Bestia"]				= "Beast",				-- [1]
+				["Dragonante"]			= "Dragonkin",			-- [2]
+				["Demonio"]				= "Demon",				-- [3]
+				["Elemental"]			= "Elemental",			-- [4]
+				["Gigante"]				= "Giant",				-- [5]
+				["No-muerto"]			= "Undead",				-- [6]				
+				["Humanoide"]			= "Humanoid",			-- [7]
+				["Alimaña"]				= "Critter",			-- [8]
+				["Mecánico"]			= "Mechanical",			-- [9]
+				["Sin especificar"]		= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Tótem"]				= "Totem",				-- [11]				
+				--["Mascota mansa"]		= "Non-combat Pet",		-- [12]	
+				--["Nube de gas"]		= "Gas Cloud",			-- [13]
+				--["Mascota salvaje"]	= "Wild Pet",			-- [14]
+				--["Aberración"]		= "Aberration",			-- [15]
+			},
+			ptPT				= {
+				["Fera"]				= "Beast",				-- [1]
+				["Draconiano"]			= "Dragonkin",			-- [2]
+				["Demônio"]				= "Demon",				-- [3]
+				["Elemental"]			= "Elemental",			-- [4]
+				["Gigante"]				= "Giant",				-- [5]
+				["Morto-vivo"]			= "Undead",				-- [6]				
+				["Humanoide"]			= "Humanoid",			-- [7]
+				["Bicho"]				= "Critter",			-- [8]
+				["Mecânico"]			= "Mechanical",			-- [9]
+				["Não Especificado"]	= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Totem"]				= "Totem",				-- [11]				
+				--["Mascote"]			= "Non-combat Pet",		-- [12]	
+				--["Nuvem de Gás"]		= "Gas Cloud",			-- [13]
+				--["Mascote Selvagem"]	= "Wild Pet",			-- [14]
+				--["Aberração"]			= "Aberration",			-- [15]
+			},			
+			itIT				= {
+				-- Classic hasn't Italy language but dataBase refferenced their locales to koKR
+				["Bestia"]				= "Beast",				-- [1]
+				["야수"]					= "Beast",				-- [1] Refference
+				["Dragoide"]			= "Dragonkin",			-- [2]
+				["용족"]					= "Dragonkin",			-- [2] Refference
+				["Demone"]				= "Demon",				-- [3]
+				["악마"]					= "Demon",				-- [3] Refference
+				["Elementale"]			= "Elemental",			-- [4]
+				["정령"]					= "Elemental",			-- [4] Refference
+				["Gigante"]				= "Giant",				-- [5]
+				["거인"]					= "Giant",				-- [5] Refference
+				["Non Morto"]			= "Undead",				-- [6]				
+				["언데드"]					= "Undead",				-- [6] Refference			
+				["Umanoide"]			= "Humanoid",			-- [7]
+				["인간형"]					= "Humanoid",			-- [7] Refference
+				["Animale"]				= "Critter",			-- [8]
+				["동물"]					= "Critter",			-- [8] Refference
+				["Unità Meccanica"]		= "Mechanical",			-- [9]
+				["기계"]					= "Mechanical",			-- [9] Refference
+				["Non Specificato"]		= "Not specified",		-- [10]				
+				["기타"]					= "Not specified",		-- [10] Refference				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["Totem"]				= "Totem",				-- [11]				
+				["토템"]					= "Totem",				-- [11]	Refference			
+				--["Mascotte"]			= "Non-combat Pet",		-- [12]	
+				--["Nuvola di Gas"]		= "Gas Cloud",			-- [13]
+				--["Mascotte Selvatica"]	= "Wild Pet",		-- [14]
+				--["Aberrazione"]			= "Aberration",		-- [15]
+			},
+			koKR				= {
+				["야수"]					= "Beast",				-- [1] 
+				["용족"]					= "Dragonkin",			-- [2]
+				["악마"]					= "Demon",				-- [3]
+				["정령"]					= "Elemental",			-- [4]
+				["거인"]					= "Giant",				-- [5]
+				["언데드"]					= "Undead",				-- [6]				
+				["인간형"]					= "Humanoid",			-- [7]
+				["동물"]					= "Critter",			-- [8]
+				["기계"]					= "Mechanical",			-- [9]
+				["기타"]					= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["토템"]					= "Totem",				-- [11]				
+				--["애완동물"]				= "Non-combat Pet",		-- [12]	
+				--["가스 구름"]				= "Gas Cloud",			-- [13]
+				--["야생 애완동물"]			= "Wild Pet",			-- [14]
+				--["돌연변이"]				= "Aberration",			-- [15]
+			},
+			zhCN				= {
+				["野兽"]				= "Beast",				-- [1]
+				["龙类"]					= "Dragonkin",			-- [2]
+				["恶魔"]				= "Demon",				-- [3]
+				["元素生物"]				= "Elemental",			-- [4]
+				["巨人"]				= "Giant",				-- [5]
+				["亡灵"]				= "Undead",				-- [6]				
+				["人型生物"]				= "Humanoid",			-- [7]
+				["小动物"]				= "Critter",			-- [8]
+				["机械"]				= "Mechanical",			-- [9]
+				["未指定"]				= "Not specified",		-- [10]				
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["图腾"]				= "Totem",				-- [11]				
+				--["非战斗宠物"]			= "Non-combat Pet",		-- [12]	
+				--["气体云雾"]			= "Gas Cloud",			-- [13]
+				--["野生宠物"]			= "Wild Pet",			-- [14]
+				--["畸变怪"]				= "Aberration",			-- [15]
+			},
+			zhTW				= {
+				["野獸"]				= "Beast",				-- [1]
+				["龍類"]				= "Dragonkin",			-- [2]
+				["惡魔"]				= "Demon",				-- [3]
+				["元素生物"]				= "Elemental",			-- [4]
+				["巨人"]				= "Giant",				-- [5]
+				["不死族"]				= "Undead",				-- [6]		
+				["人型生物"]				= "Humanoid",			-- [7] Classic 
+				["人形生物"]				= "Humanoid",			-- [7] Retail 
+				["小動物"]				= "Critter",			-- [8]
+				["機械"]				= "Mechanical",			-- [9]
+				["未指定"]				= "Not specified",		-- [10] Classic
+				["不明"]				= "Not specified",		-- [10] Retail
+				[""]					= "Not specified",		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+				["圖騰"]				= "Totem",				-- [11]			
+				--["非戰鬥寵物"]			= "Non-combat Pet",		-- [12]	
+				--["氣體雲"]				= "Gas Cloud",			-- [13]
+				--["野生寵物"]			= "Wild Pet",			-- [14]
+				--["變異怪"]				= "Aberration",			-- [15]
+			},
+		}, 
+		{
+			__index = function(t, v)
+				return t[GameLocale][v]
+			end,
+		}
+	),
+	CreatureFamily				= setmetatable(
+		-- Formats localization to English locale
+		-- Revision BFA 8.3.0.33941 April 2020
+		{
+			enUS				= {
+				["Wolf"]					= "Wolf",					-- [1]
+				["Cat"]						= "Cat",					-- [2]
+				["Spider"]					= "Spider",					-- [3]
+				["Bear"]					= "Bear",					-- [4]
+				["Boar"]					= "Boar",					-- [5]
+				["Crocolisk"]				= "Crocolisk",				-- [6]
+				["Carrion Bird"]			= "Carrion Bird",			-- [7]
+				["Crab"]					= "Crab",					-- [8]
+				["Gorilla"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Tallstrider"]				= "Tallstrider",			-- [12]
+				["Felhunter"]				= "Felhunter",				-- [15]
+				["Voidwalker"]				= "Voidwalker",				-- [16]
+				["Succubus"]				= "Succubus",				-- [17]
+				["Doomguard"]				= "Doomguard",				-- [19]
+				["Scorpid"]					= "Scorpid",				-- [20]
+				["Turtle"]					= "Turtle",					-- [21]
+				["Imp"]						= "Imp",					-- [23]
+				["Bat"]						= "Bat",					-- [24]
+				["Hyena"]					= "Hyena",					-- [25]
+				["Owl"]						= "Owl",					-- [26] Classic 
+				["Bird of Prey"]			= "Bird of Prey",			-- [26] Retail 
+				["Wind Serpent"]			= "Wind Serpent",			-- [27]
+				["Remote Control"]			= "Remote Control",			-- [28]
+				--["Felguard"]				= "Felguard",				-- [29]
+				--["Dragonhawk"]				= "Dragonhawk",				-- [30]
+				--["Ravager"]					= "Ravager",				-- [31]
+				--["Warp Stalker"]			= "Warp Stalker",			-- [32]
+				--["Sporebat"]				= "Sporebat",				-- [33]
+				--["Ray"]						= "Ray",					-- [34]
+				--["Serpent"]					= "Serpent",				-- [35]
+				--["Moth"]					= "Moth",					-- [37]
+				--["Chimaera"]				= "Chimaera",				-- [38]
+				--["Devilsaur"]				= "Devilsaur",				-- [39]
+				--["Ghoul"]					= "Ghoul",					-- [40]
+				--["Silithid"]				= "Silithid",				-- [41]
+				--["Worm"]					= "Worm",					-- [42]
+				--["Clefthoof"]				= "Clefthoof",				-- [43]
+				--["Wasp"]					= "Wasp",					-- [44]
+				--["Core Hound"]				= "Core Hound",				-- [45]
+				--["Spirit Beast"]			= "Spirit Beast",			-- [46]
+				--["Water Elemental"]			= "Water Elemental",		-- [49]
+				--["Fox"]						= "Fox",					-- [50]
+				--["Monkey"]					= "Monkey",					-- [51]
+				--["Dog"]						= "Dog",					-- [52]
+				--["Beetle"]					= "Beetle",					-- [53]
+				--["Shale Spider"]			= "Shale Spider",			-- [55]
+				--["Zombie"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Hydra"]					= "Hydra",					-- [68]
+				--["Fel Imp"]					= "Fel Imp",				-- [100]
+				--["Voidlord"]				= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Observer"]				= "Observer",				-- [103]
+				--["Wrathguard"]				= "Wrathguard",				-- [104]
+				--["Infernal"]				= "Infernal",				-- [108]
+				--["Fire Elemental"]			= "Fire Elemental",			-- [116]
+				--["Earth Elemental"]			= "Earth Elemental",		-- [117]
+				--["Crane"]					= "Crane",					-- [125]
+				--["Water Strider"]			= "Water Strider",			-- [126]
+				--["Rodent"]					= "Rodent",					-- [127]
+				--["Quilen"]					= "Quilen",					-- [128]
+				--["Goat"]					= "Goat",					-- [129]
+				--["Basilisk"]				= "Basilisk",				-- [130]
+				--["Direhorn"]				= "Direhorn",				-- [138]
+				--["Storm Elemental"]			= "Storm Elemental",		-- [145]
+				--["Terrorguard"]				= "Terrorguard",			-- [147]
+				--["Abyssal"]					= "Abyssal",				-- [148]
+				--["Riverbeast"]				= "Riverbeast",				-- [150]
+				--["Stag"]					= "Stag",					-- [151]
+				--["Mechanical"]				= "Mechanical",				-- [154]
+				--["Abomination"]				= "Abomination",			-- [155]
+				--["Scalehide"]				= "Scalehide",				-- [156]
+				--["Oxen"]					= "Oxen",					-- [157]
+				--["Feathermane"]				= "Feathermane",			-- [160]
+				--["Lizard"]					= "Lizard",					-- [288]
+				--["Pterrordax"]				= "Pterrordax",				-- [290]
+				--["Toad"]					= "Toad",					-- [291]
+				--["Krolusk"]					= "Krolusk",				-- [292]
+				--["Blood Beast"]				= "Blood Beast",			-- [296]
+			},
+			ruRU				= {
+				["Волк"]					= "Wolf",					-- [1]
+				["Кошка"]					= "Cat",					-- [2]
+				["Паук"]					= "Spider",					-- [3]
+				["Медведь"]					= "Bear",					-- [4]
+				["Вепрь"]					= "Boar",					-- [5]
+				["Кроколиск"]				= "Crocolisk",				-- [6]
+				["Падальщик"]				= "Carrion Bird",			-- [7]
+				["Краб"]					= "Crab",					-- [8]
+				["Горилла"]					= "Gorilla",				-- [9]
+				["Ящер"]					= "Raptor",					-- [11]
+				["Долгоног"]				= "Tallstrider",			-- [12]
+				["Охотник Скверны"]			= "Felhunter",				-- [15]
+				["Демон Бездны"]			= "Voidwalker",				-- [16]
+				["Суккуб"]					= "Succubus",				-- [17]
+				["Страж ужаса"]				= "Doomguard",				-- [19]
+				["Скорпид"]					= "Scorpid",				-- [20]
+				["Черепаха"]				= "Turtle",					-- [21]
+				["Бес"]						= "Imp",					-- [23]
+				["Летучая мышь"]			= "Bat",					-- [24]
+				["Гиена"]					= "Hyena",					-- [25]
+				["Сова"]					= "Owl",					-- [26] Classic 
+				["Хищная птица"]			= "Bird of Prey",			-- [26] Retail
+				["Крылатый змей"]			= "Wind Serpent",			-- [27]
+				["Управление"]				= "Remote Control",			-- [28]
+				--["Страж Скверны"]			= "Felguard",				-- [29]
+				--["Дракондор"]				= "Dragonhawk",				-- [30]
+				--["Опустошитель"]			= "Ravager",				-- [31]
+				--["Прыгуана"]				= "Warp Stalker",			-- [32]
+				--["Спороскат"]				= "Sporebat",				-- [33]
+				--["Скат"]					= "Ray",					-- [34]
+				--["Змей"]					= "Serpent",				-- [35]
+				--["Мотылек"]					= "Moth",					-- [37]
+				--["Химера"]					= "Chimaera",				-- [38]
+				--["Дьявозавр"]				= "Devilsaur",				-- [39]
+				--["Вурдалак"]				= "Ghoul",					-- [40]
+				--["Силитид"]					= "Silithid",				-- [41]
+				--["Червь"]					= "Worm",					-- [42]
+				--["Копытень"]				= "Clefthoof",				-- [43]
+				--["Оса"]						= "Wasp",					-- [44]
+				--["Гончая недр"]				= "Core Hound",				-- [45]
+				--["Дух зверя"]				= "Spirit Beast",			-- [46]
+				--["Элементаль воды"]			= "Water Elemental",		-- [49]
+				--["Лисица"]					= "Fox",					-- [50]
+				--["Обезьяна"]				= "Monkey",					-- [51]
+				--["Собака"]					= "Dog",					-- [52]
+				--["Жук"]						= "Beetle",					-- [53]
+				--["Сланцевый паук"]			= "Shale Spider",			-- [55]
+				--["Зомби"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Гидра"]					= "Hydra",					-- [68]
+				--["Бес Скверны"]				= "Fel Imp",				-- [100]
+				--["Повелитель Бездны"]		= "Voidlord",				-- [101]
+				--["Шиварра"]					= "Shivarra",				-- [102]
+				--["Наблюдатель"]				= "Observer",				-- [103]
+				--["Страж гнева"]				= "Wrathguard",				-- [104]
+				--["Инфернал"]				= "Infernal",				-- [108]
+				--["Элементаль огня"]			= "Fire Elemental",			-- [116]
+				--["Элементаль земли"]		= "Earth Elemental",		-- [117]
+				--["Журавль"]					= "Crane",					-- [125]
+				--["Водный долгоног"]			= "Water Strider",			-- [126]
+				--["Грызун"]					= "Rodent",					-- [127]
+				--["Цийлинь"]					= "Quilen",					-- [128]
+				--["Козел"]					= "Goat",					-- [129]
+				--["Василиск"]				= "Basilisk",				-- [130]
+				--["Дикорог"]					= "Direhorn",				-- [138]
+				--["Элементаль бури"]			= "Storm Elemental",		-- [145]
+				--["Стражник жути"]			= "Terrorguard",			-- [147]
+				--["Абиссал"]					= "Abyssal",				-- [148]
+				--["Речное чудище"]			= "Riverbeast",				-- [150]
+				--["Олень"]					= "Stag",					-- [151]
+				--["Механизм"]				= "Mechanical",				-- [154]
+				--["Поганище"]				= "Abomination",			-- [155]
+				--["Чешуешкурые"]				= "Scalehide",				-- [156]
+				--["Быки"]					= "Oxen",					-- [157]
+				--["Шерстоперые"]				= "Feathermane",			-- [160]
+				--["Ящерица"]					= "Lizard",					-- [288]
+				--["Терродактиль"]			= "Pterrordax",				-- [290]
+				--["Жаба"]					= "Toad",					-- [291]
+				--["Кролуск"]					= "Krolusk",				-- [292]
+				--["Кровавое чудовище"]		= "Blood Beast",			-- [296]
+			},
+			frFR				= {
+				["Loup"]					= "Wolf",					-- [1]
+				["Félin"]					= "Cat",					-- [2]
+				["Araignée"]				= "Spider",					-- [3]
+				["Ours"]					= "Bear",					-- [4]
+				["Sanglier"]				= "Boar",					-- [5]
+				["Crocilisque"]				= "Crocolisk",				-- [6]
+				["Charognard"]				= "Carrion Bird",			-- [7]
+				["Crabe"]					= "Crab",					-- [8]
+				["Gorille"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Haut-trotteur"]			= "Tallstrider",			-- [12]
+				["Chasseur corrompu"]		= "Felhunter",				-- [15]
+				["Marcheur du Vide"]		= "Voidwalker",				-- [16]
+				["Succube"]					= "Succubus",				-- [17]
+				["Garde funeste"]			= "Doomguard",				-- [19]
+				["Scorpide"]				= "Scorpid",				-- [20]
+				["Tortue"]					= "Turtle",					-- [21]
+				["Diablotin"]				= "Imp",					-- [23]
+				["Chauve-souris"]			= "Bat",					-- [24]
+				["Hyène"]					= "Hyena",					-- [25]
+				["Chouette"]				= "Owl",					-- [26] Classic 
+				["Oiseau de proie"]			= "Bird of Prey",			-- [26] Retail 
+				["Serpent des vents"]		= "Wind Serpent",			-- [27]
+				["Télécommande"]			= "Remote Control",			-- [28]
+				--["Gangregarde"]				= "Felguard",				-- [29]
+				--["Faucon-dragon"]			= "Dragonhawk",				-- [30]
+				--["Ravageur"]				= "Ravager",				-- [31]
+				--["Traqueur dim."]			= "Warp Stalker",			-- [32]
+				--["Sporoptère"]				= "Sporebat",				-- [33]
+				--["Raie"]					= "Ray",					-- [34]
+				--["Serpent"]					= "Serpent",				-- [35]
+				--["Phalène"]					= "Moth",					-- [37]
+				--["Chimère"]					= "Chimaera",				-- [38]
+				--["Diablosaure"]				= "Devilsaur",				-- [39]
+				--["Goule"]					= "Ghoul",					-- [40]
+				--["Silithide"]				= "Silithid",				-- [41]
+				--["Ver"]						= "Worm",					-- [42]
+				--["Sabot-fourchu"]			= "Clefthoof",				-- [43]
+				--["Guêpe"]					= "Wasp",					-- [44]
+				--["Chien du magma"]			= "Core Hound",				-- [45]
+				--["Esprit de bête"]			= "Spirit Beast",			-- [46]
+				--["Élémentaire d'eau"]		= "Water Elemental",		-- [49]
+				--["Renard"]					= "Fox",					-- [50]
+				--["Singe"]					= "Monkey",					-- [51]
+				--["Chien"]					= "Dog",					-- [52]
+				--["Hanneton"]				= "Beetle",					-- [53]
+				--["Araignée de schiste"]		= "Shale Spider",			-- [55]
+				--["Zombie"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Hydre"]					= "Hydra",					-- [68]
+				--["Diablotin gangrené"]		= "Fel Imp",				-- [100]
+				--["Seigneur du Vide"]		= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Observateur"]				= "Observer",				-- [103]
+				--["Garde-courroux"]			= "Wrathguard",				-- [104]
+				--["Infernal"]				= "Infernal",				-- [108]
+				--["Élémentaire de feu"]		= "Fire Elemental",			-- [116]
+				--["Élémentaire de terre"]	= "Earth Elemental",		-- [117]
+				--["Grue"]					= "Crane",					-- [125]
+				--["Trotteur aquatique"]		= "Water Strider",			-- [126]
+				--["Rongeur"]					= "Rodent",					-- [127]
+				--["Quilen"]					= "Quilen",					-- [128]
+				--["Chèvre"]					= "Goat",					-- [129]
+				--["Basilic"]					= "Basilisk",				-- [130]
+				--["Navrecorne"]				= "Direhorn",				-- [138]
+				--["Élém. de tempête"]		= "Storm Elemental",		-- [145]
+				--["Garde de terreur"]		= "Terrorguard",			-- [147]
+				--["Abyssal"]					= "Abyssal",				-- [148]
+				--["Potamodonte"]				= "Riverbeast",				-- [150]
+				--["Cerf"]					= "Stag",					-- [151]
+				--["Mécanique"]				= "Mechanical",				-- [154]
+				--["Abomination"]				= "Abomination",			-- [155]
+				--["Peau écailleuse"]			= "Scalehide",				-- [156]
+				--["Bovin"]					= "Oxen",					-- [157]
+				--["Crin-de-plume"]			= "Feathermane",			-- [160]
+				--["Lézard"]					= "Lizard",					-- [288]
+				--["Pterreurdactyle"]			= "Pterrordax",				-- [290]
+				--["Crapaud"]					= "Toad",					-- [291]
+				--["Krolusk"]					= "Krolusk",				-- [292]
+				--["Bête de sang"]			= "Blood Beast",			-- [296]
+			},
+			deDE				= {
+				["Wolf"]					= "Wolf",					-- [1]
+				["Katze"]					= "Cat",					-- [2]
+				["Spinne"]					= "Spider",					-- [3]
+				["Bär"]						= "Bear",					-- [4]
+				["Eber"]					= "Boar",					-- [5]
+				["Krokilisk"]				= "Crocolisk",				-- [6]
+				["Aasvogel"]				= "Carrion Bird",			-- [7]
+				["Krebs"]					= "Crab",					-- [8]
+				["Gorilla"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Weitschreiter"]			= "Tallstrider",			-- [12]
+				["Teufelsjäger"]			= "Felhunter",				-- [15]
+				["Leerwandler"]				= "Voidwalker",				-- [16]
+				["Sukkubus"]				= "Succubus",				-- [17]
+				["Verdammniswache"]			= "Doomguard",				-- [19]
+				["Skorpid"]					= "Scorpid",				-- [20]
+				["Schildkröte"]				= "Turtle",					-- [21]
+				["Wichtel"]					= "Imp",					-- [23]
+				["Fledermaus"]				= "Bat",					-- [24]
+				["Hyäne"]					= "Hyena",					-- [25]
+				["Eule"]					= "Owl",					-- [26] Classic 
+				["Raubvogel"]				= "Bird of Prey",			-- [26] Retail
+				["Windnatter"]				= "Wind Serpent",			-- [27]
+				["Ferngesteuert"]			= "Remote Control",			-- [28]
+				--["Teufelswache"]			= "Felguard",				-- [29]
+				--["Drachenfalke"]			= "Dragonhawk",				-- [30]
+				--["Felshetzer"]				= "Ravager",				-- [31]
+				--["Sphärenjäger"]			= "Warp Stalker",			-- [32]
+				--["Sporensegler"]			= "Sporebat",				-- [33]
+				--["Rochen"]					= "Ray",					-- [34]
+				--["Schlange"]				= "Serpent",				-- [35]
+				--["Motte"]					= "Moth",					-- [37]
+				--["Schimäre"]				= "Chimaera",				-- [38]
+				--["Teufelssaurier"]			= "Devilsaur",				-- [39]
+				--["Ghul"]					= "Ghoul",					-- [40]
+				--["Silithid"]				= "Silithid",				-- [41]
+				--["Wurm"]					= "Worm",					-- [42]
+				--["Grollhuf"]				= "Clefthoof",				-- [43]
+				--["Wespe"]					= "Wasp",					-- [44]
+				--["Kernhund"]				= "Core Hound",				-- [45]
+				--["Geisterbestie"]			= "Spirit Beast",			-- [46]
+				--["Wasserelementar"]			= "Water Elemental",		-- [49]
+				--["Fuchs"]					= "Fox",					-- [50]
+				--["Affe"]					= "Monkey",					-- [51]
+				--["Hund"]					= "Dog",					-- [52]
+				--["Käfer"]					= "Beetle",					-- [53]
+				--["Schieferspinne"]			= "Shale Spider",			-- [55]
+				--["Zombie"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Hydra"]					= "Hydra",					-- [68]
+				--["Teufelswichtel"]			= "Fel Imp",				-- [100]
+				--["Leerenfürst"]				= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Beobachter"]				= "Observer",				-- [103]
+				--["Zornwächter"]				= "Wrathguard",				-- [104]
+				--["Höllenbestie"]			= "Infernal",				-- [108]
+				--["Feuerelementar"]			= "Fire Elemental",			-- [116]
+				--["Erdelementar"]			= "Earth Elemental",		-- [117]
+				--["Kranich"]					= "Crane",					-- [125]
+				--["Wasserschreiter"]			= "Water Strider",			-- [126]
+				--["Nager"]					= "Rodent",					-- [127]
+				--["Qilen"]					= "Quilen",					-- [128]
+				--["Ziege"]					= "Goat",					-- [129]
+				--["Basilisk"]				= "Basilisk",				-- [130]
+				--["Terrorhorn"]				= "Direhorn",				-- [138]
+				--["Sturmelementar"]			= "Storm Elemental",		-- [145]
+				--["Terrorwache"]				= "Terrorguard",			-- [147]
+				--["Abyssal"]					= "Abyssal",				-- [148]
+				--["Flussbestie"]				= "Riverbeast",				-- [150]
+				--["Hirsch"]					= "Stag",					-- [151]
+				--["Mechanisch"]				= "Mechanical",				-- [154]
+				--["Monstrosität"]			= "Abomination",			-- [155]
+				--["Schuppenbalg"]			= "Scalehide",				-- [156]
+				--["Ochse"]					= "Oxen",					-- [157]
+				--["Federmähnen"]				= "Feathermane",			-- [160]
+				--["Echse"]					= "Lizard",					-- [288]
+				--["Pterrordax"]				= "Pterrordax",				-- [290]
+				--["Kröte"]					= "Toad",					-- [291]
+				--["Krolusk"]					= "Krolusk",				-- [292]
+				--["Blutbestie"]				= "Blood Beast",			-- [296]
+			},
+			esES				= {
+				["Lobo"]					= "Wolf",					-- [1]
+				["Felino"]					= "Cat",					-- [2]
+				["Araña"]					= "Spider",					-- [3]
+				["Oso"]						= "Bear",					-- [4]
+				["Jabalí"]					= "Boar",					-- [5]
+				["Crocolisco"]				= "Crocolisk",				-- [6]
+				["Carroñero"]				= "Carrion Bird",			-- [7]
+				["Cangrejo"]				= "Crab",					-- [8]
+				["Gorila"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Zancudo"]					= "Tallstrider",			-- [12] Spain Classic 
+				["Zancaalta"]				= "Tallstrider",			-- [12] Spain Retail / Mexico Classic
+				["Manáfago"]				= "Felhunter",				-- [15]
+				["Abisario"]				= "Voidwalker",				-- [16]
+				["Súcubo"]					= "Succubus",				-- [17]
+				["Guardia maldito"]			= "Doomguard",				-- [19] Spain Classic
+				["Guardia apocalíptico"]	= "Doomguard",				-- [19] Spain Retail / Mexico Classic
+				["Escórpido"]				= "Scorpid",				-- [20]
+				["Tortuga"]					= "Turtle",					-- [21]
+				["Diablillo"]				= "Imp",					-- [23]
+				["Murciélago"]				= "Bat",					-- [24]
+				["Hiena"]					= "Hyena",					-- [25]
+				["Búho"]					= "Owl",					-- [26] Classic 
+				["Ave rapaz"]				= "Bird of Prey",			-- [26] Retail
+				["Dragón alado"]			= "Wind Serpent",			-- [27] Spain 
+				["Serpiente alada"]			= "Wind Serpent",			-- [27] Mexico 
+				["Control remoto"]			= "Remote Control",			-- [28]
+				--["Guardia vil"]				= "Felguard",				-- [29]
+				--["Dracohalcón"]				= "Dragonhawk",				-- [30]
+				--["Devastador"]				= "Ravager",				-- [31]
+				--["Acechador deformado"]		= "Warp Stalker",			-- [32]
+				--["Esporiélago"]				= "Sporebat",				-- [33]
+				--["Raya"]					= "Ray",					-- [34] Spain
+				--["Mantarraya"]				= "Ray",					-- [34] Mexico
+				--["Serpiente"]				= "Serpent",				-- [35]
+				--["Palomilla"]				= "Moth",					-- [37]
+				--["Quimera"]					= "Chimaera",				-- [38]
+				--["Demosaurio"]				= "Devilsaur",				-- [39]
+				--["Necrófago"]				= "Ghoul",					-- [40]
+				--["Silítido"]				= "Silithid",				-- [41]
+				--["Gusano"]					= "Worm",					-- [42]
+				--["Uñagrieta"]				= "Clefthoof",				-- [43]
+				--["Avispa"]					= "Wasp",					-- [44]
+				--["Can del Núcleo"]			= "Core Hound",				-- [45]
+				--["Bestia espíritu"]			= "Spirit Beast",			-- [46]
+				--["Elemental de agua"]		= "Water Elemental",		-- [49]
+				--["Zorro"]					= "Fox",					-- [50]
+				--["Mono"]					= "Monkey",					-- [51]
+				--["Perro"]					= "Dog",					-- [52]
+				--["Alfazaque"]				= "Beetle",					-- [53]
+				--["Araña de esquisto"]		= "Shale Spider",			-- [55]
+				--["Zombi"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Hidra"]					= "Hydra",					-- [68]
+				--["Diablillo vil"]			= "Fel Imp",				-- [100]
+				--["Señor del Vacío"]			= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Observador"]				= "Observer",				-- [103]
+				--["Guardia de cólera"]		= "Wrathguard",				-- [104]
+				--["Infernal"]				= "Infernal",				-- [108]
+				--["Elemental de fuego"]		= "Fire Elemental",			-- [116]
+				--["Elemental de tierra"]		= "Earth Elemental",		-- [117]
+				--["Grulla"]					= "Crane",					-- [125]
+				--["Zancudo acuático"]		= "Water Strider",			-- [126]
+				--["Roedor"]					= "Rodent",					-- [127]
+				--["Quilen"]					= "Quilen",					-- [128]
+				--["Cabra"]					= "Goat",					-- [129]
+				--["Basilisco"]				= "Basilisk",				-- [130]
+				--["Cuernoatroz"]				= "Direhorn",				-- [138]
+				--["Elem. de tormenta"]		= "Storm Elemental",		-- [145] Spain
+				--["Elemental tormenta"]		= "Storm Elemental",		-- [145] Mexico 
+				--["Guarda terrorífico"]		= "Terrorguard",			-- [147]
+				--["Abisal"]					= "Abyssal",				-- [148]
+				--["Bestia fluvial"]			= "Riverbeast",				-- [150] Spain 
+				--["Bestia del río"]			= "Riverbeast",				-- [150] Mexico
+				--["Venado"]					= "Stag",					-- [151]
+				--["Máquina"]					= "Mechanical",				-- [154] Spain 
+				--["Mecánico"]				= "Mechanical",				-- [154] Mexico
+				--["Abominación"]				= "Abomination",			-- [155]
+				--["Pielescama"]				= "Scalehide",				-- [156]
+				--["Buey"]					= "Oxen",					-- [157]
+				--["Cuellipluma"]				= "Feathermane",			-- [160] Spain 
+				--["Crinpluma"]				= "Feathermane",			-- [160] Mexico
+				--["Lagarto"]					= "Lizard",					-- [288]
+				--["Pterrordáctilo"]			= "Pterrordax",				-- [290]
+				--["Sapo"]					= "Toad",					-- [291]
+				--["Crolusco"]				= "Krolusk",				-- [292] Spain 
+				--["Krolusko"]				= "Krolusk",				-- [292] Maxico
+				--["Bestia de sangre"]		= "Blood Beast",			-- [296]
+			},
+			ptPT				= {
+				["Lobo"]					= "Wolf",					-- [1]
+				["Gato"]					= "Cat",					-- [2]
+				["Aranha"]					= "Spider",					-- [3]
+				["Urso"]					= "Bear",					-- [4]
+				["Javali"]					= "Boar",					-- [5]
+				["Crocolisco"]				= "Crocolisk",				-- [6]
+				["Ave Carniceira"]			= "Carrion Bird",			-- [7]
+				["Caranguejo"]				= "Crab",					-- [8]
+				["Gorila"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Moa"]						= "Tallstrider",			-- [12]
+				["Caçador Vil"]				= "Felhunter",				-- [15]
+				["Emissário do Caos"]		= "Voidwalker",				-- [16]
+				["Súcubo"]					= "Succubus",				-- [17]
+				["Demonarca"]				= "Doomguard",				-- [19]
+				["Escorpídeo"]				= "Scorpid",				-- [20]
+				["Tartaruga"]				= "Turtle",					-- [21]
+				["Diabrete"]				= "Imp",					-- [23]
+				["Morcego"]					= "Bat",					-- [24]
+				["Hiena"]					= "Hyena",					-- [25]
+				["Coruja"]					= "Owl",					-- [26] Classic 
+				["Ave de Rapina"]			= "Bird of Prey",			-- [26] Retail
+				["Serpente Alada"]			= "Wind Serpent",			-- [27]
+				["Controle Remoto"]			= "Remote Control",			-- [28]
+				--["Guarda Vil"]				= "Felguard",				-- [29]
+				--["Falcodrago"]				= "Dragonhawk",				-- [30]
+				--["Assolador"]				= "Ravager",				-- [31]
+				--["Espreitador Dimens."]		= "Warp Stalker",			-- [32]
+				--["Quirósporo"]				= "Sporebat",				-- [33]
+				--["Arraia"]					= "Ray",					-- [34]
+				--["Serpente"]				= "Serpent",				-- [35]
+				--["Mariposa"]				= "Moth",					-- [37]
+				--["Quimera"]					= "Chimaera",				-- [38]
+				--["Demossauro"]				= "Devilsaur",				-- [39]
+				--["Carniçal"]				= "Ghoul",					-- [40]
+				--["Silitídeo"]				= "Silithid",				-- [41]
+				--["Verme"]					= "Worm",					-- [42]
+				--["Fenoceronte"]				= "Clefthoof",				-- [43]
+				--["Vespa"]					= "Wasp",					-- [44]
+				--["Cão-magma"]				= "Core Hound",				-- [45]
+				--["Fera Espiritual"]			= "Spirit Beast",			-- [46]
+				--["Elemental da Água"]		= "Water Elemental",		-- [49]
+				--["Raposa"]					= "Fox",					-- [50]
+				--["Macaco"]					= "Monkey",					-- [51]
+				--["Cachorro"]				= "Dog",					-- [52]
+				--["Besouro"]					= "Beetle",					-- [53]
+				--["Aranha Xistosa"]			= "Shale Spider",			-- [55]
+				--["Zumbi"]					= "Zombie",					-- [56]
+				--["Beetle <zzOLD>"]			= "<< QA TEST FAMILY >>",	-- [57]
+				--["Hidra"]					= "Hydra",					-- [68]
+				--["Diabrete Vil"]			= "Fel Imp",				-- [100]
+				--["Senhor do Caos"]			= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Observador"]				= "Observer",				-- [103]
+				--["Guardião Colérico"]		= "Wrathguard",				-- [104]
+				--["Infernal"]				= "Infernal",				-- [108]
+				--["Elemental do Fogo"]		= "Fire Elemental",			-- [116]
+				--["Elemental da Terra"]		= "Earth Elemental",		-- [117]
+				--["Garça"]					= "Crane",					-- [125]
+				--["Caminhante das Águas"]	= "Water Strider",			-- [126]
+				--["Roedor"]					= "Rodent",					-- [127]
+				--["Quílen"]					= "Quilen",					-- [128]
+				--["Bode"]					= "Goat",					-- [129]
+				--["Basilisco"]				= "Basilisk",				-- [130]
+				--["Escornante"]				= "Direhorn",				-- [138]
+				--["Elemental Tempestade"]	= "Storm Elemental",		-- [145]
+				--["Deimoguarda"]				= "Terrorguard",			-- [147]
+				--["Abissal"]					= "Abyssal",				-- [148]
+				--["Fera-do-rio"]				= "Riverbeast",				-- [150]
+				--["Cervo"]					= "Stag",					-- [151]
+				--["Mecânico"]				= "Mechanical",				-- [154]
+				--["Abominação"]				= "Abomination",			-- [155]
+				--["Courescama"]				= "Scalehide",				-- [156]
+				--["Boi"]						= "Oxen",					-- [157]
+				--["Aquifélix"]				= "Feathermane",			-- [160]
+				--["Lagarto"]					= "Lizard",					-- [288]
+				--["Pterrordax"]				= "Pterrordax",				-- [290]
+				--["Sapo"]					= "Toad",					-- [291]
+				--["Crolusco"]				= "Krolusk",				-- [292]
+				--["Fera Sangrenta"]			= "Blood Beast",			-- [296]
+			},			
+			itIT				= {
+				["Lupo"]					= "Wolf",					-- [1]
+				["Felino"]					= "Cat",					-- [2]
+				["Ragno"]					= "Spider",					-- [3]
+				["Orso"]					= "Bear",					-- [4]
+				["Cinghiale"]				= "Boar",					-- [5]
+				["Crocolisco"]				= "Crocolisk",				-- [6]
+				["Mangiacarogne"]			= "Carrion Bird",			-- [7]
+				["Granchio"]				= "Crab",					-- [8]
+				["Gorilla"]					= "Gorilla",				-- [9]
+				["Raptor"]					= "Raptor",					-- [11]
+				["Zampalunga"]				= "Tallstrider",			-- [12]
+				["Vilsegugio"]				= "Felhunter",				-- [15]
+				["Ombra del Vuoto"]			= "Voidwalker",				-- [16]
+				["Succube"]					= "Succubus",				-- [17]
+				["Demone Guardiano"]		= "Doomguard",				-- [19]
+				["Scorpide"]				= "Scorpid",				-- [20]
+				["Tartaruga"]				= "Turtle",					-- [21]
+				["Imp"]						= "Imp",					-- [23]
+				["Pipistrello"]				= "Bat",					-- [24]
+				["Iena"]					= "Hyena",					-- [25]
+				["Rapace"]					= "Bird of Prey",			-- [26]
+				["Serpente Volante"]		= "Wind Serpent",			-- [27]
+				["Controllo a Distanza"]	= "Remote Control",			-- [28]
+				--["Vilguardia"]				= "Felguard",				-- [29]
+				--["Dragofalco"]				= "Dragonhawk",				-- [30]
+				--["Devastatore"]				= "Ravager",				-- [31]
+				--["Segugio Distorcente"]		= "Warp Stalker",			-- [32]
+				--["Sporofago"]				= "Sporebat",				-- [33]
+				--["Pastinaca"]				= "Ray",					-- [34]
+				--["Serpente"]				= "Serpent",				-- [35]
+				--["Falena"]					= "Moth",					-- [37]
+				--["Chimera"]					= "Chimaera",				-- [38]
+				--["Gigantosauro"]			= "Devilsaur",				-- [39]
+				--["Ghoul"]					= "Ghoul",					-- [40]
+				--["Silitide"]				= "Silithid",				-- [41]
+				--["Verme"]					= "Worm",					-- [42]
+				--["Mammuceronte"]			= "Clefthoof",				-- [43]
+				--["Vespa"]					= "Wasp",					-- [44]
+				--["Segugio del Nucleo"]		= "Core Hound",				-- [45]
+				--["Bestia Eterea"]			= "Spirit Beast",			-- [46]
+				--["Elementale d'Acqua"]		= "Water Elemental",		-- [49]
+				--["Volpe"]					= "Fox",					-- [50]
+				--["Scimmia"]					= "Monkey",					-- [51]
+				--["Cane"]					= "Dog",					-- [52]
+				--["Scarabeo"]				= "Beetle",					-- [53]
+				--["Ragno Roccioso"]			= "Shale Spider",			-- [55]
+				--["Zombi"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["Idra"]					= "Hydra",					-- [68]
+				--["Vilimp"]					= "Fel Imp",				-- [100]
+				--["Signore del Vuoto"]		= "Voidlord",				-- [101]
+				--["Shivarra"]				= "Shivarra",				-- [102]
+				--["Osservatore"]				= "Observer",				-- [103]
+				--["Guardia dell'Ira"]		= "Wrathguard",				-- [104]
+				--["Infernale"]				= "Infernal",				-- [108]
+				--["Elementale del Fuoco"]	= "Fire Elemental",			-- [116]
+				--["Elementale di Terra"]		= "Earth Elemental",		-- [117]
+				--["Gru"]						= "Crane",					-- [125]
+				--["Gerride"]					= "Water Strider",			-- [126]
+				--["Roditore"]				= "Rodent",					-- [127]
+				--["Quilen"]					= "Quilen",					-- [128]
+				--["Caprone"]					= "Goat",					-- [129]
+				--["Basilisco"]				= "Basilisk",				-- [130]
+				--["Cornofurente"]			= "Direhorn",				-- [138]
+				--["Elementale Tempesta"]		= "Storm Elemental",		-- [145]
+				--["Guardia Maligna"]			= "Terrorguard",			-- [147]
+				--["Abission"]				= "Abyssal",				-- [148]
+				--["Bestia dei Fiumi"]		= "Riverbeast",				-- [150]
+				--["Cervo"]					= "Stag",					-- [151]
+				--["Unità Meccanica"]			= "Mechanical",				-- [154]
+				--["Abominio"]				= "Abomination",			-- [155]
+				--["Scagliamanto"]			= "Scalehide",				-- [156]
+				--["Yak"]						= "Oxen",					-- [157]
+				--["Piumanto"]				= "Feathermane",			-- [160]
+				--["Lucertola"]				= "Lizard",					-- [288]
+				--["Pterrordattilo"]			= "Pterrordax",				-- [290]
+				--["Rospo"]					= "Toad",					-- [291]
+				--["Krolusk"]					= "Krolusk",				-- [292]
+				--["Bestia di Sangue"]		= "Blood Beast",			-- [296]
+			},
+			koKR				= {
+				["늑대"]						= "Wolf",					-- [1] 
+				["살쾡이"]						= "Cat",					-- [2] 
+				["거미"]						= "Spider",					-- [3] 
+				["곰"]						= "Bear",					-- [4] 
+				["멧돼지"]						= "Boar",					-- [5] 
+				["악어"]						= "Crocolisk",				-- [6] 
+				["독수리"]						= "Carrion Bird",			-- [7] 
+				["게"]						= "Crab",					-- [8] 
+				["고릴라"]						= "Gorilla",				-- [9] 
+				["랩터"]						= "Raptor",					-- [11] 
+				["타조"]						= "Tallstrider",			-- [12] 
+				["지옥사냥개"]					= "Felhunter",				-- [15] 
+				["보이드워커"]					= "Voidwalker",				-- [16] Classic
+				["공허방랑자"]					= "Voidwalker",				-- [16] Retail
+				["서큐버스"]					= "Succubus",				-- [17] 
+				["파멸의수호병"]					= "Doomguard",				-- [19] Classic 
+				["파멸수호병"]					= "Doomguard",				-- [19] Retail 
+				["전갈"]						= "Scorpid",				-- [20] 
+				["거북"]						= "Turtle",					-- [21] 
+				["임프"]						= "Imp",					-- [23] 
+				["박쥐"]						= "Bat",					-- [24] 
+				["하이에나"]					= "Hyena",					-- [25] 
+				["올빼미"]						= "Owl",					-- [26] Classic 
+				["맹금"]						= "Bird of Prey",			-- [26] Retail
+				["천둥매"]						= "Wind Serpent",			-- [27] 
+				["무선조종 장난감"]				= "Remote Control",			-- [28]
+				--["지옥수호병"]					= "Felguard",				-- [29]
+				--["용매"]						= "Dragonhawk",				-- [30]
+				--["칼날발톱"]					= "Ravager",				-- [31]
+				--["차원의 추적자"]				= "Warp Stalker",			-- [32]
+				--["포자박쥐"]					= "Sporebat",				-- [33]
+				--["가오리"]						= "Ray",					-- [34]
+				--["뱀"]						= "Serpent",				-- [35]
+				--["나방"]						= "Moth",					-- [37]
+				--["키메라"]						= "Chimaera",				-- [38]
+				--["데빌사우루스"]					= "Devilsaur",				-- [39]
+				--["구울"]						= "Ghoul",					-- [40]
+				--["실리시드"]					= "Silithid",				-- [41]
+				--["벌레"]						= "Worm",					-- [42]
+				--["갈래발굽"]					= "Clefthoof",				-- [43]
+				--["말벌"]						= "Wasp",					-- [44]
+				--["심장부 사냥개"]				= "Core Hound",				-- [45]
+				--["야수 정령"]					= "Spirit Beast",			-- [46]
+				--["물의 정령"]					= "Water Elemental",		-- [49]
+				--["여우"]						= "Fox",					-- [50]
+				--["원숭이"]						= "Monkey",					-- [51]
+				--["개"]						= "Dog",					-- [52]
+				--["딱정벌레"]					= "Beetle",					-- [53]
+				--["혈암거미"]					= "Shale Spider",			-- [55]
+				--["좀비"]						= "Zombie",					-- [56]
+				--["<< QA 테스트용 >>"]			= "<< QA TEST FAMILY >>",	-- [57]
+				--["히드라"]						= "Hydra",					-- [68]
+				--["지옥 임프"]					= "Fel Imp",				-- [100]
+				--["공허군주"]					= "Voidlord",				-- [101]
+				--["쉬바라"]						= "Shivarra",				-- [102]
+				--["감시자"]						= "Observer",				-- [103]
+				--["격노수호병"]					= "Wrathguard",				-- [104]
+				--["지옥불정령"]					= "Infernal",				-- [108]
+				--["불의 정령"]					= "Fire Elemental",			-- [116]
+				--["대지의 정령"]					= "Earth Elemental",		-- [117]
+				--["학"]						= "Crane",					-- [125]
+				--["소금쟁이"]					= "Water Strider",			-- [126]
+				--["설치류"]						= "Rodent",					-- [127]
+				--["기렌"]						= "Quilen",					-- [128]
+				--["염소"]						= "Goat",					-- [129]
+				--["바실리스크"]					= "Basilisk",				-- [130]
+				--["공포뿔"]						= "Direhorn",				-- [138]
+				--["폭풍의 정령"]					= "Storm Elemental",		-- [145]
+				--["공포수호병"]					= "Terrorguard",			-- [147]
+				--["심연불정령"]					= "Abyssal",				-- [148]
+				--["강물하마"]					= "Riverbeast",				-- [150]
+				--["순록"]						= "Stag",					-- [151]
+				--["기계"]						= "Mechanical",				-- [154]
+				--["누더기골렘"]					= "Abomination",			-- [155]
+				--["비늘가죽"]					= "Scalehide",				-- [156]
+				--["소"]						= "Oxen",					-- [157]
+				--["뾰족갈기"]					= "Feathermane",			-- [160]
+				--["도마뱀"]						= "Lizard",					-- [288]
+				--["테러닥스"]					= "Pterrordax",				-- [290]
+				--["두꺼비"]						= "Toad",					-- [291]
+				--["크롤러스크"]					= "Krolusk",				-- [292]
+				--["피의 괴물"]					= "Blood Beast",			-- [296]
+			},
+			zhCN				= {
+				["狼"]						= "Wolf",					-- [1] 
+				["豹"]						= "Cat",					-- [2] 
+				["蜘蛛"]					= "Spider",					-- [3] 
+				["熊"]						= "Bear",					-- [4] 
+				["野猪"]					= "Boar",					-- [5] 
+				["鳄鱼"]					= "Crocolisk",				-- [6] 
+				["食腐鸟"]					= "Carrion Bird",			-- [7] 
+				["螃蟹"]					= "Crab",					-- [8] 
+				["猩猩"]					= "Gorilla",				-- [9] 
+				["迅猛龙"]					= "Raptor",					-- [11] 
+				["陆行鸟"]					= "Tallstrider",			-- [12] 
+				["地狱猎犬"]					= "Felhunter",				-- [15] 
+				["虚空行者"]					= "Voidwalker",				-- [16] 
+				["魅魔"]					= "Succubus",				-- [17]  
+				["末日守卫"]					= "Doomguard",				-- [19] 
+				["蝎子"]					= "Scorpid",				-- [20] 
+				["海龟"]					= "Turtle",					-- [21] 
+				["小鬼"]					= "Imp",					-- [23] 
+				["蝙蝠"]					= "Bat",					-- [24] 
+				["土狼"]					= "Hyena",					-- [25] 
+				["猫头鹰"]					= "Owl",					-- [26] Classic 
+				["猛禽"]					= "Bird of Prey",			-- [26] Retail
+				["风蛇"]					= "Wind Serpent",			-- [27] 
+				["远程控制"]					= "Remote Control",			-- [28] 
+				--["恶魔卫士"]					= "Felguard",				-- [29]
+				--["龙鹰"]					= "Dragonhawk",				-- [30]
+				--["掠食者"]					= "Ravager",				-- [31]
+				--["迁跃捕猎者"]				= "Warp Stalker",			-- [32]
+				--["孢子蝠"]					= "Sporebat",				-- [33]
+				--["鳐鱼"]					= "Ray",					-- [34]
+				--["蛇"]						= "Serpent",				-- [35]
+				--["蛾子"]					= "Moth",					-- [37]
+				--["奇美拉"]					= "Chimaera",				-- [38]
+				--["魔暴龙"]					= "Devilsaur",				-- [39]
+				--["食尸鬼"]					= "Ghoul",					-- [40]
+				--["异种虫"]					= "Silithid",				-- [41]
+				--["蠕虫"]					= "Worm",					-- [42]
+				--["裂蹄牛"]					= "Clefthoof",				-- [43]
+				--["巨蜂"]					= "Wasp",					-- [44]
+				--["熔岩犬"]					= "Core Hound",				-- [45]
+				--["灵魂兽"]					= "Spirit Beast",			-- [46]
+				--["水元素"]					= "Water Elemental",		-- [49]
+				--["狐狸"]					= "Fox",					-- [50]
+				--["猴子"]					= "Monkey",					-- [51]
+				--["狗"]						= "Dog",					-- [52]
+				--["甲虫"]					= "Beetle",					-- [53]
+				--["页岩蛛"]					= "Shale Spider",			-- [55]
+				--["僵尸"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["九头蛇"]					= "Hydra",					-- [68]
+				--["邪能小鬼"]					= "Fel Imp",				-- [100]
+				--["空灵领主"]					= "Voidlord",				-- [101]
+				--["破坏魔"]					= "Shivarra",				-- [102]
+				--["眼魔"]					= "Observer",				-- [103]
+				--["愤怒卫士"]					= "Wrathguard",				-- [104]
+				--["地狱火"]					= "Infernal",				-- [108]
+				--["火元素"]					= "Fire Elemental",			-- [116]
+				--["土元素"]					= "Earth Elemental",		-- [117]
+				--["鹤"]						= "Crane",					-- [125]
+				--["水黾"]					= "Water Strider",			-- [126]
+				--["啮齿动物"]					= "Rodent",					-- [127]
+				--["魁麟"]					= "Quilen",					-- [128]
+				--["山羊"]					= "Goat",					-- [129]
+				--["石化蜥蜴"]					= "Basilisk",				-- [130]
+				--["恐角龙"]					= "Direhorn",				-- [138]
+				--["风暴元素"]					= "Storm Elemental",		-- [145]
+				--["恐惧卫士"]					= "Terrorguard",			-- [147]
+				--["深渊魔"]					= "Abyssal",				-- [148]
+				--["淡水兽"]					= "Riverbeast",				-- [150]
+				--["雄鹿"]					= "Stag",					-- [151]
+				--["机械"]					= "Mechanical",				-- [154]
+				--["憎恶"]					= "Abomination",			-- [155]
+				--["鳞甲类"]					= "Scalehide",				-- [156]
+				--["牛"]						= "Oxen",					-- [157]
+				--["羽鬃兽"]					= "Feathermane",			-- [160]
+				--["蜥蜴"]					= "Lizard",					-- [288]
+				--["翼手龙"]					= "Pterrordax",				-- [290]
+				--["蟾蜍"]					= "Toad",					-- [291]
+				--["三叶虫"]					= "Krolusk",				-- [292]
+				--["血兽"]					= "Blood Beast",			-- [296]
+			},
+			zhTW				= {
+				["狼"]						= "Wolf",					-- [1] 
+				["豹"]						= "Cat",					-- [2] Classic
+				["大貓"]					= "Cat",					-- [2] Retail
+				["蜘蛛"]					= "Spider",					-- [3] 
+				["熊"]						= "Bear",					-- [4] 
+				["野豬"]					= "Boar",					-- [5] 
+				["鱷魚"]					= "Crocolisk",				-- [6] 
+				["食腐鳥"]					= "Carrion Bird",			-- [7] 
+				["螃蟹"]					= "Crab",					-- [8] 
+				["猩猩"]					= "Gorilla",				-- [9] 
+				["迅猛龍"]					= "Raptor",					-- [11] 
+				["陸行鳥"]					= "Tallstrider",			-- [12] 
+				["地獄獵犬"]					= "Felhunter",				-- [15] Classic 
+				["惡魔獵犬"]					= "Felhunter",				-- [15] Retail 
+				["虛空行者"]					= "Voidwalker",				-- [16] Classic 
+				["虛無行者"]					= "Voidwalker",				-- [16] Retail 
+				["魅魔"]					= "Succubus",				-- [17] 
+				["末日守衛"]					= "Doomguard",				-- [19] 
+				["蠍子"]					= "Scorpid",				-- [20] 
+				["海龜"]					= "Turtle",					-- [21]
+				["小鬼"]					= "Imp",					-- [23] 
+				["蝙蝠"]					= "Bat",					-- [24] 
+				["土狼"]					= "Hyena",					-- [25]
+				["貓頭鷹"]					= "Owl",					-- [26] Classic  
+				["猛禽"]					= "Bird of Prey",			-- [26] Retail
+				["風蛇"]					= "Wind Serpent",			-- [27] 
+				["遙控"]					= "Remote Control",			-- [28] 
+				--["惡魔守衛"]					= "Felguard",				-- [29]
+				--["龍鷹"]					= "Dragonhawk",				-- [30]
+				--["劫毀者"]					= "Ravager",				-- [31]
+				--["扭曲巡者"]					= "Warp Stalker",			-- [32]
+				--["孢子蝙蝠"]					= "Sporebat",				-- [33]
+				--["魟魚"]					= "Ray",					-- [34]
+				--["毒蛇"]					= "Serpent",				-- [35]
+				--["蛾"]						= "Moth",					-- [37]
+				--["奇美拉"]					= "Chimaera",				-- [38]
+				--["魔暴龍"]					= "Devilsaur",				-- [39]
+				--["食屍鬼"]					= "Ghoul",					-- [40]
+				--["異種蟲族"]					= "Silithid",				-- [41]
+				--["蟲"]						= "Worm",					-- [42]
+				--["裂蹄"]					= "Clefthoof",				-- [43]
+				--["黃蜂"]					= "Wasp",					-- [44]
+				--["熔核犬"]					= "Core Hound",				-- [45]
+				--["靈獸"]					= "Spirit Beast",			-- [46]
+				--["水元素"]					= "Water Elemental",		-- [49]
+				--["狐狸"]					= "Fox",					-- [50]
+				--["猴子"]					= "Monkey",					-- [51]
+				--["狗"]						= "Dog",					-- [52]
+				--["甲蟲"]					= "Beetle",					-- [53]
+				--["岩蛛"]					= "Shale Spider",			-- [55]
+				--["殭屍"]					= "Zombie",					-- [56]
+				--["<< QA TEST FAMILY >>"]	= "<< QA TEST FAMILY >>",	-- [57]
+				--["多頭蛇"]					= "Hydra",					-- [68]
+				--["魔化小鬼"]					= "Fel Imp",				-- [100]
+				--["虛無領主"]					= "Voidlord",				-- [101]
+				--["希瓦拉"]					= "Shivarra",				-- [102]
+				--["觀察者"]					= "Observer",				-- [103]
+				--["憤怒守衛"]					= "Wrathguard",				-- [104]
+				--["煉獄火"]					= "Infernal",				-- [108]
+				--["火元素"]					= "Fire Elemental",			-- [116]
+				--["土元素"]					= "Earth Elemental",		-- [117]
+				--["鶴"]						= "Crane",					-- [125]
+				--["水黽"]					= "Water Strider",			-- [126]
+				--["齧齒類"]					= "Rodent",					-- [127]
+				--["麒麟獸"]					= "Quilen",					-- [128]
+				--["山羊"]					= "Goat",					-- [129]
+				--["蜥蜴"]					= "Basilisk",				-- [130]
+				--["恐角龍"]					= "Direhorn",				-- [138]
+				--["風暴元素"]					= "Storm Elemental",		-- [145]
+				--["恐懼護衛"]					= "Terrorguard",			-- [147]
+				--["冥淵火"]					= "Abyssal",				-- [148]
+				--["河獸"]					= "Riverbeast",				-- [150]
+				--["雄鹿"]					= "Stag",					-- [151]
+				--["機械"]					= "Mechanical",				-- [154]
+				--["憎惡體"]					= "Abomination",			-- [155]
+				--["鱗皮"]					= "Scalehide",				-- [156]
+				--["玄牛"]					= "Oxen",					-- [157]
+				--["羽鬃"]					= "Feathermane",			-- [160]
+				--["蜥蜴"]					= "Lizard",					-- [288]
+				--["翼手龍"]					= "Pterrordax",				-- [290]
+				--["青蛙"]					= "Toad",					-- [291]
+				--["葉殼蟲"]					= "Krolusk",				-- [292]
+				--["血獸"]					= "Blood Beast",			-- [296]
+			},
+		}, 
+		{
+			__index = function(t, v)
+				return t[GameLocale][v]
+			end,
+		}
+	),
 	IsDummy 					= {
 		-- City (SW, Orgri, ...)
 		[5652] 			= true, 
@@ -886,11 +1878,8 @@ local InfoClassCanBeTank 					= Info.ClassCanBeTank
 local InfoClassCanBeMelee 					= Info.ClassCanBeMelee
 local InfoAllCC 							= Info.AllCC
 
-local InfoIsUndead							= Info.IsUndead
-local InfoIsDemon							= Info.IsDemon
-local InfoIsHumanoid						= Info.IsHumanoid
-local InfoIsElemental						= Info.IsElemental
-local InfoIsTotem							= Info.IsTotem
+local InfoCreatureType 						= Info.CreatureType
+local InfoCreatureFamily					= Info.CreatureFamily
 local InfoIsDummy							= Info.IsDummy
 
 local InfoIsBoss 							= Info.IsBoss
@@ -902,6 +1891,11 @@ A.Unit = PseudoClass({
 	-- Use "UnitGUID" only on high required resource functions
 	-- Pass - no cache at all 
 	-- Wrap - is a cache 
+	Name 									= Cache:Pass(function(self)  
+		-- @return string 
+		local unitID 						= self.UnitID		
+		return UnitName(unitID) or str_none
+	end, "UnitID"),
 	Race 									= Cache:Pass(function(self)  
 		-- @return string 
 		local unitID 						= self.UnitID
@@ -953,9 +1947,53 @@ A.Unit = PseudoClass({
 		return UnitClassification(unitID) or str_empty
 	end, "UnitID"),
 	CreatureType							= Cache:Pass(function(self)  
-		-- @return string or empty string  
+		-- @return string or empty string     
+		-- Returns formated string to English, possible string returns:
+		-- "Beast"				-- [1]
+		-- "Dragonkin"			-- [2]
+		-- "Demon"				-- [3]
+		-- "Elemental"			-- [4]
+		-- "Giant"				-- [5]
+		-- "Undead"				-- [6]				
+		-- "Humanoid"			-- [7]
+		-- "Critter"			-- [8]
+		-- "Mechanical",		-- [9]
+		-- "Not specified"		-- [10]				
+		-- "Not specified"		-- [10]	(The default UI displays an empty string instead of "Not specified" for units with that creature type)
+		-- "Totem"				-- [11]
 		local unitID 						= self.UnitID
-		return UnitCreatureType(unitID) or str_empty
+		local unitCreatureType 				= UnitCreatureType(unitID)
+		return unitCreatureType and InfoCreatureType[unitCreatureType] or str_empty	
+	end, "UnitID"),
+	CreatureFamily							= Cache:Pass(function(self)  
+		-- @return string or empty string     
+		-- Returns formated string to English, possible string returns:
+		-- "Wolf"					-- [1]
+		-- "Cat"					-- [2]
+		-- "Spider"					-- [3]
+		-- "Bear"					-- [4]
+		-- "Boar"					-- [5]
+		-- "Crocolisk"				-- [6]
+		-- "Carrion Bird"			-- [7]
+		-- "Crab"					-- [8]
+		-- "Gorilla"				-- [9]
+		-- "Raptor"					-- [11]
+		-- "Tallstrider"			-- [12]
+		-- "Felhunter"				-- [15]
+		-- "Voidwalker"				-- [16]
+		-- "Succubus"				-- [17]
+		-- "Doomguard"				-- [19]
+		-- "Scorpid"				-- [20]
+		-- "Turtle"					-- [21]
+		-- "Imp"					-- [23]
+		-- "Bat"					-- [24]
+		-- "Hyena"					-- [25]
+		-- "Bird of Prey"			-- [26]
+		-- "Wind Serpent"			-- [27]
+		-- "Remote Control"			-- [28]		
+		local unitID 						= self.UnitID
+		local unitCreatureFamily			= UnitCreatureFamily(unitID)
+		return unitCreatureFamily and InfoCreatureFamily[unitCreatureFamily] or str_empty		
 	end, "UnitID"),
 	InfoGUID 								= Cache:Wrap(function(self, unitGUID)
 		-- @return 
@@ -1029,7 +2067,7 @@ A.Unit = PseudoClass({
 		-- Nill-able: isPlayer
 		local unitID 						= self.UnitID
 		return unitID and (UnitCanAttack("player", unitID) or UnitIsEnemy("player", unitID)) and (not isPlayer or UnitIsPlayer(unitID))
-	end, "UnitID"),
+	end, "UnitID"),	
 	IsHealer 								= Cache:Wrap(function(self, skipUnitIsUnit, class)  
 		-- @return boolean
 		-- Nill-able: skipUnitIsUnit, class
@@ -1046,6 +2084,11 @@ A.Unit = PseudoClass({
 			return done_hps > taken_dmg and done_hps > done_dmg  
 		end 
 	end, "UnitGUID"),
+	IsHealerClass							= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return InfoClassCanBeHealer[self(unitID):Class()]
+	end, "UnitID"),	
 	IsTank 									= Cache:Wrap(function(self, skipUnitIsUnit, class)    
 		-- @return boolean 
 		-- Nill-able: skipUnitIsUnit, class
@@ -1064,13 +2107,18 @@ A.Unit = PseudoClass({
 				if unitID_class == "PALADIN" then 
 					local _, offhand = UnitAttackSpeed(unitID)
 					-- Buff: Righteous Fury 
-					return offhand == nil and self(unitID):HasBuffs(25781) > 0 and A_GetUnitItem(unitID, ACTION_CONST_INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD, nil, true) -- byPassDistance
+					return offhand == nil and self(unitID):HasBuffs(25781) > 0 and A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD, nil, true) -- byPassDistance
 				elseif unitID_class == "DRUID" then 
 					return UnitPowerType(unitID) == 1
 				elseif unitID_class == "WARRIOR" then 
 					local _, offhand = UnitAttackSpeed(unitID)
 					-- Buff: Defensive Stance
-					return offhand == nil and self(unitID):HasBuffs(71) > 0 and A_GetUnitItem(unitID, ACTION_CONST_INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD) -- don't byPassDistance
+					return offhand == nil and self(unitID):HasBuffs(71) > 0 and A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD) -- don't byPassDistance
+				end
+			elseif not A.IsInPvP then 
+				local unitIDtarget = unitID .. "target"
+				if UnitIsUnit(unitID, unitIDtarget .. "target") and self(unitIDtarget):IsBoss() then 
+					return true 
 				end 
 			end 
 			
@@ -1080,6 +2128,11 @@ A.Unit = PseudoClass({
 			return taken_dmg > done_dmg and taken_dmg > done_hps
 		end 
 	end, "UnitGUID"),	
+	IsTankClass								= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return InfoClassCanBeTank[self(unitID):Class()]
+	end, "UnitID"),	
 	IsDamager								= Cache:Wrap(function(self, skipUnitIsUnit)    
 		-- @return boolean 
 		-- Nill-able: skipUnitIsUnit
@@ -1128,6 +2181,11 @@ A.Unit = PseudoClass({
 			end 
 		end 
 	end, "UnitGUID"),
+	IsMeleeClass							= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return InfoClassCanBeMelee[self(unitID):Class()]
+	end, "UnitID"),
 	IsDead 									= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
@@ -1143,6 +2201,11 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return not UnitIsPlayer(unitID) and UnitPlayerControlled(unitID)
 	end, "UnitID"),
+	IsPlayerOrPet							= Cache:Pass(function(self)  
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return UnitIsPlayer(unitID) or UnitPlayerControlled(unitID)
+	end, "UnitID"),	
 	IsNPC									= Cache:Pass(function(self) 
 		-- @return boolean
 		local unitID 						= self.UnitID
@@ -1475,41 +2538,38 @@ A.Unit = PseudoClass({
 		-- Nill-able: drDiminishing
 		local unitID 						= self.UnitID 
 		if not A.IsInPvP then 
-			return not self(unitID):IsBoss() and InfoControlAbleClassification[self(unitID):Classification()] and (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
+			return not self(unitID):IsBoss() and InfoControlAbleClassification[self(unitID):Classification()] and (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 0)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
 		else 
-			return (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 25)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
+			return (not drCat or self(unitID):GetDR(drCat) > (drDiminishing or 0)) and (drCat ~= "fear" or self(unitID):HasDeBuffs(AuraList.FearImunDeBuffs) == 0)
 		end 
 	end, "UnitID"),
+	-- CreatureType: Bool extenstion
 	IsUndead								= Cache:Pass(function(self)
 		-- @return boolean 
 		local unitID 						= self.UnitID 
-		local unitType 						= UnitCreatureType(unitID) or str_empty
-		return InfoIsUndead[unitType]	       	
+		return self(unitID):CreatureType() == "Undead"  	       	
 	end, "UnitID"),
 	IsDemon									= Cache:Pass(function(self)
 		-- @return boolean 
 		local unitID 						= self.UnitID 
-		local unitType 						= UnitCreatureType(unitID) or str_empty
-		return InfoIsDemon[unitType]	       	
+		return self(unitID):CreatureType() == "Demon"       	
 	end, "UnitID"),
 	IsHumanoid								= Cache:Pass(function(self)
 		-- @return boolean 
 		local unitID 						= self.UnitID 
-		local unitType 						= UnitCreatureType(unitID) or str_empty
-		return self(unitID):IsPlayer() or InfoIsHumanoid[unitType]	       	
+		return self(unitID):CreatureType() == "Humanoid"        	
 	end, "UnitID"),
 	IsElemental								= Cache:Pass(function(self)
 		-- @return boolean 
 		local unitID 						= self.UnitID 
-		local unitType 						= UnitCreatureType(unitID) or str_empty
-		return InfoIsElemental[unitType]	       	
+		return self(unitID):CreatureType() == "Elemental" 	       	
 	end, "UnitID"),
 	IsTotem 								= Cache:Pass(function(self)
 		-- @return boolean 
 		local unitID 						= self.UnitID 
-		local unitType 						= UnitCreatureType(unitID) or str_empty
-		return InfoIsTotem[unitType]	       	
+		return self(unitID):CreatureType() == "Totem" 	        	
 	end, "UnitID"),
+	-- CreatureType: End
 	IsDummy									= Cache:Pass(function(self)	
 		-- @return boolean 
 		local unitID 						= self.UnitID
@@ -1524,7 +2584,7 @@ A.Unit = PseudoClass({
 			if InfoIsBoss[npc_id] or LibBossIDs[npc_id] or self(unitID):GetLevel() == -1 then 
 				return true 
 			else 
-				for i = 1, ACTION_CONST_MAX_BOSS_FRAMES do 
+				for i = 1, CONST.MAX_BOSS_FRAMES do 
 					if UnitIsUnit(unitID, "boss" .. i) then 
 						return true 
 					end 
@@ -1574,6 +2634,13 @@ A.Unit = PseudoClass({
 			end
 		end       
 	end, "UnitID"),
+	IsPenalty								= Cache:Pass(function(self)  
+		-- @return boolean 
+		-- Note: Returns true if unit has penalty for healing or damage 
+		local unitID 						= self.UnitID
+		local unitLvL						= self(unitID):GetLevel()
+		return unitLvL > 0 and unitLvL < A.PlayerLevel - 10
+	end, "UnitID"),
 	GetLevel 								= Cache:Pass(function(self) 
 		-- @return number 
 		local unitID 						= self.UnitID
@@ -1590,6 +2657,19 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return select(2, self(unitID):GetCurrentSpeed())
 	end, "UnitGUID"),
+	GetTotalHealAbsorbs						= Cache:Pass(function(self) 
+		-- @return number 
+		-- Note: 
+		-- Returns the total amount of healing the unit can absorb without gaining health
+		-- Abilities like Necrotic Strike cause affected units to absorb healing without gaining health
+		local unitID 						= self.UnitID
+		return 0 -- TODO: Classic, currently is blank
+	end, "UnitID"),
+	GetTotalHealAbsorbsPercent				= Cache:Pass(function(self) 
+		-- @return number 
+		local unitID 						= self.UnitID
+		return self(unitID):GetTotalHealAbsorbs() * 100 / self(unitID):HealthMax()
+	end, "UnitID"),
 	-- Combat: Diminishing
 	GetDR 									= Cache:Pass(function(self, drCat) 
 		-- @return: DR_Tick (@number), DR_Remain (@number), DR_Application (@number), DR_ApplicationMax (@number)
@@ -1808,12 +2888,15 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		local min_range, max_range 			= LibRangeCheck:GetRange(unitID)
 		if not max_range then 
-			return 0, 0 
+			return huge, min_range or huge 
 		end 
 		
 		-- Limit range to 20 if unitID is nameplated and max range over normal behaivor 
-		if max_range > ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE and self(unitID):IsEnemy() and self(unitID):IsNameplate() then 
-			return ACTION_CONST_CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, min_range
+		if max_range > CONST.CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE and self(unitID):IsNameplateAny() then 
+			if min_range > CONST.CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE then 
+				min_range = CONST.CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE
+			end 
+			return CONST.CACHE_DEFAULT_NAMEPLATE_MAX_DISTANCE, min_range
 		end 			
 		
 	    return max_range, min_range 
@@ -1842,7 +2925,7 @@ A.Unit = PseudoClass({
 			
 			if InfoCacheInterrupt[GUID].LastCast ~= castName then 
 				InfoCacheInterrupt[GUID].LastCast 	= castName
-				InfoCacheInterrupt[GUID].Timer 		= math_random(minX or 7, maxX or 13)				 
+				InfoCacheInterrupt[GUID].Timer 		= math_random(minX or 34, maxX or 68)				 
 			end 
 			
 			local castPercent = ((TMW.time * 1000) - castStartTime) * 100 / (castEndTime - castStartTime)
@@ -1853,7 +2936,7 @@ A.Unit = PseudoClass({
 		-- @return boolean 
 		local unitID 						= self.UnitID
 		return UnitCanCooperate(unitID, otherunit)
-	end, "UnitID"),	
+	end, "UnitID"),		
 	HasSpec									= Cache:Pass(function(self, specID)	
 		-- @return boolean 
 		-- Only PLAYER!
@@ -1905,6 +2988,16 @@ A.Unit = PseudoClass({
 			return UnitHealth(unitID) * 100 / UnitHealthMax(unitID)
 		end 
 	    return UnitHealth(unitID)
+	end, "UnitID"),
+	HealthPercentLosePerSecond				= Cache:Pass(function(self)
+		-- @return number 
+		local unitID 						= self.UnitID
+		return math_max((self(unitID):GetDMG() * 100 / self(unitID):HealthMax()) - (self(unitID):GetHEAL() * 100 / self(unitID):HealthMax()), 0)
+	end, "UnitID"),
+	HealthPercentGainPerSecond				= Cache:Pass(function(self)
+		-- @return number 
+		local unitID 						= self.UnitID
+		return math_max((self(unitID):GetHEAL() * 100 / self(unitID):HealthMax()) - (self(unitID):GetDMG() * 100 / self(unitID):HealthMax()), 0)
 	end, "UnitID"),
 	Power									= Cache:Pass(function(self)
 		-- @return number 
@@ -2013,7 +3106,7 @@ A.Unit = PseudoClass({
 		local auras 						= 0 
 		
 		local Name
-		for i = 1, ACTION_CONST_AURAS_MAX_LIMIT do			
+		for i = 1, CONST.AURAS_MAX_LIMIT do			
 			Name = UnitDebuff(unitID, i)
 			
 			if Name then					
@@ -2023,7 +3116,7 @@ A.Unit = PseudoClass({
 			end 
 		end 
 		
-		return auras >= ACTION_CONST_AURAS_MAX_LIMIT, auras
+		return auras >= CONST.AURAS_MAX_LIMIT, auras
 	end, "UnitID"), 
 	--[[HasDeBuffs 								= Cache:Pass(function(self, spell, caster, byID)
 		-- @return number, number 
@@ -2424,7 +3517,7 @@ A.FriendlyTeam = PseudoClass({
 		if TeamCacheFriendly.Type then 
 			for i = 1, TeamCacheFriendly.MaxSize do 
 				member = TeamCacheFriendlyIndexToPLAYERs[i]
-				if member and CheckUnitByRole(ROLE, member) and A_Unit(member):InRange() and (not range or A_Unit(member):GetRange() <= range) then 
+				if member and CheckUnitByRole(ROLE, member) and not A_Unit(member):IsDead() and A_Unit(member):InRange() and (not range or A_Unit(member):GetRange() <= range) then 
 					return member
 				end 
 			end 
@@ -2795,6 +3888,51 @@ A.EnemyTeam = PseudoClass({
 		
 		return 0, str_none 
 	end, "ROLE"),
+	GetTTD 									= Cache:Pass(function(self, count, seconds, range)
+		-- @return boolean, counter, unitID 
+		-- Nill-able: range
+		local ROLE 							= self.ROLE		
+		local counter = 0
+		local arena, lastarena
+		
+		if TeamCacheEnemy.Type then
+			for i = 1, TeamCacheEnemy.MaxSize do
+				arena = TeamCacheEnemyIndexToPLAYERs[i]
+				if arena and CheckUnitByRole(ROLE, arena) and (not range or (A_Unit(arena):GetRange() > 0 and A_Unit(arena):GetRange() <= range)) and A_Unit(arena):TimeToDie() <= seconds then
+					counter = counter + 1     					
+					if counter >= count then 
+						return true, counter, arena
+					end
+					lastarena = arena        
+				end 
+			end  
+		end   	
+		
+		return false, counter, lastarena or str_none
+	end, "ROLE"),
+	AverageTTD 								= Cache:Pass(function(self, range)
+		-- @return number, number
+		-- Returns average time to die of valid players, count of valid players
+		-- Nill-able: range
+		local ROLE 							= self.ROLE
+		local value, members				= 0, 0
+		
+		if TeamCacheEnemy.Type then
+			for i = 1, TeamCacheEnemy.MaxSize do
+				arena = TeamCacheEnemyIndexToPLAYERs[i]
+				if arena and CheckUnitByRole(ROLE, arena) and (not range or (A_Unit(arena):GetRange() > 0 and A_Unit(arena):GetRange() <= range)) then
+					value = value + A_Unit(arena):TimeToDie()
+					arenas = arenas +  1     
+				end 
+			end  
+		end   	
+		
+		if arenas > 0 then 
+			value = value / arenas
+		end 
+		
+		return value, arenas
+	end, "ROLE"),
 	IsBreakAble 							= Cache:Wrap(function(self, range)
 		-- @return boolean, unitID 
 		-- Nill-able: range
@@ -2978,7 +4116,7 @@ A.EnemyTeam = PseudoClass({
 			arena = TeamCacheEnemyIndexToPLAYERs[i]
 			if arena then 
 				local _, castRemain, _, _, castName = A_Unit(arena):CastTime()
-				if castRemain > 0 and castRemain <= A_GetGCD() + (offset + 0.05) then 
+				if castRemain > 0 and castRemain <= A_GetGCD() + (offset or 0.05) then 
 					for _, spell in ipairs(AuraList.Premonition) do 
 						if A_GetSpellInfo(spell[1]) == castName and A_Unit(arena):GetRange() > 0 and A_Unit(arena):GetRange() <= spell[2] then 
 							return true, arena
@@ -3000,16 +4138,16 @@ end
 -------------------------------------------------------------------------------
 -- Events
 -------------------------------------------------------------------------------
-local IsEventIsDied = {
-	["UNIT_DIED"] 						= true,
-	["UNIT_DESTROYED"]					= true,
-	["UNIT_DISSIPATES"]					= true,
-	["PARTY_KILL"] 						= true,
-	["SPELL_INSTAKILL"] 				= true,
+local EventInfo 						= {
+	["UNIT_DIED"] 						= "RESET",
+	["UNIT_DESTROYED"]					= "RESET",
+	["UNIT_DISSIPATES"]					= "RESET",
+	["PARTY_KILL"] 						= "RESET",
+	["SPELL_INSTAKILL"] 				= "RESET",
 }
-Listener:Add("ACTION_EVENT_UNIT", "COMBAT_LOG_EVENT_UNFILTERED", 			function(...)
+Listener:Add("ACTION_EVENT_UNIT", "COMBAT_LOG_EVENT_UNFILTERED", 		function(...)
 	local _, EVENT, _, _, _, _, _, DestGUID = CombatLogGetCurrentEventInfo() 
-	if IsEventIsDied[EVENT] then 
+	if EventInfo[EVENT] == "RESET" then 
 		InfoCacheMoveIn[DestGUID] 		= nil 
 		InfoCacheMoveOut[DestGUID] 		= nil 
 		InfoCacheMoving[DestGUID]		= nil 

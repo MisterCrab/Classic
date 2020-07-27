@@ -9,22 +9,21 @@ If you plan to build profile without use lua then you can skip this guide
 -- №1: Create snippet 
 -------------------------------------------------------------------------------
 --[[
-Write in chat /tmw > LUA Snippets > Profile (left side) > "+" > Write name "ProfileUI" in title of the snippet
+Write in chat "/tmw options" > LUA Snippets > Profile (left side) > "+" > Write name "ProfileUI" in title of the snippet
 ]]
 
 -------------------------------------------------------------------------------
 -- №2: Set profile defaults 
 -------------------------------------------------------------------------------
--- Constances (wrriten in Constans.lua)
+-- Constances (written in Constans.lua)
 
--- Map
-local TMW = TMW 
-local CNDT = TMW.CNDT 
-local Env = CNDT.Env
-local A = Action
+-- Map locals to get faster performance
+local _G, setmetatable					= _G, setmetatable
+local TMW 								= _G.TMW 
+local A 								= _G.Action
 
 -- This indicates to use 'The Action's all components and make it initializated for current profile 
-A.Data.ProfileEnabled[TMW.db:GetCurrentProfile()] = true 
+A.Data.ProfileEnabled[A.CurrentProfile] = true 
 
 -------------------------------------------------------------------------------
 -- №3: Create UI on 'The Action' for current profile 
@@ -35,7 +34,7 @@ A.Data.ProfileUI is a table where you have to set UI elements with DB (DataBase)
 -- Structure:
 A.Data.ProfileUI = {	
 	DateTime = "v0 (00.00.0000)", 	-- 'v' is version (Day, Month, Year)
-	[tab.name] = {					-- supports [2] (class tab), [7] (MSG tab) in /action
+	[tab.name] = {					-- supports [2] (class tab), [7] (message tab) in /action
 		-- Configure if [tab.name] is [2] (class tab)			
 		LayoutOptions = {},		-- (optional) is table which can be used to configure layout position
 		{						-- {} brackets on this level will create one row 
@@ -44,7 +43,7 @@ A.Data.ProfileUI = {
 				key = value,	-- is itself element config 
 			},
 		},
-		-- Configure if [tab.name] is [7] (MSG tab)	
+		-- Configure if [tab.name] is [7] (message tab)	
 		["phrase"] = {			-- ["phrase"] - This is key which is string phase which will match a message written in /party chat. MUST BE IN LOWER CASE!
 			key = value,		-- is itself ["phrase"] config 
 		},
@@ -82,7 +81,7 @@ A.Data.ProfileUI = {
 		{
 			E = "Label",
 			L = {			
-				-- Fixed LANGUAGE is short game language, like ["enUS"] , more info https://wowwiki.fandom.com/wiki/API_GetLocale . ["enUS"] key must be existed ALWAYS!! because if user hasn't localization it will use ["enUS"] key 
+				-- Fixed LANGUAGE is short game language, like ["enUS"] , more info https://wowwiki.fandom.com/wiki/API_GetLocale . ["enUS"] key must be existed ALWAYS otherwise use ["ANY"] key!! because if user hasn't localization it will use ["enUS"] key 
 				[LANGUAGE1] = '@string', 
 				[LANGUAGE2] = '@string',
 				-- OR Forced LANGUAGE, ANY is valid for any game language (usefully with GetSpellInfo)
@@ -175,8 +174,8 @@ A.Data.ProfileUI = {
 			isDisabled = true or nil,					
 			H = '@number',			-- height of element (default 20)
 			OT = {					-- option table of menu
-				{ text = '@string', value = 1 },	-- value must be @number if you use key MULT as true, otherwise it supports @string @number @boolean
-				{ text = '@string', value = 2 },	
+				{ text = '@string' or '@table', value = 1 },	-- value must be @number if you use key MULT as true, otherwise it supports @string @number @boolean
+				{ text = '@string' or '@table', value = 2 },	-- text can be @table which is equal to structure text = { enUS = "english", ruRU = "russian" } or @string which is equal to text = { ANY = "your text" } or text = "your text"
 			},
 			MULT = true or nil,		-- makes dropdown as multiselector
 			isNotEqualVal = value, 	-- only if MULT is false or omitted, custom value of Dropdown which shouldn't be recorded into Cache, otherwise it's ~= "Off", ~= "OFF" and ~= 0
@@ -218,7 +217,7 @@ A.Data.ProfileUI = {
 	},
 }
 
--- MSG Structure:
+-- Message Structure:
 A.Data.ProfileUI = {	
 	[7] = {
 		["phrase"] = {					-- ["phrase"] - This is key which is string phase which will match a message written in /party chat. MUST BE IN LOWER CASE!
@@ -281,9 +280,21 @@ A.Data.ProfileUI = {
 				E = "Dropdown", 														
 				H = 20,
 				OT = {
-					{ text = "Leap", value = 1 },
-					{ text = "Blink", value = 2 },
-					{ text = "Portal", value = 3 }
+					{ 
+						text = {
+							enUS = "Leap",
+							ruRU = "Прыжок",
+						}, 
+						value = 1,
+					},
+					{ 
+						text = {
+							enUS = "Blink",
+							ruRU = "Скачок",
+						},
+						value = 2,
+					},
+					{ text = "Portal", value = 3 }, -- text can be like just string also which is equal to text = { ANY = "Portal" }
 				},
 				MULT = true,
 				--isNotEqualVal = *any*, -- only if MULT is false or omited 
@@ -421,19 +432,82 @@ A.Data.ProfileUI = {
 	[7] = {
 		["shield"] = { Enabled = true, Key = "POWS", LUAVER = 1, LUA = [[
 			-- thisunit is a special thing which will be replaced by string of unitID. Example: some one said phrase "shield party1" then thisunit will be replaced by "party1" and for this MSG will be used meta [7] which is Party1 Rotation which is A[7]()
-			-- Confused? huh yeah but that's how it works, to make it easier you can simply set "target" right into this code as example if you want only "target", then SpellInRange("target", Action[Action.PlayerClass].POWS.ID) 
 			-- More info in Action.lua 
-			-- You have to keep in mind what once written in DataBase this code can't be changed if you made changes in ProfileUI, you have to use 'Reset Settings' and other people too if you failed here with code, so take attention on it. That's probably one lack of 'The Action' 
-			return 	Action[PlayerClass].POWS:IsInRange(thisunit) and 											
-					Action[PlayerClass].POWS:AbsentImun(thisunit) and 
-					Action.LossOfControl:IsMissed("SILENCE") and 
-					Action.LossOfControl:Get("SCHOOL_INTERRUPT", "HOLY") == 0
+			-- You have to keep in mind what once written in DataBase this code can't be changed if you made changes in ProfileUI, you have to use 'Reset Settings' and other people too if you failed here with code, so take attention on it. 
+			-- If you want to change LUA written code by next release profile you should increase LUAVER by +1, so if you change LUA then add +1 to LUAVER, this way will cause to reset old LUA and replace it by new one for same phrase
+			local ClassActions = Action[PlayerClass]
+			return 	ClassActions.POWS:IsReadyM(thisunit) and 											
+					ClassActions.POWS:AbsentImun(thisunit) and 
+					LossOfControl:IsMissed("SILENCE") and 					-- LossOfControl written like this (not like Action.LossOfControl which is same) because each LUA code has setfenv to Action and then _G if not found in Action
+					LossOfControl:Get("SCHOOL_INTERRUPT", "HOLY") == 0
 		]] },
 	},
 }
 
+-- Alternative method of write 
+A.Data.ProfileUI 									= {
+	DateTime = "v1.2a (01.01.2850)",
+	[2] 											= { LayoutOptions = { gutter = 3, padding = { left = 3, right = 3 } } }, 
+	[7] = {
+		["shield"] = { Enabled = true, Key = "POWS", LUAVER = 1, LUA = [[
+			-- thisunit is a special thing which will be replaced by string of unitID. Example: some one said phrase "shield party1" then thisunit will be replaced by "party1" and for this MSG will be used meta [7] which is Party1 Rotation which is A[7]()
+			-- More info in Action.lua 
+			-- You have to keep in mind what once written in DataBase this code can't be changed if you made changes in ProfileUI, you have to use 'Reset Settings' and other people too if you failed here with code, so take attention on it. 
+			-- If you want to change LUA written code by next release profile you should increase LUAVER by +1, so if you change LUA then add +1 to LUAVER, this way will cause to reset old LUA and replace it by new one for same phrase
+			local ClassActions = Action[PlayerClass]
+			return 	ClassActions.POWS:IsReadyM(thisunit) and 											
+					ClassActions.POWS:AbsentImun(thisunit) and 
+					LossOfControl:IsMissed("SILENCE") and 					-- LossOfControl written like this (not like Action.LossOfControl which is same) because each LUA code has setfenv to Action and then _G if not found in Action
+					LossOfControl:Get("SCHOOL_INTERRUPT", "HOLY") == 0
+		]] },
+	},
+}
+
+local ProfileUI = A.Data.ProfileUI[2]
+ProfileUI[#ProfileUI + 1] = {
+	{	
+		E = "Header",
+		L = { 
+			enUS = "HEADER", 
+			ruRU = "ЗАГОЛОВОК", 
+		}, 
+		S = 14,
+	},
+}				
+ProfileUI[#ProfileUI + 1] = {							
+	{
+		E = "Checkbox", 
+		DB = "Feint",
+		DBV = true,
+		L = { 
+			enUS = "Use Feint", 
+			ruRU = "Использовать Фейнт", 
+		}, 
+		TT = { 
+			enUS = "Enable to use", 
+			ruRU = "Включает для использования", 
+		}, 
+		M = {},
+	},
+	{
+		E = "Checkbox", 
+		DB = "Shiv",
+		DBV = false,
+		L = { 
+			enUS = "Enable Shiv", 
+			ruRU = "Разблокировать шивку", 
+		}, 
+		TT = { 
+			enUS = "Enable to use", 
+			ruRU = "Включает для использования", 
+		}, 
+		M = {},
+	},
+}
+-- ... and etc 
+
 -- Misc: About ProfileDB (example)
--- A.Data.ProfileUI will create this A.Data.ProfileDB, you can set A.Data.ProfileDB like this instead point DB and DBV actually, but if both up then A.Data.ProfileUI will overwrite A.Data.ProfileDB
+-- A.Data.ProfileUI will create A.Data.ProfileDB, you can set A.Data.ProfileDB like this instead point DB and DBV actually in the ProfileUI, but if both up then A.Data.ProfileUI will overwrite A.Data.ProfileDB
 -- So don't take attention on it unless you need it for some purposes like visual comfort
 A.Data.ProfileDB = {
 	[2] = {	
@@ -454,35 +528,83 @@ A.Data.ProfileDB = {
 }
 
 -------------------------------------------------------------------------------
--- №4: Use remain space for shared code between all specializations in profile 
+-- №4: Use remain space for shared code between all specializations in profile (optional)
 -------------------------------------------------------------------------------
--- I prefer use here configuration for "Shown Cast Bars" because it's shared 
--- Example:
-function A.Main_CastBars(unit, list)
-	-- Is [1] -> [3] meta icons in "Shown CastBars", green (Heals) / red (PvP)
-	if not A.IsInitialized or A.IamHealer or not A.IsInPvP then 
-		return false 
-	end 
-	
-	if A[A.PlayerClass] and A[A.PlayerClass].SpearHandStrike and A[A.PlayerClass].SpearHandStrike:IsReadyP(unit, nil, true) and A[A.PlayerClass].SpearHandStrike:AbsentImun(unit, {"KickImun", "TotalImun", "DamagePhysImun"}, true) and A.InterruptIsValid(unit, list) then 
-		return true 		
-	end 
-end 
+local GetToggle				 = A.GetToggle
+local InterruptIsValid		 = A.InterruptIsValid
+local Unit 					 = A.Unit
+local select 				 = select 
 
-function A.Second_CastBars(unit)
-	-- Is [1] -> [3] meta icons in "Shown CastBars", yellow
-	if not A.IsInitialized or not A.IsInPvP then 
-		return false 
-	end 
-	
-	local Toggle = A.GetToggle(2, "ParalysisPvP")	
-	if Toggle and Toggle ~= "OFF" and A[A.PlayerClass] and A[A.PlayerClass].Paralysis and A[A.PlayerClass].Paralysis:IsReadyP(unit, nil, true) and A[A.PlayerClass].Paralysis:AbsentImun(unit, {"CCTotalImun", "TotalImun", "DamagePhysImun"}, true) and A.Unit(unit):IsControlAble("incapacitate", 0) then 
-		if Toggle == "BOTH" then 
-			return select(2, A.InterruptIsValid(unit, "Heal", true)) or select(2, A.InterruptIsValid(unit, "PvP", true)) 
-		else
-			return select(2, A.InterruptIsValid(unit, Toggle, true)) 		
+local GrappleWeaponPvPunits	 = setmetatable({}, { __index = function(t, v)
+	t[v] = GetToggle(2, "GrappleWeaponPvPunits")
+	return t[v]
+end})
+local ImunBuffsCC	 		 = {"CCTotalImun", "DamagePhysImun", "TotalImun"}
+local ImunBuffsInterrupt	 = {"KickImun", "TotalImun", "DamagePhysImun"}
+
+function A.GrappleWeaponIsReady(unitID, skipShouldStop, isMsg)
+	if A.IsInPvP then 
+		local isArena = unitID:match("arena")
+		if 	(
+				(unitID == "arena1" and GrappleWeaponPvPunits[A.PlayerSpec][1]) or 
+				(unitID == "arena2" and GrappleWeaponPvPunits[A.PlayerSpec][2]) or
+				(unitID == "arena3" and GrappleWeaponPvPunits[A.PlayerSpec][3]) or
+				(not isArena and GrappleWeaponPvPunits[A.PlayerSpec][4]) 
+			) 
+		then 
+			if (not isArena and Unit(unitID):IsEnemy() and Unit(unitID):IsPlayer()) or (isArena and not Unit(unitID):InLOS() and (A.Zone == "arena" or A.Zone == "pvp")) then 
+				local GrappleWeapon = A[A.PlayerSpec].GrappleWeapon
+				if  GrappleWeapon and 
+					(
+						(
+							not isMsg and GetToggle(2, "GrappleWeaponPvP") ~= "OFF" and ((not isArena and GrappleWeapon:IsReady(unitID, nil, nil, skipShouldStop)) or (isArena and GrappleWeapon:IsReadyByPassCastGCD(unitID))) and 								
+							Unit(unitID):IsMelee() and (GetToggle(2, "GrappleWeaponPvP") == "ON COOLDOWN" or Unit(unitID):HasBuffs("DamageBuffs") > 8)
+						) or 
+						(
+							isMsg and GrappleWeapon:IsReadyM(unitID)
+						)
+					) and 
+					GrappleWeapon:AbsentImun(unitID, ImunBuffsCC, true) and 
+					Unit(unitID):IsControlAble("disarm") and 
+					Unit(unitID):InCC() == 0 and 
+					Unit(unitID):HasDeBuffs("Disarmed") == 0
+				then 
+					return true 
+				end 
+			end 
 		end 
 	end 
 end 
--- Now add these functions in "Shown Cast Bars" group in /tmw by right click on each icon > Conditions > "+" > LUA > YOUR FUNCTION
--- return Action.Second_CastBars(thisobj.Unit) --or return Action.Second_CastBars("arena1")
+
+function A:CanInterruptPassive(unitID, countGCD)
+	if A.IsInPvP and (A.Zone == "arena" or A.Zone == "pvp") then 		
+		if self.isSpearHandStrike then 
+			-- MW hasn't SpearHandStrike action 
+			local useKick, _, _, notInterruptable = InterruptIsValid(unitID, "Heal", nil, countGCD)
+			if not useKick then 
+				useKick, _, _, notInterruptable = InterruptIsValid(unitID, "PvP", nil, countGCD)
+			end 
+			if useKick and not notInterruptable and self:IsReadyByPassCastGCD(unitID) and self:AbsentImun(unitID, ImunBuffsInterrupt, true) then 
+				return true 
+			end 
+		end 
+		
+		if self.isParalysis then 
+			local ParalysisPvP = GetToggle(2, "ParalysisPvP")
+			if ParalysisPvP and ParalysisPvP ~= "OFF" and self:IsReadyByPassCastGCD(unitID) then 
+				local _, useCC, castRemainsTime 
+				if Toggle == "BOTH" then 
+					useCC, _, _, castRemainsTime = select(2, InterruptIsValid(unitID, "Heal", nil, countGCD))
+					if not useCC then 
+						useCC, _, _, castRemainsTime = select(2, InterruptIsValid(unitID, "PvP", nil, countGCD))
+					end 
+				else 
+					useCC, _, _, castRemainsTime = select(2, InterruptIsValid(unitID, Toggle, nil, countGCD))
+				end 
+				if useCC and castRemainsTime >= GetLatency() and Unit(unitID):IsControlAble("incapacitate") and not Unit(unitID):InLOS() and self:AbsentImun(unitID, ImunBuffsCC, true) then 
+					return true 
+				end 
+			end 
+		end 					
+	end 
+end 

@@ -1,19 +1,18 @@
 -- https://github.com/herotc/hero-lib/blob/HeroLib/Events/PMultiplier.lua
-local TMW 							= TMW
-local A 							= Action 
+local _G, error, table, pairs, type = 
+	  _G, error, table, pairs, type
+	
+local TMW 							= _G.TMW
+local A 							= _G.Action 
 local Listener						= A.Listener
 local Player 						= A.Player
 local Unit							= A.Unit 
-
-local error, table, pairs, type 	= 
-	  error, table, pairs, type
 	  
-local tremove						= table.remove	  
-
-local UnitGUID, GetSpellInfo 		= 
-	  UnitGUID, GetSpellInfo
-	
-local CombatLogGetCurrentEventInfo 	= CombatLogGetCurrentEventInfo	
+local tremove						= table.remove	 
+local isClassic						= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC
+local CombatLogGetCurrentEventInfo 	= _G.CombatLogGetCurrentEventInfo
+local 	 UnitGUID, 	  GetSpellInfo 	= 
+	  _G.UnitGUID, _G.GetSpellInfo
 	
 local ListenedSpells 				= {}
 local ListenedAuras 				= {}
@@ -182,7 +181,7 @@ A.PMultiplier("target", 1822)
 -------------------------------------------------------------------------------
 -- Register  
 -------------------------------------------------------------------------------	
-if A.PlayerClass == "DRUID" then 
+if not isClassic and A.PlayerClass == "DRUID" then 
 	Listener:Add("ACTION_EVENT_PMULTIPLIER", "PLAYER_SPECIALIZATION_CHANGED", PMultiplierLaunch)
 	PMultiplierLaunch()
 	A.RegisterPMultiplier( -- Rake dot and action
@@ -200,3 +199,4 @@ if A.PlayerClass == "DRUID" then
 		{145152, 1.2}, {52610, 1.15}, {5217, 1.15}
 	)
 end 
+

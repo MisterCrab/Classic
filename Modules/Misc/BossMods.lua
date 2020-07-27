@@ -1,9 +1,10 @@
-local _G, pairs, type, table, string, error, hooksecurefunc 	= 
-	  _G, pairs, type, table, string, error, hooksecurefunc
+local _G, pairs, type, table, string, error = 
+	  _G, pairs, type, table, string, error 
 	  
 local format						= string.format	 
 local tremove						= table.remove 	  
 local tinsert						= table.insert 	  
+local hooksecurefunc				= _G.hooksecurefunc
 	  
 local TMW 							= _G.TMW 
 local A	 							= _G.Action
@@ -292,23 +293,4 @@ function A.BossMods:IsEngage(name)
 			end 
 		end 
 	end 
-end 
-
--------------------------------------------------------------------------------
--- API: BossMods Retired 
--------------------------------------------------------------------------------
-function A.DBM_PullTimer()
-	return A.BossMods:GetPullTimer()
-end 
-
-function A.DBM_GetTimer(name)    
-	return A.BossMods:GetTimer(name)
-end 
-
-function A.DBM_IsEngage()
-	return A.BossMods:IsEngage()
-end 
-
-function A.BossMods_Pulling()
-	return A.BossMods:GetPullTimer()
 end 

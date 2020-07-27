@@ -1,7 +1,9 @@
-local TMW 										= TMW
-local Env 										= TMW.CNDT.Env
+local _G, type, pairs, next, math, tonumber, select = 
+	  _G, type, pairs, next, math, tonumber, select
 
-local A 										= Action
+local TMW 										= _G.TMW
+local A 										= _G.Action
+local CONST 									= A.Const
 local Listener									= A.Listener
 local isEnemy									= A.Bit.isEnemy
 local isPlayer									= A.Bit.isPlayer
@@ -25,7 +27,7 @@ local skipedFirstEnter 							= false
 local A_GetSpellInfo, A_Player, A_Unit, A_CombatTracker, A_GetCurrentGCD, A_GetGCD, ActiveNameplates
 
 Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "ADDON_LOADED", function(addonName)
-	if addonName == ACTION_CONST_ADDON_NAME then 
+	if addonName == CONST.ADDON_NAME then 
 		A_GetSpellInfo							= A.GetSpellInfo
 		A_Player								= A.Player
 		A_Unit									= A.Unit
@@ -43,9 +45,6 @@ end)
 local GetToggle									= A.GetToggle
 local DRData 									= LibStub("DRList-1.0")
 --
-
-local _G, type, pairs, next, math, tonumber, select = 
-	  _G, type, pairs, next, math, tonumber, select
 	  
 local huge 										= math.huge 
 local abs 										= math.abs 
@@ -53,11 +52,11 @@ local math_max									= math.max
 local wipe 										= _G.wipe
 local strsub									= _G.strsub
 
-local UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitDebuff = 
-	  UnitIsUnit, UnitGUID, UnitHealth, UnitHealthMax, UnitAffectingCombat, UnitDebuff	  
+local 	 UnitIsUnit, 	UnitGUID, 	 UnitHealth, 	UnitHealthMax, 	  UnitAffectingCombat, 	  UnitDebuff = 
+	  _G.UnitIsUnit, _G.UnitGUID, _G.UnitHealth, _G.UnitHealthMax, _G.UnitAffectingCombat, _G.UnitDebuff	  
 	  
-local InCombatLockdown, CombatLogGetCurrentEventInfo = 
-	  InCombatLockdown, CombatLogGetCurrentEventInfo 
+local 	 InCombatLockdown, 	  CombatLogGetCurrentEventInfo = 
+	  _G.InCombatLockdown, _G.CombatLogGetCurrentEventInfo 
 
 local GetSpellTexture							= TMW.GetSpellTexture
 local GetSpellInfo								= _G.GetSpellInfo
@@ -847,53 +846,62 @@ CombatTracker.logDied							= function(...)
 	end 
 end	
 
---[[ This Logs the DR (Diminishing) ]]
+--[[ This Logs the DR (Diminishing Returns) for enemy unit PvE dr or player ]]
 CombatTracker.logDR								= function(timestamp, EVENT, DestGUID, destFlags, spellName)
 	if isEnemy(destFlags) then 
 		local drCat = DRData:GetCategoryBySpellID(spellName) -- this works for spellName
-		if drCat and (DRData:IsPVE(drCat) or isPlayer(destFlags)) then
-			if not CombatTrackerData[DestGUID].DR then 
-				CombatTrackerData[DestGUID].DR = {}
+		if drCat and (DRData:IsPvECategory(drCat) or isPlayer(destFlags)) then
+			local CombatTrackerDataGUID = CombatTrackerData[DestGUID]
+			if not CombatTrackerDataGUID.DR then 
+				CombatTrackerDataGUID.DR = {}
 			end 
 			
-			local dr = CombatTrackerData[DestGUID].DR[drCat]				
-			if EVENT == "SPELL_AURA_APPLIED" then 
-				-- If something is applied, and the timer is expired,
-				-- reset the timer in preparation for the effect falling off
+			-- All addons included DR library sample have wrong code to perform CLEU 
+			-- The main their fail is what DR should be starts AS SOON AS AURA IS APPLIED (not after expire)
+			-- They do their approach because "SPELL_AURA_REFRESH" can catch "fake" refreshes caused by spells that break after a certain amount of damage
+			-- But we will avoid such situation by "SPELL_AURA_BROKEN" and "SPELL_AURA_BROKEN_SPELL" through skip next "SPELL_AURA_REFRESH" which can be fired within the next 1.3 seconds 
+			local dr = CombatTrackerDataGUID.DR[drCat]
+			
+			-- DR skips next "fake" event "SPELL_AURA_REFRESH" if aura broken by damage 
+			if EVENT == "SPELL_AURA_BROKEN" or EVENT == "SPELL_AURA_BROKEN_SPELL" then 
+				if dr then 
+					dr.brokenTime 					= timestamp + 1.3 -- Adds 1.3 seconds, so if in the next 1.3 seconds fired "SPELL_AURA_REFRESH" that will be skipped. 0.3 is recommended latency
+				end 
+				return 
+			end 
+			
+			-- DR always starts by "SPELL_AURA_APPLIED" or if its already applied then by "SPELL_AURA_REFRESH"
+			if EVENT == "SPELL_AURA_APPLIED" or (EVENT == "SPELL_AURA_REFRESH" and timestamp > (dr and dr.brokenTime or 0)) then 
+				-- Remove DR if its expired 
+				if dr and dr.reset < timestamp then						
+					dr.diminished 					= 100
+					dr.application 					= 0
+					dr.reset 						= 0
+					dr.brokenTime					= 0
+				end		
 				
-				-- Here is has a small bug due specific of release through SPELL_AURA_REFRESH event 
-				-- As soon as unit receive applied debuff aura (DR) e.g. this event SPELL_AURA_APPLIED he WILL NOT be diminished until next events such as SPELL_AURA_REFRESH or SPELL_AURA_REMOVED will be triggered
-				-- Why this released like that by DRData Lib - I don't know and this probably can be tweaked however I don't have time to pay attention on it 
-				-- What's why I added in 1.1 thing named 'Application' so feel free to use it to solve this bug
-				if dr and dr.diminished ~= 100 and dr.reset < timestamp then						
-					dr.diminished = 100
-					dr.application = 0
-					dr.reset = 0
-					-- No reason to this:
-					--dr.applicationMax = DRData:GetApplicationMax(drCat) 
-				end			
-			else
+				-- Add DR
 				if not dr then
 					-- If there isn't already a table, make one
 					-- Start it at 1th application because the unit just got diminished
-					local diminishedNext, applicationNext, applicationMaxNext = DRData:NextDR(100, drCat)
-					if not CombatTrackerData[DestGUID].DR[drCat] then 
-						CombatTrackerData[DestGUID].DR[drCat] = {}
-					end 
-
-					CombatTrackerData[DestGUID].DR[drCat].diminished = diminishedNext
-					CombatTrackerData[DestGUID].DR[drCat].application = applicationNext
-					CombatTrackerData[DestGUID].DR[drCat].applicationMax = applicationMaxNext
-					CombatTrackerData[DestGUID].DR[drCat].reset = timestamp + DRData:GetResetTime(drCat)				
+					CombatTrackerDataGUID.DR[drCat] = {					
+						application 				= 1,
+						applicationMax 				= DRData:GetApplicationMax(drCat),
+						diminished 					= DRData:GetNextDR(1, drCat) * 100,
+						reset				 		= timestamp + DRData:GetResetTime(drCat),	
+						brokenTime					= 0,
+					}
 				else
 					-- Diminish the unit by one tick
-					-- Ticks go 100 -> 0						
+					-- Ticks go 100% -> 0%			
 					if dr.diminished and dr.diminished ~= 0 then
-						dr.diminished, dr.application, dr.applicationMax = DRData:NextDR(dr.diminished, drCat)
-						dr.reset = timestamp + DRData:GetResetTime(drCat)
+						dr.application 				= dr.application + 1												
+						dr.diminished 				= DRData:GetNextDR(dr.application, drCat) * 100
+						dr.reset 					= timestamp + DRData:GetResetTime(drCat)
+						dr.brokenTime				= 0
 					end
-				end				
-			end 
+				end	
+			end 		
 		end 
 	end 
 end 
@@ -924,7 +932,8 @@ CombatTracker.OnEventCLEU 						= {
 }
 
 CombatTracker.OnEventDR							= {
-	["SPELL_AURA_REMOVED"]					= CombatTracker.logDR,
+	["SPELL_AURA_BROKEN"]					= CombatTracker.logDR,
+	["SPELL_AURA_BROKEN_SPELL"]				= CombatTracker.logDR,
 	["SPELL_AURA_APPLIED"]					= CombatTracker.logDR,
 	["SPELL_AURA_REFRESH"]					= CombatTracker.logDR,
 }				
@@ -938,7 +947,7 @@ local CombatTrackerOnEventDR					= CombatTracker.OnEventDR
 local UnitTracker 								= {
 	Data 								= {},
 	isRegistered 						= {
-		[GetSpellInfo(ACTION_CONST_SPELLID_FREEZING_TRAP)] = true,
+		[GetSpellInfo(CONST.SPELLID_FREEZING_TRAP)] = true,
 	},
 	isBlink								= {
 		[GetSpellInfo(1953)] = true, 
@@ -1080,11 +1089,12 @@ local LossOfControl								= {
 		["FEAR"]								= 30, 
 	},
 	OnFrameSortData								= function(self)
+		local isFound
+		
 		if not A.IsInitialized or GetToggle(1, "LossOfControlPlayerFrame") or GetToggle(1, "LossOfControlRotationFrame") then 
 			-- in temp all found things and then sort them by duration, don't forget to create toggle in [1] + probably dropdown to select which types track !!!!!!!!
 			local enabledTypes = not A.IsInitialized or GetToggle(1, "LossOfControlTypes")
-			
-			local isFound 
+						
 			for i = 1, #self.FrameOrder do 
 				for j = 1, #self.FrameOrder[i] do 
 					local locName = self.FrameOrder[i][j]					
@@ -1110,11 +1120,11 @@ local LossOfControl								= {
 				if isFound then 
 					self.FrameData.Order = i
 					break 
-				else 
-					self.FrameData.Order = 0 
 				end 
-			end 
-		else 
+			end 						
+		end 
+
+		if not isFound then 
 			self.FrameData.Order 		= 0 
 			self.FrameData.Result 		= 0
 			self.FrameData.TextureID 	= 0
@@ -1673,7 +1683,7 @@ local LossOfControl								= {
 				-- Recheck if persistent another loss of control and update expirationTime, otherwise 0 if nothing
 				local maxExpiration, relativeTextureID = 0, 0					
 				for k, v in pairs(self.Data[locType].Applied) do 
-					if maxExpiration == 0 or (next(v) and v.Result > maxExpiration) then 
+					if next(v) and v.Result > maxExpiration then  -- if maxExpiration == 0 or (next(v) and v.Result > maxExpiration) then 
 						maxExpiration 		= v.Result 	   or 0
 						relativeTextureID 	= v.TextureID  or 0
 					end 
@@ -1720,12 +1730,15 @@ local LossOfControl								= {
 LossOfControl.OnEvent 							= {
 	-- Add 
 	SPELL_AURA_APPLIED 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
-	SPELL_AURA_APPLIED_DOSE 					= function(aura) LossOfControl:Enumerate("Add", aura) end, 
+	--SPELL_AURA_APPLIED_DOSE 					= function(aura) LossOfControl:Enumerate("Add", aura) end, 
 	SPELL_AURA_REFRESH 							= function(aura) LossOfControl:Enumerate("Add", aura) end,
 	SPELL_INTERRUPT								= function(timestamp, spellName, lockSchool) LossOfControl:OnEventInterrupt(timestamp, spellName, lockSchool) end,
 	-- Remove 
 	SPELL_AURA_REMOVED							= function(aura) LossOfControl:Enumerate("Remove", aura) end, 
-	--SPELL_AURA_REMOVED_DOSE 					= function(aura) LossOfControl:Enumerate("Remove", aura) end, -- FIX ME: Do we need this?
+	--SPELL_AURA_REMOVED_DOSE 					= function(aura) LossOfControl:Enumerate("Remove", aura) end,
+	SPELL_AURA_BROKEN							= function(aura) LossOfControl:Enumerate("Remove", aura) end,  -- TODO: Testing persistent auras, should fix stucking issue
+	SPELL_AURA_BROKEN_SPELL						= function(aura) LossOfControl:Enumerate("Remove", aura) end,  -- TODO: Testing persistent auras, should fix stucking issue
+	SPELL_DISPEL								= function(aura) LossOfControl:Enumerate("Remove", aura) end,  -- TODO: Testing persistent auras, should fix stucking issue
 }
 
 LossOfControl.OnEventReset						= {
@@ -1762,7 +1775,7 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 	end 
 	
 	-- Diminishing (DR-Tracker)
-	if CombatTrackerOnEventDR[EVENT] and auraType == "DEBUFF" then 
+	if CombatTrackerOnEventDR[EVENT] and (auraType == "DEBUFF" or a18 == "DEBUFF") then 
 		CombatTrackerOnEventDR[EVENT](timestamp, EVENT, DestGUID, destFlags, spellName)
 	end 
 	
@@ -2212,35 +2225,28 @@ A.CombatTracker									= {
 	end,
 	--[[ Get DR: Diminishing (only enemy) ]]
 	GetDR 										= function(self, unitID, drCat)
-		-- @return Tick (number: 100% -> 0%), Remain (number: 0 -> 18), Application (number: 0 -> 5), ApplicationMax (number: 0 -> 5)
-		--[[ drCat accepts:
-			"incapacitate"
-			"silence"
-			"stun"							-- PvE unlocked  
-			"root"
-			"disarm"						-- Added in original DRList	
-			"random_stun"
-			"random_root"					-- May be removed in the future!
-			"fear"
-			"mind_control"
-			"frost_shock"
-			"kidney_shot"	
-		]]
-		local GUID 								= GetGUID(unitID)
-
+		-- @return Tick (number: 100% -> 0%), Remain (number: 0 -> 18), Application (number: 0 -> 5), ApplicationMax (number: 5 <-> 0)
 		-- Default 100% means no DR at all, and 0 if no ticks then no remaning time, Application is how much DR was applied and how much by that category can be applied totally 
-		local DR_Tick, DR_Remain, DR_Application, DR_ApplicationMax = 100, 0, 0, DRData:GetApplicationMax(drCat)  	
 		-- About Tick:
 		-- Ticks go like 100 -> 50 -> 25 -> 0 or for Taunt 100 -> 65 -> 42 -> 27 -> 0
 		-- 100 no DR, 0 full DR 
-		if CombatTrackerData[GUID] and CombatTrackerData[GUID].DR and CombatTrackerData[GUID].DR[drCat] and CombatTrackerData[GUID].DR[drCat].reset and CombatTrackerData[GUID].DR[drCat].reset >= TMW.time then 
-			DR_Tick 			= CombatTrackerData[GUID].DR[drCat].diminished
-			DR_Remain 			= CombatTrackerData[GUID].DR[drCat].reset - TMW.time
-			DR_Application 		= CombatTrackerData[GUID].DR[drCat].application
-			DR_ApplicationMax 	= CombatTrackerData[GUID].DR[drCat].applicationMax
+		--[[ drCat accepts:
+			"root"           
+			"stun"      -- PvE unlocked     
+			"disorient"      
+			"disarm" 	-- added in DRList		   
+			"silence"        
+			"taunt"     -- PvE unlocked      
+			"incapacitate"   
+			"knockback" 
+		]]
+		local GUID 								= GetGUID(unitID)		
+		local DR 								= CombatTrackerData[GUID] and CombatTrackerData[GUID].DR and CombatTrackerData[GUID].DR[drCat]
+		if DR and DR.reset and DR.reset >= TMW.time then 
+			return DR.diminished, DR.reset - TMW.time, DR.application, DR.applicationMax
 		end 
 		
-		return DR_Tick, DR_Remain, DR_Application, DR_ApplicationMax	
+		return 100, 0, 0, 0	
 	end, 
 	--[[ Time To Die ]]
 	TimeToDieX									= function(self, unitID, X)
@@ -2614,7 +2620,7 @@ A.UnitCooldown 									= {
 }
  
 -- Tracks Freezing Trap 
-A.UnitCooldown:Register(ACTION_CONST_SPELLID_FREEZING_TRAP, 15)
+A.UnitCooldown:Register(CONST.SPELLID_FREEZING_TRAP, 15)
 
 -------------------------------------------------------------------------------
 -- API: LossOfControl
@@ -2739,6 +2745,3 @@ A.LossOfControl									= {
 		end 
 	end,
 }
-
--- setfenv will make working it way faster as lua condition for TMW frames 
-Env.LossOfControl = A.LossOfControl 

@@ -7,13 +7,15 @@
 -- Cost around zero in performance even on 0 update interval
 -------------------------------------------------------------------------------------
 
-local LibClassicCasterino 		= LibStub("LibClassicCasterino")
+local _G, next, pairs			= _G, next, pairs
+
+local LibClassicCasterino 		= _G.LibStub("LibClassicCasterino")
 local f 						= LibClassicCasterino.frame
 local callbacks 				= LibClassicCasterino.callbacks
 local casters 					= LibClassicCasterino.casters
 
-local TMW 						= TMW 
-local A							= Action
+local TMW 						= _G.TMW 
+local A							= _G.Action
 local Unit 						= A.Unit 
 local MultiUnits				= A.MultiUnits
 local NameplatesGUID 			= MultiUnits:GetActiveUnitPlatesGUID()
@@ -21,9 +23,8 @@ local TeamCache 				= A.TeamCache
 local FriendlyGUIDs				= TeamCache.Friendly.GUIDs
 local EnemyGUIDs				= TeamCache.Enemy.GUIDs
 
-local UnitGUID, UnitIsVisible	= UnitGUID, UnitIsVisible
-local GetUnitSpeed				= GetUnitSpeed
-local next, pairs				= next, pairs
+local UnitGUID, UnitIsVisible	= _G.UnitGUID, _G.UnitIsVisible
+local GetUnitSpeed				= _G.GetUnitSpeed
 
 local commonUnits 				= {
     "target",

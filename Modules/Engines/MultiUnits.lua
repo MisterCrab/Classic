@@ -1,25 +1,24 @@
-local TMW 											= TMW
+local _G, pairs, type, next, setmetatable, table, math =
+	  _G, pairs, type, next, setmetatable, table, math
 
-local A 											= Action
+local TMW 											= _G.TMW
+local A 											= _G.Action
+local CONST 										= A.Const
 local Listener										= A.Listener
 local isEnemy										= A.Bit.isEnemy
 local TeamCacheFriendly								= A.TeamCache.Friendly
 local TeamCacheFriendlyUNITs						= TeamCacheFriendly.UNITs
-
-local _G, pairs, type, next, setmetatable, table, math =
-	  _G, pairs, type, next, setmetatable, table, math
 	  
 local wipe											= _G.wipe
 local round											= _G.round
 local strsub										= _G.strsub	  
 local abs 											= math.abs	 
---local tinsert 									= table.insert	-- Short inline expressions can be faster than function calls. t[#t+1] = 0 is faster than table.insert(t, 0)   
 local tsort											= table.sort	  
 	  
-local CombatLogGetCurrentEventInfo					= CombatLogGetCurrentEventInfo		  
+local CombatLogGetCurrentEventInfo					= _G.CombatLogGetCurrentEventInfo		  
 	  
-local UnitIsUnit, UnitGUID, UnitCanAttack 			= 
-	  UnitIsUnit, UnitGUID, UnitCanAttack
+local 	 UnitIsUnit, 	UnitGUID, 	 UnitCanAttack 	= 
+	  _G.UnitIsUnit, _G.UnitGUID, _G.UnitCanAttack
 	  
 local player 										= "player"
 local function sortByHighest(x, y)
@@ -32,7 +31,7 @@ end
 local A_Unit, A_Player, A_CombatTracker, A_IsInRange
 
 Listener:Add("ACTION_EVENT_MULTI_UNITS", "ADDON_LOADED", function(addonName)
-	if addonName == ACTION_CONST_ADDON_NAME then 
+	if addonName == CONST.ADDON_NAME then 
 		A_Unit 							 			= A.Unit
 		A_Player									= A.Player
 		A_CombatTracker								= A.CombatTracker		
@@ -52,7 +51,6 @@ local MultiUnits 									= {
 	activeUnitPlatesGUID 							= {},
 	activeUnitCLEU 									= {},
 	tempEnemies										= {},
-	lastCallInitCLEU								= 0,
 	timeStampCLEU									= 0,
 	onEventWipeCLEU									= {
 		["UNIT_DIED"]								= true,
@@ -132,21 +130,17 @@ MultiUnits.OnEventCLEU								= function(...)
 end 
 
 MultiUnits.OnInitCLEU								= function()
-	if TMW.time ~= MultiUnits.lastCallInitCLEU then 
-		MultiUnits.lastCallInitCLEU = TMW.time
-
-		if A.IamRanger and not A.IamHealer then 
-			Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "COMBAT_LOG_EVENT_UNFILTERED", 	MultiUnits.OnEventCLEU		)
-			Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_ENABLED", 			MultiUnits.OnResetCLEU		)
-			Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_DISABLED", 			MultiUnits.OnRegenDisabled	)
-			return 
-		end          
-				
-		Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "COMBAT_LOG_EVENT_UNFILTERED")
-		Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_ENABLED")
-		Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_DISABLED")		 
-		MultiUnits.OnResetCLEU()
-	end 
+	if A.IamRanger and not A.IamHealer then 
+		Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "COMBAT_LOG_EVENT_UNFILTERED", 	MultiUnits.OnEventCLEU		)
+		Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_ENABLED", 			MultiUnits.OnResetCLEU		)
+		Listener:Add("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_DISABLED", 			MultiUnits.OnRegenDisabled	)
+		return 
+	end          
+			
+	Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "COMBAT_LOG_EVENT_UNFILTERED")
+	Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_ENABLED")
+	Listener:Remove("ACTION_EVENT_MULTI_UNITS_CLEU", "PLAYER_REGEN_DISABLED")		 
+	MultiUnits.OnResetCLEU()
 end 
 
 MultiUnits.OnResetCLEU								= function()
@@ -155,9 +149,11 @@ MultiUnits.OnResetCLEU								= function()
 end 
 
 -- Shared
-MultiUnits.OnResetAll								= function()
-	MultiUnits.OnResetNameplates()
-	MultiUnits.OnResetCLEU()
+MultiUnits.OnResetAll								= function(isInitialLogin)
+	if not isInitialLogin then 
+		MultiUnits.OnResetNameplates()
+		MultiUnits.OnResetCLEU()
+	end 
 end 
 
 MultiUnits.OnRegenDisabled							= function()
@@ -171,7 +167,6 @@ end
 -- OnEvent
 -------------------------------------------------------------------------------	  
 Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "PLAYER_ENTERING_WORLD",   			MultiUnits.OnResetAll) 
-Listener:Add("ACTION_EVENT_MULTI_UNITS_ALL", "UPDATE_INSTANCE_INFO", 	  			MultiUnits.OnResetAll) 
 Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_ADDED",	  	MultiUnits.AddNameplate)
 Listener:Add("ACTION_EVENT_MULTI_UNITS_NAMEPLATES", "NAME_PLATE_UNIT_REMOVED", 		MultiUnits.RemoveNameplate)
 TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", 					MultiUnits.OnInitCLEU) 
@@ -481,4 +476,4 @@ function A.MultiUnits.GetActiveEnemies(self, timer, skipClear)
 	
 	return total or 0
 end 
-A.MultiUnits.GetActiveEnemies = A.MakeFunctionCachedDynamic(A.MultiUnits.GetActiveEnemies, ACTION_CONST_CACHE_DEFAULT_TIMER_MULTIUNIT_CLEU)
+A.MultiUnits.GetActiveEnemies = A.MakeFunctionCachedDynamic(A.MultiUnits.GetActiveEnemies, CONST.CACHE_DEFAULT_TIMER_MULTIUNIT_CLEU)

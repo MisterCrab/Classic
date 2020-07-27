@@ -8,19 +8,20 @@ if not HealComm then
 	return 
 end 
 
-local TMW 						= TMW
-local A 						= Action 
-local TeamCache 				= A.TeamCache
-local TeamCacheFriendly			= TeamCache.Friendly
-local TeamCacheFriendlyUNITs	= TeamCacheFriendly.UNITs -- unitID to unitGUID
-
-local _G, pairs, math, bit		= _G, pairs, math, bit 
+local _G, pairs, math			= _G, pairs, math
+local bit						= _G.bit 
 local wipe						= _G.wipe
 local hooksecurefunc			= _G.hooksecurefunc
 
 local band 						= bit.band 
 local math_floor				= math.floor
 local math_min					= math.min 
+
+local TMW 						= _G.TMW
+local A 						= _G.Action 
+local TeamCache 				= A.TeamCache
+local TeamCacheFriendly			= TeamCache.Friendly
+local TeamCacheFriendlyUNITs	= TeamCacheFriendly.UNITs -- unitID to unitGUID
 
 local ALL_HEALS					= HealComm.ALL_HEALS
 local CHANNEL_HEALS				= HealComm.CHANNEL_HEALS
@@ -35,7 +36,7 @@ local pendingHeals 				= HealComm.pendingHeals
 local pendingHots 				= HealComm.pendingHots
 local pendingTable				= {pendingHeals, pendingHots}
 
-local UnitGUID					= UnitGUID
+local UnitGUID					= _G.UnitGUID
 
 local function GetGUID(unitID)
 	return (unitID and TeamCacheFriendlyUNITs[unitID]) or UnitGUID(unitID)

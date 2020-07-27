@@ -1,8 +1,12 @@
-local TMW 					= TMW
+local _G, type, next, pairs, ipairs, select, unpack, table, setmetatable, math, string, error 	= 	
+	  _G, type, next, pairs, ipairs, select, unpack, table, setmetatable, math, string, error
+	  
+local TMW 					= _G.TMW
 local CNDT 					= TMW.CNDT
 local Env 					= CNDT.Env
 
-local A   					= Action	
+local A   					= _G.Action	
+local CONST 				= A.Const
 local Listener				= A.Listener
 local toNum 				= A.toNum
 local UnitCooldown			= A.UnitCooldown
@@ -20,12 +24,14 @@ local BurstIsON				= A.BurstIsON
 -------------------------------------------------------------------------------
 -- Remap
 -------------------------------------------------------------------------------
-local A_GetPing, A_GetCurrentGCD, A_GetSpellInfo, A_GetSpellDescription
+local A_OnGCD, A_GetCurrentGCD, A_GetGCD, A_GetPing, A_GetSpellInfo, A_GetSpellDescription 
 
 Listener:Add("ACTION_EVENT_ACTIONS", "ADDON_LOADED", function(addonName) 
-	if addonName == ACTION_CONST_ADDON_NAME then  
-		A_GetPing 				= A.GetPing
+	if addonName == CONST.ADDON_NAME then  
+		A_OnGCD					= A.OnGCD
 		A_GetCurrentGCD			= A.GetCurrentGCD
+		A_GetGCD				= A.GetGCD
+		A_GetPing				= A.GetPing
 		A_GetSpellInfo			= A.GetSpellInfo
 		A_GetSpellDescription	= A.GetSpellDescription
 		Listener:Remove("ACTION_EVENT_ACTIONS", "ADDON_LOADED")	
@@ -75,60 +81,51 @@ local itemCategory 			= {
 	[19950] = "BOTH",
 	[18820] = "BOTH",
 }
-
-local _G, type, next, pairs, select, unpack, table, setmetatable, math 	= 	
-	  _G, type, next, pairs, select, unpack, table, setmetatable, math
-	  
-local ACTION_CONST_CACHE_DEFAULT_TIMER									= _G.ACTION_CONST_CACHE_DEFAULT_TIMER
-local ACTION_CONST_EQUIPMENT_MANAGER									= _G.ACTION_CONST_EQUIPMENT_MANAGER
-local ACTION_CONST_POTION												= _G.ACTION_CONST_POTION
-local ACTION_CONST_SPELLID_FREEZING_TRAP								= _G.ACTION_CONST_SPELLID_FREEZING_TRAP
-local ACTION_CONST_TRINKET1												= _G.ACTION_CONST_TRINKET1
-local ACTION_CONST_TRINKET2												= _G.ACTION_CONST_TRINKET2
-	  	  
+	  	  	  
 local maxn					= table.maxn
 local tinsert 				= table.insert		
 local tsort 				= table.sort
 local huge 					= math.huge
 local wipe 					= _G.wipe
+local hooksecurefunc		= _G.hooksecurefunc
 local strgsub				= string.gsub
 local strgmatch				= string.gmatch
 local strlen				= string.len
 
 local GetNetStats 			= _G.GetNetStats  	
 local GameLocale 			= _G.GetLocale()
+local GetCVar				= _G.GetCVar -- C_CVar why Classic hasn't it???
 
 -- Spell 
 local Spell					= _G.Spell
 
-local IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell =
-	  IsPlayerSpell, IsUsableSpell, IsHelpfulSpell, IsHarmfulSpell, IsAttackSpell, IsCurrentSpell
+local 	 IsPlayerSpell,    IsUsableSpell, 	 IsHelpfulSpell, 	IsHarmfulSpell,    IsAttackSpell, 	 IsCurrentSpell =
+	  _G.IsPlayerSpell, _G.IsUsableSpell, _G.IsHelpfulSpell, _G.IsHarmfulSpell, _G.IsAttackSpell, _G.IsCurrentSpell
 
-local 	  GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount,	GetSpellPowerCost, 	   CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown, GetSpellAutocast = 
-	  TMW.GetSpellTexture, GetSpellLink, GetSpellInfo, GetSpellDescription, GetSpellCount, 	GetSpellPowerCost, Env.CooldownDuration, GetSpellCharges, GetHaste, GetShapeshiftFormCooldown, GetSpellBaseCooldown, GetSpellAutocast
+local 	  GetSpellTexture, 	  GetSpellLink,    GetSpellInfo, 	GetSpellDescription, 	GetSpellCount,	   GetSpellPowerCost, 	  CooldownDuration,    GetSpellCharges,    GetHaste, 	GetShapeshiftFormCooldown, 	  GetSpellBaseCooldown,    GetSpellAutocast = 
+	  TMW.GetSpellTexture, _G.GetSpellLink, _G.GetSpellInfo, _G.GetSpellDescription, _G.GetSpellCount, 	_G.GetSpellPowerCost, Env.CooldownDuration, _G.GetSpellCharges, _G.GetHaste, _G.GetShapeshiftFormCooldown, _G.GetSpellBaseCooldown, _G.GetSpellAutocast
 
 -- Item 	  
-local IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem  =
-	  IsUsableItem, IsHelpfulItem, IsHarmfulItem, IsCurrentItem
+local 	 IsUsableItem, 	  IsHelpfulItem, 	IsHarmfulItem, 	  IsCurrentItem  =
+	  _G.IsUsableItem, _G.IsHelpfulItem, _G.IsHarmfulItem, _G.IsCurrentItem
   
-local GetItemInfo, GetItemIcon, GetItemInfoInstant, GetItemSpell = 
-	  GetItemInfo, GetItemIcon, GetItemInfoInstant, GetItemSpell	  
+local 	 GetItemInfo, 	 GetItemIcon, 	 GetItemInfoInstant, 	GetItemSpell = 
+	  _G.GetItemInfo, _G.GetItemIcon, _G.GetItemInfoInstant, _G.GetItemSpell	  
 
 -- Talent	  
 local TalentMap 					= A.TalentMap 
 
 -- Rank 
-local GetSpellBookItemName			= GetSpellBookItemName
-local FindSpellBookSlotBySpellID 	= FindSpellBookSlotBySpellID
+local GetSpellBookItemName			= _G.GetSpellBookItemName
+local FindSpellBookSlotBySpellID 	= _G.FindSpellBookSlotBySpellID
 
 -- Unit 	  
 local UnitAura						= TMW.UnitAura
-local UnitIsUnit, UnitGUID, UnitIsPlayer = 
-	  UnitIsUnit, UnitGUID, UnitIsPlayer
+local 	 UnitIsUnit, 	UnitGUID, 	 UnitIsPlayer = 
+	  _G.UnitIsUnit, _G.UnitGUID, _G.UnitIsPlayer
 
 -- Empty 
-local empty1, empty2 				= { 0, -1 }, { 0, 0, 0, 0, 0, 0, 0, 0 } 
-local emptycreate					= {}
+local nullDescription				= { 0, 0, 0, 0, 0, 0, 0, 0 } 
 
 -- Auras
 local IsBreakAbleDeBuff = {}
@@ -151,6 +148,11 @@ do
 	end 
 end 
 
+-- Player 
+local GCD_OneSecond 			= {
+	ROGUE 						= true,
+}
+
 local function sortByHighest(x, y)
 	return x > y
 end
@@ -158,6 +160,9 @@ end
 -------------------------------------------------------------------------------
 -- Global Cooldown
 -------------------------------------------------------------------------------
+-- Returns 'true' if duration field of spell/item cooldown used on global cooldown animation
+A.OnGCD = TMW.OnGCD
+
 function A.GetCurrentGCD()
 	-- @return number 
 	-- Current left in second time of in use (spining) GCD, 0 if GCD is not active
@@ -172,12 +177,12 @@ function A.GetGCD()
 		-- Depended by last used spell 
 		return TMW.GCD
 	else 
-		--if GCD_OneSecond[A.PlayerSpec] then 
-			--return 1
-		--else 
+		if GCD_OneSecond[A.PlayerClass] then 
+			return 1
+		else 
 			-- Depended on current haste
 			return 1.5 / (1 + Player:HastePct() / 100) 
-		--end 
+		end 
 	end    
 end 
 
@@ -205,10 +210,16 @@ function A.GetPing()
 end 
 A.GetPing = A.MakeFunctionCachedStatic(A.GetPing, 0)
 
+function A.GetLatency()
+	-- @return number 
+	-- Returns summary delay caused by ping and interface respond time (usually not higher than 0.4 sec)
+	return toNum[GetCVar("SpellQueueWindow") or 100] / 1000 + (A_GetPing() / 2)
+end
+
 function A:ShouldStopByGCD()
 	-- @return boolean 
 	-- By Global Cooldown
-	return not Player:IsShooting() and self:IsRequiredGCD() and self.GetGCD() - self.GetPing() > 0.301 and self.GetCurrentGCD() >= self.GetPing() + 0.65
+	return not Player:IsShooting() and self:IsRequiredGCD() and A_GetGCD() - A_GetPing() > 0.301 and A_GetCurrentGCD() >= A_GetPing() + 0.65
 end 
 
 function A.ShouldStop()
@@ -236,14 +247,21 @@ function A:GetSpellBaseCooldown()
 	return spellbasecache[self.ID]
 end 
 
-local spellpowercache = setmetatable({}, { __index = function(t, v)
-	local pwr = GetSpellPowerCost(A.GetSpellInfo(v))
-	if pwr and pwr[1] then
-		t[v] = { pwr[1].cost, pwr[1].type }
-		return t[v]
-	end     
-	return empty1
-end })
+local spellpowercache = setmetatable(
+	{ 
+		null = {0, 1},
+	}, 
+	{ 
+		__index = function(t, v)
+			local pwr = GetSpellPowerCost(A.GetSpellInfo(v))
+			if pwr and pwr[1] then
+				t[v] = { pwr[1].cost, pwr[1].type }
+				return t[v]
+			end     
+			return t.null
+		end,
+	}
+)
 
 function A:GetSpellPowerCostCache()
 	-- THIS IS STATIC CACHED, ONCE CALLED IT WILL NOT REFRESH REALTIME POWER COST
@@ -317,7 +335,7 @@ function A.GetSpellDescription(self)
 		return descriptiontemp[spellID]
 	end
 	
-	return empty2 
+	return nullDescription 
 end
 A.GetSpellDescription = A.MakeFunctionCachedDynamic(A.GetSpellDescription)
 
@@ -450,7 +468,7 @@ end
 function A:CanSafetyCastHeal(unitID, offset)
 	-- @return boolean 
 	local castTime = self:GetSpellCastTime()
-	return castTime and (castTime == 0 or castTime > Unit(unitID):TimeToDie() + self.GetCurrentGCD() + (offset or self.GetGCD())) or false 
+	return castTime and (castTime == 0 or castTime > Unit(unitID):TimeToDie() + A_GetCurrentGCD() + (offset or A_GetGCD())) or false 
 end 
 
 -------------------------------------------------------------------------------
@@ -490,6 +508,7 @@ end
 local DataSpellRanks = {}
 local DataIsSpellUnknown = {}
 function A.UpdateSpellBook(isProfileLoad)
+	A.WipeTableKeyIdentify()
 	wipe(DataSpellRanks)
 	wipe(DataIsSpellUnknown)
 	
@@ -601,18 +620,12 @@ function A.UpdateSpellBook(isProfileLoad)
 	end 
 end 
 
---Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_UP", 			A.UpdateSpellBook)
---Listener:Add("ACTION_EVENT_SPELL_RANKS", "PLAYER_LEVEL_CHANGED", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellBook)
---Listener:Add("ACTION_EVENT_SPELL_RANKS", "CONFIRM_TALENT_WIPE", 		A.UpdateSpellBook)
---Listener:Add("ACTION_EVENT_SPELL_RANKS", "CHARACTER_POINTS_CHANGED", 	A.UpdateSpellBook)
 TMW:RegisterCallback("TMW_ACTION_TALENT_MAP_UPDATED", function()
 	A.UpdateSpellBook()
 end)
-TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_ADDED", function(callbackEvent, PetID, PetGUID, PetData)
-	if PetData.isMain then 
-		A.UpdateSpellBook()
-	end 
+TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", function()
+	A.UpdateSpellBook()
 end)
 
 function A:IsBlockedBySpellBook()
@@ -641,7 +654,7 @@ end
 -------------------------------------------------------------------------------
 function A.DetermineHealObject(unitID, skipRange, skipLua, skipShouldStop, skipUsable, ...)
 	-- @return object or nil 
-	-- Note: :PredictHeal(unitID) must be only ! Use self.ID or self:Info() inside to determine by that which spell is it 
+	-- Note: :PredictHeal(unitID) must be only ! Use 'self' inside to determine by that which spell is it 
 	local unitGUID = UnitGUID(unitID)
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
@@ -676,7 +689,7 @@ function A.DetermineCountGCDs(...)
 	local count = 0
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)		
-		if (not object.isStance or A.PlayerClass ~= "WARRIOR") and object:IsRequiredGCD() and not object:IsBlocked() and not object:IsBlockedBySpellBook() and (not object.isTalent or object:IsSpellLearned()) and object:GetCooldown() <= A_GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + A_GetCurrentGCD() then 
+		if (not object.isStance or A.PlayerClass ~= "WARRIOR") and object:IsRequiredGCD() and not object:IsBlocked() and not object:IsBlockedBySpellBook() and (not object.isTalent or object:IsSpellLearned()) and object:GetCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + A_GetCurrentGCD() then 
 			count = count + 1
 		end 
 	end 	
@@ -795,7 +808,7 @@ local Racial = {
 		if A.PlayerRace == "Tauren" then 
 			return  (
 						unitID and 					
-						Unit(unitID):IsCastingRemains() > self.GetCurrentGCD() + 0.7
+						Unit(unitID):IsCastingRemains() > A_GetCurrentGCD() + 0.7
 					) or 
 					(
 						(
@@ -810,11 +823,11 @@ local Racial = {
 		if A.PlayerRace == "NightElf" then 
 			if A.Zone == "pvp" then 
 				-- Check Freezing Trap 
-				if 	UnitCooldown:GetCooldown("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) - 2 and 
-					UnitCooldown:IsSpellInFly("arena", ACTION_CONST_SPELLID_FREEZING_TRAP) and 
+				if 	UnitCooldown:GetCooldown("arena", CONST.SPELLID_FREEZING_TRAP) > UnitCooldown:GetMaxDuration("arena", CONST.SPELLID_FREEZING_TRAP) - 2 and 
+					UnitCooldown:IsSpellInFly("arena", CONST.SPELLID_FREEZING_TRAP) and 
 					Unit("player"):GetDR("incapacitate") > 0 
 				then 
-					local Caster = UnitCooldown:GetUnitID("arena", ACTION_CONST_SPELLID_FREEZING_TRAP)
+					local Caster = UnitCooldown:GetUnitID("arena", CONST.SPELLID_FREEZING_TRAP)
 					if Caster and not Player:IsStealthed() and Unit(Caster):GetRange() <= 40 and (Unit("player"):GetDMG() == 0 or not Unit("player"):IsFocused()) then 
 						return true 
 					end 
@@ -861,14 +874,27 @@ function A.GetItemDescription(self)
 		return A_GetSpellDescription(spellID)
 	end 
 	
-	return empty2
+	return nullDescription
 end
 A.GetItemDescription = A.MakeFunctionCachedDynamic(A.GetItemDescription)
+
+local itemspellcache = setmetatable({}, { __index = function(t, v)
+    local a = { GetItemSpell(v) }
+	if #a > 0 then 
+		t[v] = a
+	end 
+    return a
+end })
+function A:GetItemSpell()
+	-- @return string, number or nil 
+	-- Returns: spellName, spellID or nil 
+	return unpack(itemspellcache[self.ID])
+end
 
 function A:GetItemCooldown()
 	-- @return number
 	local start, duration, enable = self.Item:GetCooldown()
-	return enable ~= 0 and (duration == 0 and 0 or duration - (TMW.time - start)) or huge
+	return enable ~= 0 and ((duration == 0 or A_OnGCD(duration)) and 0 or duration - (TMW.time - start)) or huge
 end 
 
 function A:GetItemCategory()
@@ -908,12 +934,14 @@ end
 -------------------------------------------------------------------------------
 -- Shared
 -------------------------------------------------------------------------------	  
-function A:IsExists()   
+function A:IsExists(replacementByPass)   
 	-- @return boolean
 	if self.Type == "Spell" then 
 		-- DON'T USE HERE A.GetSpellInfo COZ IT'S CACHE WHICH WILL WORK WRONG DUE RACE CHANGES
-		local spellID = select(7, GetSpellInfo(self:Info())) -- Small trick, it will be nil in case of if it's not a player's spell 
-		return type(spellID) == "number" and (IsPlayerSpell(spellID) or (Pet:IsActive() and Pet:IsSpellKnown(spellID)))
+		local spellName, _, _, _, _, _, spellID = GetSpellInfo(self:Info()) 
+		-- spellID will be nil in case of if it's not a player's spell 
+		-- spellName will not be equal to self:Info() if it's replacement spell like "Chi-Torpedo" and "Roll"
+		return (not replacementByPass or spellName == self:Info()) and type(spellID) == "number" and (IsPlayerSpell(spellID) or (Pet:IsActive() and Pet:IsSpellKnown(spellID)))
 	end 
 	
 	if self.Type == "SwapEquip" then 
@@ -929,10 +957,10 @@ function A:IsUsable(extraCD, skipUsable)
 	
 	if self.Type == "Spell" then 
 		-- Works for pet spells 01/04/2019
-		return (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableSpell(self:Info())) and self:GetCooldown() <= self.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0) + (extraCD or 0)
+		return (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableSpell(self:Info())) and self:GetCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
 	end 
 	
-	return not isItemUseException[self.ID] and (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableItem(self:Info())) and self:GetItemCooldown() <= self.GetPing() + ACTION_CONST_CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0) + (extraCD or 0)
+	return not isItemUseException[self.ID] and (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableItem(self:Info())) and self:GetItemCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
 end
 
 function A:IsHarmful()
@@ -1023,13 +1051,13 @@ function A:AbsentImun(unitID, imunBuffs)
 		local isTable = type(self) == "table"
 		
 		-- Super trick for Queue System, it will save in cache imunBuffs on first entire call by APL and Queue will be allowed to handle cache to compare Imun 
-		if isTable and not self.AbsentImunQueueCache and imunBuffs then 
+		if isTable and imunBuffs then 
 			self.AbsentImunQueueCache = imunBuffs
 		end 	
 		
 		local MinDur = ((not isTable or self.Type ~= "Spell") and 0) or self:GetSpellCastTime()
 		if MinDur > 0 then 
-			MinDur = MinDur + (self:IsRequiredGCD() and self.GetCurrentGCD() or 0)
+			MinDur = MinDur + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0)
 		end
 		
 		if GetToggle(1, "StopAtBreakAble") and Unit(unitID):IsEnemy() and Unit(unitID):HasDeBuffs(IsBreakAbleDeBuff) > MinDur then 
@@ -1070,6 +1098,7 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 		if 	self.Type == "Spell" and 
 			not self:IsBlockedBySpellBook() and 
 			( not self.isTalent or self:IsSpellLearned() ) and 
+			--( not self.isReplacement or self:IsExists(true) ) and 
 			self:IsUsable(nil, skipUsable) and 
 			( skipRange or not unitID or not self:HasRange() or self:IsInRange(unitID) )
 		then 
@@ -1090,7 +1119,6 @@ function A:IsCastable(unitID, skipRange, skipShouldStop, isMsg, skipUsable)
 		
 		if 	self.Type == "Potion" and 
 			GetToggle(1, "Potion") and 
-			BurstIsON(unitID or A.IamHealer and "targettarget" or "target") and 
 			self:GetCount() > 0 and 
 			self:GetItemCooldown() == 0 
 		then
@@ -1176,9 +1204,7 @@ end
 -- Spell  
 local spellinfocache = setmetatable({}, { __index = function(t, v)
     local a = { GetSpellInfo(v) }
-    if a[1] then
-        t[v] = a
-    end
+	t[v] = a
     return a
 end })
 
@@ -1221,10 +1247,10 @@ end
 
 -- Item
 local iteminfocache = setmetatable({}, { __index = function(t, v)	
-	local a = { GetItemInfo(v) }		
-	if a[1] then
+	local a = { GetItemInfo(v) }
+	if #a > 0 then 
 		t[v] = a
-	end
+	end 
 	return a	
 end })
 
@@ -1238,7 +1264,12 @@ function A:GetItemInfo(custom)
 	end
 	
 	if ID then 
-		return unpack(iteminfocache[ID]) or (isTable and self:GetKeyName())
+		if #iteminfocache[ID] > 1 then 
+			return unpack(iteminfocache[ID]) 
+		elseif isTable then 
+			local spellName = self:GetItemSpell()			
+			return spellName or self:GetKeyName()
+		end
 	end 
 end
 
@@ -1254,12 +1285,12 @@ function A:GetItemTexture(custom)
 	local texture
 	if self.Type == "Trinket" then 
 		if A.Trinket1.ID == self.ID then 
-			texture = ACTION_CONST_TRINKET1
+			texture = CONST.TRINKET1
 		else 
-			texture = ACTION_CONST_TRINKET2
+			texture = CONST.TRINKET2
 		end
 	elseif self.Type == "Potion" then 
-		texture = ACTION_CONST_POTION
+		texture = CONST.POTION
 	else 
 		texture = self:GetItemIcon(custom)
 	end
@@ -1280,8 +1311,44 @@ end
 -------------------------------------------------------------------------------
 -- UI: Create
 -------------------------------------------------------------------------------
-function A.Create(arg)
-	--[[@usage: arg (table)
+-- Receive information from server about items before start UI builder
+local ItemIDs = {} 
+hooksecurefunc(TMW, "SortOrderedTables", function()
+	-- This function working only before RunSnippet
+	if #ItemIDs > 0 then 
+		for _, id in ipairs(ItemIDs) do 
+			GetItemInfo(id)
+		end 
+		wipe(ItemIDs)
+	end
+end)
+
+-- Debug created actions 
+local TableKeys = {}
+TMW:RegisterCallback("TMW_ACTION_IS_INITIALIZED", function()
+	-- Debug for SetBlocker and SetQueue for shared internal table keys 	
+	local err 
+	if A[A.PlayerClass] then 
+		for key, action in pairs(A[A.PlayerClass]) do 
+			if type(action) == "table" and action:IsActionTable() and not action.Hidden then 				
+				if TableKeys[action:GetTableKeyIdentify()] then 
+					err = (err or "Script found duplicate .TableKeyIdentify:\n") .. key .. " = " .. TableKeys[action:GetTableKeyIdentify()] .. ". Output: " .. action.TableKeyIdentify .. "\n"
+				else 
+					TableKeys[action:GetTableKeyIdentify()] = key 
+				end 				
+			end 
+		end 
+		wipe(TableKeys)
+	end 	
+	
+	if err then 
+		error(err)
+	end 
+end)
+
+-- Create action with args 
+function A.Create(args)
+	--[[@usage: args (table)
 		Required: 
 			Type (@string)	- Spell|SpellSingleColor|Item|ItemSingleColor|Potion|Trinket|TrinketBySlot|ItemBySlot|SwapEquip (TrinketBySlot, ItemBySlot is only in CORE!)
 			ID (@number) 	- spellID | itemID | textureID (textureID only for Type "SwapEquip")
@@ -1294,260 +1361,258 @@ function A.Create(arg)
 			FixedTexture (@number or @file) valid only if Type is Spell|Item|Potion|Trinket|SwapEquip
 			MetaSlot (@number) allows set fixed meta slot use for action whenever it will be tried to set in queue 
 			Hidden (@boolean) allows to hide from UI this action 
-			isStance (@number) will check in :GetCooldown cooldown timer by GetShapeshiftFormCooldown function instead of default, only if Type is Spell|SpellSingleColor
+			isStance (@number) will check in :GetCooldown cooldown timer by GetShapeshiftFormCooldown function instead of default, only if Type is Spell|SpellSingleColor			
 			isTalent (@boolean) will check in :IsCastable method condition through :IsSpellLearned(), only if Type is Spell|SpellSingleColor
+			isReplacement (@boolean) will check in :IsCastable method condition through :IsExists(true), only if Type is Spell|SpellSingleColor	
 			isRank (@number) will use specified rank for spell (additional frame for color below TargetColor), only if Type is Spell|SpellSingleColor			
 			isCP (@boolean) is used only for combo points with type Spell|SpellSingleColor to use as condition in Queue core, it's required to be noted manually due specific way of how it work
 			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor 
 			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor
 			Equip1, Equip2 (@function) between which equipments do swap, used in :IsExists method, only if Type is SwapEquip
+			... any custom key-value will be inserted also 
 						
 		So the conception of Classic is to use own texture for any ranks and additional frame which will determine rank whenever it need, we assume what by default no need to determine rank if we use useMaxRank
 		Otherwise it will interract with additional frame  
 	]]
-	local attributes = arg or emptycreate	
-	local s = {
-		ID = attributes.ID,
-		SubType = attributes.Type,
-		Desc = attributes.Desc or "",
-		BlockForbidden = attributes.BlockForbidden,
-		QueueForbidden = attributes.QueueForbidden, 
-		MetaSlot = attributes.MetaSlot,
-		Hidden = attributes.Hidden,
-	}
-	if attributes.Type == "Spell" then 
-		s = setmetatable(s, {__index = A})	
-		s.Type = "Spell"		
-		-- Methods (metakey:Link())			
-		s.Info = A.GetSpellInfo
-		s.Link = A.GetSpellLink		
-		s.Icon = A.GetSpellIcon
-		if attributes.Color then 
-			s.Color = attributes.Color
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetColoredSpellTexture(s, attributes.Texture)
+	local arg 	= args or {}	
+	arg.Desc 	= arg.Desc or ""
+	arg.SubType = arg.Type
+	
+	-- Type "Spell" 
+	if arg.Type == "Spell" then 	
+		-- Methods Remap		
+		arg.Info = A.GetSpellInfo
+		arg.Link = A.GetSpellLink		
+		arg.Icon = A.GetSpellIcon
+		if arg.Color then 
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetColoredSpellTexture(arg, arg.TextureID)
 				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
 				end 				
 			else 
-				s.Texture = A.GetColoredSpellTexture
+				arg.Texture = A.GetColoredSpellTexture
 			end 		
 		else 
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetSpellTexture(s, attributes.Texture)
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetSpellTexture(arg, arg.TextureID)
 				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
 				end 
 			else 
-				s.Texture = A.GetSpellTexture	
+				arg.Texture = A.GetSpellTexture	
 			end						
 		end 
+		
 		-- Power 
-		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()
-		-- Talent 
-		s.isTalent = attributes.isTalent
-		-- Stance 
-		s.isStance = attributes.isStance
-		-- Combo Points
-		s.isCP = attributes.isCP
-		-- Rank 
-		s.isRank = attributes.isRank
-		if type(attributes.useMaxRank) == "table" then 
-			tsort(attributes.useMaxRank)
+		arg.PowerCost, arg.PowerType = A.GetSpellPowerCostCache(arg.ID)
+
+		-- Ranks 
+		if type(arg.useMaxRank) == "table" then 
+			tsort(arg.useMaxRank)
+		end 	 
+		if type(arg.useMinRank) == "table" then 
+			tsort(arg.useMinRank)
 		end 
-		s.useMaxRank = attributes.useMaxRank		 
-		if type(attributes.useMinRank) == "table" then 
-			tsort(attributes.useMinRank)
-		end 
-		s.useMinRank = attributes.useMinRank		
-	elseif attributes.Type == "SpellSingleColor" then 
-		s = setmetatable(s, {__index = A})	
-		s.Type = "Spell"
-		s.Color = attributes.Color
-		-- Methods (metakey:Link())	
-		s.Info = A.GetSpellInfo
-		s.Link = A.GetSpellLink		
-		s.Icon = A.GetSpellIcon
-		-- This using static and fixed only color so no need texture
-		s.Texture = A.GetColorTexture			
-		-- Power 
-		s.PowerCost, s.PowerType = s:GetSpellPowerCostCache()	
-		-- Talent 
-		s.isTalent = attributes.isTalent
-		-- Stance 
-		s.isStance = attributes.isStance
-		-- Combo Points
-		s.isCP = attributes.isCP
-		-- Rank 
-		s.isRank = attributes.isRank
-		if type(attributes.useMaxRank) == "table" then 
-			tsort(attributes.useMaxRank)
-		end 
-		s.useMaxRank = attributes.useMaxRank		 
-		if type(attributes.useMinRank) == "table" then 
-			tsort(attributes.useMinRank)
-		end 
-		s.useMinRank = attributes.useMinRank	
-	elseif attributes.Type == "Trinket" or attributes.Type == "Potion" or attributes.Type == "Item" then 
-		s = setmetatable(s, {
-				__index = function(self, key)
-					if A[key] then
-						return A[key]
-					else
-						return self.Item[key]
-					end
-				end
-		})
-		s.Type = attributes.Type
-		-- Methods (metakey:Link())	
-		s.Info = A.GetItemInfo
-		s.Link = A.GetItemLink		
-		s.Icon = A.GetItemIcon
-		if attributes.Color then 
-			s.Color = attributes.Color
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetColoredItemTexture(s, attributes.Texture)
-				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
-				end 				
-			else 
-				s.Texture = A.GetColoredItemTexture
-			end 		
-		else 		
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetItemTexture(s, attributes.Texture)
-				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
-				end 				
-			else 
-				s.Texture = A.GetItemTexture
-			end 
-		end	
-		-- Misc
-		s.Item = TMW.Classes.ItemByID:New(attributes.ID)
-		GetItemInfoInstant(attributes.ID) -- must be here as request limited data from server 	
-	elseif attributes.Type == "TrinketBySlot" or attributes.Type == "ItemBySlot" then 
-		s = setmetatable(s, {
-				__index = function(self, key)
-					if key == "ID" then 
-						return self.Item:GetID()
-					end 
-					
-					if A[key] then
-						return A[key]
-					else
-						return self.Item[key]
-					end
-				end
-		})
-		s.Type = (attributes.Type == "TrinketBySlot" and "Trinket") or "Item"
-		-- Methods (metakey:Link())	
-		s.Info = A.GetItemInfo
-		s.Link = A.GetItemLink		
-		s.Icon = A.GetItemIcon
-		if attributes.Color then 
-			s.Color = attributes.Color
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetColoredItemTexture(s, attributes.Texture)
-				end 				
-			else 
-				s.Texture = A.GetColoredItemTexture
-			end 		
-		else 		
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetItemTexture(s, attributes.Texture)
-				end 				
-			else 
-				s.Texture = A.GetItemTexture
-			end 
-		end	
-		-- Misc
-		s.Item = TMW.Classes.ItemBySlot:New(attributes.ID)			
-		local isEquiped = s.Item:GetID()
-		if isEquiped then 
-			GetItemInfoInstant(isEquiped) -- must be here as request limited data from server
-		end 
-		s.ID = nil
-	elseif attributes.Type == "ItemSingleColor" then
-		s = setmetatable(s, {
-				__index = function(self, key)
-					if A[key] then
-						return A[key]
-					else
-						return self.Item[key]
-					end
-				end
-		})
-		s.Type = "Item" 
-		s.Color = attributes.Color
-		-- Methods (metakey:Link())	
-		s.Info = A.GetItemInfo
-		s.Link = A.GetItemLink		
-		s.Icon = A.GetItemIcon
-		-- This using static and fixed only color so no need texture
-		s.Texture = A.GetColorTexture		
-		-- Misc 
-		s.Item = TMW.Classes.ItemByID:New(attributes.ID)
-		GetItemInfoInstant(attributes.ID) -- must be here as request limited data from server	
-	elseif attributes.Type == "SwapEquip" then 
-		s = setmetatable(s, {__index = A})	
-		s.Type = attributes.Type
-		-- Methods (metakey:Link())	
-		s.Info = function()
-			return ACTION_CONST_EQUIPMENT_MANAGER
-		end 
-		s.Link = s.Info		
-		s.Icon = function()
-			return attributes.ID 
-		end 
-		if attributes.Color then 
-			s.Color = attributes.Color
-			if attributes.Texture then 
-				s.Texture = function()
-					return A.GetColoredSwapTexture(s, attributes.Texture)
-				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
-				end 				
-			else 
-				s.Texture = A.GetColoredSwapTexture
-			end 		
-		else 		
-			if attributes.Texture then 
-				s.Texture = function()
-					return "texture", attributes.Texture
-				end 
-			elseif attributes.FixedTexture then 
-				s.Texture = function()
-					return "texture", attributes.FixedTexture
-				end 				
-			else 
-				s.Texture = function()
-					return "texture", attributes.ID
-				end 
-			end 
-		end	
-		-- Equip 
-		s.Equip1 = attributes.Equip1
-		s.Equip2 = attributes.Equip2
-	else 
-		s = setmetatable(s, {__index = A})	
-		s.Hidden = true 
+
+		return setmetatable(arg, { __index = A }) 
 	end 
-	return s
+	
+	-- Type "Spell" 
+	if arg.Type == "SpellSingleColor" then 
+		-- Forced Type 
+		arg.Type = "Spell"
+		-- Methods Remap
+		arg.Info = A.GetSpellInfo
+		arg.Link = A.GetSpellLink		
+		arg.Icon = A.GetSpellIcon
+		-- This using static and fixed only color so no need texture
+		arg.Texture = A.GetColorTexture			
+		-- Power 
+		arg.PowerCost, arg.PowerType = A.GetSpellPowerCostCache(arg.ID)	
+		-- Ranks
+		if type(arg.useMaxRank) == "table" then 
+			tsort(arg.useMaxRank)
+		end 		 
+		if type(arg.useMinRank) == "table" then 
+			tsort(arg.useMinRank)
+		end 	
+		
+		return setmetatable(arg, { __index = A })
+	end 
+	
+	-- Type "Trinket", "Potion", "Item"
+	if arg.Type == "Trinket" or arg.Type == "Potion" or arg.Type == "Item" then 
+		-- Methods Remap
+		arg.Info = A.GetItemInfo
+		arg.Link = A.GetItemLink		
+		arg.Icon = A.GetItemIcon
+		if arg.Color then 
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetColoredItemTexture(arg, arg.TextureID)
+				end 
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
+				end 				
+			else 
+				arg.Texture = A.GetColoredItemTexture
+			end 		
+		else 		
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetItemTexture(arg, arg.TextureID)
+				end 
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
+				end 				
+			else 
+				arg.Texture = A.GetItemTexture
+			end 
+		end	
+		-- Misc
+		arg.Item = TMW.Classes.ItemByID:New(arg.ID)
+		ItemIDs[#ItemIDs + 1] = arg.ID
+		
+		return setmetatable(arg, { __index = function(self, key)
+			if A[key] then
+				return A[key]
+			else
+				return self.Item[key]
+			end
+		end })
+	end 	
+	
+	-- Type "Trinket", "Item"
+	if arg.Type == "TrinketBySlot" or arg.Type == "ItemBySlot" then 
+		-- Forced Type 
+		if arg.Type == "TrinketBySlot" then 
+			arg.Type = "Trinket"
+		else 
+			arg.Type = "Item"
+		end 
+		-- Methods Remap
+		arg.Info = A.GetItemInfo
+		arg.Link = A.GetItemLink		
+		arg.Icon = A.GetItemIcon
+		if arg.Color then 
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetColoredItemTexture(arg, arg.TextureID)
+				end 				
+			else 
+				arg.Texture = A.GetColoredItemTexture
+			end 		
+		else 		
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetItemTexture(arg, arg.TextureID)
+				end 				
+			else 
+				arg.Texture = A.GetItemTexture
+			end 
+		end	
+		-- Misc
+		arg.Item = TMW.Classes.ItemBySlot:New(arg.ID)
+		if arg.Item:GetID() then 	
+			ItemIDs[#ItemIDs + 1] = arg.Item:GetID()
+		end 
+		arg.ID = nil
+		
+		return setmetatable(arg, { __index = function(self, key)
+			if key == "ID" then 
+				return self.Item:GetID()
+			end 
+			
+			if A[key] then
+				return A[key]
+			else
+				return self.Item[key]
+			end
+		end })
+	end 
+	
+	-- Type "Item"
+	if arg.Type == "ItemSingleColor" then
+		-- Forced Type 
+		arg.Type = "Item" 
+		-- Methods Remap
+		arg.Info = A.GetItemInfo
+		arg.Link = A.GetItemLink		
+		arg.Icon = A.GetItemIcon
+		-- This using static and fixed only color so no need texture
+		arg.Texture = A.GetColorTexture		
+		-- Misc 
+		arg.Item = TMW.Classes.ItemByID:New(arg.ID)
+		ItemIDs[#ItemIDs + 1] = arg.ID
+		
+		return setmetatable(arg, { __index = function(self, key)
+			if A[key] then
+				return A[key]
+			else
+				return self.Item[key]
+			end
+		end })
+	end 	
+	
+	-- Type "SwapEquip"	
+	if arg.Type == "SwapEquip" then 
+		-- Methods Remap
+		arg.Info = function()
+			return CONST.EQUIPMENT_MANAGER
+		end 
+		arg.Link = arg.Info		
+		arg.Icon = function()
+			return arg.ID 
+		end 
+		if arg.Color then 
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return A.GetColoredSwapTexture(arg, arg.TextureID)
+				end 
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
+				end 				
+			else 
+				arg.Texture = A.GetColoredSwapTexture
+			end 		
+		else 		
+			if arg.Texture then 
+				arg.TextureID = arg.Texture
+				arg.Texture = function()
+					return "texture", arg.TextureID
+				end 
+			elseif arg.FixedTexture then 
+				arg.Texture = function()
+					return "texture", arg.FixedTexture
+				end 				
+			else 
+				arg.Texture = function()
+					return "texture", arg.ID
+				end 
+			end 
+		end	
+		
+		return setmetatable(arg, { __index = A })	
+	end 
+	
+	-- nil
+	arg.Hidden = true 		
+	return setmetatable(arg, { __index = A })		 
 end 
