@@ -1,3 +1,6 @@
+[Priest v16]
+Fixed lua error ...HealingEngine.lua:1384: Usage: UnitGUID("unit") caused by Snippet: Priest line 1409 incorrect unitID
+
 [Priest v15]
 Removed retired interrupt groups
 Upgraded code for synchronization with new interrupt system 
