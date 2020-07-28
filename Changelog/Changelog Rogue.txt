@@ -1,3 +1,6 @@
+[Rogue v10]
+Fixed lua error Unit.lua Action.Unit():.. was used with 'nil' unitID. Found problem in TMW snippet here:[string "TMW Snippet: Rogue"] line 1668:
+
 [Rogue v9]
 Fixed lua error "SapUnits" attemp to index nil 
 
