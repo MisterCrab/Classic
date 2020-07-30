@@ -1,3 +1,7 @@
+[Rogue v11]
+Vanish											- Added additional debuffs Phantom Strike and Faerie Fire (Feral) to query as usable condition 
+Stealth											- Added additional debuffs Phantom Strike and Faerie Fire (Feral) to query as usable condition 
+
 [Rogue v10]
 Fixed lua error Unit.lua Action.Unit():.. was used with 'nil' unitID. Found problem in TMW snippet here:[string "TMW Snippet: Rogue"] line 1668:
 
