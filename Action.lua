@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "30.07.2020"
+local DateTime 														= "31.07.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -7932,7 +7932,7 @@ function Action:IsBlockedByQueue()
 			and self.Type == ActionDataQ[1].Type  
 			and ( not ActionDataQ[1].PowerType or self.PowerType == ActionDataQ[1].PowerType )  
 			and ( not ActionDataQ[1].PowerCost or UnitPower("player", self.PowerType) < ActionDataQ[1].PowerCost )
-			and ( not ActionDataQ[1].isCP or (self.isCP and A_Player:ComboPoints("target") < ActionDataQ[1].CP) )
+			and ( not ActionDataQ[1].CP or A_Player:ComboPoints("target") < ActionDataQ[1].CP )
 end
 
 function Action:IsQueued()
