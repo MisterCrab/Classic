@@ -15,9 +15,6 @@ local strlowerCache  				= TMW.strlowerCache
 local toNum 						= A.toNum
 local GetToggle						= A.GetToggle	  
 
-local ACTION_CONST_ADDON_VERSION	= _G.ACTION_CONST_ADDON_VERSION or 0								-- Old Action hasn't this constant, so we will use 0 (only here)
-local ToggleName					= ACTION_CONST_ADDON_VERSION > 0 and "BossMods" or "DBM"			-- Old Action has DBM only 
-
 local DBM_TIMER_PULL				-- nil, will be remap 
 local BIGWIGS_TIMER_PULL			-- nil, will be remap
 local UnitName 						= _G.UnitName
@@ -226,7 +223,7 @@ end
 function A.BossMods:GetPullTimer()
 	-- @return @number, @number 
 	local remaining, expirationTime = 0, 0
-	if self:HasAnyAddon() and GetToggle(1, ToggleName) then 
+	if self:HasAnyAddon() and GetToggle(1, "BossMods") then 
 		local remaining1, expirationTime1 = 0, 0
 		local remaining2, expirationTime2 = 0, 0
 		
@@ -254,7 +251,7 @@ function A.BossMods:GetTimer(name)
 	-- @return @number, @number
 	-- @arg name can be number (spellID, works only on DBM) or string (localizated name of the timer)
 	local remaining, expirationTime = 0, 0
-	if name and self:HasAnyAddon() and GetToggle(1, ToggleName) then 
+	if name and self:HasAnyAddon() and GetToggle(1, "BossMods") then 
 		local remaining1, expirationTime1 = 0, 0
 		local remaining2, expirationTime2 = 0, 0
 		
@@ -285,7 +282,7 @@ end
 function A.BossMods:IsEngage(name)
 	-- @return @boolean, @string or @nil 
 	-- Returns true if engaged fight vs specified boss by 'name' argument or by any boss if 'name' is nil, last return is localized(!) bossName if its engaged 
-	if self:HasAnyAddon() and GetToggle(1, ToggleName) then 
+	if self:HasAnyAddon() and GetToggle(1, "BossMods") then 
 		local compareName = name and strlowerCache[name]
 		for bossName, bossMod in pairs(EngagedBosses) do
 			if (not compareName or bossName:match(compareName)) and ((bossMod.AddonBaseName == "DBM" and bossMod.inCombat) or (bossMod.AddonBaseName == "BigWigs" and bossMod.isEngaged)) then 

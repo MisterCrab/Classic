@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "27.07.2020"
+local DateTime 														= "30.07.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -39,8 +39,8 @@ local owner															= isClassic and "PlayerClass" or "PlayerSpec"
 local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
 	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
-local 	 UnitName, 	  UnitClass, 	UnitRace, 	 UnitExists, 	UnitIsUnit,    UnitGUID, 	 UnitAura, 	  UnitPower, 	UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitRace, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 UnitPower,    UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local  HasWandEquipped 												= 
@@ -84,7 +84,8 @@ Env.Action 															= _G.Action
 local Action 														= _G.Action
 Action.DateTime														= DateTime
 Action.StdUi 														= StdUi
-Action.PlayerRace 													= select(2, UnitRace("player"))
+Action.BuildToC														= select(4, _G.GetBuildInfo())
+Action.PlayerRace 													= select(2, _G.UnitRace("player"))
 Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("player")
 
 -- Remap
@@ -4029,7 +4030,6 @@ local Factory = {
 	-- Special keys: 
 	-- ISINTERRUPT will swap ID to locale Name as key and create formated table 
 	-- ISCURSOR will swap key localized Name from Localization table and create formated table 
-	Ver = ActionConst.ADDON_VERSION, -- NEVER DECREASE THIS NUMBER (duh?).  IT IS ALSO ONLY INTERNAL
 	[1] = {
 		CheckDeadOrGhost = true, 
 		CheckDeadOrGhostTarget = true,
@@ -4383,7 +4383,6 @@ local Factory = {
 
 -- gActionDB DefaultBase
 local GlobalFactory = {	
-	Ver = ActionConst.ADDON_VERSION, -- NEVER DECREASE THIS NUMBER (duh?).  IT IS ALSO ONLY INTERNAL
 	InterfaceLanguage = "Auto",	
 	minimap = {},
 	[5] = {		
@@ -5069,74 +5068,132 @@ local function tEraseKeys(default, new, path)
 					default[k] = nil 
 					A_Print(L.DEBUG .. path .. " " .. L.RESETED:lower())
 				end 
+			elseif k == GameLocale or k == "GameLocale" then -- avoid miss typo  
+				for locale, localeTable in pairs(default) do 
+					if type(locale) == "string" and type(localeTable) == "table" then 
+						if type(v) ~= "table" then 
+							default[locale] = nil 
+							A_Print(L.DEBUG .. (path or "") .. "[" .. locale .. "] " .. L.RESETED:lower())
+						else 
+							-- The names for next table enterence must be localized 
+							tEraseKeys(default[locale], v, (path or "") .. "[" .. locale .. "]")
+						end 
+					end 
+				end 	
 			end
 		end 
 	end 
 	return default
 end
 
-local Upgrade = {
-	GetTable = {
-		[1] = { 
-			-- Factory 
-			[false] = {
-				[4] = {
-					PvETargetMouseover = "nil",
-					PvPTargetMouseover = "nil",
-				},
-			},
-		},
+local Upgrade 					= {	
+	pUpgrades					= {
+		[1]						= function()
+			tEraseKeys(pActionDB[4], { 
+				PvETargetMouseover = true,
+				PvPTargetMouseover = true,
+			}, "pActionDB[4]")
+		end,
 	},
-	tReplaceKeys = function(self, default, new, path)
-		if new then 
-			for k, v in pairs(new) do 
-				if default[k] ~= nil then 
-					local path = path 
-					if type(k) == "number" then 
-						path = (path or "") .. "[" .. k .. "]"
-					else
-						path = (path and path .. "." or "") .. k 
-					end 
-					
-					if type(v) == "table" then 
-						self:tReplaceKeys(default[k], v, path)
-					else 
-						if v == "nil" then 
-							default[k] = nil 
-						else
-							default[k] = v
-						end 
-						A_Print(L.DEBUG .. path .. " " .. L.RESETED:lower())
-					end 
-				elseif k == GameLocale then 
-					for locale, localeTable in pairs(default) do 
-						if type(locale) == "string" and type(localeTable) == "table" then 
-							if v == "nil" then 
-								default[locale] = nil 
-								A_Print(L.DEBUG .. (path or "") .. "[" .. locale .. "]" .. " " .. L.RESETED:lower())
-							else 
-								-- The names for next table enterence must be localized 
-								self:tReplaceKeys(default[locale], v, (path or "") .. "[" .. locale .. "]")
-							end 
-						end 
-					end 
+	gUpgrades					= {
+	},
+	pUpgradesForProfile			= {},
+	SortMethod					= function(a, b)
+		return (a and a.Version or 0) < (b and b.Version or 0)
+	end,
+	Perform						= function(self)
+		if not pActionDB or not gActionDB then 
+			error("Failed to properly upgrade ActionDB")
+			return 
+		end 
+		
+		local oldVer
+		-- pActionDB
+		oldVer = pActionDB.Ver -- Ver here
+		for ver, func in ipairs(self.pUpgrades) do 
+			if (pActionDB.Ver or 0) < ver then 
+				if func() ~= false then 
+					pActionDB.Ver = ver
 				end 
 			end 
-		end 			
-	end,
-	Perform = function(self, original, actual)
-		if original and actual and actual.Ver and original.Ver ~= actual.Ver then 
-			local isGlobal = actual.InterfaceLanguage and true or false
-			for i = original.Ver or 1, actual.Ver do 
-				self:tReplaceKeys(original, self.GetTable[i] and self.GetTable[i][isGlobal])
-			end 
-			
-			A_Print("|cff00cc66" .. (isGlobal and "ActionDB.global " or "ActionDB.profile ") .. L["UPGRADEDFROM"] .. (original.Ver or 0) .. L["UPGRADEDTO"] .. actual.Ver .. "|r")
-			original.Ver = actual.Ver
-			return original 
+		end				
+		if pActionDB.Ver ~= oldVer then 
+			A_Print("|cff00cc66ActionDB.profile|r " .. L["UPGRADEDFROM"] .. (oldVer or 0) .. L["UPGRADEDTO"] .. pActionDB.Ver .. "|r")
 		end 
+		
+		-- gActionDB
+		oldVer = gActionDB.Ver -- Ver here
+		for ver, func in ipairs(self.gUpgrades) do 
+			if (gActionDB.Ver or 0) < ver then 
+				if func() ~= false then 
+					gActionDB.Ver = ver
+				end 
+			end 
+		end	
+		if gActionDB.Ver ~= oldVer then 
+			A_Print("|cff00cc66ActionDB.global|r " .. L["UPGRADEDFROM"] .. (oldVer or 0) .. L["UPGRADEDTO"] .. gActionDB.Ver .. "|r")
+		end 
+		
+		-- pActionDB for current profile 
+		local profileUpgrades = self.pUpgradesForProfile[Action.CurrentProfile]
+		if profileUpgrades then 
+			oldVer = pActionDB.Version -- Version here
+			
+			tsort(profileUpgrades, self.SortMethod)			
+			for _, profileUpgrade in ipairs(profileUpgrades) do 
+				if (pActionDB.Version or 0) < profileUpgrade.Version then 
+					if profileUpgrade.Func(pActionDB) ~= false then 
+						pActionDB.Version = profileUpgrade.Version
+					end 
+				end 
+			end
+			
+			if pActionDB.Version ~= oldVer then 
+				A_Print("|cff00cc66" .. Action.CurrentProfile .. "|r " .. L["UPGRADEDFROM"] .. (oldVer or 0) .. L["UPGRADEDTO"] .. pActionDB.Version .. "|r")
+			end 			
+		end 	
+	end,
+	RegisterForProfile 			= function(self, profileName, version, func)
+		-- This is for profile use in the lua snippets, they are initializing before call this function
+		-- @usage: 
+		--[[
+		Action.Upgrade:RegisterForProfile(Action.CurrentProfile, 1, function(pActionDB)
+			if Action.BuildToC < 90001 then 
+				return false -- if function returns 'false' it doesn't perform notify, the placement of return is matters
+			end 
+			-- do your staff of itself upgrade here, in case of example if we're above or equal 90001 xpac
+			pActionDB[2].toggleTable = nil 
+			pActionDB[7].msgList[Message] = nil 
+			-- alternative method of above which is better because it prints what it deletes
+			-- accepts special keys also 
+			Action.Upgrade.tEraseKeys(pActionDB, {
+				[2] = {
+					toggleTable = true,
+				},
+				[7] = {
+					msgList = {
+						["Message"] = true,
+					},
+				},
+			}, "cff00cc66ActionDB") -- the start path which will be added to next paths until final at the stage of erase 
+		end)
+		]]
+		if not self.pUpgradesForProfile[profileName] then 
+			self.pUpgradesForProfile[profileName] = {}
+		end 
+		
+		tinsert(self.pUpgradesForProfile[profileName], { Version = version, Func = func })
 	end,
 }
+do 
+	-- Push the utils 
+	Upgrade.tMerge = tMerge
+	Upgrade.tCompare = tCompare
+	Upgrade.tEraseKeys = tEraseKeys
+
+	-- Push to global 
+	Action.Upgrade = Upgrade
+end 
 
 -- DB controllers
 local function dbUpdate()
@@ -15433,16 +15490,14 @@ local function OnInitialize()
 	-- profile	
 	if not TMWdbprofile.ActionDB then 
 		A_Print("|cff00cc66ActionDB.profile|r " .. L["CREATED"])
-	else 
-		Upgrade:Perform(TMWdbprofile.ActionDB, Factory)
+		Factory.Ver = #Upgrade.pUpgrades
 	end	
 	TMWdbprofile.ActionDB = tCompare(tMerge(Factory, ProfileDB, true), TMWdbprofile.ActionDB) 
 		
 	-- global
 	if not TMWdbglobal.ActionDB then 		
 		A_Print("|cff00cc66ActionDB.global|r " .. L["CREATED"])
-	else 
-		Upgrade:Perform(TMWdbglobal.ActionDB, GlobalFactory)	
+		GlobalFactory.Ver = #Upgrade.gUpgrades
 	end
 	TMWdbglobal.ActionDB = tCompare(GlobalFactory, TMWdbglobal.ActionDB)
 
@@ -15451,6 +15506,7 @@ local function OnInitialize()
 	ActionHasFinishedLoading = true 
 	-- Again, update local variables: pActionDB and gActionDB mostly 
 	dbUpdate()	
+	Upgrade:Perform()
 	
 	----------------------------------
 	-- All remaps and additional sort DB 
