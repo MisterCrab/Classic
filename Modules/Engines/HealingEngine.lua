@@ -816,8 +816,8 @@ local function SetHealingTarget()
 end
 
 local function SetColorTarget()
-	-- If we have no one to heal
-	if healingTarget == none or healingTargetGUID == none then			
+	-- If we have no one to heal or we have already selected unit what need to heal
+	if healingTarget == none or healingTargetGUID == none or healingTargetGUID == UnitGUID(target) then			
 		return frame:SetColor(none)
 	end	
 	
