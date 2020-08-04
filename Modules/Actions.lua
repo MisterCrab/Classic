@@ -1,6 +1,16 @@
 local _G, type, next, pairs, ipairs, select, unpack, table, setmetatable, math, string, error 	= 	
 	  _G, type, next, pairs, ipairs, select, unpack, table, setmetatable, math, string, error
 	  
+local maxn					= table.maxn
+local tinsert 				= table.insert		
+local tsort 				= table.sort
+local strgsub				= string.gsub
+local strgmatch				= string.gmatch
+local strlen				= string.len
+local huge 					= math.huge
+local wipe 					= _G.wipe
+local hooksecurefunc		= _G.hooksecurefunc	  
+	  
 local TMW 					= _G.TMW
 local CNDT 					= TMW.CNDT
 local Env 					= CNDT.Env
@@ -82,16 +92,6 @@ local itemCategory 			= {
 	[18820] = "BOTH",
 }
 	  	  	  
-local maxn					= table.maxn
-local tinsert 				= table.insert		
-local tsort 				= table.sort
-local huge 					= math.huge
-local wipe 					= _G.wipe
-local hooksecurefunc		= _G.hooksecurefunc
-local strgsub				= string.gsub
-local strgmatch				= string.gmatch
-local strlen				= string.len
-
 local GetNetStats 			= _G.GetNetStats  	
 local GameLocale 			= _G.GetLocale()
 local GetCVar				= _G.GetCVar -- C_CVar why Classic hasn't it???
@@ -833,6 +833,8 @@ local Racial = {
 					end 
 				end 
 			end 
+			
+			return false 
 		end 			
 		
 		-- Bursting 
@@ -840,8 +842,8 @@ local Racial = {
 			return BurstIsON(unitID)
 		end 	
 		
-		-- [NO LOGIC - ALWAYS FALSE] 
-		return false 		
+		-- [NO LOGIC - ALWAYS TRUE] 
+		return true 		
 	end, 
 }
 
