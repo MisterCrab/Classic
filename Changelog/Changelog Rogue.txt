@@ -1,3 +1,8 @@
+[Rogue v12]
+Gouge											- Fixed miss typo with :AbsentImun (was missed important auras such as Divine Shield)
+Blind											- Fixed miss typo with :AbsentImun (was missed important auras such as Divine Shield)
+Backstub										- Fixed incorrect skip in PvE use against boss - removed condition of threat
+
 [Rogue v11]
 Vanish											- Added additional debuffs Phantom Strike and Faerie Fire (Feral) to query as usable condition 
 Stealth											- Added additional debuffs Phantom Strike and Faerie Fire (Feral) to query as usable condition 
