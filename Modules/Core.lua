@@ -17,6 +17,7 @@ local GetCurrentGCD									= A.GetCurrentGCD
 local GetPing										= A.GetPing
 local DetermineUsableObject							= A.DetermineUsableObject
 
+local Re 											= A.Re
 local BossMods										= A.BossMods
 local IsUnitEnemy									= A.IsUnitEnemy
 local Unit											= A.Unit 
@@ -379,7 +380,7 @@ function A.Rotation(icon)
 	end 	
 	
 	local meta = icon.ID
-	local metatype = GetMetaType[A[A.PlayerClass][meta] or "nill"]
+	local metatype = GetMetaType[A[A.PlayerClass][meta] or "nil"]
 	
 	-- [1] CC / [2] Kick 
 	if meta <= 2 then 
@@ -444,8 +445,8 @@ function A.Rotation(icon)
 		end 
 		
 		-- ReTarget 
-		if A.Zone == "pvp" and A:GetTimeSinceJoinInstance() >= 30 and A.LastTargetTexture and not A.LastTargetIsExists then  
-			return A:Show(icon, A.LastTargetTexture)
+		if A.Zone == "pvp" and (A:GetTimeSinceJoinInstance() >= 30 or Unit(player):CombatTime() > 0) and Re:CanTarget(icon) then  
+			return true
 		end 
 		
 		if not Player:IsStealthed() then 

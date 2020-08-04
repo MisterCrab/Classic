@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "31.07.2020"
+local DateTime 														= "04.08.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -200,8 +200,8 @@ local Localization = {
 				AUTOTARGET = "Auto Target",
 				AUTOTARGETTOOLTIP = "If the target is empty, but you are in combat, it will return the nearest enemy\nThe switcher works in the same way if the target has immunity in PvP\n\nRightClick: Create macro",					
 				POTION = "Potion",
-				RACIAL = "Racial spell",
-				STOPCAST = "Stop casting",
+				RACIAL = "Racial Spell",
+				STOPCAST = "Stop Casting",
 				SYSTEMSECTION = "System Section",
 				LOSSYSTEM = "LOS System",
 				LOSSYSTEMTOOLTIP = "ATTENTION: This option causes delay of 0.3s + current spinning gcd\nif unit being checked it is located in a lose (for example, behind a box at arena)\nYou must also enable the same setting in Advanced Settings\nThis option blacklists unit which in a lose and\nstops providing actions to it for N seconds\n\nRightClick: Create macro",
@@ -209,7 +209,7 @@ local Localization = {
 				STOPATBREAKABLETOOLTIP = "Will stop harmful damage on enemies\nIf they have CC such as Polymorph\nIt doesn't cancel auto attack!\n\nRightClick: Create macro",
 				BOSSTIMERS = "Boss Timers",
 				BOSSTIMERSTOOLTIP = "Required DBM or BigWigs addons\n\nTracking pull timers and some specific events such as trash incoming.\nThis feature is not availble for all the profiles!\n\nRightClick: Create macro",
-				HEALINGENGINEANYROLE = "HealingEngine any role",
+				HEALINGENGINEANYROLE = "HealingEngine Any Role",
 				HEALINGENGINEANYROLETOOLTIP = "Enable to use member targeting on any your role\n\nRightClick: Create macro",
 				FPS = "FPS Optimization",
 				FPSSEC = " (sec)",
@@ -729,8 +729,8 @@ local Localization = {
 				AUTOTARGET = "Авто Цель",
 				AUTOTARGETTOOLTIP = "Если цель пуста, но вы в бою, то вернет ближайшего противника в цель\nАналогично работает свитчер если в PvP цель имеет иммунитет\n\nПравая кнопка мышки: Создать макрос",					
 				POTION = "Зелье",
-				RACIAL = "Расовая способность",
-				STOPCAST = "Стоп кастить",
+				RACIAL = "Расовая Способность",
+				STOPCAST = "Стоп Произнесение",
 				SYSTEMSECTION = "Секция Систем",
 				LOSSYSTEM = "LOS Система",
 				LOSSYSTEMTOOLTIP = "ВНИМАНИЕ: Эта опция вызывает задержку 0.3сек + тек. крутящийся гкд\nесли проверяемый юнит находится в лосе (например за столбом на арене)\nВы также должны включить такую же настройку в Advanced Settings\nДанная опция заносит в черный список проверяемого юнита\nи перестает на N секунд предоставлять к нему действия если юнит в лосе\n\nПравая кнопка мышки: Создать макрос",
@@ -738,7 +738,7 @@ local Localization = {
 				STOPATBREAKABLETOOLTIP = "Остановит вредоносный урон по врагам\nЕсли у них есть CC, например, Превращение\nЭто не отменяет автоатаку!\n\nПравая кнопка мышки: Создать макрос",
 				BOSSTIMERS = "Босс Таймеры",
 				BOSSTIMERSTOOLTIP = "Требует DBM или BigWigs аддоны\n\nОтслеживает пулл таймер и некоторые спец. события такие как 'след.треш'.\nЭта опция доступна не для всех профилей!\n\nПравая кнопка мышки: Создать макрос",
-				HEALINGENGINEANYROLE = "HealingEngine любая роль",
+				HEALINGENGINEANYROLE = "HealingEngine Любая Роль",
 				HEALINGENGINEANYROLETOOLTIP = "Позволяет использовать выбор цели на любую вашу роль\n\nПравая кнопка мышки: Создать макрос",
 				FPS = "FPS Оптимизация",
 				FPSSEC = " (сек)",
@@ -1269,7 +1269,7 @@ local Localization = {
 				STOPATBREAKABLETOOLTIP = "Verhindert schädlichen Schaden bei Feinden\nWenn sie CC wie Polymorph haben\nDer automatische Angriff wird nicht abgebrochen!\n\nRechtsklick: Makro erstellen",
 				BOSSTIMERS = "Bosse Timers",
 				BOSSTIMERSTOOLTIP = "Erforderliche DBM oder BigWigs addons\n\nVerfolgen von Pull-Timern und bestimmten Ereignissen, z. B. eingehendem Thrash.\nDiese Funktion ist nicht für alle Profile verfügbar!\n\nKlicken mit der rechten Maustaste: Makro erstellen",
-				HEALINGENGINEANYROLE = "HealingEngine irgendeine Rolle",
+				HEALINGENGINEANYROLE = "HealingEngine Irgendeine Rolle",
 				HEALINGENGINEANYROLETOOLTIP = "Aktivieren Sie diese Option, um das Mitglieder-Targeting für jede Ihrer Rollen zu verwenden\n\nRechtsklick: Makro erstellen",
 				FPS = "FPS Optimierungen",
 				FPSSEC = " (sec)",
@@ -1791,7 +1791,7 @@ local Localization = {
 				AUTOTARGET = "Ciblage Automatique",
 				AUTOTARGETTOOLTIP = "Si vous n'avez pas de cible, mais que vous êtes en combat, il va choisir la cible la plus proche\n Le basculement fonctionne de la même manière si la cible est immunisé en PVP\n\nClique droit : Créer la macro",					
 				POTION = "Potion",
-				RACIAL = "Sort raciaux",
+				RACIAL = "Sort Raciaux",
 				STOPCAST = "Arrêtez le casting",
 				SYSTEMSECTION = "Section système",
 				LOSSYSTEM = "Système LOS",
@@ -6783,7 +6783,7 @@ function Action.RacialIsON(self)
 end 
 
 -- [1] ReTarget
-local Re = {
+local Re; Re = {
 	Units = { "arena1", "arena2", "arena3" },
 	-- Textures 
 	target = {
@@ -6792,37 +6792,73 @@ local Re = {
 		["arena3"] = ActionConst.PVP_TARGET_ARENA3,
 	},
 	-- OnEvent 
-	PLAYER_TARGET_CHANGED = function(self)
+	PLAYER_TARGET_CHANGED = function()
 		if Action.Zone == "pvp" then 			
 			if UnitExists("target") then 
-				Action.LastTargetIsExists = true 
-				for i = 1, #self.Units do
-					if UnitIsUnit("target", self.Units[i]) then 
-						Action.LastTargetUnitID = self.Units[i]
-						Action.LastTargetTexture = self.target[Action.LastTargetUnitID]
+				Re.LastTargetIsExists = true 
+				for i = 1, #Re.Units do
+					if UnitIsUnit("target", Re.Units[i]) then 
+						Re.LastTargetUnitID = Re.Units[i]
+						Re.LastTargetTexture = Re.target[Re.LastTargetUnitID]
 						break
 					end 
 				end 
 			else
-				Action.LastTargetIsExists = false 
+				Re.LastTargetIsExists = false 
 			end 
 		end 		
 	end,	
+	-- OnInitialize, OnProfileChanged
 	Reset 			= function(self)		
 		A_Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED")
-		Action.LastTargetIsExists	= nil
-		Action.LastTargetUnitID 	= nil 
-		Action.LastTargetTexture 	= nil 	
+		self.LastTargetIsExists	= nil
+		self.LastTargetUnitID 	= nil 
+		self.LastTargetTexture 	= nil 	
+		
+		Action.Re:ClearTarget()
 	end,
 	Initialize		= function(self)
 		if A_GetToggle(1, "ReTarget") then 
-			A_Listener:Add("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED", function() self:PLAYER_TARGET_CHANGED() end)
-			self:PLAYER_TARGET_CHANGED()
+			A_Listener:Add("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED", self.PLAYER_TARGET_CHANGED)
+			self.PLAYER_TARGET_CHANGED()
 		else 
 			A_Listener:Remove("ACTION_EVENT_RE", 	"PLAYER_TARGET_CHANGED")
-			Action.LastTargetIsExists	= nil
-			Action.LastTargetUnitID 	= nil 
-			Action.LastTargetTexture 	= nil 			
+			self.LastTargetIsExists	= nil
+			self.LastTargetUnitID 	= nil 
+			self.LastTargetTexture 	= nil 			
+		end 
+	end,
+}
+
+Action.Re = {
+	-- Target 
+	SetTarget 	= function(self, unitID)
+		-- Creates schedule to set in target the 'unitID'
+		if not Re.target[unitID] then 
+			error("Action.Re:SetTarget must have valid for own API the 'unitID' param. Input: " .. (unitID or "nil"))
+			return 
+		end
+		
+		Re.ManualTargetUnitID 	= unitID
+		Re.ManualTargetTexture 	= Re.target[unitID]
+	end,	
+	ClearTarget = function(self)
+		Re.ManualTargetUnitID 	= nil 
+		Re.ManualTargetTexture 	= nil 		
+	end,
+	CanTarget	= function(self, icon)
+		-- @return boolean 
+		-- Note: Only for internal use for Core.lua
+		if not Re.LastTargetIsExists and Re.LastTargetTexture and UnitExists(Re.LastTargetUnitID) then 
+			return Action:Show(icon, Re.LastTargetTexture)
+		end 
+		
+		if Re.ManualTargetTexture and UnitExists(Re.ManualTargetUnitID) then 
+			if UnitIsUnit("target", Re.ManualTargetUnitID) then 				
+				return self:ClearTarget() 
+			else 
+				return Action:Show(icon, Re.ManualTargetTexture)
+			end 
 		end 
 	end,
 }
@@ -6845,11 +6881,15 @@ local LineOfSight = {
 
 		if not UnitIsUnit("target", unitID) and A_Unit(unitID):IsNameplateAny() then 
 			-- Not valid for @target
+			local UnitFrame
 			for i = 1, huge do 
 				if not self.NamePlateFrame[i] then 
 					break 
-				elseif self.NamePlateFrame[i].UnitFrame.unitExists and UnitIsUnit(self.NamePlateFrame[i].UnitFrame.unit, unitID) then
-					return self.NamePlateFrame[i].UnitFrame:GetEffectiveAlpha() <= 0.4				
+				else
+					UnitFrame = self.NamePlateFrame[i].UnitFrame
+					if UnitFrame and UnitFrame.unitExists and UnitIsUnit(UnitFrame.unit, unitID) then
+						return UnitFrame:GetEffectiveAlpha() <= 0.4
+					end 
 				end 
 			end 
 		else 
