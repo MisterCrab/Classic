@@ -1,6 +1,12 @@
 local _G, error, type, pairs, next, select, math =
 	  _G, error, type, pairs, next, select, math
 	  
+local huge 						= math.huge 
+local math_max					= math.max 
+local math_min					= math.min	  
+local math_floor				= math.floor 	  
+local wipe 						= _G.wipe 	  
+	  
 local TMW 						= _G.TMW
 local CNDT						= TMW.CNDT 
 local Env 						= CNDT.Env
@@ -15,12 +21,6 @@ local TeamCache					= A.TeamCache
 local TeamCacheFriendly 		= TeamCache.Friendly
 local TeamCacheFriendlyUNITs	= TeamCacheFriendly.UNITs
 	  
-local wipe 						= _G.wipe 
-local huge 						= math.huge 
-local math_max					= math.max 
-local math_min					= math.min	  
-local math_floor				= math.floor 	  
-
 local Enum 						= _G.Enum 
 local PowerType 				= Enum.PowerType
 local ManaPowerType 			= PowerType.Mana
@@ -386,12 +386,15 @@ A.Player = {
 	UnitID = "player",
 }
 
-function A.Player:IsStance(x)
+local Player 		= A.Player
+local PlayerClass 	= A.PlayerClass
+
+function Player:IsStance(x)
 	-- @return boolean 
 	return Data.Stance == x
 end 
 
-function A.Player:GetStance()
+function Player:GetStance()
 	-- @return number 
 	--[[Number - one of following:
 		All
@@ -421,7 +424,7 @@ function A.Player:GetStance()
 	return Data.Stance
 end 
 
-function A.Player:IsFalling()
+function Player:IsFalling()
 	-- @return boolean (more accurate IsFalling function, which excludes jumps), number 
     if IsFalling() then         
         if Data.TimeStampFalling == 0 then 
@@ -435,37 +438,37 @@ function A.Player:IsFalling()
     return false, 0
 end
 
-function A.Player:GetFalling()
+function Player:GetFalling()
 	-- @return number 
 	return select(2, self:IsFalling())
 end 
 
-function A.Player:IsMoving()
+function Player:IsMoving()
 	-- @return boolean 
 	return Data.TimeStampMoving ~= 0
 end 
 
-function A.Player:IsMovingTime()
+function Player:IsMovingTime()
 	-- @return number (seconds) 
 	return Data.TimeStampMoving == 0 and 0 or TMW.time - Data.TimeStampMoving
 end 
 
-function A.Player:IsStaying()
+function Player:IsStaying()
 	-- @return boolean 
 	return Data.TimeStampStaying ~= 0 
 end 
 
-function A.Player:IsStayingTime()
+function Player:IsStayingTime()
 	-- @return number (seconds) 
 	return Data.TimeStampStaying == 0 and 0 or TMW.time - Data.TimeStampStaying
 end 
 
-function A.Player:IsShooting()
+function Player:IsShooting()
 	-- @return boolean 
 	return Data.AutoShootActive
 end 
 
-function A.Player:GetSwingShoot()
+function Player:GetSwingShoot()
 	-- @return number
 	if TMW.time <= Data.AutoShootNextTick then 
 		return Data.AutoShootNextTick - TMW.time 
@@ -473,88 +476,88 @@ function A.Player:GetSwingShoot()
 	return 0 
 end 
 
-function A.Player:IsAttacking()
+function Player:IsAttacking()
 	-- @return boolean 
 	return Data.AttackActive
 end 
 
-function A.Player:IsBehind(x)
+function Player:IsBehind(x)
 	-- @return boolean 
 	-- Note: Returns true if player is behind the target since x seconds taken from the last ui message 
 	return TMW.time > Data.PlayerBehind + (x or 2.5)
 end 
 
-function A.Player:IsBehindTime()
+function Player:IsBehindTime()
 	-- @retun number 
 	-- Note: Returns time since player behind the target 
 	return TMW.time - Data.PlayerBehind
 end 
 
-function A.Player:IsPetBehind(x)
+function Player:IsPetBehind(x)
 	-- @return boolean 
 	-- Note: Returns true if pet is behind the target since x seconds taken from the last ui message 
 	return TMW.time > Data.PetBehind + (x or 2.5)
 end 
 
-function A.Player:IsPetBehindTime()
+function Player:IsPetBehindTime()
 	-- @return number 
 	-- Note: Returns time since pet behind the target
 	return TMW.time - Data.PetBehind
 end 
 
-function A.Player:IsMounted()
+function Player:IsMounted()
 	-- @return boolean
-	return IsMounted() and (not DataAuraOnCombatMounted[A.PlayerClass] or A_Unit(self.UnitID):HasBuffs(DataAuraOnCombatMounted[A.PlayerClass], true) == 0)
+	return IsMounted() and (not DataAuraOnCombatMounted[PlayerClass] or A_Unit(self.UnitID):HasBuffs(DataAuraOnCombatMounted[PlayerClass], true) == 0)
 end 
 
-function A.Player:IsSwimming()
+function Player:IsSwimming()
 	-- @return boolean 
 	return IsSwimming() or IsSubmerged()
 end 
 
-function A.Player:IsStealthed()
+function Player:IsStealthed()
 	-- @return boolean 
-	return IsStealthed() or (A.PlayerRace == "NightElf" and A_Unit(self.UnitID):HasBuffs(DataAuraStealthed.Shadowmeld, true, true) > 0) or (DataAuraStealthed[A.PlayerClass] and A_Unit(self.UnitID):HasBuffs(DataAuraStealthed[A.PlayerClass], true, true) > 0) 
+	return IsStealthed() or (A.PlayerRace == "NightElf" and A_Unit(self.UnitID):HasBuffs(DataAuraStealthed.Shadowmeld, true, true) > 0) or (DataAuraStealthed[PlayerClass] and A_Unit(self.UnitID):HasBuffs(DataAuraStealthed[PlayerClass], true, true) > 0) 
 end 
 
-function A.Player:IsCasting()
+function Player:IsCasting()
 	-- @return castName or nil 
 	local castName, _, _, _, _, isChannel = A_Unit(self.UnitID):IsCasting()
 	return not isChannel and castName or nil 
 end 
 
-function A.Player:IsChanneling()
+function Player:IsChanneling()
 	-- @return castName or nil 
 	local castName, _, _, _, _, isChannel = A_Unit(self.UnitID):IsCasting()
 	return isChannel and castName or nil 
 end 
 
-function A.Player:CastTimeSinceStart()
+function Player:CastTimeSinceStart()
 	-- @return number 
 	-- Note: Returns seconds since any event which triggered start cast 
 	return TMW.time - Data.TimeStampCasting
 end
 
-function A.Player:CastRemains(spellID)
+function Player:CastRemains(spellID)
 	-- @return number 
 	return A_Unit(self.UnitID):IsCastingRemains(spellID)
 end 
 
-function A.Player:CastCost()
+function Player:CastCost()
 	-- @return number 
 	-- Note: Real time value (it's not cached)
 	local castName, _, _, _, spellID = A_Unit(self.UnitID):IsCasting()
 	return castName and A_GetSpellPowerCost(spellID) or 0
 end 
 
-function A.Player:CastCostCache()
+function Player:CastCostCache()
 	-- @return number 
 	local castName, _, _, _, spellID = A_Unit(self.UnitID):IsCasting()
 	return castName and A_GetSpellPowerCostCache(spellID) or 0
 end 
 
 -- Auras 
-function A.Player:CancelBuff(buffName)
+function Player:CancelBuff(buffName)
 	-- @return nil 
 	if not InCombatLockdown() or issecure() then 
 		CancelSpellByName(buffName)	
@@ -572,7 +575,7 @@ function A.Player:CancelBuff(buffName)
 	end
 end 
 
-function A.Player:GetBuffsUnitCount(...)
+function Player:GetBuffsUnitCount(...)
 	-- @return number 
 	-- Returns how much units are applied by buffs in vararg
 	-- ... accepts spellID and spellName 
@@ -598,7 +601,7 @@ function A.Player:GetBuffsUnitCount(...)
 	return counter
 end 
 
-function A.Player:GetDeBuffsUnitCount(...)
+function Player:GetDeBuffsUnitCount(...)
 	-- @return number 
 	-- Returns how much units are applied by buffs in vararg
 	-- ... accepts spellID, spellName and action object 
@@ -625,7 +628,7 @@ function A.Player:GetDeBuffsUnitCount(...)
 end 
 
 -- Classic: Totems 
-function A.Player:GetTotemInfo(i)
+function Player:GetTotemInfo(i)
 	-- @return: haveTotem, totemName, startTime, duration, icon, spellid, rank = GetTotemInfo(1 through 4)
 	-- <https://wow.gamepedia.com/API_GetTotemInfo>
 	-- Added return value by the lib (not in Blizzard old interface):
@@ -636,28 +639,28 @@ function A.Player:GetTotemInfo(i)
 	return GetTotemInfo(i)
 end 
 
-function A.Player:GetTotemTimeLeft(i)
+function Player:GetTotemTimeLeft(i)
 	-- @return: number (timeLeft = GetTotemTimeLeft(1 through 4))
 	-- Example: <https://github.com/SwimmingTiger/LibTotemInfo/issues/2>
 	return GetTotemTimeLeft(i)
 end 
 
 -- crit_chance
-function A.Player:CritChancePct()
+function Player:CritChancePct()
 	return GetCritChance()
 end
 
 -- haste
-function A.Player:HastePct()
+function Player:HastePct()
 	return GetHaste()
 end
 
-function A.Player:SpellHaste()
+function Player:SpellHaste()
 	return 1 / (1 + (self:HastePct() / 100))
 end
 
 -- execute_time
-function A.Player:Execute_Time(spellID) 
+function Player:Execute_Time(spellID) 
     -- @return boolean (GCD > CastTime or GCD)
     local gcd 		= A_GetGCD()
 	local cast_time = A_Unit(self.UnitID):CastTime(spellID)     
@@ -668,13 +671,13 @@ function A.Player:Execute_Time(spellID)
     end	
 end 
 
-function A.Player:GCDRemains()
+function Player:GCDRemains()
 	-- @return number 
 	return A_GetCurrentGCD()
 end 
 
 -- Swing 
-function A.Player:GetSwing(inv)
+function Player:GetSwing(inv)
 	-- @return number (time in seconds of the swing for each slot)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
@@ -694,7 +697,7 @@ function A.Player:GetSwing(inv)
 	return Env.SwingDuration(inv)
 end 
 
-function A.Player:GetSwingMax(inv)
+function Player:GetSwingMax(inv)
 	-- @return number (max duration taken from the last swing)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
@@ -714,7 +717,7 @@ function A.Player:GetSwingMax(inv)
 	return SwingTimers[inv] and SwingTimers[inv].duration or 0
 end 
 
-function A.Player:GetSwingStart(inv)
+function Player:GetSwingStart(inv)
 	-- @return number (start stamp taken from the last swing)
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), 3 (range), 4 (main + off hands), 5 (all)
 	if inv == 1 then 
@@ -734,8 +737,8 @@ function A.Player:GetSwingStart(inv)
 	return SwingTimers[inv] and SwingTimers[inv].startTime or 0
 end 
 
-function A.Player:ReplaceSwingDuration(inv, dur)
-	-- @usage A.Player:ReplaceSwingDuration(1, 2.6)
+function Player:ReplaceSwingDuration(inv, dur)
+	-- @usage Player:ReplaceSwingDuration(1, 2.6)
 	if inv == 1 then 
 		inv = CONST.INVSLOT_MAINHAND
 	elseif inv == 2 then 
@@ -774,7 +777,7 @@ function A.Player:ReplaceSwingDuration(inv, dur)
 	end 
 end 
 
-function A.Player:GetWeaponMeleeDamage(inv, mod)
+function Player:GetWeaponMeleeDamage(inv, mod)
 	-- @return number (full average damage), number (average damage per second)
 	-- Note: This is only for white hits, usually to calculate damage taken from spell's tooltip
 	-- Note: inv can be constance or 1 (main hand / dual hand), 2 (off hand), nil (both)
@@ -803,49 +806,47 @@ function A.Player:GetWeaponMeleeDamage(inv, mod)
 end 
 
 -- Swap 
-function A.Player:IsSwapLocked()
+function Player:IsSwapLocked()
 	-- @return boolean 
 	-- Note: This condition must be checked always before equip swap
 	return Data.isSwapLocked 
 end 
 
 -- Equipment
-function A.Player:RemoveTier(tier)
-	-- @usage A.Player:RemoveTier("Tier21")
+function Player:RemoveTier(tier)
+	-- @usage Player:RemoveTier("Tier21")
 	DataCheckItems[tier] = nil 
 	DataCountItems[tier] = nil
 	if not next(DataCheckItems) then 
 		Data.IierIsInitialized = nil 
-		--Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD")
 		Listener:Remove("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED")		
 	end 
 end
 
-function A.Player:AddTier(tier, items)
-	-- @usage A.Player:AddTier("Tier21", { itemID, itemID, itemID, itemID, itemID, itemID })
+function Player:AddTier(tier, items)
+	-- @usage Player:AddTier("Tier21", { itemID, itemID, itemID, itemID, itemID, itemID })
 	DataCheckItems[tier] = items 
 	DataCountItems[tier] = 0
 	if not Data.IierIsInitialized then 
 		Data.IierIsInitialized = true 
-		--Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_ENTERING_WORLD", 	Data.OnItemsUpdate)
 		Listener:Add("ACTION_EVENT_EQUIPMENT", "PLAYER_EQUIPMENT_CHANGED",	Data.OnItemsUpdate)			
 	end 
 	Data.OnItemsUpdate()
 end
 
-function A.Player:GetTier(tier)
+function Player:GetTier(tier)
 	-- @return number (how much parts of tier gear is equipped)
 	return DataCountItems[tier] or 0
 end 
 
-function A.Player:HasTier(tier, count)
+function Player:HasTier(tier, count)
 	-- @return boolean 
 	return self:GetTier(tier) >= count 
 end 
 
 -- Bags 
-function A.Player:RemoveBag(name)
-	-- @usage A.Player:RemoveBag("SOMETHING")
+function Player:RemoveBag(name)
+	-- @usage Player:RemoveBag("SOMETHING")
 	if DataCheckBags[name] then 
 		Data.CheckBagsMaxN	 = Data.CheckBagsMaxN - 1
 	end 
@@ -860,8 +861,8 @@ function A.Player:RemoveBag(name)
 	end 
 end 
 
-function A.Player:AddBag(name, data)
-	-- @usage A.Player:AddBag("SOMETHING", { itemID = 123123 }) or A.Player:AddBag("SHIELDS", { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
+function Player:AddBag(name, data)
+	-- @usage Player:AddBag("SOMETHING", { itemID = 123123 }) or Player:AddBag("SHIELDS", { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
 	-- Optional: itemEquipLoc, itemClassID, itemSubClassID, itemID, isEquippableItem but at least one of them must be up 
 	-- More info about itemClassID, itemSubClassID here: https://wow.gamepedia.com/ItemType
 	if not DataCheckBags[name] then 
@@ -878,14 +879,14 @@ function A.Player:AddBag(name, data)
 	Data.logBag()
 end 
 
-function A.Player:GetBag(name)
+function Player:GetBag(name)
 	-- @return table info ( .count , .itemID ) or nil 
 	return DataInfoBags[name]
 end 
 
 -- Inventory 
-function A.Player:RemoveInv(name)
-	-- @usage A.Player:RemoveInv("SOMETHING")
+function Player:RemoveInv(name)
+	-- @usage Player:RemoveInv("SOMETHING")
 	DataCheckInv[name] = nil 
 	DataInfoInv[name]	= nil 
 	if not next(DataCheckInv) then 
@@ -894,8 +895,8 @@ function A.Player:RemoveInv(name)
 	end 
 end 
 
-function A.Player:AddInv(name, slot, data)
-	-- @usage A.Player:AddInv("SOMETHING", ACTION_CONST_INVSLOT_OFFHAND, { itemID = 123123 }) or A.Player:AddInv("SHIELDS", ACTION_CONST_INVSLOT_OFFHAND, { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
+function Player:AddInv(name, slot, data)
+	-- @usage Player:AddInv("SOMETHING", ACTION_CONST_INVSLOT_OFFHAND, { itemID = 123123 }) or Player:AddInv("SHIELDS", ACTION_CONST_INVSLOT_OFFHAND, { itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, isEquippableItem = true })
 	-- Optional: itemEquipLoc, itemClassID, itemSubClassID, itemID, isEquippableItem all of them can be omited 
 	-- More info about itemClassID, itemSubClassID here: https://wow.gamepedia.com/ItemType
 	data.slot 			= slot 
@@ -907,7 +908,7 @@ function A.Player:AddInv(name, slot, data)
 	Data.logInv()
 end 
 
-function A.Player:GetInv(name)
+function Player:GetInv(name)
 	-- @return table info ( .slot , .itemID ) or nil 
 	return DataInfoInv[name]
 end 
@@ -915,24 +916,24 @@ end
 -----------------------------------
 --- Shared Functions | Register ---
 -----------------------------------
-function A.Player:RegisterAmmo()
+function Player:RegisterAmmo()
 	-- Registers to track ammo count in bags
 	self:AddBag("AMMO1", 														{ itemClassID = LE_ITEM_CLASS_PROJECTILE, itemSubClassID = 2 												})
 	self:AddBag("AMMO2", 														{ itemClassID = LE_ITEM_CLASS_PROJECTILE, itemSubClassID = 3 												})
 end 
 
-function A.Player:RegisterThrown()
+function Player:RegisterThrown()
 	-- Registers to track throwns count in bags 
 	self:AddBag("THROWN", 														{ itemEquipLoc = "INVTYPE_THROWN"																			})
 end 
 
-function A.Player:RegisterShield()
+function Player:RegisterShield()
 	-- Registers to track shields in bags or equiped 
 	self:AddBag("SHIELD", 														{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD, 	isEquippableItem = true 	})
 	self:AddInv("SHIELD", 			CONST.INVSLOT_OFFHAND, 						{ itemClassID = LE_ITEM_CLASS_ARMOR, itemSubClassID = LE_ITEM_ARMOR_SHIELD 									})
 end 
 
-function A.Player:RegisterWeaponOffHand()
+function Player:RegisterWeaponOffHand()
 	-- Registers to track off hand weapons in bags or equiped 
 	self:AddBag("WEAPON_OFFHAND_1", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE1H, 	isEquippableItem = true 	})
 	self:AddBag("WEAPON_OFFHAND_2", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE1H, 	isEquippableItem = true 	})
@@ -942,7 +943,7 @@ function A.Player:RegisterWeaponOffHand()
 	self:AddInv("WEAPON_OFFHAND", 	CONST.INVSLOT_OFFHAND, 						{ itemClassID = LE_ITEM_CLASS_WEAPON 																		})
 end 
 
-function A.Player:RegisterWeaponTwoHand()
+function Player:RegisterWeaponTwoHand()
 	-- Registers to track two hand weapons in bags or equiped 
 	self:AddBag("WEAPON_TWOHAND_1", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_AXE2H, 	isEquippableItem = true 	})
 	self:AddBag("WEAPON_TWOHAND_2", 											{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_MACE2H, 	isEquippableItem = true 	})
@@ -956,19 +957,19 @@ function A.Player:RegisterWeaponTwoHand()
 	self:AddInv("WEAPON_TWOHAND_5", CONST.INVSLOT_MAINHAND, 					{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_STAFF									})
 end 
 
-function A.Player:RegisterWeaponMainOneHandDagger()
+function Player:RegisterWeaponMainOneHandDagger()
 	-- Registers to track dagger in the main one hand (not two hand) weapon in bags or equiped 
 	self:AddBag("WEAPON_MAINHAND_DAGGER", 										{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER, 	isEquippableItem = true		})
 	self:AddInv("WEAPON_MAINHAND_DAGGER", 		CONST.INVSLOT_MAINHAND, 		{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_DAGGER								})
 end 
 
-function A.Player:RegisterWeaponMainOneHandSword()
+function Player:RegisterWeaponMainOneHandSword()
 	-- Registers to track sword in the main one hand (not two hand) weapon in bags or equiped 
 	self:AddBag("WEAPON_MAIN_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, 	isEquippableItem = true 	})
 	self:AddInv("WEAPON_MAIN_ONE_HAND_SWORD", 	CONST.INVSLOT_MAINHAND, 		{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
 end 
 
-function A.Player:RegisterWeaponOffOneHandSword()
+function Player:RegisterWeaponOffOneHandSword()
 	-- Registers to track sword in the off one hand weapon in bags or equiped 
 	self:AddBag("WEAPON_OFF_ONE_HAND_SWORD", 									{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H, 	isEquippableItem = true 	})
 	self:AddInv("WEAPON_OFF_ONE_HAND_SWORD", 	CONST.INVSLOT_OFFHAND, 			{ itemClassID = LE_ITEM_CLASS_WEAPON, itemSubClassID = LE_ITEM_WEAPON_SWORD1H								})
@@ -977,31 +978,31 @@ end
 ------------------------------
 --- Shared Functions | API ---
 ------------------------------
-function A.Player:GetAmmo()
+function Player:GetAmmo()
 	-- @return number 
 	-- Returns number of remain ammo (Arrow or Bullet depended on what first found) , 0 if none 
 	return (self:GetBag("AMMO1") and self:GetBag("AMMO1").count) or (self:GetBag("AMMO2") and self:GetBag("AMMO2").count)
 end 
 
-function A.Player:GetArrow()
+function Player:GetArrow()
 	-- @return number 
 	-- Returns number of remain arrows, 0 if none 
 	return (self:GetBag("AMMO1") and self:GetBag("AMMO1").count) or 0 
 end 
 
-function A.Player:GetBullet()
+function Player:GetBullet()
 	-- @return number 
 	-- Returns number of remain bullets, 0 if none 
 	return (self:GetBag("AMMO2") and self:GetBag("AMMO2").count) or 0 
 end 
 
-function A.Player:GetThrown()
+function Player:GetThrown()
 	-- @return number 
 	-- Returns number of remain throwns, 0 if none  
 	return (self:GetBag("THROWN") and self:GetBag("THROWN").count) or 0 
 end 
 
-function A.Player:HasShield(isEquiped)
+function Player:HasShield(isEquiped)
 	-- @return itemID or nil  
 	-- Bag 
 	if not isEquiped then 
@@ -1012,7 +1013,7 @@ function A.Player:HasShield(isEquiped)
 	end 
 end 
 
-function A.Player:HasWeaponOffHand(isEquiped)
+function Player:HasWeaponOffHand(isEquiped)
 	-- @return itemID or nil 
 	-- Bag 
 	if not isEquiped then 
@@ -1029,7 +1030,7 @@ function A.Player:HasWeaponOffHand(isEquiped)
 	end 	
 end 
 
-function A.Player:HasWeaponTwoHand(isEquiped)
+function Player:HasWeaponTwoHand(isEquiped)
 	-- @return itemID or nil 
 	-- Bag 
 	if not isEquiped then 
@@ -1052,7 +1053,7 @@ function A.Player:HasWeaponTwoHand(isEquiped)
 	end 	
 end 
 
-function A.Player:HasWeaponMainOneHandDagger(isEquiped)
+function Player:HasWeaponMainOneHandDagger(isEquiped)
 	-- @return itemID or nil  
 	-- Bag 
 	if not isEquiped then 
@@ -1063,7 +1064,7 @@ function A.Player:HasWeaponMainOneHandDagger(isEquiped)
 	end 
 end 
 
-function A.Player:HasWeaponMainOneHandSword(isEquiped)
+function Player:HasWeaponMainOneHandSword(isEquiped)
 	-- @return itemID or nil 
 	-- Bag 
 	if not isEquiped then 
@@ -1074,7 +1075,7 @@ function A.Player:HasWeaponMainOneHandSword(isEquiped)
 	end 	
 end 
 
-function A.Player:HasWeaponOffOneHandSword(isEquiped)
+function Player:HasWeaponOffOneHandSword(isEquiped)
 	-- @return itemID or nil 
 	-- Bag 
 	if not isEquiped then 
@@ -1089,43 +1090,43 @@ end
 --- 0 | Mana Functions ---
 --------------------------
 -- mana.max
-function A.Player:ManaMax()
+function Player:ManaMax()
 	return UnitPowerMax(self.UnitID, ManaPowerType)
 end
 
 -- Mana
-function A.Player:Mana()
+function Player:Mana()
 	return UnitPower(self.UnitID, ManaPowerType)
 end
 
 -- Mana.pct
-function A.Player:ManaPercentage()
+function Player:ManaPercentage()
 	return (self:Mana() / self:ManaMax()) * 100
 end
 
 -- Mana.deficit
-function A.Player:ManaDeficit()
+function Player:ManaDeficit()
 	return self:ManaMax() - self:Mana()
 end
 
 -- "Mana.deficit.pct"
-function A.Player:ManaDeficitPercentage()
+function Player:ManaDeficitPercentage()
 	return (self:ManaDeficit() / self:ManaMax()) * 100
 end
 
 -- mana.regen
-function A.Player:ManaRegen()
+function Player:ManaRegen()
 	return math_floor(GetPowerRegen(self.UnitID))
 end
 
 -- Mana regen in a cast
-function A.Player:ManaCastRegen(CastTime)
+function Player:ManaCastRegen(CastTime)
 	if self:ManaRegen() == 0 then return -1 end
 	return self:ManaRegen() * CastTime
 end
 
 -- "remaining_cast_regen"
-function A.Player:ManaRemainingCastRegen(Offset)
+function Player:ManaRemainingCastRegen(Offset)
 	if self:ManaRegen() == 0 then return -1 end
 	-- If we are casting, we check what we will regen until the end of the cast
 	if self:IsCasting() then
@@ -1137,13 +1138,13 @@ function A.Player:ManaRemainingCastRegen(Offset)
 end
 
 -- mana.time_to_max
-function A.Player:ManaTimeToMax()
+function Player:ManaTimeToMax()
 	if self:ManaRegen() == 0 then return -1 end
 	return self:ManaDeficit() / self:ManaRegen()
 end
 
 -- Mana Predicted with current cast
-function A.Player:ManaP()
+function Player:ManaP()
 	local FutureMana = self:Mana() - self:CastCost()
 	-- Add the mana tha we will regen during the remaining of the cast
 	if self:Mana() ~= self:ManaMax() then FutureMana = FutureMana + self:ManaRemainingCastRegen() end
@@ -1153,17 +1154,17 @@ function A.Player:ManaP()
 end
 
 -- Mana.pct Predicted with current cast
-function A.Player:ManaPercentageP()
+function Player:ManaPercentageP()
 	return (self:ManaP() / self:ManaMax()) * 100
 end
 
 -- Mana.deficit Predicted with current cast
-function A.Player:ManaDeficitP()
+function Player:ManaDeficitP()
 	return self:ManaMax() - self:ManaP()
 end
 
 -- "Mana.deficit.pct" Predicted with current cast
-function A.Player:ManaDeficitPercentageP()
+function Player:ManaDeficitPercentageP()
 	return (self:ManaDeficitP() / self:ManaMax()) * 100
 end
 
@@ -1171,27 +1172,27 @@ end
 --- 1 | Rage Functions ---
 --------------------------
 -- rage.max
-function A.Player:RageMax()
+function Player:RageMax()
 	return UnitPowerMax(self.UnitID, RagePowerType)
 end
 
 -- rage
-function A.Player:Rage()
+function Player:Rage()
 	return UnitPower(self.UnitID, RagePowerType)
 end
 
 -- rage.pct
-function A.Player:RagePercentage()
+function Player:RagePercentage()
 	return (self:Rage() / self:RageMax()) * 100
 end
 
 -- rage.deficit
-function A.Player:RageDeficit()
+function Player:RageDeficit()
 	return self:RageMax() - self:Rage()
 end
 
 -- "rage.deficit.pct"
-function A.Player:RageDeficitPercentage()
+function Player:RageDeficitPercentage()
 	return (self:RageDeficit() / self:RageMax()) * 100
 end
 
@@ -1199,66 +1200,66 @@ end
 --- 2 | Focus Functions ---
 ---------------------------
 -- focus.max
-function A.Player:FocusMax()
+function Player:FocusMax()
 	return UnitPowerMax(self.UnitID, FocusPowerType)
 end
 
 -- focus
-function A.Player:Focus()
+function Player:Focus()
 	return UnitPower(self.UnitID, FocusPowerType)
 end
 
 -- focus.regen
-function A.Player:FocusRegen()
+function Player:FocusRegen()
 	return math_floor(GetPowerRegen(self.UnitID))
 end
 
 -- focus.pct
-function A.Player:FocusPercentage()
+function Player:FocusPercentage()
 	return (self:Focus() / self:FocusMax()) * 100
 end
 
 -- focus.deficit
-function A.Player:FocusDeficit()
+function Player:FocusDeficit()
 	return self:FocusMax() - self:Focus()
 end
 
 -- "focus.deficit.pct"
-function A.Player:FocusDeficitPercentage()
+function Player:FocusDeficitPercentage()
 	return (self:FocusDeficit() / self:FocusMax()) * 100
 end
 
 -- "focus.regen.pct"
-function A.Player:FocusRegenPercentage()
+function Player:FocusRegenPercentage()
 	return (self:FocusRegen() / self:FocusMax()) * 100
 end
 
 -- focus.time_to_max
-function A.Player:FocusTimeToMax()
+function Player:FocusTimeToMax()
 	if self:FocusRegen() == 0 then return -1 end
 	return self:FocusDeficit() / self:FocusRegen()
 end
 
 -- "focus.time_to_x"
-function A.Player:FocusTimeToX(Amount)
+function Player:FocusTimeToX(Amount)
 	if self:FocusRegen() == 0 then return -1 end
 	return Amount > self:Focus() and (Amount - self:Focus()) / self:FocusRegen() or 0
 end
 
 -- "focus.time_to_x.pct"
-function A.Player:FocusTimeToXPercentage(Amount)
+function Player:FocusTimeToXPercentage(Amount)
 	if self:FocusRegen() == 0 then return -1 end
 	return Amount > self:FocusPercentage() and (Amount - self:FocusPercentage()) / self:FocusRegenPercentage() or 0
 end
 
 -- cast_regen
-function A.Player:FocusCastRegen(CastTime)
+function Player:FocusCastRegen(CastTime)
 	if self:FocusRegen() == 0 then return -1 end
 	return self:FocusRegen() * CastTime
 end
 
 -- "remaining_cast_regen"
-function A.Player:FocusRemainingCastRegen(Offset)
+function Player:FocusRemainingCastRegen(Offset)
 	if self:FocusRegen() == 0 then return -1 end
 	-- If we are casting, we check what we will regen until the end of the cast
 	if self:IsCasting() then
@@ -1270,25 +1271,25 @@ function A.Player:FocusRemainingCastRegen(Offset)
 end
 
 -- Get the Focus we will loose when our cast will end, if we cast.
-function A.Player:FocusLossOnCastEnd()
+function Player:FocusLossOnCastEnd()
 	local castName, castStartTime, castEndTime, notInterruptable, spellID, isChannel = A_Unit(self.UnitID):IsCasting()
 	return castName and A_GetSpellPowerCost(spellID) or 0
 end
 
 -- Predict the expected Focus at the end of the Cast/GCD.
-function A.Player:FocusPredicted(Offset)
+function Player:FocusPredicted(Offset)
 	if self:FocusRegen() == 0 then return -1 end
 	return math_min(self:FocusMax(), self:Focus() + self:FocusRemainingCastRegen(Offset) - self:FocusLossOnCastEnd())
 end
 
 -- Predict the expected Focus Deficit at the end of the Cast/GCD.
-function A.Player:FocusDeficitPredicted(Offset)
+function Player:FocusDeficitPredicted(Offset)
 	if self:FocusRegen() == 0 then return -1 end
 	return self:FocusMax() - self:FocusPredicted(Offset)
 end
 
 -- Predict time to max Focus at the end of Cast/GCD
-function A.Player:FocusTimeToMaxPredicted()
+function Player:FocusTimeToMaxPredicted()
 	if self:FocusRegen() == 0 then return -1 end
 	local FocusDeficitPredicted = self:FocusDeficitPredicted()
 	if FocusDeficitPredicted <= 0 then
@@ -1301,60 +1302,60 @@ end
 --- 3 | Energy Functions ---
 ----------------------------
 -- energy.max
-function A.Player:EnergyMax()
+function Player:EnergyMax()
 	return UnitPowerMax(self.UnitID, EnergyPowerType)
 end
 
 -- energy
-function A.Player:Energy()
+function Player:Energy()
 	return UnitPower(self.UnitID, EnergyPowerType)
 end
 
 -- energy.regen
-function A.Player:EnergyRegen()
+function Player:EnergyRegen()
 	return math_floor(GetPowerRegen(self.UnitID), 0)
 end
 
 -- energy.pct
-function A.Player:EnergyPercentage()
+function Player:EnergyPercentage()
 	return (self:Energy() / self:EnergyMax()) * 100
 end
 
 -- energy.deficit
-function A.Player:EnergyDeficit()
+function Player:EnergyDeficit()
 	return self:EnergyMax() - self:Energy()
 end
 
 -- "energy.deficit.pct"
-function A.Player:EnergyDeficitPercentage()
+function Player:EnergyDeficitPercentage()
 	return (self:EnergyDeficit() / self:EnergyMax()) * 100
 end
 
 -- "energy.regen.pct"
-function A.Player:EnergyRegenPercentage()
+function Player:EnergyRegenPercentage()
 	return (self:EnergyRegen() / self:EnergyMax()) * 100
 end
 
 -- energy.time_to_max
-function A.Player:EnergyTimeToMax()
+function Player:EnergyTimeToMax()
 	if self:EnergyRegen() == 0 then return -1 end
 	return self:EnergyDeficit() / self:EnergyRegen()
 end
 
 -- "energy.time_to_x"
-function A.Player:EnergyTimeToX(Amount, Offset)
+function Player:EnergyTimeToX(Amount, Offset)
 	if self:EnergyRegen() == 0 then return -1 end
 	return Amount > self:Energy() and (Amount - self:Energy()) / (self:EnergyRegen() * (1 - (Offset or 0))) or 0
 end
 
 -- "energy.time_to_x.pct"
-function A.Player:EnergyTimeToXPercentage(Amount)
+function Player:EnergyTimeToXPercentage(Amount)
 	if self:EnergyRegen() == 0 then return -1 end
 	return Amount > self:EnergyPercentage() and (Amount - self:EnergyPercentage()) / self:EnergyRegenPercentage() or 0
 end
 
 -- "energy.cast_regen"
-function A.Player:EnergyRemainingCastRegen(Offset)
+function Player:EnergyRemainingCastRegen(Offset)
     if self:EnergyRegen() == 0 then return -1 end
     -- If we are casting, we check what we will regen until the end of the cast
     if self:IsCasting() or self:IsChanneling() then
@@ -1366,19 +1367,19 @@ function A.Player:EnergyRemainingCastRegen(Offset)
 end
 
 -- Predict the expected Energy at the end of the Cast/GCD.
-function A.Player:EnergyPredicted(Offset)
+function Player:EnergyPredicted(Offset)
 	if self:EnergyRegen() == 0 then return -1 end
 	return math_min(self:EnergyMax(), self:Energy() + self:EnergyRemainingCastRegen(Offset))
 end
 
 -- Predict the expected Energy Deficit at the end of the Cast/GCD.
-function A.Player:EnergyDeficitPredicted(Offset)
+function Player:EnergyDeficitPredicted(Offset)
 	if self:EnergyRegen() == 0 then return -1 end
 	return math_max(self:EnergyDeficit() - self:EnergyRemainingCastRegen(Offset), 0)  -- math_max(0, self:EnergyDeficit() - self:EnergyRemainingCastRegen(Offset))
 end
 
 -- Predict time to max energy at the end of Cast/GCD
-function A.Player:EnergyTimeToMaxPredicted()
+function Player:EnergyTimeToMaxPredicted()
 	if self:EnergyRegen() == 0 then return -1 end
 	local EnergyDeficitPredicted = self:EnergyDeficitPredicted()
 	if EnergyDeficitPredicted <= 0 then
@@ -1391,17 +1392,17 @@ end
 --- 4 | Combo Points Functions ---
 ----------------------------------
 -- combo_points.max
-function A.Player:ComboPointsMax()
+function Player:ComboPointsMax()
 	return UnitPowerMax(self.UnitID, ComboPointsPowerType)
 end
 
 -- combo_points
-function A.Player:ComboPoints(unitID)
+function Player:ComboPoints(unitID)
 	return GetComboPoints(self.UnitID, unitID or "target") 
 end
 
 -- combo_points.deficit
-function A.Player:ComboPointsDeficit(unitID)
+function Player:ComboPointsDeficit(unitID)
 	return self:ComboPointsMax(unitID) - self:ComboPoints(unitID)
 end
 
@@ -1409,22 +1410,22 @@ end
 --- 7 | Soul Shards  ---
 ------------------------
 -- soul_shard.max
-function A.Player:SoulShardsMax()
+function Player:SoulShardsMax()
 	return UnitPowerMax(self.UnitID, SoulShardsPowerType)
 end
 
 -- soul_shard
-function A.Player:SoulShards()
+function Player:SoulShards()
 	return UnitPower(self.UnitID, SoulShardsPowerType)
 end
 
 -- soul shards predicted, customize in spec overrides
-function A.Player:SoulShardsP()
+function Player:SoulShardsP()
 	return self:SoulShards() * 100 / self:SoulShardsMax()
 end
 
 -- soul_shard.deficit
-function A.Player:SoulShardsDeficit()
+function Player:SoulShardsDeficit()
 	return self:SoulShardsMax() - self:SoulShards()
 end
 
@@ -1432,28 +1433,28 @@ end
 --- 8 | Astral Power ---
 ------------------------
 -- astral_power.max
-function A.Player:AstralPowerMax()
+function Player:AstralPowerMax()
 	return UnitPowerMax(self.UnitID, LunarPowerPowerType)
 end
 
 -- astral_power
-function A.Player:AstralPower(OverrideFutureAstralPower)
+function Player:AstralPower(OverrideFutureAstralPower)
 	return OverrideFutureAstralPower or UnitPower(self.UnitID, LunarPowerPowerType)
 end
 
 -- astral_power.pct
-function A.Player:AstralPowerPercentage(OverrideFutureAstralPower)
+function Player:AstralPowerPercentage(OverrideFutureAstralPower)
 	return (self:AstralPower(OverrideFutureAstralPower) / self:AstralPowerMax()) * 100
 end
 
 -- astral_power.deficit
-function A.Player:AstralPowerDeficit(OverrideFutureAstralPower)
+function Player:AstralPowerDeficit(OverrideFutureAstralPower)
 	local AstralPower = self:AstralPower(OverrideFutureAstralPower)
 	return self:AstralPowerMax() - AstralPower
 end
 
 -- "astral_power.deficit.pct"
-function A.Player:AstralPowerDeficitPercentage(OverrideFutureAstralPower)
+function Player:AstralPowerDeficitPercentage(OverrideFutureAstralPower)
 	return (self:AstralPowerDeficit(OverrideFutureAstralPower) / self:AstralPowerMax()) * 100
 end
 
@@ -1461,27 +1462,27 @@ end
 --- 9 | Holy Power Functions ---
 --------------------------------
 -- holy_power.max
-function A.Player:HolyPowerMax()
+function Player:HolyPowerMax()
 	return UnitPowerMax(self.UnitID, HolyPowerPowerType)
 end
 
 -- holy_power
-function A.Player:HolyPower()
+function Player:HolyPower()
 	return UnitPower(self.UnitID, HolyPowerPowerType)
 end
 
 -- holy_power.pct
-function A.Player:HolyPowerPercentage()
+function Player:HolyPowerPercentage()
 	return (self:HolyPower() / self:HolyPowerMax()) * 100
 end
 
 -- holy_power.deficit
-function A.Player:HolyPowerDeficit()
+function Player:HolyPowerDeficit()
 	return self:HolyPowerMax() - self:HolyPower()
 end
 
 -- "holy_power.deficit.pct"
-function A.Player:HolyPowerDeficitPercentage()
+function Player:HolyPowerDeficitPercentage()
 	return (self:HolyPowerDeficit() / self:HolyPowerMax()) * 100
 end
 
@@ -1489,27 +1490,27 @@ end
 -- 11 | Maelstrom Functions --
 ------------------------------
 -- maelstrom.max
-function A.Player:MaelstromMax()
+function Player:MaelstromMax()
 	return UnitPowerMax(self.UnitID, MaelstromPowerType)
 end
 
 -- maelstrom
-function A.Player:Maelstrom()
+function Player:Maelstrom()
 	return UnitPower(self.UnitID, MaelstromPowerType)
 end
 
 -- maelstrom.pct
-function A.Player:MaelstromPercentage()
+function Player:MaelstromPercentage()
 	return (self:Maelstrom() / self:MaelstromMax()) * 100
 end
 
 -- maelstrom.deficit
-function A.Player:MaelstromDeficit()
+function Player:MaelstromDeficit()
 	return self:MaelstromMax() - self:Maelstrom()
 end
 
 -- "maelstrom.deficit.pct"
-function A.Player:MaelstromDeficitPercentage()
+function Player:MaelstromDeficitPercentage()
 	return (self:MaelstromDeficit() / self:MaelstromMax()) * 100
 end
 
@@ -1517,42 +1518,42 @@ end
 --- 12 | Chi Functions (& Stagger) ---
 --------------------------------------
 -- chi.max
-function A.Player:ChiMax()
+function Player:ChiMax()
 	return UnitPowerMax(self.UnitID, ChiPowerType)
 end
 
 -- chi
-function A.Player:Chi()
+function Player:Chi()
 	return UnitPower(self.UnitID, ChiPowerType)
 end
 
 -- chi.pct
-function A.Player:ChiPercentage()
+function Player:ChiPercentage()
 	return (self:Chi() / self:ChiMax()) * 100
 end
 
 -- chi.deficit
-function A.Player:ChiDeficit()
+function Player:ChiDeficit()
 	return self:ChiMax() - self:Chi()
 end
 
 -- "chi.deficit.pct"
-function A.Player:ChiDeficitPercentage()
+function Player:ChiDeficitPercentage()
 	return (self:ChiDeficit() / self:ChiMax()) * 100
 end
 
 -- "stagger.max"
-function A.Player:StaggerMax()
+function Player:StaggerMax()
 	return A_Unit(self.UnitID):HealthMax()
 end
 
 -- stagger_amount
-function A.Player:Stagger()
+function Player:Stagger()
 	return UnitStagger(self.UnitID)
 end
 
 -- stagger_percent
-function A.Player:StaggerPercentage()
+function Player:StaggerPercentage()
 	return (self:Stagger() / self:StaggerMax()) * 100
 end
 
@@ -1560,32 +1561,32 @@ end
 -- 13 | Insanity Functions ---
 ------------------------------
 -- insanity.max
-function A.Player:InsanityMax()
+function Player:InsanityMax()
 	return UnitPowerMax(self.UnitID, InsanityPowerType)
 end
 
 -- insanity
-function A.Player:Insanity()
+function Player:Insanity()
 	return UnitPower(self.UnitID, InsanityPowerType)
 end
 
 -- insanity.pct
-function A.Player:InsanityPercentage()
+function Player:InsanityPercentage()
 	return (self:Insanity() / self:InsanityMax()) * 100
 end
 
 -- insanity.deficit
-function A.Player:InsanityDeficit()
+function Player:InsanityDeficit()
 	return self:InsanityMax() - self:Insanity()
 end
 
 -- "insanity.deficit.pct"
-function A.Player:InsanityDeficitPercentage()
+function Player:InsanityDeficitPercentage()
 	return (self:InsanityDeficit() / self:InsanityMax()) * 100
 end
 
 -- Insanity Drain
-function A.Player:Insanityrain()
+function Player:Insanityrain()
 	local void_form_stack = A_Unit(self.UnitID):HasBuffsStacks(194249, true)
 	return (void_form_stack == 0 and 0) or (6 + 0.68 * void_form_stack)
 end
@@ -1594,27 +1595,27 @@ end
 -- 16 | Arcane Charges Functions --
 -----------------------------------
 -- arcanecharges.max
-function A.Player:ArcaneChargesMax()
+function Player:ArcaneChargesMax()
 	return UnitPowerMax(self.UnitID, ArcaneChargesPowerType)
 end
 
 -- arcanecharges
-function A.Player:ArcaneCharges()
+function Player:ArcaneCharges()
 	return UnitPower(self.UnitID, ArcaneChargesPowerType)
 end
 
 -- arcanecharges.pct
-function A.Player:ArcaneChargesPercentage()
+function Player:ArcaneChargesPercentage()
 	return (self:ArcaneCharges() / self:ArcaneChargesMax()) * 100
 end
 
 -- arcanecharges.deficit
-function A.Player:ArcaneChargesDeficit()
+function Player:ArcaneChargesDeficit()
 	return self:ArcaneChargesMax() - self:ArcaneCharges()
 end
 
 -- "arcanecharges.deficit.pct"
-function A.Player:ArcaneChargesDeficitPercentage()
+function Player:ArcaneChargesDeficitPercentage()
 	return (self:ArcaneChargesDeficit() / self:ArcaneChargesMax()) * 100
 end
 
@@ -1622,27 +1623,27 @@ end
 --- 17 | Fury Functions ---
 ---------------------------
 -- fury.max
-function A.Player:FuryMax()
+function Player:FuryMax()
 	return UnitPowerMax(self.UnitID, FuryPowerType)
 end
 
 -- fury
-function A.Player:Fury()
+function Player:Fury()
 	return UnitPower(self.UnitID, FuryPowerType)
 end
 
 -- fury.pct
-function A.Player:FuryPercentage()
+function Player:FuryPercentage()
 	return (self:Fury() / self:FuryMax()) * 100
 end
 
 -- fury.deficit
-function A.Player:FuryDeficit()
+function Player:FuryDeficit()
 	return self:FuryMax() - self:Fury()
 end
 
 -- "fury.deficit.pct"
-function A.Player:FuryDeficitPercentage()
+function Player:FuryDeficitPercentage()
 	return (self:FuryDeficit() / self:FuryMax()) * 100
 end
 
@@ -1650,64 +1651,64 @@ end
 --- 18 | Pain Functions ---
 ---------------------------
 -- pain.max
-function A.Player:PainMax()
+function Player:PainMax()
 	return UnitPowerMax(self.UnitID, PainPowerType)
 end
 
 -- pain
-function A.Player:Pain()
+function Player:Pain()
 	return UnitPower(self.UnitID, PainPowerType)
 end
 
 -- pain.pct
-function A.Player:PainPercentage()
+function Player:PainPercentage()
 	return (self:Pain() / self:PainMax()) * 100
 end
 
 -- pain.deficit
-function A.Player:PainDeficit()
+function Player:PainDeficit()
 	return self:PainMax() - self:Pain()
 end
 
 -- "pain.deficit.pct"
-function A.Player:PainDeficitPercentage()
+function Player:PainDeficitPercentage()
 	return (self:PainDeficit() / self:PainMax()) * 100
 end
 
 ------------------------------
 --- Predicted Resource Map ---
 ------------------------------
-A.Player.PredictedResourceMap = {
+Player.PredictedResourceMap = {
 	-- Health 
-	[-2] = function() return A.Player:Health() end,
+	[-2] = function() return A_Unit("player"):Health() end,
 	-- Generic 
 	[-1] = function() return 100 end,
 	-- Mana
-	[0] = function() return A.Player:ManaP() end,
+	[0] = function() return Player:ManaP() end,
 	-- Rage
-	[1] = function() return A.Player:Rage() end,
+	[1] = function() return Player:Rage() end,
 	-- Focus
-	[2] = function() return A.Player:FocusPredicted() end,
+	[2] = function() return Player:FocusPredicted() end,
 	-- Energy
-	[3] = function() return A.Player:EnergyPredicted() end,
+	[3] = function() return Player:EnergyPredicted() end,
 	-- ComboPoints
-	[4] = function() return A.Player:ComboPoints() end,
+	[4] = function() return Player:ComboPoints() end,
 	-- Soul Shards
-	[7] = function() return A.Player:SoulShardsP() end,
+	[7] = function() return Player:SoulShardsP() end,
 	-- Astral Power
-	[8] = function() return A.Player:AstralPower() end,
+	[8] = function() return Player:AstralPower() end,
 	-- Holy Power
-	[9] = function() return A.Player:HolyPower() end,
+	[9] = function() return Player:HolyPower() end,
 	-- Maelstrom
-	[11] = function() return A.Player:Maelstrom() end,
+	[11] = function() return Player:Maelstrom() end,
 	-- Chi
-	[12] = function() return A.Player:Chi() end,
+	[12] = function() return Player:Chi() end,
 	-- Insanity
-	[13] = function() return A.Player:Insanity() end,
+	[13] = function() return Player:Insanity() end,
 	-- Arcane Charges
-	[16] = function() return A.Player:ArcaneCharges() end,
+	[16] = function() return Player:ArcaneCharges() end,
 	-- Fury
-	[17] = function() return A.Player:Fury() end,
+	[17] = function() return Player:Fury() end,
 	-- Pain
-	[18] = function() return A.Player:Pain() end,
+	[18] = function() return Player:Pain() end,
 }
