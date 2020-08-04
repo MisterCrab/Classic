@@ -2668,7 +2668,12 @@ A.Unit = PseudoClass({
 	GetTotalHealAbsorbsPercent				= Cache:Pass(function(self) 
 		-- @return number 
 		local unitID 						= self.UnitID
-		return self(unitID):GetTotalHealAbsorbs() * 100 / self(unitID):HealthMax()
+		local maxHP							= self(unitID):HealthMax()
+		if maxHP == 0 then 
+			return 0
+		else 
+			return self(unitID):GetTotalHealAbsorbs() * 100 / maxHP
+		end 
 	end, "UnitID"),
 	-- Combat: Diminishing
 	GetDR 									= Cache:Pass(function(self, drCat) 
@@ -2985,19 +2990,34 @@ A.Unit = PseudoClass({
 		-- @return number 
 		local unitID 						= self.UnitID
 		if CombatTracker:UnitHasRealHealth(unitID) then 
-			return UnitHealth(unitID) * 100 / UnitHealthMax(unitID)
+			local maxHP						= UnitHealthMax(unitID)
+			if maxHP == 0 then 
+				return 0 					-- Fix beta / ptr "Division by zero"
+			else 
+				return UnitHealth(unitID) * 100 / maxHP
+			end 
 		end 
 	    return UnitHealth(unitID)
 	end, "UnitID"),
 	HealthPercentLosePerSecond				= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-		return math_max((self(unitID):GetDMG() * 100 / self(unitID):HealthMax()) - (self(unitID):GetHEAL() * 100 / self(unitID):HealthMax()), 0)
+		local maxHP							= self(unitID):HealthMax()
+		if maxHP == 0 then 
+			return 0 						-- Fix beta / ptr "Division by zero"
+		else 
+			return math_max((self(unitID):GetDMG() * 100 / maxHP) - (self(unitID):GetHEAL() * 100 / maxHP), 0)
+		end
 	end, "UnitID"),
 	HealthPercentGainPerSecond				= Cache:Pass(function(self)
 		-- @return number 
 		local unitID 						= self.UnitID
-		return math_max((self(unitID):GetHEAL() * 100 / self(unitID):HealthMax()) - (self(unitID):GetDMG() * 100 / self(unitID):HealthMax()), 0)
+		local maxHP							= self(unitID):HealthMax()
+		if maxHP == 0 then 
+			return 0 						-- Fix beta / ptr "Division by zero"
+		else 
+			return math_max((self(unitID):GetHEAL() * 100 / maxHP) - (self(unitID):GetDMG() * 100 / maxHP), 0)
+		end
 	end, "UnitID"),
 	Power									= Cache:Pass(function(self)
 		-- @return number 

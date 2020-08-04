@@ -375,7 +375,11 @@ CombatTracker.logHealthMax						= function(...)
 			end 
 		else 			
 			if RealUnitHealthisHealthWasMaxOnGUID[GUID] then 
-				RealUnitHealthCachedHealthMax[GUID] = RealUnitHealthDamageTaken[GUID] * max_hp / (max_hp - curr_hp)
+				if max_hp - curr_hp == 0 then 
+					RealUnitHealthCachedHealthMax[GUID] = 0
+				else 
+					RealUnitHealthCachedHealthMax[GUID] = RealUnitHealthDamageTaken[GUID] * max_hp / (max_hp - curr_hp)
+				end 
 				RealUnitHealthCachedHealthMaxTemprorary[GUID] = RealUnitHealthCachedHealthMax[GUID]		
 				--print(UnitName(unitID), "In combat, MaxHP PRE:", RealUnitHealthCachedHealthMax[GUID]) 
 			else 
@@ -385,7 +389,11 @@ CombatTracker.logHealthMax						= function(...)
 					--print(UnitName(unitID), "In combat, SavedPercent (wasn't existed before):", RealUnitHealthSavedHealthPercent[GUID])
 					--print(UnitName(unitID), "In combat, DamageTaken: ", RealUnitHealthDamageTaken[GUID])
 				elseif RealUnitHealthSavedHealthPercent[GUID] > curr_hp and not RealUnitHealthCachedHealthMaxTemprorary[GUID] then   
-					RealUnitHealthCachedHealthMaxTemprorary[GUID] = RealUnitHealthDamageTaken[GUID] * RealUnitHealthSavedHealthPercent[GUID] / (RealUnitHealthSavedHealthPercent[GUID] - curr_hp)
+					if RealUnitHealthSavedHealthPercent[GUID] - curr_hp == 0 then 
+						RealUnitHealthCachedHealthMaxTemprorary[GUID] = 0 
+					else
+						RealUnitHealthCachedHealthMaxTemprorary[GUID] = RealUnitHealthDamageTaken[GUID] * RealUnitHealthSavedHealthPercent[GUID] / (RealUnitHealthSavedHealthPercent[GUID] - curr_hp)
+					end
 					RealUnitHealthCachedHealthMax[GUID] = RealUnitHealthCachedHealthMaxTemprorary[GUID]
 					--print(UnitName(unitID), "In combat, MaxHP POST POST (percent of health has been decreased):", RealUnitHealthCachedHealthMaxTemprorary[GUID])
 				end 
@@ -1927,10 +1935,13 @@ A.CombatTracker									= {
 			return RealUnitHealthCachedHealthMaxTemprorary[GUID] 
 		elseif RealUnitHealthDamageTaken[GUID] and RealUnitHealthDamageTaken[GUID] > 0 then			
 			-- Broken out 
-			local curr_value = RealUnitHealthDamageTaken[GUID] / (1 - (UnitHealth(unitID) / UnitHealthMax(unitID))) 
-			if curr_value > 0 then
-				return curr_value				 					
-			end 			
+			local max_hp = UnitHealthMax(unitID)
+			if max_hp ~= 0 then 
+				local curr_value = RealUnitHealthDamageTaken[GUID] / (1 - (UnitHealth(unitID) / max_hp)) 
+				if curr_value > 0 then
+					return curr_value				 					
+				end 
+			end 
 		end 
 
 		return 0 
@@ -1988,13 +1999,15 @@ A.CombatTracker									= {
 		elseif RealUnitHealthDamageTaken[GUID] > 0 then 
 			-- Broken out
 			local curr_hp, max_hp = UnitHealth(unitID), UnitHealthMax(unitID)
-			local curr_value = (RealUnitHealthDamageTaken[GUID] / (1 - (curr_hp / max_hp))) - RealUnitHealthDamageTaken[GUID] 
-			--print("BROKEN OUT UnitHealth(", unitID, "): ", curr_value)
-			if curr_value > 0 then 
-				return (curr_hp == max_hp or curr_value == huge) and 0 or curr_value
-			else 
-				return abs((curr_hp == max_hp or curr_value == huge) and 0 or curr_value)
-			end 			
+			if max_hp ~= 0 then 
+				local curr_value = (RealUnitHealthDamageTaken[GUID] / (1 - (curr_hp / max_hp))) - RealUnitHealthDamageTaken[GUID] 
+				--print("BROKEN OUT UnitHealth(", unitID, "): ", curr_value)
+				if curr_value > 0 then 
+					return (curr_hp == max_hp or curr_value == huge) and 0 or curr_value
+				else 
+					return abs((curr_hp == max_hp or curr_value == huge) and 0 or curr_value)
+				end 		
+			end 
 		end 
 		
 		return 0 
