@@ -10,7 +10,7 @@ local Pet = LibStub("PetLibrary")
 -- Pet.ID
 -- Pet.IsExists
 -- Pet.IsDead
--- Pet.IsAttacking
+-- Pet.IsAttacks
 -- Pet.IsCallAble						Note: Returns false if you can't call pet by hunter (if you haven't tamed pet)
 -- Pet.Family							Note: Returns English localized string of CreatureFamily
 -- Pet.Type 							Note: Returns English localized string of CreatureType
@@ -85,7 +85,7 @@ local Listener							= A.Listener
 local Print								= A.Print
 local GetCL								= A.GetCL
 local MacroLibrary						= LibStub("MacroLibrary")
-local Lib 								= LibStub:NewLibrary("PetLibrary", 16)
+local Lib 								= LibStub:NewLibrary("PetLibrary", 17)
 	  	  
 local huge 								= math.huge	  
 local max 								= math.max
@@ -982,7 +982,7 @@ local function UpdateMainPet()
 		Lib.expiration 	= TMW.time + Lib.duration		
 		TMW:Fire("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP")
 	else 			
-		Lib.IsAttacking	= nil 
+		Lib.IsAttacks	= nil 
 		Lib.Family		= nil 
 		Lib.Type		= nil 
 		Lib.ID			= nil 
@@ -1158,8 +1158,8 @@ local function COMBAT_LOG_EVENT_UNFILTERED(...)
 	end 
 end 
 Listener:Add("ACTION_EVENT_PET_LIBRARY_CLEU", 	"COMBAT_LOG_EVENT_UNFILTERED", COMBAT_LOG_EVENT_UNFILTERED)
-Listener:Add("ACTION_EVENT_PET_LIBRARY_ATTACK", "PET_ATTACK_START", function() Lib.IsAttacking = true  end)
-Listener:Add("ACTION_EVENT_PET_LIBRARY_ATTACK", "PET_ATTACK_STOP", 	function() Lib.IsAttacking = false end)
+Listener:Add("ACTION_EVENT_PET_LIBRARY_ATTACK", "PET_ATTACK_START", function() Lib.IsAttacks = true  end)
+Listener:Add("ACTION_EVENT_PET_LIBRARY_ATTACK", "PET_ATTACK_STOP", 	function() Lib.IsAttacks = false end)
 
 -------------------------------------------------------------------------------
 -- API - Actions
@@ -1393,7 +1393,7 @@ end
 
 function Lib:IsAttacking(unitID)
 	-- @return boolean 
-	return self.IsAttacking and A_Unit("pettarget"):IsExists() and (not unitID or UnitIsUnit("pettarget", unitID))
+	return self.IsAttacks and A_Unit("pettarget"):IsExists() and (not unitID or UnitIsUnit("pettarget", unitID))
 end 
 
 function Lib:IsBehind(x)
