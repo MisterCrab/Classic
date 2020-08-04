@@ -9748,7 +9748,7 @@ function Action.ToggleMainUI()
 				local frameLimit = 0
 				for _, thisTab in ipairs(tabFrame.tabs) do
 					for childSpec, child in pairs(thisTab.childs) do 
-						if childSpec ~= spec then 
+						if childSpec ~= spec and child.toggleWidgets then 
 							for toggle, kid in pairs(child.toggleWidgets) do 
 								--local dbValue = Action.GetToggle(thisTab.name, toggle, child.specID)
 								local dbValue = Action.GetToggle(thisTab.name, toggle)
