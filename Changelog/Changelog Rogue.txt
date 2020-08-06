@@ -1,3 +1,8 @@
+[Rogue v13]
+Vanish											- Added condition to skip usage if you're on bg and have any flags
+Stealth											- Added condition to skip usage if you're on bg and have any flags
+Opener 											- Added logic to skip next ordered opener action if unit has BreakAble debuff and you're not at full energy (works more stable if enabled toggle for "OpenerWaitToBeDone")
+
 [Rogue v12]
 Gouge											- Fixed miss typo with :AbsentImun (was missed important auras such as Divine Shield)
 Blind											- Fixed miss typo with :AbsentImun (was missed important auras such as Divine Shield)
