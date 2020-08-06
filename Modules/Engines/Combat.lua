@@ -2688,11 +2688,6 @@ A.LossOfControl									= {
 			if A.PlayerRace == "Dwarf" then 
 				isApplied = A_Unit("player"):HasDeBuffs("Poison") > 0 -- or A_Unit("player"):HasDeBuffs("Disease") > 0 or or A_Unit("player"):HasDeBuffs("Bleeding") > 0 -- these 2 is not added in Unit.lua 
 			end
-			-- Gnome in current speed 
-			if A.PlayerRace == "Gnome" then 
-				local cSpeed = A_Unit("player"):GetCurrentSpeed()
-				isApplied = cSpeed > 0 and cSpeed < 65
-			end 
 		end 
 		
 		if isApplied and MustBeMissed then 

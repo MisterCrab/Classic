@@ -357,7 +357,7 @@ end
 
 function A:GetSpellCharges()
 	-- @return number
-	local charges = GetSpellCharges(self:Info())
+	local charges = GetSpellCharges((self:Info()))
 	if not charges then 
 		charges = 0
 	end 
@@ -367,7 +367,7 @@ end
 
 function A:GetSpellChargesMax()
 	-- @return number
-	local _, max_charges = GetSpellCharges(self:Info())
+	local _, max_charges = GetSpellCharges((self:Info()))
 	if not max_charges then 
 		max_charges = 0
 	end 
@@ -377,7 +377,7 @@ end
 
 function A:GetSpellChargesFrac()
 	-- @return number	
-	local charges, maxCharges, start, duration = GetSpellCharges(self:Info())
+	local charges, maxCharges, start, duration = GetSpellCharges((self:Info()))
 	if charges == maxCharges then 
 		return maxCharges
 	end
@@ -387,7 +387,7 @@ end
 
 function A:GetSpellChargesFullRechargeTime()
 	-- @return number
-	local _, _, _, duration = GetSpellCharges(self:Info())
+	local _, _, _, duration = GetSpellCharges((self:Info()))
 	if duration then 
 		return (self:GetSpellChargesMax() - self:GetSpellChargesFrac()) * duration
 	else 
@@ -397,33 +397,33 @@ end
 
 function A:GetSpellTimeSinceLastCast()
 	-- @return number (seconds after last time casted - during fight)
-	return CombatTracker:GetSpellLastCast("player", self:Info())
+	return CombatTracker:GetSpellLastCast("player", (self:Info()))
 end 
 
 function A:GetSpellCounter()
 	-- @return number (total count casted of the spell - during fight)
-	return CombatTracker:GetSpellCounter("player", self:Info())
+	return CombatTracker:GetSpellCounter("player", (self:Info()))
 end 
 
 function A:GetSpellAmount(unitID, X)
 	-- @return number (taken summary amount of the spell - during fight)
 	-- X during which lasts seconds 
 	if X then 
-		return CombatTracker:GetSpellAmountX(unitID or "player", self:Info(), X)
+		return CombatTracker:GetSpellAmountX(unitID or "player", (self:Info()), X)
 	else 
-		return CombatTracker:GetSpellAmount(unitID or "player", self:Info())
+		return CombatTracker:GetSpellAmount(unitID or "player", (self:Info()))
 	end 
 end 
 
 function A:GetSpellAbsorb(unitID)
 	-- @return number (taken current absort amount of the spell - during fight)
-	return CombatTracker:GetAbsorb(unitID or "player", self:Info())
+	return CombatTracker:GetAbsorb(unitID or "player", (self:Info()))
 end 
 
 function A:GetSpellAutocast()
 	-- @return boolean, boolean 
 	-- Returns autocastable, autostate 
-	return GetSpellAutocast(self:Info())
+	return GetSpellAutocast((self:Info()))
 end 
 
 function A:IsSpellLastGCD(byID)
@@ -438,7 +438,7 @@ end
 
 function A:IsSpellInFlight()
 	-- @return boolean
-	return UnitCooldown:IsSpellInFly("player", self:Info()) -- Classic Info 
+	return UnitCooldown:IsSpellInFly("player", (self:Info())) -- Classic Info 
 end 
 
 function A:IsSpellInRange(unitID)
@@ -462,7 +462,7 @@ end
 
 function A:IsSpellCurrent()
 	-- @return boolean
-	return IsCurrentSpell(self:Info())
+	return IsCurrentSpell((self:Info()))
 end 
 
 function A:CanSafetyCastHeal(unitID, offset)
@@ -799,9 +799,14 @@ local Racial = {
 	end,
 	CanAuto													= function(this, self, unitID)
 		-- Loss Of Control 
+		-- "Gnome", "Scourge", "Dwarf"
 		local LOC = LoC.GetExtra[A.PlayerRace]
-		if LOC and LoC:IsValid(LOC.Applied, LOC.Missed) then 
-			return true 
+		if LOC then 
+			if LoC:IsValid(LOC.Applied, LOC.Missed) then 
+				return true 
+			else 
+				return false 
+			end 
 		end 	
 		
 		-- Iterrupts 
@@ -919,7 +924,7 @@ end
 
 function A:IsItemCurrent()
 	-- @return boolean
-	return IsCurrentItem(self:Info())
+	return IsCurrentItem((self:Info()))
 end 
 
 -- Next works by TMW components
@@ -940,7 +945,7 @@ function A:IsExists(replacementByPass)
 	-- @return boolean
 	if self.Type == "Spell" then 
 		-- DON'T USE HERE A.GetSpellInfo COZ IT'S CACHE WHICH WILL WORK WRONG DUE RACE CHANGES
-		local spellName, _, _, _, _, _, spellID = GetSpellInfo(self:Info()) 
+		local spellName, _, _, _, _, _, spellID = GetSpellInfo((self:Info())) 
 		-- spellID will be nil in case of if it's not a player's spell 
 		-- spellName will not be equal to self:Info() if it's replacement spell like "Chi-Torpedo" and "Roll"
 		return (not replacementByPass or spellName == self:Info()) and type(spellID) == "number" and (IsPlayerSpell(spellID) or (Pet:IsActive() and Pet:IsSpellKnown(spellID)))
@@ -959,32 +964,36 @@ function A:IsUsable(extraCD, skipUsable)
 	
 	if self.Type == "Spell" then 
 		-- Works for pet spells 01/04/2019
-		return (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableSpell(self:Info())) and self:GetCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
+		return (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableSpell((self:Info()))) and self:GetCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
 	end 
 	
-	return not isItemUseException[self.ID] and (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableItem(self:Info())) and self:GetItemCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
+	return not isItemUseException[self.ID] and (skipUsable or (type(skipUsable) == "number" and Unit("player"):Power() >= skipUsable) or IsUsableItem((self:Info()))) and self:GetItemCooldown() <= A_GetPing() + CONST.CACHE_DEFAULT_TIMER + (self:IsRequiredGCD() and A_GetCurrentGCD() or 0) + (extraCD or 0)
 end
 
 function A:IsHarmful()
 	-- @return boolean 
 	if self.Type == "Spell" then 
-		return IsHarmfulSpell(self:Info()) or IsAttackSpell(self:Info())
+		return IsHarmfulSpell((self:Info())) or IsAttackSpell((self:Info()))
 	end 
 	
-	return IsHarmfulItem(self:Info())
+	return IsHarmfulItem((self:Info()))
 end 
 
 function A:IsHelpful()
 	-- @return boolean 
 	if self.Type == "Spell" then 
-		return IsHelpfulSpell(self:Info())
+		return IsHelpfulSpell((self:Info()))
 	end 
 	
-	return IsHelpfulItem(self:Info())
+	return IsHelpfulItem((self:Info()))
 end 
 
 function A:IsInRange(unitID)
 	-- @return boolean
+	if self.skipRange then 
+		return true 
+	end 
+	
 	local unitID = unitID or "target"
 	
 	if UnitIsUnit("player", unitID) then 
@@ -1007,10 +1016,10 @@ end
 function A:HasRange()
 	-- @return boolean 
 	if self.Type == "Spell" then 
-		return not isSpellRangeException[self.ID] and SpellHasRange(self:Info())
+		return not isSpellRangeException[self.ID] and SpellHasRange((self:Info()))
 	end 
 	
-	return not isItemRangeException[self:GetID()] and ItemHasRange(self:Info())
+	return not isItemRangeException[self:GetID()] and ItemHasRange((self:Info()))
 end 
 
 function A:GetCooldown()
@@ -1028,7 +1037,7 @@ function A:GetCooldown()
 			
 			return 0
 		else 
-			return CooldownDuration(self:Info())
+			return CooldownDuration((self:Info()))
 		end 
 	end 
 	
@@ -1370,6 +1379,7 @@ function A.Create(args)
 			isCP (@boolean) is used only for combo points with type Spell|SpellSingleColor to use as condition in Queue core, it's required to be noted manually due specific way of how it work
 			useMaxRank (@boolean or @table) will overwrite current ID by highest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor 
 			useMinRank (@boolean or @table) will overwrite current ID by lowest available rank and apply isRank number, example of table use {1, 2, 4, 6, 7}, only if Type is Spell|SpellSingleColor
+			skipRange (@boolean) will skip check in :IsInRange method which is also used by Queue system, only if Type is Spell|SpellSingleColor|Item|ItemSingleColor|Trinket|TrinketBySlot
 			Equip1, Equip2 (@function) between which equipments do swap, used in :IsExists method, only if Type is SwapEquip
 			... any custom key-value will be inserted also 
 						
