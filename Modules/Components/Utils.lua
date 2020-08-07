@@ -702,6 +702,10 @@ local function UpdateCVAR()
 		SetCVar("colorblindsimulator", 0) 
 	end 
 	
+	if toNum[GetCVar("SpellQueueWindow") or 400] == nil then 
+		SetCVar("SpellQueueWindow", 400) 
+	end 
+	
 	--[[
     if GetCVar("RenderScale") ~= "1" then 
 		SetCVar("RenderScale", 1) 

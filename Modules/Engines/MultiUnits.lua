@@ -1,5 +1,11 @@
 local _G, pairs, type, next, setmetatable, table, math =
 	  _G, pairs, type, next, setmetatable, table, math
+	  
+local wipe											= _G.wipe
+local round											= _G.round
+local strsub										= _G.strsub	  
+local abs 											= math.abs	 
+local tsort											= table.sort	  	  
 
 local TMW 											= _G.TMW
 local A 											= _G.Action
@@ -7,13 +13,7 @@ local CONST 										= A.Const
 local Listener										= A.Listener
 local isEnemy										= A.Bit.isEnemy
 local TeamCacheFriendly								= A.TeamCache.Friendly
-local TeamCacheFriendlyUNITs						= TeamCacheFriendly.UNITs
-	  
-local wipe											= _G.wipe
-local round											= _G.round
-local strsub										= _G.strsub	  
-local abs 											= math.abs	 
-local tsort											= table.sort	  
+local TeamCacheFriendlyUNITs						= TeamCacheFriendly.UNITs	 
 	  
 local CombatLogGetCurrentEventInfo					= _G.CombatLogGetCurrentEventInfo		  
 	  

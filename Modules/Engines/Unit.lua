@@ -1,10 +1,27 @@
 local _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error =
 	  _G, setmetatable, unpack, select, next, type, pairs, ipairs, math, error 
 	  
+local huge 									= math.huge	  
+local math_max								= math.max 
+local math_floor							= math.floor	
+local math_random							= math.random
+local wipe 									= _G.wipe 
+local strsplit								= _G.strsplit
+local debugstack							= _G.debugstack	  
+	  
 local TMW 									= _G.TMW
 local CNDT 									= TMW.CNDT
 local Env 									= CNDT.Env
 local strlowerCache  						= TMW.strlowerCache
+
+local LibStub								= _G.LibStub
+local ThreatLib  							= LibStub("LibThreatClassic2")
+local HealComm 								= LibStub("LibHealComm-4.0", true) -- Note: Leave it with true in case if will need to disable lib, seems lib causing unexpected lua errors in PvP 
+local LibRangeCheck  						= LibStub("LibRangeCheck-2.0")
+local LibBossIDs							= LibStub("LibBossIDs-1.0").BossIDs
+local LibClassicCasterino 					= LibStub("LibClassicCasterino")
+-- To activate it
+LibClassicCasterino.callbacks.OnUsed() 
 
 local A   									= _G.Action	
 local CONST 								= A.Const
@@ -19,13 +36,6 @@ local MultiUnits							= A.MultiUnits
 local GetToggle								= A.GetToggle
 local MouseHasFrame							= A.MouseHasFrame
 local UnitInLOS								= A.UnitInLOS
-local ThreatLib  							= LibStub("LibThreatClassic2")
-local HealComm 								= LibStub("LibHealComm-4.0", true) -- Note: Leave it with true in case if will need to disable lib, seems lib causing unexpected lua errors in PvP 
-local LibRangeCheck  						= LibStub("LibRangeCheck-2.0")
-local LibBossIDs							= LibStub("LibBossIDs-1.0").BossIDs
-local LibClassicCasterino 					= LibStub("LibClassicCasterino")
--- To activate it
-LibClassicCasterino.callbacks.OnUsed() 
 
 local TeamCache								= A.TeamCache
 local TeamCachethreatData					= TeamCache.threatData
@@ -44,14 +54,6 @@ local ActiveUnitPlatesAny					= MultiUnits:GetActiveUnitPlatesAny()
 	  
 local ALL_HEALS								= HealComm and HealComm.ALL_HEALS	  
 local CACHE_DEFAULT_TIMER_UNIT				= CONST.CACHE_DEFAULT_TIMER_UNIT
-
-local huge 									= math.huge	  
-local math_max								= math.max 
-local math_floor							= math.floor	
-local math_random							= math.random
-local wipe 									= _G.wipe 
-local strsplit								= _G.strsplit
-local debugstack							= _G.debugstack
 
 local GameLocale 							= A.FormatGameLocale(_G.GetLocale())	  
 local CombatLogGetCurrentEventInfo			= _G.CombatLogGetCurrentEventInfo	  
