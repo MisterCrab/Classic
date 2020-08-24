@@ -1,4 +1,5 @@
 local _G, math, pairs, type, select, setmetatable	= _G, math, pairs, type, select, setmetatable
+local huge 											= math.huge
 
 local TMW 											= _G.TMW 
 local CNDT 											= TMW.CNDT
@@ -25,25 +26,32 @@ local Player										= A.Player
 local LoC 											= A.LossOfControl
 local MultiUnits									= A.MultiUnits
 
-local Pet											= LibStub("PetLibrary")
 local LoC_GetExtra									= LoC.GetExtra
+local CONST_PAUSECHECKS_DISABLED 					= CONST.PAUSECHECKS_DISABLED
+local CONST_PAUSECHECKS_DEAD_OR_GHOST				= CONST.PAUSECHECKS_DEAD_OR_GHOST
+local CONST_PAUSECHECKS_IS_MOUNTED 					= CONST.PAUSECHECKS_IS_MOUNTED
+local CONST_PAUSECHECKS_WAITING 					= CONST.PAUSECHECKS_WAITING
+local CONST_PAUSECHECKS_SPELL_IS_TARGETING			= CONST.PAUSECHECKS_SPELL_IS_TARGETING
+local CONST_PAUSECHECKS_LOOTFRAME 					= CONST.PAUSECHECKS_LOOTFRAME
+local CONST_PAUSECHECKS_IS_EAT_OR_DRINK 			= CONST.PAUSECHECKS_IS_EAT_OR_DRINK
+local CONST_AUTOTARGET 								= CONST.AUTOTARGET
+local CONST_AUTOSHOOT 								= CONST.AUTOSHOOT
+local CONST_AUTOATTACK 								= CONST.AUTOATTACK
+local CONST_LEFT 									= CONST.LEFT
+local CONST_RIGHT									= CONST.RIGHT
 
-local huge 											= math.huge
-
+local Pet											= _G.LibStub("PetLibrary")
 local UnitBuff										= _G.UnitBuff
 local UnitIsUnit  									= _G.UnitIsUnit
 local UnitIsFriend									= _G.UnitIsFriend
 
 local GetSpellInfo									= _G.GetSpellInfo
+local GetCurrentKeyBoardFocus						= _G.GetCurrentKeyBoardFocus
 local SpellIsTargeting								= _G.SpellIsTargeting
 local IsMouseButtonDown								= _G.IsMouseButtonDown
 --local IsPlayerAttacking							= _G.IsPlayerAttacking
 local HasWandEquipped								= _G.HasWandEquipped
 local HasFullControl								= _G.HasFullControl
-
-local MACRO											-- nil 
-local BINDPAD 										= _G.BindPadFrame
-local WIM											= _G.WIM
 
 local ClassPortaits 								= {
 	["WARRIOR"] 									= CONST.PORTRAIT_WARRIOR,
@@ -69,6 +77,7 @@ local GetKeyByRace 									= {
 	Orc 											= "BloodFury",
 }
 
+local playerClass									= A.PlayerClass
 local player										= "player"
 local target 										= "target"
 local mouseover										= "mouseover"
@@ -77,28 +86,6 @@ local targettarget									= "targettarget"
 -------------------------------------------------------------------------------
 -- Conditions
 -------------------------------------------------------------------------------
-local function MacroFrameIsVisible()
-	-- @return boolean 
-	if MACRO then 
-		return MACRO:IsVisible()
-	else 
-		MACRO = _G.MacroFrame
-	end 
-end 
-
-local function BindPadFrameIsVisible()
-	-- @return boolean 
-	return BINDPAD and BINDPAD:IsVisible()
-end 
-
-local WIM_ChatFrames = setmetatable({}, { __index = function(t, i)
-	local f = _G["WIM3_msgFrame" .. i .. "MsgBox"]
-	if f then 
-		t[i] = f
-	end 
-	return f
-end })
-
 local FoodAndDrink 									= {	
 	[GetSpellInfo(587)] 							= true, -- Conjure Food 
 	[GetSpellInfo(18233)] 							= true,	-- Food
@@ -130,22 +117,10 @@ local function IsDrinkingOrEating()
 	end 
 end 
 
-function A.PauseChecks()  	
-	-- Chat, Macro, BindPad, TellMeWhen
-	if _G.ACTIVE_CHAT_EDIT_BOX or MacroFrameIsVisible() or BindPadFrameIsVisible() or not TMW.Locked then 
-		return CONST.PAUSECHECKS_DISABLED
+local function PauseChecks()  	
+	if not TMW.Locked or GetCurrentKeyBoardFocus() ~= nil then 
+		return CONST_PAUSECHECKS_DISABLED
 	end 
-	
-	-- Wim Messanger
-	if WIM then 
-		for i = 1, huge do 
-			if not WIM_ChatFrames[i] then 
-				break 
-			elseif WIM_ChatFrames[i]:IsVisible() and WIM_ChatFrames[i]:HasFocus() then 
-				return CONST.PAUSECHECKS_DISABLED
-			end 
-		end 
-	end  
 	
 	if 	(GetToggle(1, "CheckDeadOrGhost") and Unit(player):IsDead()) or 
 		(
@@ -156,32 +131,31 @@ function A.PauseChecks()
 			)
 		) 
 	then 																																																										-- exception in PvP Hunter 
-		return CONST.PAUSECHECKS_DEAD_OR_GHOST
+		return CONST_PAUSECHECKS_DEAD_OR_GHOST
 	end 	
 	
 	if GetToggle(1, "CheckMount") and Player:IsMounted() then 																																												-- exception Divine Steed and combat mounted auras
-		return CONST.PAUSECHECKS_IS_MOUNTED
+		return CONST_PAUSECHECKS_IS_MOUNTED
 	end 
 
 	if GetToggle(1, "CheckCombat") and Unit(player):CombatTime() == 0 and Unit(target):CombatTime() == 0 and not Player:IsStealthed() and BossMods:GetPullTimer() == 0 then 																		-- exception Stealthed and DBM pulling event 
-		return CONST.PAUSECHECKS_WAITING
+		return CONST_PAUSECHECKS_WAITING
 	end 	
 	
-	if GetToggle(1, "CheckSpellIsTargeting") and SpellIsTargeting() and (A.PlayerClass ~= "ROGUE" or Player:IsMoving() or Unit(player):CombatTime() ~= 0) then																				-- exception Classic Rogue only ue mechanic of poison enchants
-		return CONST.PAUSECHECKS_SPELL_IS_TARGETING
+	if GetToggle(1, "CheckSpellIsTargeting") and SpellIsTargeting() and (playerClass ~= "ROGUE" or Player:IsMoving() or Unit(player):CombatTime() ~= 0) then																				-- exception Classic Rogue only ue mechanic of poison enchants
+		return CONST_PAUSECHECKS_SPELL_IS_TARGETING
 	end	
 	
 	if GetToggle(1, "CheckLootFrame") and _G.LootFrame:IsShown() then
-		return CONST.PAUSECHECKS_LOOTFRAME
+		return CONST_PAUSECHECKS_LOOTFRAME
 	end	
 	
-	if GetToggle(1, "CheckEatingOrDrinking") and Unit(player):CombatTime() == 0 and Player:IsStaying() and IsDrinkingOrEating() then
-		return CONST.PAUSECHECKS_IS_EAT_OR_DRINK
+	if GetToggle(1, "CheckEatingOrDrinking") and Player:IsStaying() and Unit(player):CombatTime() == 0 and IsDrinkingOrEating() then
+		return CONST_PAUSECHECKS_IS_EAT_OR_DRINK
 	end	
 end
-A.PauseChecks = A.MakeFunctionCachedStatic(A.PauseChecks)
-
-local A_PauseChecks = A.PauseChecks
+PauseChecks 						= A.MakeFunctionCachedStatic(PauseChecks)
+A.PauseChecks 						= PauseChecks
 
 local GetMetaType = setmetatable({}, { __index = function(t, v)
 	local istype = type(v)
@@ -192,7 +166,6 @@ end })
 local Temp = {
 	LivingActionPotionIsMissed		= {"INCAPACITATE", "DISORIENT", "FREEZE", "POSSESS", "SAP", "CYCLONE", "BANISH", "PACIFYSILENCE", "POLYMORPH", "SLEEP", "SHACKLE_UNDEAD", "FEAR", "HORROR", "CHARM", "TURN_UNDEAD"},
 }
-
 local TempLivingActionPotionIsMissed = Temp.LivingActionPotionIsMissed
 
 -------------------------------------------------------------------------------
@@ -231,11 +204,11 @@ A.SuperiorHealingPotion				= Create({ Type = "Potion", 			ID = 3928													
 A.MajorHealingPotion				= Create({ Type = "Potion", 			ID = 13446																																					})
 
 local function IsShoot(unit)
-	return 	A.PlayerClass ~= "WARRIOR" and A.PlayerClass ~= "ROGUE" and 		-- their shot must be in profile 
+	return 	playerClass ~= "WARRIOR" and playerClass ~= "ROGUE" and 		-- their shot must be in profile 
 			GetToggle(1, "AutoShoot") and not Player:IsShooting() and  
 			(
-				(A.PlayerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 	-- :IsReady also checks ammo amount by :IsUsable method
-				(A.PlayerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and GetCurrentGCD() <= GetPing() and (not GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
+				(playerClass == "HUNTER" and A.AutoShot:IsReadyP(unit)) or 	-- :IsReady also checks ammo amount by :IsUsable method
+				(playerClass ~= "HUNTER" and HasWandEquipped() and A.Shoot:IsInRange(unit) and GetCurrentGCD() <= GetPing() and (not GetToggle(1, "AutoAttack") or not Player:IsAttacking() or Unit(unit):GetRange() > 6))
 			)
 end 
 
@@ -246,7 +219,7 @@ function A.CanUseStoneformDefense(icon)
 	-- Note: Requires in ProfileUI [2] configured toggle "Stoneform". "P" attribute  
 	if A.PlayerRace == "Dwarf" then 
 		local Stoneform = GetToggle(2, "Stoneform")
-		if Stoneform and Stoneform >= 0 and A[A.PlayerClass].Stoneform:IsRacialReadyP(player) and 
+		if Stoneform and Stoneform >= 0 and A[playerClass].Stoneform:IsRacialReadyP(player) and 
 			(
 				-- Auto 
 				( 	
@@ -276,7 +249,7 @@ function A.CanUseStoneformDefense(icon)
 				)
 			) 
 		then 
-			return A[A.PlayerClass].Stoneform:Show(icon)
+			return A[playerClass].Stoneform:Show(icon)
 		end 	
 	end
 end 
@@ -288,8 +261,8 @@ function A.CanUseStoneformDispel(icon, toggle)
 	if not str_toggle then 
 		str_toggle = true 
 	end 
-	if A.PlayerRace == "Dwarf" and A[A.PlayerClass].Stoneform:IsRacialReady(player, true) and (AuraIsValid(player, str_toggle, "Poison") or AuraIsValid(player, str_toggle, "Bleed") or AuraIsValid(player, str_toggle, "Disease")) then 
-		return A[A.PlayerClass].Stoneform:Show(icon)
+	if A.PlayerRace == "Dwarf" and A[playerClass].Stoneform:IsRacialReady(player, true) and (AuraIsValid(player, str_toggle, "Poison") or AuraIsValid(player, str_toggle, "Bleed") or AuraIsValid(player, str_toggle, "Disease")) then 
+		return A[playerClass].Stoneform:Show(icon)
 	end 	
 end 
 
@@ -375,16 +348,18 @@ function A.CanUseSwiftnessPotion(icon, unitID, range)
 end 
 
 function A.Rotation(icon)
-	if not A.IsInitialized or not A[A.PlayerClass] then 
+	local APL = A[playerClass]
+	if not A.IsInitialized or not APL then 
 		return A_Hide(icon)		
 	end 	
 	
-	local meta = icon.ID
-	local metatype = GetMetaType[A[A.PlayerClass][meta] or "nil"]
+	local meta 		= icon.ID
+	local metaobj  	= APL[meta]
+	local metatype 	= GetMetaType[metaobj or "nil"]
 	
 	-- [1] CC / [2] Kick 
 	if meta <= 2 then 
-		if metatype == "function" and A[A.PlayerClass][meta](icon) then 
+		if metatype == "function" and metaobj(icon) then 
 			return true
 		end 
 		return A_Hide(icon)
@@ -397,10 +372,12 @@ function A.Rotation(icon)
 		-- Use racial available trinkets if we don't have additional RACIAL_LOC
 		-- Note: Additional RACIAL_LOC is the main reason why I avoid here :AutoRacial (see below 'if isApplied then ')
 		if GetToggle(1, "Racial") then 
-			RacialAction 			= A[A.PlayerClass][GetKeyByRace[A.PlayerRace]]			
-			local RACIAL_LOC 		= LoC_GetExtra[A.PlayerRace]							-- Loss Of Control 
+			local playerRace 		= A.PlayerRace
+			
+			RacialAction 			= APL[GetKeyByRace[playerRace]]			
+			local RACIAL_LOC 		= LoC_GetExtra[playerRace]							-- Loss Of Control 
 			if RACIAL_LOC and RacialAction and RacialAction:IsReady(player, true) and RacialAction:IsExists() then 
-				result, isApplied 	= LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, A.PlayerRace == "Dwarf" or A.PlayerRace == "Gnome")
+				result, isApplied 	= LoC:IsValid(RACIAL_LOC.Applied, RACIAL_LOC.Missed, playerRace == "Dwarf" or playerRace == "Gnome")
 				if result then 
 					return RacialAction:Show(icon)
 				end 
@@ -408,7 +385,7 @@ function A.Rotation(icon)
 		end	
 		
 		-- Use specialization spell trinkets
-		if metatype == "function" and A[A.PlayerClass][meta](icon) then  
+		if metatype == "function" and metaobj(icon) then  
 			return true 			
 		end 		
 		
@@ -420,7 +397,7 @@ function A.Rotation(icon)
 		return A_Hide(icon)		 
 	end 
 	
-	local PauseChecks = A_PauseChecks()
+	local PauseChecks = PauseChecks()
 	if PauseChecks then
 		if meta == 3 then 
 			return A:Show(icon, PauseChecks)
@@ -431,16 +408,16 @@ function A.Rotation(icon)
 	-- [6] Passive: @player, @raid1, @arena1 
 	if meta == 6 then 
 		-- Shadowmeld
-		if A[A.PlayerClass].Shadowmeld and A[A.PlayerClass].Shadowmeld:AutoRacial(player) then 
-			return A[A.PlayerClass].Shadowmeld:Show(icon)
+		if APL.Shadowmeld and APL.Shadowmeld:AutoRacial(player) then 
+			return APL.Shadowmeld:Show(icon)
 		end 
 		
 		-- Cursor 
 		if A.GameTooltipClick and not IsMouseButtonDown("LeftButton") and not IsMouseButtonDown("RightButton") then 			
 			if A.GameTooltipClick == "LEFT" then 
-				return A:Show(icon, CONST.LEFT)			 
+				return A:Show(icon, CONST_LEFT)			 
 			elseif A.GameTooltipClick == "RIGHT" then 
-				return A:Show(icon, CONST.RIGHT)
+				return A:Show(icon, CONST_RIGHT)
 			end 
 		end 
 		
@@ -473,7 +450,7 @@ function A.Rotation(icon)
 			-- If there PvE in 40 yards any in combat enemy (exception target) or we're on (R)BG 
 			and ((not A.IsInPvP and MultiUnits:GetByRangeInCombat(nil, 1) >= 1) or A.Zone == "pvp")
 		then 
-			return A:Show(icon, CONST.AUTOTARGET)			 
+			return A:Show(icon, CONST_AUTOTARGET)			 
 		end 
 	end 
 	
@@ -502,35 +479,35 @@ function A.Rotation(icon)
 		useShoot = IsShoot(unit)
 		if not useShoot and unit ~= targettarget and GetToggle(1, "AutoAttack") and not Player:IsAttacking() then 
 			-- Cancel shoot because it doesn't reseting by /startattack and it will be stucked to shooting
-			--if A.PlayerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
-				--return A:Show(icon, CONST.AUTOSHOOT)
+			--if playerClass ~= "HUNTER" and Player:IsShooting() and HasWandEquipped() then 
+				--return A:Show(icon, CONST_AUTOSHOOT)
 			--end 
 			
 				-- Use AutoAttack only if not a hunter or it's is out of range by AutoShot 
-			if 	(A.PlayerClass ~= "HUNTER" or not GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit)) and 
+			if 	(playerClass ~= "HUNTER" or not GetToggle(1, "AutoShoot") or not Player:IsShooting() or not A.AutoShot:IsInRange(unit)) and 
 				-- ByPass Rogue's mechanic
-				(A.PlayerClass ~= "ROGUE" or ((unit ~= mouseover or UnitIsUnit(unit, target)) and Unit(unit):HasDeBuffs("BreakAble") == 0)) and 
+				(playerClass ~= "ROGUE" or ((unit ~= mouseover or UnitIsUnit(unit, target)) and Unit(unit):HasDeBuffs("BreakAble") == 0)) and 
 				-- ByPass Warlock's mechanic 
-				(A.PlayerClass ~= "WARLOCK" or Unit(unit):GetRange() <= 5)
+				(playerClass ~= "WARLOCK" or Unit(unit):GetRange() <= 5)
 			then 
-				return A:Show(icon, CONST.AUTOATTACK)
+				return A:Show(icon, CONST_AUTOATTACK)
 			end 
 		end 
 	end 
 	
 	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
-	if A[A.PlayerClass][meta](icon) then 
+	if metaobj(icon) then 
 		return true 
 	end 
 	
 	-- [3] Single / [4] AoE: AutoShoot
 	if useShoot and (meta == 3 or meta == 4) then 
-		return A:Show(icon, CONST.AUTOSHOOT)
+		return A:Show(icon, CONST_AUTOSHOOT)
 	end 
 	
 	-- [3] Set Class Portrait
 	if meta == 3 and not GetToggle(1, "DisableClassPortraits") then 
-		return A:Show(icon, ClassPortaits[A.PlayerClass])
+		return A:Show(icon, ClassPortaits[playerClass])
 	end 
 	
 	A_Hide(icon)			

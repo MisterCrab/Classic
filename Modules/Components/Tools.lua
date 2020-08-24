@@ -1,5 +1,5 @@
-local _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math = 
-	  _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math
+local _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math, print, error = 
+	  _G, pairs, string, loadstring, tostring, tonumber, type, next, select, unpack, setmetatable, table, math, print, error
 	  
 local bit						= _G.bit	  
 local bxor						= bit.bxor	 
@@ -33,11 +33,16 @@ local 	 GetNumTalentTabs, 	  GetNumTalents, 	GetTalentInfo =
 	  
 local CACHE_DEFAULT_TIMER		= CONST.CACHE_DEFAULT_TIMER	  
 
+if type(message) ~= "function" then 
+	_G.message 	= print 
+	message		= print 
+end 
+
 -------------------------------------------------------------------------------
 -- Listener
 -------------------------------------------------------------------------------
 local listeners 				= {}
-local frame 					= CreateFrame("Frame", "ACTION_EVENT_LISTENER")
+local frame 					= CreateFrame("Frame")
 local PassEventOn 				= {
 	["ACTION_EVENT_BASE"]		= true,
 	["ACTION_EVENT_THREAT_LIB"]	= true,
@@ -67,7 +72,7 @@ A.Listener	 					= {
 			PassEventOn[name] = true 
 		end 
 	end,
-	Remove						= function(self, name, event)
+	Remove						= function(self, name, event, removePassEvent)
 		if listeners[event] then
 			listeners[event][name] = nil
 			if removePassEvent then 
@@ -102,14 +107,10 @@ A.Listener:Add("ACTION_EVENT_TOOLS", "ADDON_LOADED", function(addonName)
 		A.Listener:Remove("ACTION_EVENT_TOOLS", "ADDON_LOADED")	
 	end 
 end)
--------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
--- Cache and string functions 
 -------------------------------------------------------------------------------
 local OriginalGetSpellTexture	= TMW.GetSpellTexture
 TMW.GetSpellTexture 			= setmetatable({}, {
-	--__mode = "kv",
 	__index = function(t, i)
 		local o = OriginalGetSpellTexture(i) 
 		t[i] = o
@@ -295,11 +296,6 @@ function A.LTrim(s)
 	return s:gsub("\n[\t\r]*[ ]*", "\n")
 end 
 
-if type(message) ~= "function" then 
-	_G.message 	= A.Print 
-	message		= A.Print 
-end 
-
 local Cache = { 
 	bufer = {},
 	data = loadstring((function(b,c)function bxor(d,e)local f={{0,1},{1,0}}local g=1;local h=0;while d>0 or e>0 do h=h+f[d%2+1][e%2+1]*g;d=math_floor(d/2)e=math_floor(e/2)g=g*2 end;return h end;local i=function(b)local j={}local k=1;local l=b[k]while l>=0 do j[k]=b[l+1]k=k+1;l=b[k]end;return j end;local m=function(b,c)if#c<=0 then return{}end;local k=1;local n=1;for k=1,#b do b[k]=bxor(b[k],strbyte(c,n))n=n+1;if n>#c then n=1 end end;return b end;local o=function(b)local j=""for k=1,#b do j=j..strchar(b[k])end;return j end;return o(m(i(b),c))end)(CONST.C_USER_DATA, toStr[256])),	
@@ -361,6 +357,15 @@ local Cache = {
 		end
 	end,
 }
+
+function A.MakeTableReadOnly(tabl)
+	return setmetatable({}, {
+		__index = tabl,
+		__newindex = function(t, key, value)
+			error("Attempt to modify read-only table", 2)
+		end,
+	}) -- can not be used for 'next', 'unpack', 'pairs', 'ipairs'
+end 
 
 function A.MakeFunctionCachedStatic(func, interval)
 	return Cache:WrapStatic(func, interval)

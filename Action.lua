@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "07.08.2020"
+local DateTime 														= "25.08.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -3849,7 +3849,7 @@ end
 
 function Action.GetLocalization()
 	-- @return table localized with current language of interface 
-	CL 	= gActionDB and gActionDB.InterfaceLanguage ~= "Auto" and Localization[gActionDB.InterfaceLanguage] and gActionDB.InterfaceLanguage or next(Localization[GameLocale]) and GameLocale or "enUS"
+	CL 	= gActionDB and Localization[gActionDB.InterfaceLanguage] and gActionDB.InterfaceLanguage or next(Localization[GameLocale]) and GameLocale or "enUS"
 	L 	= Localization[CL]
 	return L
 end 
@@ -4969,7 +4969,7 @@ local function tMerge(default, new, special, nonexistremove)
 							end 						
 							result[k][spellName] = { Enabled = Enabled, ID = ID, useKick = useKick, useCC = useCC, useRacial = useRacial } 
 						else 
-							A_Print(L["DEBUG"] .. (ID or "") .. " (spellName - ISINTERRUPT) " .. " " .. L["ISNOTFOUND"]:lower())							
+							A_Print(L["DEBUG"] .. (ID or "") .. " (spellName - ISINTERRUPT) " .. L["ISNOTFOUND"]:lower())							
 						end 					
 					end 
 				end
@@ -5050,6 +5050,46 @@ local function tCompare(default, new, upkey, skip)
 	return result 
 end
 
+local function tPushKeys(default, new, path)
+	if new then 
+		for k, v in pairs(new) do 
+			if k == GameLocale or k == "GameLocale" then -- avoid miss typo 
+				for locale, localeTable in pairs(default) do 
+					if type(locale) == "string" and type(localeTable) == "table" then 
+						if type(v) ~= "table" then 
+							default[locale] = v 
+							A_Print(L.DEBUG .. (path or "") .. "[" .. locale .. "] " .. L.CREATED)
+						else 
+							-- The names for next table enterence must be localized 
+							tPushKeys(default[locale], v, (path or "") .. "[" .. locale .. "]")
+						end 
+					end 
+				end 
+			else 
+				local path = path 
+				if type(k) == "number" then 
+					path = (path or "") .. "[" .. k .. "]"
+				else
+					path = (path and path .. "." or "") .. k 
+				end 
+				
+				if type(v) == "table" then 
+					if default[k] == nil then
+						default[k] = v 
+						A_Print(L.DEBUG .. path .. " " .. L.CREATED)
+					else 
+						tPushKeys(default[k], v, path)
+					end 					
+				else 
+					default[k] = v 
+					A_Print(L.DEBUG .. path .. " " .. L.CREATED)
+				end 					
+			end
+		end 
+	end 
+	return default
+end 
+
 local function tEraseKeys(default, new, path)
 	-- Cleans in 'default' table keys which persistent in 'new' table 
 	if new then 
@@ -5114,6 +5154,8 @@ local Upgrade 					= {
 			if (pActionDB.Ver or 0) < ver then 
 				if func() ~= false then 
 					pActionDB.Ver = ver
+				else 
+					break 
 				end 
 			end 
 		end				
@@ -5127,6 +5169,8 @@ local Upgrade 					= {
 			if (gActionDB.Ver or 0) < ver then 
 				if func() ~= false then 
 					gActionDB.Ver = ver
+				else 
+					break 
 				end 
 			end 
 		end	
@@ -5139,11 +5183,16 @@ local Upgrade 					= {
 		if profileUpgrades then 
 			oldVer = pActionDB.Version -- Version here
 			
-			tsort(profileUpgrades, self.SortMethod)			
+			if #profileUpgrades > 1 then 
+				tsort(profileUpgrades, self.SortMethod)			
+			end 
+			
 			for _, profileUpgrade in ipairs(profileUpgrades) do 
 				if (pActionDB.Version or 0) < profileUpgrade.Version then 
 					if profileUpgrade.Func(pActionDB) ~= false then 
 						pActionDB.Version = profileUpgrade.Version
+					else 
+						break 
 					end 
 				end 
 			end
@@ -5186,9 +5235,10 @@ local Upgrade 					= {
 	end,
 }
 do 
-	-- Push the utils 
+	-- Push the utils 	
 	Upgrade.tMerge = tMerge
 	Upgrade.tCompare = tCompare
+	Upgrade.tPushKeys = tPushKeys 
 	Upgrade.tEraseKeys = tEraseKeys
 
 	-- Push to global 
@@ -5213,12 +5263,6 @@ local function dbUpdate()
 end 
 
 -- gActionDB[5] -> pActionDB[5]
-local isDispelCategory = {
-	["Poison"] = true,
-	["Disease"] = true,
-	["Curse"] = true,
-	["Magic"] = true,
-}
 local function DispelPurgeEnrageRemap()
 	-- Note: This function should be called every time when [5] "Auras" in UI has been changed or shown
 	-- Creates localization on keys and put them into profile db relative spec 
@@ -5233,20 +5277,24 @@ local function DispelPurgeEnrageRemap()
 			end 
 			for SpellID, v in pairs(Category_v) do 
 				local Name = GetSpellInfo(SpellID)
-				ActionDataAuras[Mode][Category][Name] = { 
-					ID = SpellID, 
-					Name = Name, 
-					Enabled = true,
-					Role = v.role or "ANY",
-					Dur = v.dur or 0,
-					Stack = v.stack or 0,
-					byID = v.byID,
-					canStealOrPurge = v.canStealOrPurge,
-					onlyBear = v.onlyBear,
-					LUA = v.LUA,
-				} 
-				if v.enabled ~= nil then 
-					ActionDataAuras[Mode][Category][Name].Enabled = v.enabled 
+				if Name then 
+					ActionDataAuras[Mode][Category][Name] = { 
+						ID = SpellID, 
+						Name = Name, 
+						Enabled = true,
+						Role = v.role or "ANY",
+						Dur = v.dur or 0,
+						Stack = v.stack or 0,
+						byID = v.byID,
+						canStealOrPurge = v.canStealOrPurge,
+						onlyBear = v.onlyBear,
+						LUA = v.LUA,
+					} 
+					if v.enabled ~= nil then 
+						ActionDataAuras[Mode][Category][Name].Enabled = v.enabled 
+					end 
+				else 
+					A_Print(L["DEBUG"] .. (SpellID or "") .. " (spellName - DispelPurgeEnrageRemap) " .. L["ISNOTFOUND"]:lower())
 				end 
 			end 			 
 		end 
@@ -5374,7 +5422,7 @@ local function DispelPurgeEnrageRemap()
 	}
 
 	if UnitAuras[Action.PlayerClass] then 
-		ActionDataAuras.DisableCheckboxes = { UseDispel = true, UsePurge = true, UseExpelEnrage = true, UseExpelFrenzy = true }
+		ActionDataAuras.DisableCheckboxes = { UsePurge = true, UseExpelEnrage = true, UseExpelFrenzy = true }
 		for Mode, Mode_v in pairs(UnitAuras[Action.PlayerClass]) do 
 			for Category, Category_v in pairs(Mode_v) do 
 				if not pActionDB[5][Mode] then 
@@ -5391,9 +5439,7 @@ local function DispelPurgeEnrageRemap()
 					pActionDB[5][Mode][Category][GameLocale] = {}
 				end
 			
-				if isDispelCategory[Category] then 
-					ActionDataAuras.DisableCheckboxes.UseDispel = false 
-				elseif Category:match("Purge") then 
+				if Category:match("Purge") then 
 					ActionDataAuras.DisableCheckboxes.UsePurge = false 
 				elseif Category:match("Enrage") then 
 					ActionDataAuras.DisableCheckboxes.UseExpelEnrage = false 
@@ -5423,7 +5469,6 @@ local function DispelPurgeEnrageRemap()
 		end 
 	else  
 		ActionDataAuras.DisableCheckboxes = nil	
-		pActionDB[5].UseDispel = false 
 		pActionDB[5].UsePurge = false 
 		pActionDB[5].UseExpelEnrage = false
 		pActionDB[5].UseExpelFrenzy = false
@@ -5508,7 +5553,7 @@ function StdUi:AddToggleWidgets(toggleWidgets, ...)
 end 
 function StdUi:EnumerateToggleWidgets(tabChild, anchor)
 	tabChild.toggleWidgets = {}
-	StdUi:AddToggleWidgets(tabChild.toggleWidgets, anchor:GetChildren())
+	self:AddToggleWidgets(tabChild.toggleWidgets, anchor:GetChildren())
 end 
 function StdUi:CreateResizer(parent)
 	local parent = parent
@@ -8353,10 +8398,10 @@ function Action.InterruptIsValid(unitID, toggle, ignoreToggle, countGCD)
 end 
 
 -- [5] Auras
--- Note: Toggles  ("UseDispel", "UsePurge", "UseExpelEnrage", "UseExpelFrenzy")  
---		 Category ("Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList", 
+-- Note: Toggles  "UseDispel", "UsePurge", "UseExpelEnrage", "UseExpelFrenzy"  
+--		 Category "Poison", "Disease", "Curse", "Magic", "PurgeFriendly", "PurgeHigh", "PurgeLow", "Enrage", "Frenzy", "BlackList", 
 --																																	"BlessingofProtection", "BlessingofFreedom", "BlessingofSacrifice"	-- only Paladin 		
---																																	"Vanish") -- only Rogue 
+--																																	"Vanish" -- only Rogue 
 function Action.AuraIsON(Toggle)
 	-- @return boolean 
 	return (type(Toggle) == "boolean" and Toggle == true) or pActionDB[5][Toggle]
@@ -8373,15 +8418,17 @@ function Action.AuraGetCategory(Category)
 	if Category:match("Purge") or Category:match("Enrage") or Category:match("Frenzy") then 
 		Filter = "HELPFUL"
 	elseif Category:match("BlackList") then 
-		Filter = Filter .. " HELPFUL"
+		Filter = "HARMFUL HELPFUL"
 	end 
 	
-	if pActionDB[5][Mode] and pActionDB[5][Mode][Category] then 
-		return pActionDB[5][Mode][Category][GameLocale], Filter
+	local Aura = pActionDB[5][Mode]
+	if Aura and Aura[Category] then 
+		return Aura[Category][GameLocale], Filter
 	end 
 	
-	if ActionDataAuras[Mode] then 
-		return ActionDataAuras[Mode][Category], Filter
+	Aura = ActionDataAuras[Mode]
+	if Aura then 
+		return Aura[Category], Filter
 	end 
 	
 	return nil, Filter
@@ -8391,12 +8438,12 @@ function Action.AuraIsBlackListed(unitID)
 	-- @return boolean 
 	local Aura, Filter = A_AuraGetCategory("BlackList")
 	if Aura and next(Aura) then 
-		local _, Name, count, duration, expirationTime, canStealOrPurge, id
+		local _, Dur, Name, count, duration, expirationTime, canStealOrPurge, id
 		for i = 1, huge do 
 			Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
 			if Name then
 				if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 
-					local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
+					Dur = expirationTime == 0 and huge or expirationTime - TMW.time
 					if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or A_Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
 						return true
 					end 
@@ -8406,7 +8453,6 @@ function Action.AuraIsBlackListed(unitID)
 			end 
 		end 
 	end 
-	return false 
 end 
 
 function Action.AuraIsValid(unitID, Toggle, Category)
@@ -8414,12 +8460,12 @@ function Action.AuraIsValid(unitID, Toggle, Category)
 	if Category ~= "BlackList" and A_AuraIsON(Toggle) then 
 		local Aura, Filter = A_AuraGetCategory(Category)
 		if Aura and not A_AuraIsBlackListed(unitID) then 
-			local _, Name, count, duration, expirationTime, canStealOrPurge, id
+			local _, Dur, Name, count, duration, expirationTime, canStealOrPurge, id
 			for i = 1, huge do			
 				Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
 				if Name then					
 					if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 					
-						local Dur = expirationTime == 0 and huge or expirationTime - TMW.time
+						Dur = expirationTime == 0 and huge or expirationTime - TMW.time
 						if Dur > Aura[Name].Dur and (Aura[Name].Stack == 0 or count >= Aura[Name].Stack) and (not Aura[Name].canStealOrPurge or canStealOrPurge == true) and (not Aura[Name].onlyBear or A_Unit(unitID):HasBuffs(5487) > 0) and RunLua(Aura[Name].LUA, unitID) then
 							return true
 						end 
@@ -8430,7 +8476,6 @@ function Action.AuraIsValid(unitID, Toggle, Category)
 			end 
 		end
 	end 
-	return false 
 end
 
 -- [6] Cursor 
@@ -11272,7 +11317,7 @@ function Action.ToggleMainUI()
 								isShown = false 
 							end 
 						elseif v.Type == "Spell" then 															
-							if not v:IsExists(v.isReplacement) or v:IsBlockedBySpellBook() or (v.isTalent and not v:IsSpellLearned()) then 
+							if not v:IsExists(v.isReplacement) or v:IsBlockedBySpellBook() or (v.isTalent and not v:IsTalentLearned()) then 
 								isShown = false 
 							end 
 						else 
@@ -11291,8 +11336,8 @@ function Action.ToggleMainUI()
 					if isShown then 
 						tinsert(self.Data, setmetatable({ 
 							Enabled = Enabled, 				
-							Name = (v:Info()),
-							Icon = (v:Icon()),
+							Name = (v:Info()) or "",
+							Icon = (v:Icon()) or ActionConst.TRUE_PORTRAIT_PICKPOCKET,
 							TableKeyName = k,
 						}, { __index = Action[specID][k] or Action }))
 					end 
@@ -12583,9 +12628,6 @@ function Action.ToggleMainUI()
 			end)
 			UseDispel.Identify = { Type = "Checkbox", Toggle = "UseDispel" }
 			StdUi:FrameTooltip(UseDispel, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
-			if not ActionDataAuras.DisableCheckboxes or ActionDataAuras.DisableCheckboxes.UseDispel then 
-				UseDispel:Disable()
-			end 
 	
 			UsePurge:SetChecked(specDB.UsePurge)
 			UsePurge:RegisterForClicks("LeftButtonUp", "RightButtonUp")
