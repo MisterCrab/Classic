@@ -101,7 +101,7 @@ local itemCategory 			= {
 	  	  	  
 local GetNetStats 			= _G.GetNetStats  	
 local GameLocale 			= _G.GetLocale()
-local GetCVar				= _G.GetCVar -- C_CVar why Classic hasn't it???
+local GetCVar				= _G.GetCVar or _G.C_CVar.GetCVar
 
 -- Spell 
 local Spell					= _G.Spell

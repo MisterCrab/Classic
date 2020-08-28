@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "25.08.2020"
+local DateTime 														= "28.08.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -10939,8 +10939,8 @@ function Action.ToggleMainUI()
 				specRow = anchor:AddRow(TabProfileUI[row].RowOptions)	
 				for element = 1, #TabProfileUI[row] do 
 					local config 	= TabProfileUI[row][element]	
-					local cL	 	= (config.L  and (interfaceLanguage and interfaceLanguage ~= "Auto" and config.L[interfaceLanguage]  and interfaceLanguage or config.L[GameLocale]  and GameLocale)) or "enUS"
-					local cTT 		= (config.TT and (interfaceLanguage and interfaceLanguage ~= "Auto" and config.TT[interfaceLanguage] and interfaceLanguage or config.TT[GameLocale] and GameLocale)) or "enUS"	
+					local cL	 	= (config.L  and (interfaceLanguage and  config.L[interfaceLanguage] and interfaceLanguage or config.L[GameLocale]  and GameLocale)) or "enUS"
+					local cTT 		= (config.TT and (interfaceLanguage and config.TT[interfaceLanguage] and interfaceLanguage or config.TT[GameLocale] and GameLocale)) or "enUS"	
 					
 					if config.E == "Label" then 
 						obj = StdUi:Label(anchor, config.L.ANY or config.L[cL], config.S or 14)
@@ -11007,7 +11007,7 @@ function Action.ToggleMainUI()
 									if type(config.OT[j].text) ~= "table" then 
 										FormatedOT[#FormatedOT + 1] = config.OT[j]
 									else
-										local OT = interfaceLanguage and interfaceLanguage ~= "Auto" and config.OT[j].text[interfaceLanguage] and interfaceLanguage or config.OT[j].text[GameLocale] and GameLocale or "enUS"
+										local OT = interfaceLanguage and config.OT[j].text[interfaceLanguage] and interfaceLanguage or config.OT[j].text[GameLocale] and GameLocale or "enUS"
 										FormatedOT[#FormatedOT + 1] = { text = config.OT[j].text.ANY or config.OT[j].text[OT], value = config.OT[j].value }
 									end 
 								end
@@ -11068,9 +11068,9 @@ function Action.ToggleMainUI()
 						end
 						if config.M then 
 							obj:SetScript("OnMouseUp", function(self, button, down)
-									if button == "RightButton" then 
-										Action.CraftMacro( config.L.ANY or config.L[cL], [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[cL]) .. [[: "}, ]] .. specDB[config.DB] .. [[)]], 1 )	
-									end					
+								if button == "RightButton" then 
+									Action.CraftMacro( config.L.ANY or config.L[cL], [[/run Action.SetToggle({]] .. tabName .. [[, "]] .. config.DB .. [[", "]] .. (config.M.Print or config.L.ANY or config.L[cL]) .. [[: "}, ]] .. specDB[config.DB] .. [[)]], 1 )	
+								end					
 							end)
 						end 
 						local ONOFF = function(value)

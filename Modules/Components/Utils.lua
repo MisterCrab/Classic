@@ -39,9 +39,10 @@ local hooksecurefunc		= _G.hooksecurefunc
 local strfind				= _G.strfind	  
 local strmatch				= _G.strmatch	
 local UIParent				= _G.UIParent	
+local C_CVar				= _G.C_CVar
 	  
-local 	 CreateFrame, 	 GetCVar, 	 SetCVar =
-	  _G.CreateFrame, _G.GetCVar, _G.SetCVar
+local 	 CreateFrame, 	 GetCVar, 	 				   SetCVar =
+	  _G.CreateFrame, _G.GetCVar or C_CVar.GetCVar, _G.SetCVar or C_CVar.SetCVar	  
 
 local GetPhysicalScreenSize = _G.GetPhysicalScreenSize
 	  
