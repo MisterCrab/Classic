@@ -1,3 +1,4 @@
+local ADDON_NAME 													= ...
 local _G															= _G
 local TMW 															= _G.TMW
 local dir															= [[Interface\AddOns\TheAction Classic\Media\]]
@@ -8,7 +9,7 @@ _G.ACTION_CONST_ADDON_NAME_TMW_OPTIONS								= "TellMeWhen_Options"
 _G.ACTION_CONST_ADDON_NAME_TMW										= "TellMeWhen"
 
 -- Action 
-_G.ACTION_CONST_ADDON_NAME											= "TheAction Classic"
+_G.ACTION_CONST_ADDON_NAME											= ADDON_NAME
 _G.ACTION_CONST_CACHE_DISABLE				 						= false 		-- On own risk, it will disable memorize cache but will reduce a lot of memory drive, it's trade-in toggle between CPU and Memory 	(required reload after change)
 _G.ACTION_CONST_CACHE_MEM_DRIVE										= false			-- On own risk, it will unlock remain cache for low CPU demand functions "aka memory killer" 										(doesn't work if _G.ACTION_CONST_CACHE_DISABLE is 'true')
 _G.ACTION_CONST_CACHE_DEFAULT_TIMER 								= 0.01			-- "Tools.lua" offset on cache control 

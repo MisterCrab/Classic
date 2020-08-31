@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "28.08.2020"
+local DateTime 														= "31.08.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -503,6 +503,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target enemy",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player dead",
+				SELECTSTOPOPTIONS6 = "sync-up 'Rotation doesn't work if'",
 				SELECTSORTMETHOD = "Target Sort Method",
 				SELECTSORTMETHODTOOLTIP = "Supported: 'Healing Engine'\n\n'Health Percent' sorts @target selection with the least health in the percent ratio\n'Health Actual' sorts @target selection with the least health in the exact ratio\n\nRight click: Create macro",
 				SORTHP = "Health Percent",
@@ -1032,6 +1033,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target противник",
 				SELECTSTOPOPTIONS4 = "@target босс",
 				SELECTSTOPOPTIONS5 = "@player мертв",
+				SELECTSTOPOPTIONS6 = "синхр. 'Ротация не работает если'",
 				SELECTSORTMETHOD = "Цель Метод Сортировки",
 				SELECTSORTMETHODTOOLTIP = "Поддерживает: 'Healing Engine'\n\n'Процентное Здоровье' сортирует выбор @target по наименьшему здоровью в процентном соотношении\n'Актуальное Здоровье' сортирует выбор @target по наименьшему здоровью в точном соотношении\n\nПравая кнопка мышки: Создать макрос",
 				SORTHP = "Процентное Здоровье",
@@ -1562,6 +1564,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target gegner",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player tot",
+				SELECTSTOPOPTIONS6 = "synchro-en 'Rota funktioniert nicht wenn'",
 				SELECTSORTMETHOD = "Ziel Sortiermethode",
 				SELECTSORTMETHODTOOLTIP = "Unterstützt: 'Healing Engine'\n\n'Gesundheit Prozent' sortiert die @target auswahl mit der geringsten Gesundheit im Prozentverhältnis\n'Wirkliche Gesundheit' sortiert die @targetauswahl mit dem geringsten Zustand im genauen Verhältnis\n\nKlick: Makro erstellen",
 				SORTHP = "Gesundheit Prozent",
@@ -2094,6 +2097,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target ennemi",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player mort",
+				SELECTSTOPOPTIONS6 = "synchroniser 'La rotation ne fonction pas, si'",
 				SELECTSORTMETHOD = "Méthode de tri des cibles",
 				SELECTSORTMETHODTOOLTIP = "Supporté: 'Healing Engine'\n\n'Pourcentage de santé' classe les @target selon le plus faible ratio de Pourcentage de santé\n'Santé réelle' classe les @target leur ratio de vie réelle\n\nClic droit: Créer la macro",
 				SORTHP = "Pourcentage de santé",
@@ -2372,7 +2376,7 @@ local Localization = {
 				ICE = "Ghiaccio",
 				AUTOATTACK = "Attacco automatico",
 				AUTOSHOOT = "Scatto automatico",	
-				PAUSECHECKS = "Rotation doesn't work if:",
+				PAUSECHECKS = "La rotazione non funziona, se:",
 				DEADOFGHOSTPLAYER = "Sei Morto",
 				DEADOFGHOSTTARGET = "Il bersaglio é morto",
 				DEADOFGHOSTTARGETTOOLTIP = "Eccezione il cacciatore bersaglio se é selezionato come bersaglio primario",
@@ -2623,6 +2627,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target nemico",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player morto",
+				SELECTSTOPOPTIONS6 = "sincronizzare 'La rotazione non funziona, se'",
 				SELECTSORTMETHOD = "Metodo di ordinamento target",
 				SELECTSORTMETHODTOOLTIP = "Supportato: 'Healing Engine'\n\n'Percentuale di salute' ordina la selezione @target con il minor livello di integrità nel rapporto percentuale\n'Salute reale' ordina la selezione di @target con la minima salute nel rapporto esatto\n\nPulsanmte destro: Crea macro",
 				SORTHP = "Percentuale di salute",
@@ -3154,6 +3159,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target enemigo",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player muerto",
+				SELECTSTOPOPTIONS6 = "sincronizar 'La rotación no funciona si'",
 				SELECTSORTMETHOD = "Método de orden de target",
 				SELECTSORTMETHODTOOLTIP = "Soportado: 'Healing Engine'\n\n'Porcentaje de Vida' ordena la selección del @target con el último ratio deporcentage de vida\n'Vida Actual' ordena la selección del @target con el ratio exacto de vida\n\Botón derecho: Crear macro",
 				SORTHP = "Porcentaje de Vida",
@@ -3683,6 +3689,7 @@ local Localization = {
 				SELECTSTOPOPTIONS3 = "@target inimigo",
 				SELECTSTOPOPTIONS4 = "@target boss",
 				SELECTSTOPOPTIONS5 = "@player morto",
+				SELECTSTOPOPTIONS6 = "sincronizar 'Rotação não funciona se'",
 				SELECTSORTMETHOD = "Método de classificação do alvo",
 				SELECTSORTMETHODTOOLTIP = "Suportados: 'Healing Engine'\n\n'Porcentagem de Vida' escolhe o @target com a menor porcentagem de vida\n'Vida Atual' escolhe o @target com menos vida especificada\n\nClique direito: Criar macro",
 				SORTHP = "Porcentagem de Vida",
@@ -4321,11 +4328,12 @@ local Factory = {
 			[6] = true, 	-- Absorb Negative				
 		},
 		SelectStopOptions = {
-			[1] = true, -- @mouseover friendly 
-			[2] = true, -- @mouseover enemy 
-			[3] = true, -- @target enemy 
-			[4] = true, -- @target boss 
-			[5] = true, -- @player dead 
+			[1] = true,  -- @mouseover friendly 
+			[2] = true,  -- @mouseover enemy 
+			[3] = true,  -- @target enemy 
+			[4] = true,  -- @target boss 
+			[5] = true,  -- @player dead 
+			[6]	= false, -- sync-up "Rotation doesn't work if"
 		},
 		SelectSortMethod = "HP",	
 		AfterTargetEnemyOrBossDelay = 0,	-- SelectStopOptions must be off for: [3] @target enemy or [4] @target boss
@@ -14051,6 +14059,7 @@ function Action.ToggleMainUI()
 				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS3"], 		value = 3 },
 				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS4"], 		value = 4 },
 				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS5"], 		value = 5 },
+				{ text = L["TAB"][tabName]["SELECTSTOPOPTIONS6"], 		value = 6 },
 			}, nil, true, true)
 			SelectStopOptions:SetPlaceholder(L["TAB"][tabName]["SELECTOPTIONS"]) 				
 			for i, v in ipairs(SelectStopOptions.optsFrame.scrollChild.items) do 

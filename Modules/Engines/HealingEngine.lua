@@ -82,7 +82,7 @@ end)
 -------------------------------------------------------------------------------
 -- Remap
 -------------------------------------------------------------------------------
-local 	A_Unit, A_IsUnitFriendly, A_IsUnitEnemy,
+local 	A_Unit, A_IsUnitFriendly, A_IsUnitEnemy, A_PauseChecks,
 		-- [[ Classic ]]
 		A_DetermineUsableObject
 		-- 
@@ -92,6 +92,7 @@ Listener:Add("ACTION_EVENT_HEALINGENGINE", "ADDON_LOADED", function(addonName)
 		A_Unit 							= A.Unit 
 		A_IsUnitFriendly 				= A.IsUnitFriendly
 		A_IsUnitEnemy					= A.IsUnitEnemy
+		A_PauseChecks					= A.PauseChecks
 		
 		-- [[ Classic ]]
 		A_DetermineUsableObject			= A.DetermineUsableObject
@@ -853,6 +854,11 @@ local function SetColorTarget()
 	if SelectStopOptions[5] and A_Unit(player):IsDead() then
 		return frame:SetColor(none)
 	end  
+	
+	-- [6] sync-up "Rotation doesn't work if"
+	if SelectStopOptions[6] and PauseChecks() then 
+		return frame:SetColor(none)
+	end 
 	
 	return frame:SetColor(healingTarget)
 end
