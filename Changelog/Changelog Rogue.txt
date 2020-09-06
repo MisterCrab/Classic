@@ -1,3 +1,7 @@
+[Rogue v14]
+Added checkbox "SliceandDice 100% uptime" that will try to keep buff up as long as it's possible
+Stealth											- Removed mouseover unit trigger
+
 [Rogue v13]
 Vanish											- Added condition to skip usage if you're on bg and have any flags
 Stealth											- Added condition to skip usage if you're on bg and have any flags
