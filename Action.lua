@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "31.08.2020"
+local DateTime 														= "07.09.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -7113,7 +7113,7 @@ local LETMECAST = {
 		[_G.ERR_CANTATTACK_NOTSTANDING]					= "STAND",
 		[_G.ERR_LOOT_NOTSTANDING]						= "STAND",
 		[_G.ERR_TAXINOTSTANDING]						= "STAND",
-		[_G.SPELL_FAILED_BAD_TARGETS]					= "SIT",
+		--[_G.SPELL_FAILED_BAD_TARGETS]					= "SIT", -- TODO: Confirm that it's fixed 
 		[_G.SPELL_FAILED_NOT_MOUNTED] 					= "DISMOUNT",
 		[_G.ERR_NOT_WHILE_MOUNTED]						= "DISMOUNT",
 		[_G.ERR_MOUNT_ALREADYMOUNTED]					= "DISMOUNT",
@@ -7139,9 +7139,9 @@ local LETMECAST = {
 			DoEmote("STAND")
 		elseif self.MSG[msg] == "SIT" then 
 			-- Sometimes game bugging and not allow to use damage spells, the fix is simply to make /sit and /stand which is supposed to do 
-			if TMW.time > self.SitElapsed then 
+			if TMW.time > self.SitElapsed and A_Unit("player"):GetSpellLastCast(Action.LastPlayerCastName) > 10 then 
 				DoEmote("SIT")
-				self.SitElapsed = TMW.time + 5
+				self.SitElapsed = TMW.time + 10
 			end 
 		elseif self.MSG[msg] == "DISMOUNT" then 
 			if Action.PlayerClass == "DRUID" and A_Player:GetStance() ~= 0 then 
