@@ -53,6 +53,8 @@ local IsMouseButtonDown								= _G.IsMouseButtonDown
 local HasWandEquipped								= _G.HasWandEquipped
 local HasFullControl								= _G.HasFullControl
 
+local BINDPAD 										= _G.BindPadFrame
+
 local ClassPortaits 								= {
 	["WARRIOR"] 									= CONST.PORTRAIT_WARRIOR,
 	["PALADIN"] 									= CONST.PORTRAIT_PALADIN,
@@ -118,7 +120,7 @@ local function IsDrinkingOrEating()
 end 
 
 local function PauseChecks()  	
-	if not TMW.Locked or GetCurrentKeyBoardFocus() ~= nil then 
+	if not TMW.Locked or GetCurrentKeyBoardFocus() ~= nil or (BINDPAD and BINDPAD:IsVisible()) then 
 		return CONST_PAUSECHECKS_DISABLED
 	end 
 	
