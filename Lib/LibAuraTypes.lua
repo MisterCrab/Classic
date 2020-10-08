@@ -5,7 +5,7 @@ Description: Provides aura classification and priority
 --]================]
 
 
-local MAJOR, MINOR = "LibAuraTypes", 8
+local MAJOR, MINOR = "LibAuraTypes", 9
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -17,9 +17,12 @@ local FROZEN = "FROZEN"
 local SILENCE = "SILENCE"
 local ROOT = "ROOT"
 local SLOW = "SLOW"
+local STEALTH = "STEALTH"
 local ANTI_DISPEL = "ANTI_DISPEL"
+local ANTI_HEAL = "ANTI_HEAL"
 local SPEED_BOOST = "SPEED_BOOST"
 local IMMUNITY = "IMMUNITY"
+local SPELLSTOLEN = "SPELLSTOLEN"
 local DAMAGE_REDUCTION = "DAMAGE_REDUCTION"
 local DAMAGE_ABSORB = "DAMAGE_ABSORB"
 local DAMAGE_VULNERABILITY = "DAMAGE_VULNERABILITY"
@@ -27,7 +30,9 @@ local DAMAGE_INCREASE = "DAMAGE_INCREASE"
 local DAMAGE_DECREASE = "DAMAGE_DECREASE"
 local TRASH = "TRASH"
 local EFFECT_IMMUNITY = "EFFECT_IMMUNITY"
+local PHYSICAL_REFLECTION = "PHYSICAL_REFLECTION"
 local PHYSICAL_IMMUNITY = "PHYSICAL_IMMUNITY"
+local SPELL_REFLECTION = "SPELL_REFLECTION"
 local SPELL_IMMUNITY = "SPELL_IMMUNITY"
 local INTERRUPT_IMMUNITY = "INTERRUPT_IMMUNITY"
 local FEAR_IMMUNITY = "FEAR_IMMUNITY"
@@ -43,9 +48,11 @@ lib.friendlyPriority = {
     STUN = 85,
     CROWD_CONTROL_IMMUNITY = 60,
     ANTI_DISPEL = 10,
+    ANTI_HEAL = 10,
     PHYSICAL_IMMUNITY = 65,
+    PHYSICAL_REFLECTION = 65,
     SPELL_IMMUNITY = 65,
-
+    STEALTH = 20,
     CROWD_CONTROL = 70,
 
     -- Don't care about these on friendly
@@ -53,7 +60,9 @@ lib.friendlyPriority = {
     FEAR_IMMUNITY = 10,
     EFFECT_IMMUNITY = 31,
     ROOT_IMMUNITY = 25,
+    SPELL_REFLECTION = 35,
 
+    SPELLSTOLEN = 50,
     INCAP = 68,
     SILENCE = 65,
     FROZEN = 46,
@@ -76,9 +85,12 @@ local friendlyPriority = lib.friendlyPriority
 
 lib.enemyPriority = {
     ATTENTION = 95,
+    SPELL_REFLECTION = 95,
+    PHYSICAL_REFLECTION = 85,
     IMMUNITY = 90,
     STUN = 85,
     ANTI_DISPEL = 0, ------------
+    ANTI_HEAL = 0,
     CROWD_CONTROL_IMMUNITY = 80,
     PHYSICAL_IMMUNITY = 65,
     SPELL_IMMUNITY = 65,
@@ -87,7 +99,7 @@ lib.enemyPriority = {
     INCAP = 69,
     SILENCE = 67,
 
-    INTERRUPT_IMMUNITY = 55,
+    INTERRUPT_IMMUNITY = 64,
     FEAR_IMMUNITY = 20,
     EFFECT_IMMUNITY = 50,
     ROOT_IMMUNITY = 50,
@@ -99,11 +111,13 @@ lib.enemyPriority = {
     DAMAGE_REDUCTION = 55,
     DAMAGE_ABSORB = 38,
     DAMAGE_VULNERABILITY = 37,
+    SPELLSTOLEN = 37,
 
     DAMAGE_INCREASE = 35,
     DAMAGE_DECREASE = 34,
 
     SLOW = 30,
+    STEALTH = 20,
     SPEED_BOOST = 25,
     HEALING_REDUCTION = 1,
     STEALTH_DETECTION = 1, -- increased for stealth classes
@@ -124,19 +138,24 @@ elseif playerClass == "DRUID" then
     enemyPriority[STEALTH_DETECTION] = 60
     friendlyPriority[HEALING_REDUCTION] = 28
     friendlyPriority[ANTI_DISPEL] = 70
+    friendlyPriority[ANTI_HEAL] = 70
 elseif playerClass == "PRIEST" then
     enemyPriority[FEAR_IMMUNITY] = 80
     friendlyPriority[HEALING_REDUCTION] = 28
     friendlyPriority[ANTI_DISPEL] = 70
+    friendlyPriority[ANTI_HEAL] = 70
 elseif playerClass == "SHAMAN" then
     friendlyPriority[HEALING_REDUCTION] = 28
     friendlyPriority[ANTI_DISPEL] = 70
+    friendlyPriority[ANTI_HEAL] = 70
 elseif playerClass == "PALADIN" then
     friendlyPriority[HEALING_REDUCTION] = 28
     friendlyPriority[ANTI_DISPEL] = 70
+    friendlyPriority[ANTI_HEAL] = 70
 elseif playerClass == "MONK" then
     friendlyPriority[HEALING_REDUCTION] = 28
     friendlyPriority[ANTI_DISPEL] = 70
+    friendlyPriority[ANTI_HEAL] = 70
 elseif playerClass == "MAGE" then
     enemyPriority[FROZEN] = 60
 elseif playerClass == "WARLOCK" then
@@ -145,6 +164,8 @@ elseif playerClass == "WARRIOR" then
     enemyPriority[SLOW] = 39
     enemyPriority[FEAR_IMMUNITY] = 55
     enemyPriority[PHYSICAL_IMMUNITY] = 90
+    enemyPriority[SPELL_REFLECTION] = 60
+    enemyPriority[SPELL_IMMUNITY] = 10
 end
 
 local function A( id, opts )
@@ -205,6 +226,9 @@ lib.data = {
     [212552] = { DAMAGE_REDUCTION }, -- Wraith Walk
     [219809] = { DAMAGE_REDUCTION }, -- Tombstone
     [223929] = { HEALING_REDUCTION }, -- Necrotic Wound
+    [204085] = { FROZEN }, -- Deathchill
+    [204206] = { SLOW }, -- Chill Streak, 70% mov red
+    [288849] = { ANTI_HEAL }, -- Crypt Fever, 8% over 4s, refreshed on heal
 
     -- Demon Hunter
 
@@ -226,6 +250,8 @@ lib.data = {
     [221527] = { CROWD_CONTROL }, -- Imprison (Detainment Honor Talent)
         [217832] = { CROWD_CONTROL, originalID = 221527 }, -- Imprison (Baseline Undispellable)
     [227225] = { DAMAGE_REDUCTION }, -- Soul Barrier
+    [206803] = { DAMAGE_REDUCTION }, -- Rain from Above, initial jump
+    [206804] = { DAMAGE_REDUCTION }, -- Rain from Above, slow fall
 
     -- Druid / probably good, no slow
 
@@ -261,11 +287,11 @@ lib.data = {
     [204437] = { STUN }, -- Lightning Lasso
 
     [209749] = { DAMAGE_DECREASE }, -- Faerie Swarm (Slow/Disarm)
-    [209753] = { CROWD_CONTROL, priority = true }, -- Cyclone
-        [33786] = { CROWD_CONTROL, originalID = 209753 }, -- Cyclone
+    [33786] = { CROWD_CONTROL }, -- Cyclone
     [22570] = { STUN }, -- Maim
-    [236696] = { DAMAGE_REDUCTION }, -- Thorns (PvP Talent)
+    [236696] = { PHYSICAL_REFLECTION }, -- Thorns (PvP Talent)
     [232559] = { SLOW }, -- Thorns Slow (PvP Talent)
+    -- [234084] = { INTERRUPT_IMMUNITY }, Moon and Stars, pvp  70% interrupt reduction
 
 
     -- Hunter
@@ -280,22 +306,26 @@ lib.data = {
         [24394] = { CROWD_CONTROL, originalID = 19577 }, -- Intimidation
     [53480] = { DAMAGE_REDUCTION }, -- Roar of Sacrifice (Hunter Pet Skill)
     [117526] = { ROOT }, -- Binding Shot
+    [321469] = { DAMAGE_DECREASE }, -- Binding Shot
     [131894] = { DAMAGE_INCREASE }, -- A Murder of Crows (Beast Mastery, Marksmanship)
         [206505] = { DAMAGE_INCREASE, originalID = 131894 }, -- A Murder of Crows (Survival)
     [186265] = { DAMAGE_REDUCTION }, -- Aspect of the Turtle
     [186289] = { DAMAGE_INCREASE }, -- Aspect of the Eagle
     [238559] = { CROWD_CONTROL }, -- Bursting Shot
         [186387] = { CROWD_CONTROL, originalID = 238559 }, -- Bursting Shot
-    [193526] = { DAMAGE_INCREASE }, -- Trueshot
+    [288613] = { DAMAGE_INCREASE }, -- Trueshot
     [193530] = { DAMAGE_INCREASE }, -- Aspect of the Wild
     [199483] = { DAMAGE_REDUCTION }, -- Camouflage
-    [202914] = { CROWD_CONTROL }, -- Spider Sting (Armed)
-        [202933] = { CROWD_CONTROL, originalID = 202914 }, -- Spider Sting (Silenced)
-        [233022] = { CROWD_CONTROL, originalID = 202914 }, -- Spider Sting (Silenced)
+    [202914] = { SILENCE }, -- Spider Sting (Armed)
+        -- [202933] = { CROWD_CONTROL, originalID = 202914 }, -- Spider Sting (Silenced)
+        [233022] = { SILENCE, originalID = 202914 }, -- Spider Sting (Silenced)
     [209790] = { CROWD_CONTROL }, -- Freezing Arrow
     [209997] = { DAMAGE_REDUCTION }, -- Play Dead
     [213691] = { CROWD_CONTROL }, -- Scatter Shot
     [272682] = { DAMAGE_REDUCTION }, -- Master's Call
+    [202900] = { DAMAGE_DECREASE }, -- Scorpid Sting
+    [212638] = { ROOT }, -- Tracker's Net
+    [203337] = { CROWD_CONTROL }, -- Diamond Ice
 
     -- Mage / ok, no slow
 
@@ -321,7 +351,7 @@ lib.data = {
     [12042] = { DAMAGE_INCREASE }, -- Arcane Power
     [12051] = { DAMAGE_INCREASE }, -- Evocation
     [12472] = { DAMAGE_INCREASE }, -- Icy Veins
-        [198144] = { DAMAGE_INCREASE, originalID = 12472 }, -- Ice Form
+        [198144] = { DAMAGE_INCREASE, originalID = 12472 }, -- Ice Form, Stun Immune
     [31661] = { CROWD_CONTROL }, -- Dragon's Breath
     [45438] = { IMMUNITY }, -- Ice Block
         [41425] = { TRASH }, -- Hypothermia
@@ -331,11 +361,12 @@ lib.data = {
     [157997] = { ROOT }, -- Ice Nova
     [190319] = { DAMAGE_INCREASE }, -- Combustion
     [198111] = { DAMAGE_REDUCTION }, -- Temporal Shield
-    [198158] = { DAMAGE_INCREASE }, -- Mass Invisibility
+    [198158] = { STEALTH }, -- Mass Invisibility
     [198064] = { DAMAGE_REDUCTION }, -- Prismatic Cloak
         [198065] = { DAMAGE_REDUCTION, originalID = 198064 }, -- Prismatic Cloak
     [205025] = { DAMAGE_INCREASE }, -- Presence of Mind
     [228600] = { ROOT }, -- Glacial Spike Root
+    [198121] = { FROZEN }, -- Frostbite
 
     -- Monk / good
 
@@ -358,6 +389,7 @@ lib.data = {
     [232055] = { CROWD_CONTROL }, -- Fists of Fury
         [120086] = { CROWD_CONTROL, originalID = 232055 }, -- Fists of Fury
     [233759] = { CROWD_CONTROL }, -- Grapple Weapon
+    [209584] = { INTERRUPT_IMMUNITY }, -- Zen Focus Tea
 
     -- Paladin
 
@@ -390,7 +422,7 @@ lib.data = {
     [210256] = { DAMAGE_REDUCTION }, -- Blessing of Sanctuary
     [210294] = { IMMUNITY }, -- Divine Favor
     [215652] = { DAMAGE_INCREASE }, -- Shield of Virtue
-
+    [210294] = { INTERRUPT_IMMUNITY }, -- Divine Favor
 
     -- Priest / unchecked, no slow
 
@@ -412,7 +444,7 @@ lib.data = {
     [81782] = { DAMAGE_REDUCTION }, -- Power Word: Barrier
         [271466] = { DAMAGE_REDUCTION, originalID = 81782 }, -- Luminous Barrier (Disc Talent)
     [87204] = { CROWD_CONTROL }, -- Sin and Punishment
-    [193223] = { DAMAGE_INCREASE }, -- Surrender to Madness
+    [319952] = { DAMAGE_INCREASE }, -- Surrender to Madness
     [194249] = { DAMAGE_INCREASE }, -- Voidform
     [196762] = { DAMAGE_REDUCTION }, -- Inner Focus
     [197268] = { DAMAGE_REDUCTION }, -- Ray of Hope
@@ -423,9 +455,15 @@ lib.data = {
         [200200] = { CROWD_CONTROL, originalID = 200196 }, -- Holy Word: Chastise (Stun)
     [205369] = { CROWD_CONTROL }, -- Mind Bomb
         [226943] = { CROWD_CONTROL, originalID = 205369 }, -- Mind Bomb (Disorient)
-    [213610] = { EFFECT_IMMUNITY }, -- Holy Ward
+    [213610] = { CROWD_CONTROL_IMMUNITY }, -- Holy Ward
     [215769] = { IMMUNITY }, -- Spirit of Redemption
     [221660] = { IMMUNITY }, -- Holy Concentration
+    [323716] = { SPELLSTOLEN }, -- Thoughtsteal (PVP talent)
+    [328530] = { DAMAGE_REDUCTION }, -- Divine Ascension, rise
+    [329543] = { DAMAGE_REDUCTION }, -- Divine Ascension, fall
+    [199845] = { HEALING_REDUCTION }, -- Psyflay from Psyfiend, 9.0 Priest pvp talent
+    -- [323673] = { }, -- Mindgames (Venthyr), The next 450 damage and 450 healing dealt will be reversed.
+
 
     -- Rogue / good
 
@@ -451,7 +489,8 @@ lib.data = {
     [206760] = { SLOW }, -- Shadow's Grasp
     -- [277953] = { SLOW }, -- Night Terrors
     [199027] = { PHYSICAL_IMMUNITY }, -- Veil of Midnight (100% dodge)
-
+    [207777] = { DAMAGE_DECREASE }, -- Dismantle
+    [11327] = { STEALTH }, -- Vanish
 
     -- Shaman
 
@@ -473,7 +512,7 @@ lib.data = {
     [77505] = { CROWD_CONTROL }, -- Earthquake (Stun)
     [98008] = { DAMAGE_REDUCTION }, -- Spirit Link Totem
     [108271] = { DAMAGE_REDUCTION }, -- Astral Shift
-        [210918] = { DAMAGE_REDUCTION, originalID = 108271 }, -- Ethereal Form
+        [210918] = { PHYSICAL_IMMUNITY, originalID = 108271 }, -- Ethereal Form
     [114050] = { DAMAGE_REDUCTION }, -- Ascendance (Elemental)
         [114051] = { DAMAGE_INCREASE, originalID = 114050 }, -- Ascendance (Enhancement)
         [114052] = { DAMAGE_REDUCTION, originalID = 114050 }, -- Ascendance (Restoration)
@@ -488,6 +527,8 @@ lib.data = {
         [255016] = { SPELL_IMMUNITY, originalID = 8178 }, -- Grounding
         [204336] = { SPELL_IMMUNITY, originalID = 8178 }, -- Grounding
         [34079] = { SPELL_IMMUNITY, originalID = 8178 }, -- Grounding
+
+    [290641] = { INTERRUPT_IMMUNITY }, -- Ancestral Gift
 
     -- Warlock / ok, no slow
 
@@ -511,13 +552,11 @@ lib.data = {
     [171017] = { CROWD_CONTROL }, -- Meteor Strike
     [196098] = { DAMAGE_INCREASE }, -- Soul Harvest
     [196364] = { SILENCE }, -- Unstable Affliction (Silence)
-    [233490] = { ANTI_DISPEL }, -- Unstable Affliction applications
-    [233496] = { ANTI_DISPEL, originalID = 233490 }, -- Unstable Affliction applications
-    [233497] = { ANTI_DISPEL, originalID = 233490 }, -- Unstable Affliction applications
-    [233498] = { ANTI_DISPEL, originalID = 233490 }, -- Unstable Affliction applications
-    [233499] = { ANTI_DISPEL, originalID = 233490 }, -- Unstable Affliction applications
+    [316099] = { ANTI_DISPEL }, -- Unstable Affliction applications
     [212284] = { DAMAGE_INCREASE }, -- Firestone
-    [212295] = { IMMUNITY }, -- Nether Ward
+    [212295] = { SPELL_REFLECTION }, -- Nether Ward
+    [221705] = { INTERRUPT_IMMUNITY }, -- Casting Circle, immune to interrupt and silence
+    [200587] = { HEALING_REDUCTION }, -- Fel Fissue, 25% Healing reduction from CB
 
     -- Warrior / good, maybe more slow?
 
@@ -526,9 +565,7 @@ lib.data = {
     [5246] = { CROWD_CONTROL }, -- Intimidating Shout
     [12975] = { DAMAGE_REDUCTION }, -- Last Stand
     [18499] = { FEAR_IMMUNITY }, -- Berserker Rage
-    [23920] = { IMMUNITY }, -- Spell Reflection
-        -- [213915] = { IMMUNITY, originalID = 23920 }, -- Mass Spell Reflection
-        [216890] = { IMMUNITY, originalID = 23920 }, -- Spell Reflection (Arms, Fury)
+    [23920] = { SPELL_REFLECTION }, -- Spell Reflection
     [46968] = { STUN }, -- Shockwave
     [97462] = { DAMAGE_REDUCTION }, -- Rallying Cry
     [105771] = { ROOT }, -- Charge (Warrior)
@@ -544,6 +581,7 @@ lib.data = {
     [228920] = { DAMAGE_REDUCTION }, -- Ravager
     [236077] = { DAMAGE_DECREASE }, -- Disarm
     [1715] = { SLOW }, -- Hamstring
+    [236321] = { EFFECT_IMMUNITY }, -- War Banner, 50% CC reduction
 }
 data = lib.data
 
@@ -580,9 +618,9 @@ A( 5024 ,{ EFFECT_IMMUNITY }) -- Skull of Impending Doom
 A( 2379 ,{ SPEED_BOOST }) -- Swiftness Potion
 A({ 13099, 13138, 16566 }, { CROWD_CONTROL }) -- Net-o-matic + Backfire
 A( 5134 ,{ CROWD_CONTROL }) -- Flash Bomb
-A( 23097 ,{ ATTENTION }) -- Fire Reflector
-A( 23131 ,{ ATTENTION }) -- Frost Reflector
-A( 23132 ,{ ATTENTION }) -- Shadow Reflector
+A( 23097 ,{ SPELL_REFLECTION }) -- Fire Reflector
+A( 23131 ,{ SPELL_REFLECTION }) -- Frost Reflector
+A( 23132 ,{ SPELL_REFLECTION }) -- Shadow Reflector
 A( 19769 ,{ INCAP }) -- Thorium Grenade
 A( 4068 ,{ INCAP }) -- Iron Grenade
 A( 1604 ,{ SLOW }) -- Common Daze
