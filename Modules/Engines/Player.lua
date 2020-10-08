@@ -805,6 +805,22 @@ function Player:GetWeaponMeleeDamage(inv, mod)
 	return full_damage, per_sec_damage
 end 
 
+function Player:AttackPowerDamageMod(offHand)
+	local ap = UnitAttackPower(self.UnitID)
+	local speed, offhandSpeed = UnitAttackSpeed(self.UnitID)
+	local minDamage, maxDamage, minOffHandDamage, maxOffHandDamage, physicalBonusPos, physicalBonusNeg, percent = UnitDamage(self.UnitID)
+	
+	if offHand and offhandSpeed then
+		local wSpeed = offhandSpeed * (1 + Player:HastePct() / 100)
+		local wdps = (minOffHandDamage + maxOffHandDamage) / wSpeed / percent - ap / 6
+		return (ap + wdps * 6) * 0.5
+	else
+		local wSpeed = speed * (1 + Player:HastePct() / 100)
+		local wdps = (minDamage + maxDamage) / 2 / wSpeed / percent - ap / 6
+		return ap + wdps * 6
+	end
+end
+
 -- Swap 
 function Player:IsSwapLocked()
 	-- @return boolean 
