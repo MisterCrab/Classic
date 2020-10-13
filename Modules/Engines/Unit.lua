@@ -12,6 +12,8 @@ local debugstack							= _G.debugstack
 local TMW 									= _G.TMW
 local CNDT 									= TMW.CNDT
 local Env 									= CNDT.Env
+local AuraTooltipNumber						= Env.AuraTooltipNumber
+local AuraVariableNumber 					= Env.AuraVariableNumber
 local strlowerCache  						= TMW.strlowerCache
 
 local LibStub								= _G.LibStub
@@ -3056,12 +3058,47 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 	    return self(unitID):Power() * 100 / self(unitID):PowerMax()
 	end, "UnitID"),
-	AuraTooltipNumber						= Cache:Wrap(function(self, spellID, filter)
+	AuraTooltipNumber						= Cache:Wrap(function(self, spell, filter)
 		-- @return number 
 		-- Nill-able: filter
 		local unitID 						= self.UnitID
-		local name							= strlowerCache[A_GetSpellInfo(spellID)]
-	    return Env.AuraTooltipNumber(unitID, name, filter) or 0
+		local spellName 
+		if type(spell) == "number" then 
+			spellName = A_GetSpellInfo(spell)
+		else 
+			spellName = spell
+		end 
+		
+		if filter then 
+			return AuraTooltipNumber(unitID, strlowerCache[spellName], filter) or 0
+		else 
+			local duration = AuraTooltipNumber(unitID, strlowerCache[spellName], "HELPFUL") or 0
+			if duration == 0 then 
+				duration = AuraTooltipNumber(unitID, strlowerCache[spellName], "HARMFUL") or 0
+			end 
+			return duration or 0
+		end 
+	end, "UnitGUID"),
+	AuraVariableNumber						= Cache:Wrap(function(self, spell, filter)
+		-- @return number 
+		-- Nill-able: filter
+		local unitID 						= self.UnitID
+		local spellName 
+		if type(spell) == "number" then 
+			spellName = A_GetSpellInfo(spell)
+		else 
+			spellName = spell
+		end 
+		
+		if filter then 
+			return AuraVariableNumber(unitID, strlowerCache[spellName], filter) or 0
+		else 
+			local duration = AuraVariableNumber(unitID, strlowerCache[spellName], "HELPFUL") or 0
+			if duration == 0 then 
+				duration = AuraVariableNumber(unitID, strlowerCache[spellName], "HARMFUL") or 0
+			end 
+			return duration or 0
+		end 
 	end, "UnitGUID"),
 	DeBuffCyclone 							= Cache:Pass(function(self)
 		-- @return number 
