@@ -1,3 +1,6 @@
+[Paladin v7]
+Fixed lua code for blessing MSG words, was wrong unitID 
+
 [Paladin v6]
 Upgraded code for synchronization with new interrupt system 
 Upgraded code for synchronization with new healing system:
