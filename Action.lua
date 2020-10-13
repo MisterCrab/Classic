@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "08.09.2020"
+local DateTime 														= "13.10.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -8632,16 +8632,15 @@ local Cursor; Cursor 		= {
 
 -- [7] MSG System (Message)
 local MSG; MSG 				= {
-	units 					= { "raid%d+", "party%d+", "arena%d+", "player", "target" },
+	units 					= { "raid%d+", "party%d+", "arena%d+", "player", "target" }, -- "nameplate", pets and etc haven't API, it will be passed as no unit if specified in phrase!
 	group 					= { 
-		{ u = "player", meta = 3 	}, 
 		{ u = "raid1", 	meta = 6 	}, 
 		{ u = "raid2", 	meta = 7	}, 
 		{ u = "raid3", 	meta = 8	}, 
 		{ u = "party1", meta = 6 	}, 
 		{ u = "party2", meta = 7	}, 
 		{ u = "party3", meta = 8	},
-	}, -- Classic has index started from 6 to 8 which provide to support party3
+	},
 	arena 					= {
 		{ u = "arena1", meta = 6 	}, 
 		{ u = "arena2", meta = 7	}, 
@@ -8673,18 +8672,17 @@ local MSG; MSG 				= {
 					
 					if unit then 
 						if RunLua(v.LUA, unit) then 
-							-- Note: Regarding "player" unit here, a lot of profiles which don't support slot 6 and mostly 6 slot is valid for healer which has different @target always [Affected Retail only]
-							-- Since damager / tank always has @target an enemy then "player" will be applied even if spell will be launched in slot 3-4 
-							if unit:match("raid") or unit:match("party") then 		
+							if unit:match("raid") or unit:match("party") then 	
+								local group_type = Action.TeamCache.Friendly.Type
 								for j = 1, #MSG.group do 
-									if UnitIsUnit(unit, MSG.group[j].u) then 	
-										if MSG.group[j].u == "player" then 
-											MSG.set.MetaSlot = Action.IamHealer and 3 or nil 
-										else 
-											MSG.set.MetaSlot = MSG.group[j].meta											
+									if (j <= 3 and group_type == "raid") or (j > 3 and group_type == "party") then 
+										if UnitIsUnit(unit, MSG.group[j].u) then 	
+											MSG.set.MetaSlot = MSG.group[j].meta											 
+											MSG.set.UnitID = MSG.group[j].u
+											A_MacroQueue(v.Key, MSG.set)							
+											break 
 										end 
-										MSG.set.UnitID = MSG.group[j].u
-										A_MacroQueue(v.Key, MSG.set)							
+									else 
 										break 
 									end 
 								end 											
@@ -8695,11 +8693,17 @@ local MSG; MSG 				= {
 									A_MacroQueue(v.Key, MSG.set)
 								end 
 							else 
+								-- Note: "player", "target"
 								MSG.set.UnitID 			= unit 
 								A_MacroQueue(v.Key, MSG.set)
 							end 
 						end 
 					else
+						-- Note: Determine unit by object:
+						-- @target if any object is harm or (is help and (its spell or we're healer)) or (non-spell object and we're healer)
+						-- @player if (non-spell object and we're not healer) or for all otherwise conditions 
+						-- meta slot will be 3 
+						-- So basically harm and help both false objects will be applied to @player, any items will be applied to @player if not a healer or to @target, any spells will be applied to @player if we're not a healer or to @target 
 						if v.LUA ~= nil and v.LUA ~= "" and Obj:HasRange() then 
 							unit = ((Obj:IsHarmful() or (Obj:IsHelpful() and (Obj.Type == "Spell" or Action.IamHealer))) and "target") or (Obj.Type ~= "Spell" and ((not Action.IamHealer and "player") or "target")) or "player"
 						end 

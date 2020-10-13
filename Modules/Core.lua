@@ -407,7 +407,7 @@ function A.Rotation(icon)
 		return A_Hide(icon)		
 	end 		
 	
-	-- [6] Passive: @player, @raid1, @arena1 
+	-- [6] Passive: @player, @raid1, @party1, @arena1 
 	if meta == 6 then 
 		-- Shadowmeld
 		if APL.Shadowmeld and APL.Shadowmeld:AutoRacial(player) then 
@@ -497,7 +497,7 @@ function A.Rotation(icon)
 		end 
 	end 
 	
-	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-2, @raid1-3, @arena1-3
+	-- [3] Single / [4] AoE / [6-8] Passive: @player-party1-3, @raid1-3, @arena1-3
 	if metaobj(icon) then 
 		return true 
 	end 
