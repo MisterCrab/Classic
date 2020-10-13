@@ -763,7 +763,7 @@ CombatTracker.logHealing			 			= function(...)
 	end 
 end
 
---[[ This Logs the shields for every player or controlled by player unit]]
+--[[ This Logs the shields for every player or controlled by player unit ]]
 CombatTracker.logAbsorb 						= function(...) 
 	local _,_,_, SourceGUID,_,_,_, DestGUID,_, destFlags,_,_, spellName, _, auraType, Amount = ... -- CombatLogGetCurrentEventInfo()    
 	if auraType == "BUFF" and Amount and spellName and isPlayer(destFlags) then
@@ -776,6 +776,7 @@ CombatTracker.logAbsorb 						= function(...)
 	end    
 end
 
+--[[ Old
 CombatTracker.logUpdateAbsorb 					= function(...) 
 	local _,_,_, SourceGUID, _,_,_, DestGUID, _, destFlags,_,_, spellName, _, Amount = ... -- CombatLogGetCurrentEventInfo()  -- Classic: Amount sometimes return string ??
 	if spellName and type(Amount) == "number" and isPlayer(destFlags) then 
@@ -797,7 +798,38 @@ CombatTracker.logUpdateAbsorb 					= function(...)
 			CombatTrackerData[DestGUID].absorb_total				= calc
 		end 
 	end 
-end
+end]]
+
+CombatTracker.update_logAbsorb					= function(...)
+	local timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, srcSpellId, srcSpellName, srcSpellSchool, casterGUID, casterName, casterFlags, casterRaidFlags, spellId, spellName, spellSchool, absorbed
+	if type(srcSpellId) == "number" then 
+		-- Spell
+        timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, srcSpellId, srcSpellName, srcSpellSchool, casterGUID, casterName, casterFlags, casterRaidFlags, spellId, spellName, spellSchool, absorbed = ... -- CombatLogGetCurrentEventInfo()	
+	else 
+		-- Melee/Ranged
+        timestamp, eventtype, srcGUID, srcName, srcFlags, dstGUID, dstName, dstFlags, casterGUID, casterName, casterFlags, casterRaidFlags, spellId, spellName, spellSchool, absorbed = ... -- CombatLogGetCurrentEventInfo()
+	end 
+
+	-- 'src' params is who caused absorb change 
+	-- 'dts' params is who got changed absorb 
+	-- 'caster' params is who and what applied 
+	-- 'absorbed' param is amount of absorb change 
+	if type(absorbed) == "number" and type(dstGUID) == "string" and spellName and CombatTrackerData[dstGUID].absorb_spells and CombatTrackerData[dstGUID].absorb_spells[spellName] then 		
+		local compare = (CombatTrackerData[dstGUID].absorb_spells[spellName] or 0) - absorbed 
+		if compare <= 0 then 
+			CombatTrackerData[dstGUID].absorb_spells[spellName] = 0
+		else 	
+			CombatTrackerData[dstGUID].absorb_spells[spellName] = compare   
+		end 		
+		
+		compare = (CombatTrackerData[dstGUID].absorb_total or 0) - absorbed
+		if compare <= 0 then 
+			CombatTrackerData[dstGUID].absorb_total = 0
+		else 
+			CombatTrackerData[dstGUID].absorb_total = compare
+		end 		
+	end 
+end 
 
 CombatTracker.remove_logAbsorb 					= function(...) 
 	local _,_,_,_,_,_,_, DestGUID,_,_,_,_, spellName,_, spellType,_, amountMissed = ... -- CombatLogGetCurrentEventInfo()
@@ -928,7 +960,7 @@ CombatTracker.OnEventCLEU 						= {
 	["SPELL_PERIODIC_HEAL"] 				= CombatTracker.logHealing,
 	["SPELL_AURA_APPLIED"] 					= CombatTracker.logAbsorb,   
 	["SPELL_AURA_REFRESH"] 					= CombatTracker.logAbsorb, 
-	["SPELL_ABSORBED"] 						= CombatTracker.logUpdateAbsorb,  -- TODO: Is broken wowpedia tip for args? Why 15th arg amount is a string type?? Removed comment to check by future feedback
+	["SPELL_ABSORBED"] 						= CombatTracker.update_logAbsorb, 
 	["SPELL_AURA_REMOVED"] 					= CombatTracker.remove_logAbsorb,  
 	["SPELL_MISSED"] 						= CombatTracker.remove_logAbsorb,  
 	["SPELL_CAST_SUCCESS"] 					= CombatTracker.logLastCast,
@@ -2228,7 +2260,12 @@ A.CombatTracker									= {
 		end 		
 		if GUID and CombatTrackerData[GUID] and CombatTrackerData[GUID].absorb_spells then 
 			if spell then 		
-				return CombatTrackerData[GUID].absorb_spells[spell] or 0
+				local absorb = CombatTrackerData[GUID].absorb_spells[spell] or 0
+				if absorb <= 0 then 
+					absorb = abs(A_Unit(unitID):AuraVariableNumber(spell, "HELPFUL"))
+				end 
+				
+				return absorb
 			else
 				return CombatTrackerData[GUID].absorb_total or 0
 			end 
