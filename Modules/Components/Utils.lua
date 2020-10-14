@@ -235,7 +235,7 @@ end
 -------------------------------------------------------------------------------
 local L = TMW.L
 
-local Type = TMW.Classes.IconType:New("TheAction - UnitCasting")
+local Type = TMW.Classes.IconType:New(_G.ACTION_CONST_ADDON_NAME .. " - UnitCasting")
 LibStub("AceEvent-3.0"):Embed(Type)
 Type.name = "[The Action] " .. L["ICONMENU_CAST"]
 Type.desc = "The Action addon handles this icon type for own API to provide functional for check any unit\nThis is more accurate than anything else, you should use that instead of another options"
@@ -483,7 +483,7 @@ Type:Register(151)
 local INCONTROL 	= 1 -- Inside control 
 local CONTROLLOST 	= 2 -- Out of control  
 
-local TypeLOC = TMW.Classes.IconType:New("TheAction - LossOfControl")
+local TypeLOC = TMW.Classes.IconType:New(_G.ACTION_CONST_ADDON_NAME .. " - LossOfControl")
 TypeLOC.name = "[The Action] " .. L["LOSECONTROL_ICONTYPE"]	
 TypeLOC.desc = L["LOSECONTROL_ICONTYPE_DESC"]
 TypeLOC.menuIcon = "Interface\\Icons\\Spell_Shadow_Possession"

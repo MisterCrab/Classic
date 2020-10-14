@@ -1,7 +1,7 @@
 local ADDON_NAME 													= ...
 local _G															= _G
 local TMW 															= _G.TMW
-local dir															= [[Interface\AddOns\TheAction Classic\Media\]]
+local dir															= [[Interface\AddOns\]] .. ADDON_NAME .. [[\Media\]]
 -- TellMeWhen
 _G.ACTION_CONST_TMW_DEFAULT_STATE_HIDE 								= TMW.CONST.STATE.DEFAULT_HIDE
 _G.ACTION_CONST_TMW_DEFAULT_STATE_SHOW 								= TMW.CONST.STATE.DEFAULT_SHOW
