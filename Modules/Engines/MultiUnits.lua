@@ -414,6 +414,26 @@ function A.MultiUnits.GetByRangeIsFocused(self, unitID, range, count)
 end 
 A.MultiUnits.GetByRangeIsFocused = A.MakeFunctionCachedDynamic(A.MultiUnits.GetByRangeIsFocused)
 
+function A.MultiUnits.GetByRangeAreaTTD(self, range)
+	-- @return number
+	-- @usage A.MultiUnits:GetByRangeAreaTTD(@number)
+	local total, ttds = 0, 0
+
+	for namePlateUnitID in pairs(MultiUnitsActiveUnitPlates) do 
+		if not range or A_Unit(namePlateUnitID):CanInterract(range) then 
+			total = total + 1
+			ttds = ttds + A_Unit(namePlateUnitID):TimeToDie()
+		end 
+	end  
+	
+	if total > 0 then 
+		return ttds / total 
+	else 
+		return total 	
+	end 
+end 
+A.MultiUnits.GetByRangeAreaTTD = A.MakeFunctionCachedDynamic(A.MultiUnits.GetByRangeAreaTTD)
+
 -- CLEU
 function A.MultiUnits.GetActiveEnemies(self, timer, skipClear)
 	-- @return number 

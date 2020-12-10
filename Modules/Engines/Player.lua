@@ -5,7 +5,11 @@ local huge 						= math.huge
 local math_max					= math.max 
 local math_min					= math.min	  
 local math_floor				= math.floor 	  
-local wipe 						= _G.wipe 	  
+local wipe 						= _G.wipe 	 
+
+local SPELL_FAILED_NOT_BEHIND	= _G.SPELL_FAILED_NOT_BEHIND
+local SPELL_FAILED_NOT_INFRONT	= _G.SPELL_FAILED_NOT_INFRONT
+local ERR_PET_SPELL_NOT_BEHIND	= _G.ERR_PET_SPELL_NOT_BEHIND
 	  
 local TMW 						= _G.TMW
 local CNDT						= TMW.CNDT 
@@ -173,7 +177,7 @@ function Data.logAura(...)
 		if auraType == "DEBUFF" then 
 			DataAuraDeBuffUnitCount[spellName] 	= math_max((DataAuraDeBuffUnitCount[spellName] or 0) - 1, 0)
 		else 
-			DataAuraBuffUnitCount[spellName] 	= math_max((DataAuraBuffUnitCount[spellName] or 0) 	- 1, 0)
+			DataAuraBuffUnitCount[spellName] 	= math_max((DataAuraBuffUnitCount[spellName] or 0) 	 - 1, 0)
 		end 
 	end 
 end 
@@ -231,7 +235,7 @@ end
 
 function Data.logBehind(...)
 	local _, message = ...
-	if message == SPELL_FAILED_NOT_BEHIND then 
+	if message == SPELL_FAILED_NOT_BEHIND or message == SPELL_FAILED_NOT_INFRONT then 
 		Data.PlayerBehind = TMW.time
 	end 
 	
@@ -576,10 +580,12 @@ function Player:CancelBuff(buffName)
 end 
 
 function Player:GetBuffsUnitCount(...)
-	-- @return number 
-	-- Returns how much units are applied by buffs in vararg
-	-- ... accepts spellID and spellName 
-	local counter = 0
+	-- @return number, number
+	-- Returns 
+	-- [1] How much units are applied by buffs in vararg 
+	-- [2] How much varargs were found applied 
+	-- ... accepts spellID, spellName and action object 
+	local units, counter = 0, 0
 	
 	local aura, auraType
 	for i = 1, select("#", ...) do 
@@ -595,17 +601,20 @@ function Player:GetBuffsUnitCount(...)
 		aura = DataAuraBuffUnitCount[aura]
 		if aura and aura > 0 then 
 			counter = counter + 1
+			units = units + aura
 		end 
 	end 
 
-	return counter
+	return units, counter
 end 
 
 function Player:GetDeBuffsUnitCount(...)
-	-- @return number 
-	-- Returns how much units are applied by buffs in vararg
+	-- @return number, number
+	-- Returns 
+	-- [1] How much units are applied by debuffs in vararg 
+	-- [2] How much varargs were found applied 
 	-- ... accepts spellID, spellName and action object 
-	local counter = 0
+	local units, counter = 0, 0
 	
 	local aura, auraType
 	for i = 1, select("#", ...) do 
@@ -621,10 +630,11 @@ function Player:GetDeBuffsUnitCount(...)
 		aura = DataAuraDeBuffUnitCount[aura]
 		if aura and aura > 0 then 
 			counter = counter + 1
+			units = units + aura
 		end 
 	end 
 	
-	return counter
+	return units, counter
 end 
 
 -- Classic: Totems 

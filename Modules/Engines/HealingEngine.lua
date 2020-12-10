@@ -133,7 +133,7 @@ frame:SetFrameStrata("TOOLTIP")
 frame:SetToplevel(true)
 frame:SetSize(1, 1)
 frame:SetScale(1)
-frame:SetPoint("TOPLEFT", 442, 0)
+frame:SetPoint("TOPLEFT", 163, 0)
 frame.texture = frame:CreateTexture(nil, "TOOLTIP")
 frame.texture:SetAllPoints(true)
 frame.Colors 							= {
@@ -511,9 +511,9 @@ end
 -- Setup in UnitIDs table for each unitID his own methods 
 do 
 	local unitMethods					= { __index = {
-		CanSelect						= function(self)
+		CanSelect						= function(self, unitID)
 			-- @return boolean 
-			local unitID 				= self.Unit 
+			local unitID 				= self.Unit or unitID
 			local unitGUID 				= self.GUID
 			
 			return 

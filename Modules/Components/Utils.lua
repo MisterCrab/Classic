@@ -103,8 +103,8 @@ TMW:RegisterCallback("TMW_ACTION_BURST_CHANGED",		DogTag.FireEvent, DogTag)
 TMW:RegisterCallback("TMW_ACTION_AOE_CHANGED", 			DogTag.FireEvent, DogTag)
 TMW:RegisterCallback("TMW_ACTION_RANK_DISPLAY_CHANGED", DogTag.FireEvent, DogTag)
 -- Taste's 
-TMW:RegisterCallback("TMW_ACTION_CD_MODE_CHANGED", 		DogTag.FireEvent, DogTag)
-TMW:RegisterCallback("TMW_ACTION_AOE_MODE_CHANGED", 	DogTag.FireEvent, DogTag)
+--TMW:RegisterCallback("TMW_ACTION_CD_MODE_CHANGED", 	DogTag.FireEvent, DogTag)
+--TMW:RegisterCallback("TMW_ACTION_AOE_MODE_CHANGED", 	DogTag.FireEvent, DogTag)
 
 local function removeLastChar(text)
 	return text:sub(1, -2)
@@ -167,6 +167,7 @@ if DogTag then
     })
 	
 	-- Taste's 
+	--[[
     DogTag:AddTag("TMW", "ActionModeCD", {
         code = function()            
 			if A.IsInitialized and GetToggle(1, "Burst") ~= "Off" then
@@ -195,7 +196,7 @@ if DogTag then
         events = "TMW_ACTION_AOE_MODE_CHANGED",
         category = "ActionAoE",
     })	
-	
+	]]
 	-- The biggest problem of TellMeWhen what he using :setup on frames which use DogTag and it's bring an error
 	TMW:RegisterCallback("TMW_ACTION_IS_INITIALIZED", function()
 		TMW:Fire("TMW_ACTION_MODE_CHANGED")
@@ -203,8 +204,8 @@ if DogTag then
 		TMW:Fire("TMW_ACTION_AOE_CHANGED")
 		TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED")
 		-- Taste's 
-		TMW:Fire("TMW_ACTION_CD_MODE_CHANGED")		
-		TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED")
+		--TMW:Fire("TMW_ACTION_CD_MODE_CHANGED")		
+		--TMW:Fire("TMW_ACTION_AOE_MODE_CHANGED")
 	end)
 end
 
@@ -235,7 +236,7 @@ end
 -------------------------------------------------------------------------------
 local L = TMW.L
 
-local Type = TMW.Classes.IconType:New(_G.ACTION_CONST_ADDON_NAME .. " - UnitCasting")
+local Type = TMW.Classes.IconType:New("TheAction - UnitCasting")
 LibStub("AceEvent-3.0"):Embed(Type)
 Type.name = "[The Action] " .. L["ICONMENU_CAST"]
 Type.desc = "The Action addon handles this icon type for own API to provide functional for check any unit\nThis is more accurate than anything else, you should use that instead of another options"
@@ -483,7 +484,7 @@ Type:Register(151)
 local INCONTROL 	= 1 -- Inside control 
 local CONTROLLOST 	= 2 -- Out of control  
 
-local TypeLOC = TMW.Classes.IconType:New(_G.ACTION_CONST_ADDON_NAME .. " - LossOfControl")
+local TypeLOC = TMW.Classes.IconType:New("TheAction - LossOfControl")
 TypeLOC.name = "[The Action] " .. L["LOSECONTROL_ICONTYPE"]	
 TypeLOC.desc = L["LOSECONTROL_ICONTYPE_DESC"]
 TypeLOC.menuIcon = "Interface\\Icons\\Spell_Shadow_Possession"
@@ -583,7 +584,7 @@ if _G.BackdropTemplateMixin == nil then -- Only expac less than Shadowlands
 	BlackBackground:SetBackdrop(nil)
 end 
 BlackBackground:SetFrameStrata("HIGH")
-BlackBackground:SetSize(736, 30)
+BlackBackground:SetSize(273, 30)
 BlackBackground:SetPoint("TOPLEFT", 0, 12) 
 BlackBackground:SetShown(false)
 BlackBackground.IsEnable = true
@@ -605,8 +606,8 @@ local function CreateRankFrame(name, anchor, x, y)
 	return frame
 end 
 
-local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 442, -1)
-local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 442, -2)
+local RankSingle 		 = CreateRankFrame("RankSingle", "TOPLEFT", 163, -1)
+local RankAoE	 		 = CreateRankFrame("RankAoE", "TOPLEFT", 163, -2)
 
 local function UpdateFrames()
     if not TellMeWhen_Group1 or not strfind(strlowerCache(TellMeWhen_Group1.Name), "shown main") then 
@@ -630,12 +631,8 @@ local function UpdateFrames()
     end
 	
 	local myheight = select(2, GetPhysicalScreenSize())
-    local myscale1 = 0.42666670680046 * (1080 / myheight)
-    local myscale2 = 0.17777778208256 * (1080 / myheight)    
-    local group1, group2 = TellMeWhen_Group1:GetEffectiveScale()
-    if TellMeWhen_Group2 and TellMeWhen_Group2.Enabled then
-        group2 = TellMeWhen_Group2:GetEffectiveScale()   
-    end    
+    local myscale1 = 0.42666670680046 * (1080 / myheight)  
+    local group1 = TellMeWhen_Group1:GetEffectiveScale()  
 	
 	-- "Shown Main"
     if group1 ~= nil and group1 ~= myscale1 then
@@ -650,14 +647,6 @@ local function UpdateFrames()
             BlackBackground:SetScale(myscale1 / (BlackBackground:GetParent() and BlackBackground:GetParent():GetEffectiveScale() or 1))      
         end 
     end
-	
-	-- "Shown Cast Bars"
-    if group2 ~= nil and group2 ~= myscale2 then        
-        TellMeWhen_Group2:SetParent(nil)        
-        TellMeWhen_Group2:SetScale(myscale2) 
-        TellMeWhen_Group2:SetFrameStrata("TOOLTIP")
-        TellMeWhen_Group2:SetToplevel(true)
-    end   
 	
 	-- HealingEngine
     if TargetColor then
@@ -765,7 +754,7 @@ end
 local function TrueScaleInit()
     TMW:RegisterCallback("TMW_GROUP_SETUP_POST", function(_, frame)
             local str_group = toStr[frame]
-            if strfind(str_group, "TellMeWhen_Group2") then                
+            if strfind(str_group, "TellMeWhen_Group1") then                
                 UpdateFrames()  
             end
     end)
