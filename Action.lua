@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "14.10.2020"
+local DateTime 														= "10.12.2020"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -7684,6 +7684,7 @@ local NumberGroupingScale = {
 }
 local UnitHealthTool = {
 	AddOn_Localization_NumberGroupingScale = NumberGroupingScale[_G.GetLocale()] or NumberGroupingScale["enUS"],
+	NumberCaps = {_G.FIRST_NUMBER_CAP, _G.SECOND_NUMBER_CAP},
 	AbbreviateNumber		= function(self, val)
 		-- Calculate exponent of 10 and clamp to zero
 		local exp = math_max(0, math_floor(math_log10(math_abs(val))))
@@ -7698,7 +7699,7 @@ local UnitHealthTool = {
 		local precision = math_max(0, (self.AddOn_Localization_NumberGroupingScale - 1) - exp % self.AddOn_Localization_NumberGroupingScale)
 
 		-- Fallback to scientific notation if we run out of units
-		return ((val < 0 and "-" or "") .. "%0." .. precision .. "f%s"):format(val / (10 ^ self.AddOn_Localization_NumberGroupingScale) ^ factor, NumberCaps[factor] or "e" .. (factor * self.AddOn_Localization_NumberGroupingScale))
+		return ((val < 0 and "-" or "") .. "%0." .. precision .. "f%s"):format(val / (10 ^ self.AddOn_Localization_NumberGroupingScale) ^ factor, self.NumberCaps[factor] or "e" .. (factor * self.AddOn_Localization_NumberGroupingScale))
 	end,
 	SetupStatusBarText		= function(self)
 		local parent = _G["TargetFrame"]
