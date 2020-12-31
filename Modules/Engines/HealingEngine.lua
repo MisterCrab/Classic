@@ -52,6 +52,8 @@ local StdUi								= A.StdUi
 local RunLua							= StdUi.RunLua
 local isClassic							= StdUi.isClassic 
 
+local GetLOS							= _G.GetLOS
+
 --[[ Classic ]]
 local playerClass						= A.PlayerClass
 
@@ -863,6 +865,12 @@ local function SetColorTarget()
 	return frame:SetColor(healingTarget)
 end
 
+local function UpdateTargetLOS()
+	if A_Unit(target):IsExists() and not A_Unit(target):IsEnemy() and not A_IsUnitFriendly(mouseover) then 
+		GetLOS(target)
+	end 
+end
+
 local function PLAYER_TARGET_CHANGED()
 	ClearHealingTarget()
 	-- [3] @target enemy or [4] @target boss
@@ -875,6 +883,9 @@ local function PLAYER_TARGET_CHANGED()
 			healingTargetDelayByEvent = false 
 		end 
 	end 
+	
+	-- Update Line of Sight
+	UpdateTargetLOS()
 end 
 
 local function UPDATE_MOUSEOVER_UNIT()
@@ -943,6 +954,11 @@ local function Initialize()
 					if TMW.time > healingTargetDelay then 
 						SetHealingTarget() 
 						SetColorTarget()   
+					end 
+					
+					-- Update Line of Sight
+					if self.unit == none then 
+						UpdateTargetLOS()
 					end 
 					
 					self.elapsed = 0

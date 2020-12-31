@@ -6920,6 +6920,7 @@ Action.Re = {
 local LineOfSight = {
 	Cache 			= setmetatable({}, { __mode = "kv" }),
 	Timer			= 5,	
+	TimerHE			= 8,
 	NamePlateFrame	= setmetatable({}, { __index = function(t, i)
 		if _G["NamePlate" .. i] then 
 			t[i] = _G["NamePlate" .. i]
@@ -6968,13 +6969,12 @@ local LineOfSight = {
 	UI_ERROR_MESSAGE = function(self, ...)
 		if select(2, ...) == ActionConst.SPELL_FAILED_LINE_OF_SIGHT then 
 			if self.PhysicalUnitID and TMW.time >= self.PhysicalUnitWait then 
-				local SkipTimer = self.Timer
 				if self.PhysicalUnitGUID then 
-					self.Cache[self.PhysicalUnitGUID] = TMW.time + SkipTimer
+					self.Cache[self.PhysicalUnitGUID] = TMW.time + self.TimerHE
 				else 
 					local GUID = UnitGUID(self.PhysicalUnitID)
 					if GUID then 
-						self.Cache[GUID] = TMW.time + SkipTimer
+						self.Cache[GUID] = TMW.time + self.Timer
 					end 
 				end 
 				
@@ -7003,9 +7003,13 @@ local LineOfSight = {
 	end,
 }
 
-function Action.SetTimerLOS(timer)
-	-- Sets timer for non @target units to skip during 'timer' (seconds) after message receive
-	LineOfSight.Timer = timer 
+function Action.SetTimerLOS(timer, isTarget)
+	-- Sets timer for non-@target\@target units to skip them during 'timer' (seconds) after message receive
+	if isTarget then 
+		LineOfSight.TimerHE = timer 
+	else 
+		LineOfSight.Timer = timer 
+	end 
 end 
 
 function Action.UnitInLOS(unitID, unitGUID)
