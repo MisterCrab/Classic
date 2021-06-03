@@ -638,8 +638,8 @@ do
 					if role == "TANK" then 
 						self:SetupOffsets(db.OffsetTanks, self.HP - 2)
 					elseif role == "HEALER" then
-						if self.isSelf then 
-							if A.IsInPvP and ((not isClassic and A_Unit(player):IsFocused(nil, true)) or (isClassic and A_Unit(player):IsFocused(0))) then 
+						if self.isSelf and A.IsInPvP then 
+							if (not isClassic and A_Unit(player):IsFocused(nil, true)) or (isClassic and A_Unit(player):IsFocused(0)) then 
 								self:SetupOffsets(db.OffsetSelfFocused, math_max(self.HP - 20, self.HP)) -- Can not be lower than current modified HP
 							else 
 								self:SetupOffsets(db.OffsetSelfUnfocused, self.HP - 2)

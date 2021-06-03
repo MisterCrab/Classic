@@ -80,6 +80,16 @@ A.Listener	 					= {
 			end 
 		end
 	end, 
+	RemoveAll					= function(self, event, removePassEvent)
+		if listeners[event] then 
+			if removePassEvent then 
+				for name in pairs(listeners[event]) do 
+					PassEventOn[name] = nil 
+				end 
+			end 
+			wipe(listeners[event])
+		end 	
+	end,
 	Trigger						= function(self, event, ...)
 		if listeners[event] then 
 			for k in pairs(listeners[event]) do		

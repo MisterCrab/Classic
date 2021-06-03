@@ -132,7 +132,10 @@ local Data = {
 	-- Shoot 
 	AutoShootActive = false, 
 	AutoShootNextTick = 0,
-	IsShoot = GetSpellInfo(5019),
+	IsShoot = { 
+		[GetSpellInfo(5019)] = true, 	-- Shoot 
+		[GetSpellInfo(75)] = true, 		-- Hunter's Auto Shot 
+	},
 	-- Attack
 	AttackActive = false,	
 	-- Behind
@@ -214,7 +217,7 @@ end
 
 function Data.updateAutoShoot(...)
 	local unitID, _, spellID = ... 
-	if unitID == "player" and A.IamRanger and A_GetSpellInfo(spellID) == Data.IsShoot then 
+	if unitID == "player" and A.IamRanger and Data.IsShoot[A_GetSpellInfo(spellID)] then 
 		Data.AutoShootNextTick = TMW.time + UnitRangedDamage("player")
 	end 
 end 

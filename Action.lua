@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "31.12.2020"
+local DateTime 														= "04.06.2021"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -6948,7 +6948,8 @@ local LineOfSight = {
 			end 
 		else 
 			local GUID = unitGUID or UnitGUID(unitID)
-			return GUID and self.Cache[GUID] and TMW.time < self.Cache[GUID]
+			-- If not exists (GUID check) or not in GetLOS cache or less than expiration time means in the loss of sight
+			return not GUID or not self.Cache[GUID] or TMW.time < self.Cache[GUID]
 		end 
 	end,
 	Wipe 			= function(self)
@@ -15401,7 +15402,7 @@ local RangerSpecs 						= {
 ActionDataPrintCache.RoleAssign = {1, "Role", nil, true}
 function Action:PLAYER_SPECIALIZATION_CHANGED(event, unit)
 	local specID, specName, _, specIcon, specRole, specLocalizedName 	= Action.GetSpecializationInfoByID(Action.GetCurrentSpecializationID())
-	local currRole 														= A_GetToggle(1, "Role")
+	local currRole 														= Action.GetToggle(1, "Role")
 	local oldRole														= Action.Role
 	Action.Role 														= currRole == "AUTO" and specRole or currRole
 	

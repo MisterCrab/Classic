@@ -385,7 +385,7 @@ end
 function A:GetSpellChargesFrac()
 	-- @return number	
 	local charges, maxCharges, start, duration = GetSpellCharges((self:Info()))
-	if not max_charges then 
+	if not maxCharges then 
 		return 0
 	end 
 	

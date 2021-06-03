@@ -127,8 +127,13 @@ end
 -------------------------------------------------------------------------------
 local BigWigs_GetTimeRemaining
 if BigWigsLoader then 	
-	SlashCmdList.BigWigs()
-	SlashCmdList.BigWigs()	
+	_G.SlashCmdList.BigWigs()
+	if _G.BigWigsOptions then
+		_G.BigWigsOptions:Close()
+	else 
+		-- For old versions
+		_G.SlashCmdList.BigWigs()
+	end
 	
 	A.BossMods.HasBigWigs 	= true 	
 	BIGWIGS_TIMER_PULL		= strlowerCache[_G.BigWigsAPI:GetLocale("BigWigs: Plugins").pull]

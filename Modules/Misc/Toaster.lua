@@ -53,9 +53,10 @@ local expirationToasts = setmetatable({}, {
 		})
 		return t[v]
 	end, 
-}); Toaster.expirationToasts = expirationToasts
+})
 
-if Toaster and AceDB and AceConfigRegistry and AceConfigDialog and AceLocale and LibWindow and LDBIcon and LibToast then 
+if Toaster and AceDB and AceConfigRegistry and AceConfigDialog and AceLocale and LibWindow and LDBIcon and LibToast then
+	Toaster.expirationToasts = expirationToasts
 	local TOASTER_NAME = "The Action Toaster"
 	
 	-- Locales	
@@ -699,8 +700,9 @@ if Toaster and AceDB and AceConfigRegistry and AceConfigDialog and AceLocale and
 		local LibDBIcon = LibStub("LibDBIcon-1.0")
 		if LibDBIcon.objects[ADDON_NAME] then 
 			LibDBIcon:Hide(ADDON_NAME)
-			wipe(LibDBIcon.objects[ADDON_NAME])
-			LibDBIcon.objects[ADDON_NAME] = nil 
+			
+			-- Just null function which will not cause show up minimap's frame
+			LibDBIcon.objects[ADDON_NAME].Show = function() end 
 		end
 		
 		-- Turns off slash command
@@ -765,6 +767,10 @@ end
 -- API 
 -------------------------------------------------------------------------------
 -- All API should be used through Action.Toaster instead of _G.Toaster (!) 
+if not Toaster then 
+	Toaster = {} 
+end 
+
 A.Toaster = Toaster
 
 function Toaster:Register(template_name, constructor, is_unique)

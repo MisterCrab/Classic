@@ -67,11 +67,15 @@ do
         
         local pGUID = UnitGUID("player")
         assert(pGUID, "pGUID was null when func string was generated!")
+		
+		local blacklist = {
+			[75] = true, 					-- Hunter's Auto Shot
+        }
         
         module:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED",
             function()
                 local _, e, _, sourceGuid, _, _, _, _, _, _, _, spellID, spellName = CombatLogGetCurrentEventInfo()
-                if (e == "SPELL_CAST_SUCCESS" or e == "SPELL_MISS") and sourceGuid == pGUID then
+                if (e == "SPELL_CAST_SUCCESS" or e == "SPELL_MISS") and sourceGuid == pGUID and not blacklist[spellID] then
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     --Env.LastPlayerCastID 	= spellID
 					A.LastPlayerCastName	= spellName
@@ -82,7 +86,7 @@ do
         
         module:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED",
             function(_, unit, _, spellID)
-                if unit == "player" then
+                if unit == "player" and not blacklist[spellID] then
 					local spellName			= A_GetSpellInfo(spellID)
                     Env.LastPlayerCastName 	= strlowerCache[spellName]
                     Env.LastPlayerCastID 	= spellID
@@ -594,7 +598,9 @@ BlackBackground.texture:SetColorTexture(0, 0, 0, 1)
 
 local function CreateRankFrame(name, anchor, x, y)
 	local frame 		= CreateFrame("Frame", name, UIParent)
-	frame:SetBackdrop(nil)
+	if frame.SetBackdrop then 
+		frame:SetBackdrop(nil)
+	end 
 	frame:SetFrameStrata("TOOLTIP")
 	frame:SetToplevel(true)
 	frame:SetSize(1, 1)
@@ -688,9 +694,20 @@ local function UpdateCVAR()
 		Print("Gamma should be 1")	
 	end
 	
-    if GetCVar("colorblindsimulator") ~= "0" then 
+	local colorblindsimulator = GetCVar("colorblindsimulator") -- Renamed to colorblindSimulator on some versions (?)
+    if colorblindsimulator ~= nil and colorblindsimulator ~= "0" then 
 		SetCVar("colorblindsimulator", 0) 
 	end 
+	
+	local colorblindSimulator = GetCVar("colorblindSimulator")
+	if colorblindSimulator ~= nil and colorblindSimulator ~= "0" then 
+		SetCVar("colorblindSimulator", 0) 
+	end 
+	
+	local colorblindWeaknessFactor = GetCVar("colorblindWeaknessFactor")
+	if colorblindWeaknessFactor ~= nil and colorblindWeaknessFactor ~= "0.5"  then 
+		SetCVar("colorblindWeaknessFactor", 0.5) 
+	end
 	
 	if toNum[GetCVar("SpellQueueWindow") or 400] == nil then 
 		SetCVar("SpellQueueWindow", 400) 
