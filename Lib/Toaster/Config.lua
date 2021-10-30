@@ -70,6 +70,9 @@ local function CreateAnchorFrame()
     local anchorFrame = _G.CreateFrame("Frame", nil, _G.UIParent, _G.BackdropTemplateMixin and "BackdropTemplate")
     anchorFrame:SetSize(250, 50)
     anchorFrame:SetFrameStrata("DIALOG")
+	if not anchorFrame.SetBackdrop then 
+		Mixin(anchorFrame, BackdropTemplateMixin)
+	end 
     anchorFrame:SetBackdrop({
         bgFile = [[Interface\FriendsFrame\UI-Toast-Background]],
         edgeFile = [[Interface\FriendsFrame\UI-Toast-Border]],
