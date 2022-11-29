@@ -112,10 +112,14 @@ end
  
 function A:CheckInPvP()
 	-- @return boolean
-    return 
+    if 
 		self.Zone == "pvp" or 
 		UnitInBattleground(player) or 
 		( A_Unit(target):IsPlayer() and (A_Unit(target):IsEnemy() or (A_Unit(targettarget):IsPlayer() and A_Unit(targettarget):IsEnemy())) )
+	then 
+		return true 
+	end 
+	return false
 end
 
 local GetEventInfo 						= {
