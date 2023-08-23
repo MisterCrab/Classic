@@ -137,7 +137,7 @@ frame:SetToplevel(true)
 frame:SetSize(1, 1)
 frame:SetScale(1)
 frame:SetPoint("TOPLEFT", 163, 0)
-frame.texture = frame:CreateTexture(nil, "TOOLTIP")
+frame.texture = frame:CreateTexture(nil, "OVERLAY")
 frame.texture:SetAllPoints(true)
 frame.Colors 							= {
 	none								= {0, 0, 0, 1},

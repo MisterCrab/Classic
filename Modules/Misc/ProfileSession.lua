@@ -851,7 +851,7 @@ TMW:RegisterSelfDestructingCallback("TMW_ACTION_IS_INITIALIZED_PRE", function(ca
 		if USE_DEBUG then 
 			Print("[Debug] Blizzard_Calendar loading..")
 		end 
-		UIParentLoadAddOn("Blizzard_Calendar")
+		-- UIParentLoadAddOn("Blizzard_Calendar")
 	else
 		if USE_DEBUG then 
 			Print("[Debug] Blizzard_Calendar already loaded!!!")
