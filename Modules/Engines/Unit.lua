@@ -19,7 +19,7 @@ local strlowerCache  						= TMW.strlowerCache
 local LibStub								= _G.LibStub
 local ThreatLib  							= LibStub("LibThreatClassic2")
 local HealComm 								= LibStub("LibHealComm-4.0", true) -- Note: Leave it with true in case if will need to disable lib, seems lib causing unexpected lua errors in PvP 
-local LibRangeCheck  						= LibStub("LibRangeCheck-2.0")
+local LibRangeCheck  						= LibStub("LibRangeCheck-3.0")
 local LibBossIDs							= LibStub("LibBossIDs-1.0").BossIDs
 local LibClassicCasterino 					= LibStub("LibClassicCasterino")
 -- To activate it

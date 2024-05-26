@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "24.08.2023"
+local DateTime 														= "26.05.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -40,7 +40,7 @@ local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   G
 	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
 local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 UnitPower,    UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura or _G.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local  HasWandEquipped 												= 
