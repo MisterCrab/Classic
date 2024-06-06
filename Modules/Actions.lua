@@ -809,7 +809,7 @@ local Racial = {
 							not unitID or 
 							not Unit(unitID):IsEnemy() 
 						) and 
-						MultiUnits:GetCasting(8, 1) >= 1
+						MultiUnits:GetByRangeCasting(8, 1) >= 1
 					)			  
 		end 		
 
