@@ -13208,7 +13208,7 @@ function Action.ToggleMainUI()
 					end 
 					Button:SetValue(rowData.Button)
 					isTotem:SetChecked(rowData.isTotem)
-					InputBox:SetNumber(rowData.Name)	
+					InputBox:SetText(rowData.Name)	
 					InputBox:ClearFocus()
 				end 				
 			end 			
