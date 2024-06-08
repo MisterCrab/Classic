@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "08.06.2024"
+local DateTime 														= "09.06.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -9471,6 +9471,10 @@ function Action.ToggleMainUI()
 	local spec 				= Action.PlayerClass .. Action.GetCL()
 	local MainUI			= Action.MainUI
 	if MainUI then 	
+		if not MainUI:GetPropagateKeyboardInput() and not InCombatLockdown() then 
+			MainUI:SetPropagateKeyboardInput(true)
+		end 
+		
 		if MainUI:IsShown() then 
 			MainUI:SetShown(not MainUI:IsShown())
 			return
@@ -9505,6 +9509,9 @@ function Action.ToggleMainUI()
 		end)
 				
 		MainUI:EnableKeyboard(true)
+		if not InCombatLockdown() then 
+			MainUI:SetPropagateKeyboardInput(true)
+		end 		
 		-- Catches the game menu bind just before it fires.
 		MainUI:SetScript("OnKeyDown", function(self, Key)				
 			if GetBindingFromClick(Key) == "TOGGLEGAMEMENU" and self:IsShown() then 
