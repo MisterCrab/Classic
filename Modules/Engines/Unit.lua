@@ -2920,7 +2920,7 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		local min_range 					= self(unitID):GetRange()
 		
-		return min_range > 0 and (min_range <= range or orBooleanInRange)	
+		return min_range and min_range > 0 and ((range and min_range <= range) or orBooleanInRange)	
 	end, "UnitID"),
 	CanInterrupt							= Cache:Pass(function(self, kickAble, auras, minX, maxX)
 		-- @return boolean 
