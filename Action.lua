@@ -11761,7 +11761,8 @@ function Action.ToggleMainUI()
 						--Action.Print(L["DEBUG"] .. data:Link() .. " " .. L["TAB"][3]["QUEUEBLOCKED"])
 					else
 						if button == "LeftButton" then 	
-							data:SetQueue(self.SetToggleOptions)							
+							local action = getmetatable(data).__index
+							action:SetQueue(self.SetToggleOptions)							
 						elseif button == "RightButton" then 						
 							Action.CraftMacro("Queue: " .. data.TableKeyName, [[#showtooltip ]] .. data:Info() .. "\n" .. [[/run Action.MacroQueue("]] .. data.TableKeyName .. [[", { Priority = 1 })]], 1, true, true)	
 						end
