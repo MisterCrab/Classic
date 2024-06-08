@@ -409,6 +409,7 @@ local AuraList = {
 		710, 				-- Banish 					(Warlock)
 		498, 				-- Divine Protection		(Paladin)
         642, 				-- Divine Shield			(Paladin)		
+        1020, 				-- Divine Shield			(Paladin)		
         11958, 				-- Ice Block				(Mage)
         19263, 				-- Deterrence    			(Hunter)
         20711, 				-- Spirit of Redemption		(Priest)
@@ -416,7 +417,9 @@ local AuraList = {
     },
     DamagePhysImun = {		
 		1022, 				-- Blessing of Protection	(Paladin)
+		10278, 				-- Blessing of Protection	(Paladin)
 		3169,				-- Invulnerability			(Limited Invulnerability Potion)
+		3387,				-- Limited Invulnerability Potion
 		--16621,			-- Self Invulnerability (Invulnerable Mail weapon) -- FIX ME: seems only for swing attacks
 	},
     DamageMagicImun = {}, 
@@ -434,6 +437,7 @@ local AuraList = {
     -- Purje 
     ImportantPurje = {
         1022, 				-- Blessing of Protection	(Paladin)
+		10278, 				-- Blessing of Protection	(Paladin)
         20216, 				-- Divine Favor 			(Paladin)		
         11129, 				-- Combustion 				(Mage)
         12042, 				-- Arcane Power 			(Mage)
@@ -477,8 +481,10 @@ local AuraList = {
 		20230,				-- Retaliation				(Warrior)
 		5277, 				-- Evasion					(Rogue)
 		1022, 				-- Blessing of Protection	(Paladin)
+		10278, 				-- Blessing of Protection	(Paladin)
 		22812,				-- Barkskin					(Druid)
 		3169,				-- Invulnerability			(Limited Invulnerability Potion)
+		3387,				-- Limited Invulnerability Potion
 		--498, 					-- Divine Protection		(Paladin)
         --642, 					-- Divine Shield			(Paladin)
         --11958, 				-- Ice Block				(Mage)
