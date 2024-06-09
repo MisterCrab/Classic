@@ -23,6 +23,7 @@ local strjoin	 													= string.join
 local strupper														= string.upper
 
 local TMW 															= _G.TMW
+TMW.UnitAura														= TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
 local Env 															= TMW.CNDT.Env
 local strlowerCache  												= TMW.strlowerCache
 local safecall														= TMW.safecall
@@ -8996,7 +8997,7 @@ local MSG; MSG 				= {
 							if unit:match("raid") or unit:match("party") then 	
 								local group_type = Action.TeamCache.Friendly.Type
 								for j = 1, #MSG.group do 
-									if (j <= 10 and group_type == "raid") or (j > = 10 and group_type == "party") then 
+									if (j <= 10 and group_type == "raid") or (j > 10 and group_type == "party") then 
 										if UnitIsUnit(unit, MSG.group[j].u) then 	
 											MSG.set.MetaSlot = MSG.group[j].meta											 
 											MSG.set.UnitID = MSG.group[j].u
