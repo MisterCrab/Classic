@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "09.06.2024"
+local DateTime 														= "10.06.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -5422,6 +5422,11 @@ local function dbUpdate()
 	pActionDB 		= TMWdbprofile.ActionDB
 	gActionDB		= TMWdbglobal.ActionDB
 	
+	-- Fixes Resizer_Generic error if user tried to open ui in combat
+	if TMWdbglobal and not TMWdbglobal.AllowCombatConfig then 
+		TMWdbglobal.AllowCombatConfig = true
+	end 	
+	
 	-- On hook InitializeDatabase
 	if not Action.CurrentProfile and TMWdb then 
 		Action.CurrentProfile = TMWdb:GetCurrentProfile()
@@ -10002,30 +10007,35 @@ function Action.ToggleMainUI()
 
 			local lastUpdate	
 			function MainUI.UpdateResize(manual) 
-				if manual ~= true and TMW.time - (lastUpdate or 0) < 0.02 then 
+				if not manual and TMW.time - (lastUpdate or 0) < 0.0001 then 
 					return 
 				end 
 				
-				tabFrame:CustomDrawButtons()
+				if manual then 
+					tabFrame:CustomDrawButtons()
+				end 
+				
 				lastUpdate 	= manual == true and 0 or TMW.time 												
 				local spec	= Action.PlayerClass .. CL
-				for _, tab in ipairs(tabFrame.tabs) do	
-					if tab.childs[spec] then									
+				for i, tab in ipairs(tabFrame.tabs) do	
+					if tab.childs[spec] then	
 						-- Easy Layout (base parent)
-						local anchor = StdUi:GetAnchor(tab, spec)							
-						if anchor.layout then 
+						local anchor = StdUi:GetAnchor(tab, spec)
+						if anchor.layout and (manual or (i > 2 and i ~= 8)) then 
 							anchor:DoLayout()
 						end	
 
 						MainUI.UpdateResizeForKids(StdUi:GetAnchorKids(tab, spec))		
 					end 	
-				end 
+				end 								
 			end
 			
 			MainUI.resizer.resizer.resizeButton:HookScript("OnMouseUp", function()				
 				MainUI.UpdateResize(true)
 			end)
-			MainUI:HookScript("OnSizeChanged", MainUI.UpdateResize)
+			MainUI:HookScript("OnSizeChanged", function(self) 				
+				MainUI.UpdateResize(false) 
+			end)
 			-- I don't know how to fix layout overleap problem caused by resizer after hide, so I did some trick through this:
 			-- If you have a better idea let me know 
 			MainUI:HookScript("OnHide", function(self) 
