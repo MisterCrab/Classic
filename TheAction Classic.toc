@@ -21,6 +21,7 @@ Lib\Toaster\Localization\zhTW.lua
 Lib\Toaster\Core.lua
 Lib\Toaster\Config.lua
 
+Lib\DRList-1.0\DRList-1.0.xml
 Lib\LibSharedMedia-3.0\lib.xml
 Lib\ForAllIndentsAndPurposes.lua
 Lib\LibBossIDs-1.0.lua
@@ -28,7 +29,6 @@ Lib\LibDBIcon-1.0.lua
 Lib\StdUI\StdUi.xml
 
 # Classic Libs 
-Lib\DRList-1.0\DRList-1.0.xml
 Lib\LibHealComm-4.0\LibHealComm-4.0.xml
 Lib\LibThreatClassic2\lib.xml
 Lib\LibClassicCasterino.lua
