@@ -1,25 +1,24 @@
 --[[
 Name: DRList-1.0
-Description: Diminishing returns database. Fork of DRData-1.0.
-Website: https://www.curseforge.com/wow/addons/drlist-1-0
+Description: Diminishing returns categorization. Fork of outdated DRData-1.0.
+Website: https://github.com/wardz/DRList-1.0/
 Documentation: https://wardz.github.io/DRList-1.0/
-Version: v1.2.4
 Dependencies: LibStub
 License: MIT
 ]]
 
 --- DRList-1.0
 -- @module DRList-1.0
-local MAJOR, MINOR = "DRList-1.0", 23
+local MAJOR, MINOR = "DRList-1.0", 66 -- Don't forget to change this in Spells.lua aswell!
 local Lib = assert(LibStub, MAJOR .. " requires LibStub."):NewLibrary(MAJOR, MINOR)
 if not Lib then return end -- already loaded
 
+Lib.L = {}
+
 -------------------------------------------------------------------------------
--- *** LOCALIZATIONS ARE AUTOMATICALLY GENERATED ***
--- Please see Curseforge localization page if you'd like to help translate.
+-- Please see Curseforge localization page if you'd like to help translate:
 -- https://www.curseforge.com/wow/addons/drlist-1-0/localization
-local L = {}
-Lib.L = L
+local L = Lib.L
 L["DISARMS"] = "Disarms"
 L["DISORIENTS"] = "Disorients"
 L["INCAPACITATES"] = "Incapacitates"
@@ -28,19 +27,23 @@ L["ROOTS"] = "Roots"
 L["SILENCES"] = "Silences"
 L["STUNS"] = "Stuns"
 L["TAUNTS"] = "Taunts"
-
--- Classic & TBC
 L["FEARS"] = "Fears"
 L["RANDOM_ROOTS"] = "Random roots"
 L["RANDOM_STUNS"] = "Random stuns"
+L["OPENER_STUN"] = "Opener stuns"
+L["HORROR"] = "Horrors"
+L["SCATTERS"] = "Scatters"
+L["DEEP_FREEZE_ROF"] = "DF/RoF Shared"
 L["MIND_CONTROL"] = GetSpellInfo(605) or "Mind Control"
-L["FROST_SHOCK"] = GetSpellInfo(8056) or GetSpellInfo(196840) or "Frost Shock"
+L["FROST_SHOCK"] = GetSpellInfo(15089) or "Frost Shock"
 L["KIDNEY_SHOT"] = GetSpellInfo(408) or "Kidney Shot"
-L["SLEEPS"] = GetSpellInfo(1090) or "Sleeps"
-L["DEATH_COIL"] = GetSpellInfo(27223) or GetSpellInfo(47541) or "Death Coil"
+L["DEATH_COIL"] = GetSpellInfo(28412) or "Death Coil"
 L["UNSTABLE_AFFLICTION"] = GetSpellInfo(31117) or "Unstable Affliction"
-L["FREEZING_TRAP"] = GetSpellInfo(1499) or GetSpellInfo(187650) or "Freezing Trap"
-L["SCATTER_SHOT"] = GetSpellInfo(19503) or GetSpellInfo(213691) or "Scatter Shot"
+L["CHASTISE"] = GetSpellInfo(44041) or "Chastise"
+L["COUNTERATTACK"] = GetSpellInfo(19306) or "Counterattack"
+L["BIND_ELEMENTAL"] = GetSpellInfo(76780) or "Bind Elemental"
+L["CYCLONE"] = GetSpellInfo(33786) or "Cyclone"
+L["CHARGE"] = GetSpellInfo(100) or "Charge"
 
 -- luacheck: push ignore 542
 local locale = GetLocale()
@@ -59,8 +62,7 @@ elseif locale == "frFR" then
     L["STUNS"] = "Etourdissements"
     L["TAUNTS"] = "Provocations"
 elseif locale == "itIT" then
-    -- Categories
-
+    -- TODO translate me
 elseif locale == "koKR" then
     L["DISORIENTS"] = "방향 감각 상실"
     L["INCAPACITATES"] = "행동 불가"
@@ -69,19 +71,20 @@ elseif locale == "koKR" then
     L["SILENCES"] = "침묵"
     L["STUNS"] = "기절"
 elseif locale == "ptBR" then
-    -- Categories
-
+    -- TODO: translate me
 elseif locale == "ruRU" then
     L["DISARMS"] = "Разоружение"
     L["DISORIENTS"] = "Дезориентация"
     L["FEARS"] = "Опасения"
     L["INCAPACITATES"] = "Паралич"
     L["KNOCKBACKS"] = "Отбрасывание"
+    L["RANDOM_ROOTS"] = "Случайные корни"
+    L["RANDOM_STUNS"] = "Случайные оглушения"
     L["ROOTS"] = "Сковывание"
     L["SILENCES"] = "Немота"
     L["STUNS"] = "Оглушение"
     L["TAUNTS"] = "Насмешки"
-elseif locale == "esES" then
+elseif locale == "esES" or locale == "esMX" then
     L["DISARMS"] = "Desarmar"
     L["DISORIENTS"] = "Desorientar"
     L["FEARS"] = "Miedos"
@@ -89,13 +92,6 @@ elseif locale == "esES" then
     L["KNOCKBACKS"] = "Derribos"
     L["RANDOM_ROOTS"] = "Raíces aleatorias"
     L["RANDOM_STUNS"] = "Aturdir aleatorio"
-    L["ROOTS"] = "Raíces"
-    L["SILENCES"] = "Silencios"
-    L["STUNS"] = "Aturdimientos"
-    L["TAUNTS"] = "Provocaciones"
-elseif locale == "esMX" then
-    L["FEARS"] = "Miedos"
-    L["KNOCKBACKS"] = "Derribos"
     L["ROOTS"] = "Raíces"
     L["SILENCES"] = "Silencios"
     L["STUNS"] = "Aturdimientos"
@@ -128,38 +124,44 @@ end
 -- luacheck: pop
 -------------------------------------------------------------------------------
 
--- Check which game version we're running
-do
-    local expansions = {
-        [WOW_PROJECT_MAINLINE] = "retail",
-        [WOW_PROJECT_CLASSIC] = "classic",
-        [WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5] = "tbc",
-    }
-    Lib.gameExpansion = expansions[WOW_PROJECT_ID] or "unknown"
-end
+-- Check what game version we're running
+Lib.gameExpansion = ({
+    [WOW_PROJECT_MAINLINE] = "retail",
+    [WOW_PROJECT_CLASSIC] = "classic",
+    [WOW_PROJECT_BURNING_CRUSADE_CLASSIC or 5] = "tbc",
+    [WOW_PROJECT_WRATH_CLASSIC or 11] = "wotlk",
+    [WOW_PROJECT_CATACLYSM_CLASSIC or 14] = "cata",
+})[WOW_PROJECT_ID] or "cata" -- Fallback to cata when unknown (most likely a new classic expansion build)
 
--- How long it takes for a DR to expire
+-- How long it takes for a DR to expire, in seconds.
 Lib.resetTimes = {
     retail = {
-        ["default"] = 18.5,
-        ["npc"] = 23.0, -- Against mobs it seems to last slightly longer, depending on server load
+        ["default"] = 18.5, -- static 18 sec + 0.5 latency
+        ["npc"] = 21, -- Against mobs it seems to last slightly longer, depending on server load
         ["knockback"] = 10.5, -- Knockbacks are immediately immune and only DRs for 10s
     },
 
     classic = {
-        ["default"] = 19, -- dynamic between 15 and 20s
-        ["npc"] = 23.0,
+        ["default"] = 20, -- dynamic between 15 and 20s
+        ["npc"] = 21,
     },
 
     tbc = {
-        ["default"] = 19, -- dynamic between 15 and 20s
-        ["npc"] = 23.0,
+        ["default"] = 20, -- dynamic between 15 and 20s
+        ["npc"] = 21,
+    },
+
+    wotlk = {
+        ["default"] = 20, -- dynamic between 15 and 20s
+        ["npc"] = 21,
+    },
+	cata = {
+        ["default"] = 20, -- dynamic between 15 and 20s
+        ["npc"] = 21,
     },
 }
 
 -- List of all DR categories, english -> localized.
--- Note: unlocalized categories used for the API are always singular,
--- and localized user facing categories are always plural. (Except spell names in classic)
 Lib.categoryNames = {
     retail = {
         ["disorient"] = L.DISORIENTS,
@@ -192,25 +194,58 @@ Lib.categoryNames = {
         ["random_root"] = L.RANDOM_ROOTS,
         ["root"] = L.ROOTS,
         ["disarm"] = L.DISARMS,
-        ["sleep"] = L.SLEEPS,
         ["fear"] = L.FEARS,
+        ["scatter"] = L.SCATTERS,
         ["mind_control"] = L.MIND_CONTROL,
         ["kidney_shot"] = L.KIDNEY_SHOT,
         ["death_coil"] = L.DEATH_COIL,
         ["unstable_affliction"] = L.UNSTABLE_AFFLICTION,
-        ["freezing_trap"] = L.FREEZING_TRAP,
-        ["scatter_shot"] = L.SCATTER_SHOT,
+        ["chastise"] = L.CHASTISE,
+        ["counterattack"] = L.COUNTERATTACK,
+    },
+
+    wotlk = {
+        ["incapacitate"] = L.INCAPACITATES,
+        ["stun"] = L.STUNS,
+        ["random_stun"] = L.RANDOM_STUNS,
+        ["random_root"] = L.RANDOM_ROOTS,
+        ["root"] = L.ROOTS,
+        ["disarm"] = L.DISARMS,
+        ["fear"] = L.FEARS,
+        ["scatter"] = L.SCATTERS,
+        ["silence"] = L.SILENCES,
+        ["horror"] = L.HORROR,
+        ["mind_control"] = L.MIND_CONTROL,
+        ["cyclone"] = L.CYCLONE,
+        ["charge"] = L.CHARGE,
+        ["opener_stun"] = L.OPENER_STUN,
+        ["counterattack"] = L.COUNTERATTACK,
+    },
+
+    cata = {
+        ["incapacitate"] = L.INCAPACITATES,
+        ["stun"] = L.STUNS,
+        ["random_stun"] = L.RANDOM_STUNS,
+        ["random_root"] = L.RANDOM_ROOTS,
+        ["root"] = L.ROOTS,
+        ["disarm"] = L.DISARMS,
+        ["fear"] = L.FEARS,
+        ["scatter"] = L.SCATTERS,
+        ["silence"] = L.SILENCES,
+        ["horror"] = L.HORROR,
+        ["mind_control"] = L.MIND_CONTROL,
+        ["cyclone"] = L.CYCLONE,
+        ["counterattack"] = L.COUNTERATTACK,
+        ["bind_elemental"] = L.BIND_ELEMENTAL,
+        ["deep_freeze_rof"] = L.DEEP_FREEZE_ROF,
     },
 }
 
--- Categories that have DR against normal mobs (not player pets).
--- Note that elites and quest bosses have DR on ALL categories.
--- Normal mobs only have a stun and taunt DR.
+-- Categories that have DR against normal mobs.
 Lib.categoriesPvE = {
     retail = {
         ["taunt"] = L.TAUNTS,
         ["stun"] = L.STUNS,
-        ["root"] = L.ROOTS,
     },
 
     classic = {
@@ -222,6 +257,20 @@ Lib.categoriesPvE = {
         ["stun"] = L.STUNS,
         ["random_stun"] = L.RANDOM_STUNS,
         ["kidney_shot"] = L.KIDNEY_SHOT,
+    },
+
+    wotlk = {
+        --["taunt"] = L.TAUNTS,
+        ["stun"] = L.STUNS,
+        ["random_stun"] = L.RANDOM_STUNS,
+        ["opener_stun"] = L.OPENER_STUN,
+    },
+
+    cata = {
+        --["taunt"] = L.TAUNTS,
+        ["stun"] = L.STUNS,
+        ["random_stun"] = L.RANDOM_STUNS,
+        ["cyclone"] = L.CYCLONE,
     },
 }
 
@@ -243,6 +292,14 @@ Lib.diminishedDurations = {
     tbc = {
         ["default"] = { 0.50, 0.25 },
     },
+
+    wotlk = {
+        ["default"] = { 0.50, 0.25 },
+    },
+
+    cata = {
+        ["default"] = { 0.50, 0.25 },
+    },
 }
 
 -------------------------------------------------------------------------------
@@ -251,10 +308,8 @@ Lib.diminishedDurations = {
 
 --- Get table of all spells that DRs.
 -- Key is the spellID, and value is the unlocalized DR category.
--- For Classic the key is the localized spell name instead, and value
--- is a table containing both the DR category and spell ID.
 -- @see IterateSpellsByCategory
--- @treturn ?table {number=string}|table {string=table}
+-- @treturn table {number=string|table}
 function Lib:GetSpells()
     return Lib.spellList
 end
@@ -266,37 +321,37 @@ function Lib:GetCategories()
     return Lib.categoryNames[Lib.gameExpansion]
 end
 
---- Get table of all categories that DRs in PvE only.
+--- Get table of all categories that DRs in PvE.
 -- Key is unlocalized name used for API functions, value is localized name used for UI.
+-- Note that for retail some special mobs have DR on all categories,
+-- see UnitClassification() and UnitIsQuestBoss(). Player pets have DR on all categories.
 -- Tip: you can combine :GetPvECategories() and :IterateSpellsByCategory() to get spellIDs only for PvE aswell.
 -- @treturn table {string=string}
 function Lib:GetPvECategories()
     return Lib.categoriesPvE[Lib.gameExpansion]
 end
 
---- Get constant for how long a DR lasts total for a given category.
+--- Get constant for how long a DR lasts for a given category.
 -- @tparam[opt="default"] string category Unlocalized category name, or "npc" for PvE timer.
--- @treturn number
+-- @treturn number Seconds before DR resets.
 function Lib:GetResetTime(category)
     return Lib.resetTimes[Lib.gameExpansion][category or "default"] or Lib.resetTimes[Lib.gameExpansion].default
 end
 
+local type = _G.type -- GetCategoryBySpellID() is ran frequently from the CLEU so might aswell upvalue this
+
 --- Get unlocalized DR category by spell ID.
--- For Classic you should pass in the spell name instead of ID.
--- For Classic you also get an optional second return value
--- which is the spell ID of the spell name you passed in.
+-- This is the main checker for if a spell has a DR.
 -- @tparam number spellID
--- @treturn[1] string|nil The category name.
--- @treturn[2] number|nil The spell ID. (Classic only)
+-- @treturn ?string The category name.
+-- @treturn ?{string,...} Read-only array with multiple categories if spellID has any shared DR categories. (Note: array includes main category too)
 function Lib:GetCategoryBySpellID(spellID)
-    if Lib.gameExpansion == "classic" then
-        -- special case for classic as CLEU doesn't provide spellIDs
-        local data = Lib.spellList[spellID]
-        if not data then return end
-        return data.category, data.spellID
+    local category = Lib.spellList[spellID]
+    if category and type(category) == "table" then
+        return category[1], category
     end
 
-    return Lib.spellList[spellID]
+    return category
 end
 
 --- Get localized category from unlocalized category name, case sensitive.
@@ -307,9 +362,8 @@ function Lib:GetCategoryLocalization(category)
 end
 
 --- Check if a category has DR against mobs.
--- Note that this is only for mobs, player pets have DR on all categories.
--- Also taunt, root, disorient & incap only have DR against special mobs.
--- See UnitClassification() and UnitIsQuestBoss().
+-- Note that for retail some special mobs have DR on all categories, you need to check for this yourself;
+-- see UnitClassification() and UnitIsQuestBoss(). Player pets have DR on all categories.
 -- @tparam string category Unlocalized category name
 -- @treturn bool
 function Lib:IsPvECategory(category)
@@ -335,25 +389,35 @@ do
     local next = _G.next
 
     local function CategoryIterator(category, index)
-        local newCat
+        local spellList, newCategory = Lib.spellList
         repeat
-            index, newCat = next(Lib.spellList, index)
+            index, newCategory = next(spellList, index)
             if index then
-                if newCat == category or newCat.category == category then
+                if newCategory == category then
                     return index, category
+                elseif type(newCategory) == "table" then
+                    for i = 1, #newCategory do
+                        if newCategory[i] == category then
+                            return index, category
+                        end
+                    end
                 end
             end
         until not index
     end
 
     --- Iterate through the spells of a given category.
-    -- @tparam string category Unlocalized category name
+    -- Pass "nil" to iterate through all spells instead.
+    -- Note that in classic a spell might have several spellIDs returned here due to spell ranks.
+    -- @tparam string|nil category Unlocalized category name
     -- @usage for spellID in DRList:IterateSpellsByCategory("root") do print(spellID) end
-    -- @warning Slow function, do not use for combat related stuff unless you cache results.
     -- @return Iterator function
     function Lib:IterateSpellsByCategory(category)
-        assert(Lib.categoryNames[Lib.gameExpansion][category], "invalid category")
-        return CategoryIterator, category
+        if category then
+            return CategoryIterator, category
+        else
+            return next, Lib.spellList
+        end
     end
 end
 
