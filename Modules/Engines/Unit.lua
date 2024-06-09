@@ -66,10 +66,10 @@ local UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
 	  UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
-local UnitAura 								= TMW.UnitAura	  
+local UnitAura 								= TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 	  
---local UnitThreatSituation					= function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
-local UnitDetailedThreatSituation			= function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
+--local UnitThreatSituation					= _G.UnitThreatSituation or function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
+local UnitDetailedThreatSituation			= _G.UnitDetailedThreatSituation or function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
 -------------------------------------------------------------------------------
 -- Remap
 -------------------------------------------------------------------------------

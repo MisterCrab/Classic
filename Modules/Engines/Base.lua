@@ -336,8 +336,8 @@ end
 -------------------------------------------------------------------------------
 -- Threat Library 
 -------------------------------------------------------------------------------
---local UnitThreatSituation			= function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
-local UnitDetailedThreatSituation	= function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
+--local UnitThreatSituation			= _G.UnitThreatSituation or function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
+local UnitDetailedThreatSituation	= _G.UnitDetailedThreatSituation or function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
 
 local function UpdateThreatData(unit)
 	local isTanking, status, scaledPercent, rawThreatPercent, threatValue, GUID = UnitDetailedThreatSituation(unit, playerTarget) -- Lib modified to return by last argument unitGUID!
