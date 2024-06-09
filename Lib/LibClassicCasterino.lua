@@ -37,6 +37,7 @@ local CastingInfo = CastingInfo
 local ChannelInfo = ChannelInfo
 local GetUnitSpeed = GetUnitSpeed
 local UnitIsUnit = UnitIsUnit
+local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 
 local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
 local COMBATLOG_OBJECT_TYPE_PLAYER_OR_PET = COMBATLOG_OBJECT_TYPE_PLAYER + COMBATLOG_OBJECT_TYPE_PET
@@ -319,6 +320,12 @@ local function GetRangedHaste(unit)
     local positiveMul = 1
     for i=1, 100 do
         local name, _, _, _, _, _, _, _, _, spellID = UnitAura(unit, i, "HELPFUL")
+		
+		if type(name) == "table" then 			
+			spellID = name.spellId
+			name = name.name
+		end  			
+		
         if not name then return positiveMul end
         if attackTimeDecreases[spellID] or spellID == 26635 then
             positiveMul = positiveMul * (attackTimeDecreases[spellID] or GetTrollBerserkHaste(unit))
@@ -330,6 +337,12 @@ local function GetCastSlowdown(unit)
     local negativeEx = 1
     for i=1, 100 do
         local name, _, _, _, _, _, _, _, _, spellID = UnitAura(unit, i, "HARMFUL")
+		
+		if type(name) == "table" then 			
+			spellID = name.spellId
+			name = name.name
+		end  			
+		
         if not name then return negativeEx end
         if castTimeIncreases[spellID] then
             negativeEx = math.max(negativeEx, castTimeIncreases[spellID])

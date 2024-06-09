@@ -22,7 +22,7 @@ local activeSpellLocks = lib.activeSpellLocks
 local data = interrupts
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitGUID = UnitGUID
-local UnitAura = UnitAura
+local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local GetTime = GetTime
 local C_Timer_After = C_Timer.After
 
@@ -172,6 +172,9 @@ end
 -- local function FindAurByaSpellID(spellID, unit, filter)
 --     for i=1, 100 do
 --         local auraSpellID = select(10, UnitAura(unit, i, filter))
+--			if type(auraSpellID) == "table" then 			
+--				auraSpellID = auraSpellID.spellId
+--			end  		
 --         if not auraSpellID then return end
 --         if auraSpellID == spellID then return i end
 --     end

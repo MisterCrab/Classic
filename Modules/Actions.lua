@@ -133,7 +133,7 @@ local GetSpellBookItemName			= _G.GetSpellBookItemName
 local FindSpellBookSlotBySpellID 	= _G.FindSpellBookSlotBySpellID
 
 -- Unit 	  
-local UnitAura						= TMW.UnitAura
+local UnitAura						= TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local 	 UnitIsUnit, 	UnitGUID	= 
 	  _G.UnitIsUnit, _G.UnitGUID 
 
@@ -1072,7 +1072,13 @@ function A:AbsentImun(unitID, imunBuffs)
 			--[[
 			local debuffName, expirationTime, remainTime, _
 			for i = 1, huge do			
-				debuffName, _, _, _, _, expirationTime = UnitAura(unitID, i, "HARMFUL")
+				debuffName, _, _, _, _,  = UnitAura(unitID, i, "HARMFUL")
+				
+				if type(debuffName) == "table" then 
+					expirationTime = debuffName.expirationTime
+					debuffName = debuffName.name
+				end  				
+				
 				if not debuffName then
 					break 
 				elseif IsBreakAbleDeBuff[debuffName] then 

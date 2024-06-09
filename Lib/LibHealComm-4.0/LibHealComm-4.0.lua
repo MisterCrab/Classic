@@ -58,7 +58,7 @@ local IsInRaid = IsInRaid
 local IsLoggedIn = IsLoggedIn
 local IsSpellInRange = IsSpellInRange
 local SpellIsTargeting = SpellIsTargeting
-local UnitAura = UnitAura
+local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local UnitCanAssist = UnitCanAssist
 local UnitExists = UnitExists
 local UnitGUID = UnitGUID
@@ -1684,6 +1684,13 @@ function HealComm:UNIT_AURA(unit)
 	local id = 1
 	while( true ) do
 		local name, _, stack, _, _, _, _, _, _, spellID = UnitAura(unit, id, "HELPFUL")
+		
+		if type(name) == "table" then 			
+			stack = name.charges
+			spellID = name.spellId
+			name = name.name
+		end  		
+		
 		if( not name ) then break end
 		-- Prevent buffs like Tree of Life that have the same name for the shapeshift/healing increase from being calculated twice
 		if( not alreadyAdded[name] ) then
@@ -1703,6 +1710,13 @@ function HealComm:UNIT_AURA(unit)
 	id = 1
 	while( true ) do
 		local name, _, stack, _, _, _, _, _, _, spellID = UnitAura(unit, id, "HARMFUL")
+		
+		if type(name) == "table" then 			
+			stack = name.charges
+			spellID = name.spellId
+			name = name.name
+		end  			
+		
 		if( not name ) then break end
 
 		if( healingModifiers[spellID] ) then
@@ -1927,6 +1941,16 @@ local function findAura(casterGUID, spellID, ...)
 			local id = 1
 			while true do
 				local name, _, stack, _, duration, endTime, caster, _, _, spell = UnitAura(unit, id, 'HELPFUL')
+				
+				if type(name) == "table" then 			
+					stack = name.charges
+					duration = name.duration
+					endTime = name.expirationTime
+					caster = name.sourceUnit
+					spellID = name.spellId
+					name = name.name
+				end  					
+				
 				if( not spell ) then break end
 
 				if( spell == spellID and caster and UnitGUID(caster) == casterGUID ) then

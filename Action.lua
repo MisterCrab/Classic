@@ -39,8 +39,8 @@ local owner															= isClassic and "PlayerClass" or "PlayerSpec"
 local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
 	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
-local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 UnitPower,    UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura or _G.UnitAura, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 													 UnitPower,    UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local  HasWandEquipped 												= 
@@ -7549,9 +7549,28 @@ local AuraDuration = {
 			else
 				if maxPrioIndex then 
 					name, icon, _, _, duration, expirationTime, caster, _,_, spellId = UnitAura(unit, maxPrioIndex, maxPrioFilter)
+					
+					if type(name) == "table" then 	
+						icon = name.icon
+						duration = name.duration
+						expirationTime = name.expirationTime
+						caster = name.sourceUnit
+						spellId = name.spellId
+						name = name.name
+					end  	
 				else 
 					for i = 1, huge do 
 						name, icon, _, _, duration, expirationTime, caster, _,_, spellId = UnitAura(unit, i, maxPrioFilter)
+						
+						if type(name) == "table" then 	
+							icon = name.icon
+							duration = name.duration
+							expirationTime = name.expirationTime
+							caster = name.sourceUnit
+							spellId = name.spellId
+							name = name.name
+						end  							
+						
 						if not name then 
 							break 
 						end 
@@ -7584,6 +7603,18 @@ local AuraDuration = {
 		local maxBuffs 			= math_min(_G["TargetFrame"].maxBuffs or MAX_TARGET_BUFFS, MAX_TARGET_BUFFS)
 		for i = 1, maxBuffs do
 			local buffName, icon, count, _, duration, expirationTime, caster, canStealOrPurge, _, spellId = UnitAura(unit, i, "HELPFUL")
+			
+			if type(buffName) == "table" then 	
+				icon = buffName.icon
+				count = buffName.charges
+				duration = buffName.duration
+				expirationTime = buffName.expirationTime
+				caster = buffName.sourceUnit
+				canStealOrPurge = buffName.isStealable
+				spellId = buffName.spellId
+				buffName = buffName.name
+			end  				
+			
 			if buffName then
 				frameName 	= "TargetFrameBuff" .. i
 				frame 		= _G[frameName]			
@@ -7656,6 +7687,20 @@ local AuraDuration = {
 		local maxDebuffs 					= math_min(_G["TargetFrame"].maxDebuffs or MAX_TARGET_DEBUFFS, MAX_TARGET_DEBUFFS)
 		for i = 1, maxDebuffs do 
 			local debuffName, icon, count, debuffType, duration, expirationTime, caster, _, _, spellId, _, _, casterIsPlayer, nameplateShowAll = UnitAura(unit, i, "HARMFUL")
+			
+			if type(debuffName) == "table" then 	
+				icon = debuffName.icon
+				count = debuffName.charges
+				debuffType = debuffName.dispelName
+				duration = debuffName.duration
+				expirationTime = debuffName.expirationTime
+				caster = debuffName.sourceUnit
+				spellId = debuffName.spellId
+				casterIsPlayer = debuffName.isFromPlayerOrPlayerPet
+				nameplateShowAll = debuffName.nameplateShowAll
+				debuffName = debuffName.name
+			end  				
+			
 			if debuffName then 
 				if TargetFrame_ShouldShowDebuffs(unit, caster, nameplateShowAll, casterIsPlayer) then
 					frameName 	= "TargetFrameDebuff" .. i
@@ -7818,6 +7863,14 @@ local AuraDuration = {
 		hooksecurefunc("CompactUnitFrame_UtilSetBuff", function(buffFrame, unit, index, filter)
 			if Action.IsInitialized and self.IsEnabled then 
 				local name, _, _, _, duration, expirationTime, _, _, _, spellId = UnitAura(unit, index, "HELPFUL")
+				
+				if type(name) == "table" then 	
+					duration = name.duration
+					expirationTime = name.expirationTime
+					spellId = name.spellId
+					name = name.name
+				end  					
+				
 				local enabled = expirationTime and expirationTime ~= 0
 				if enabled then
 					CooldownFrame_Set(buffFrame.cooldown, expirationTime - duration, duration, true)
@@ -7830,6 +7883,14 @@ local AuraDuration = {
 		hooksecurefunc("CompactUnitFrame_UtilSetDebuff", function(debuffFrame, unit, index, filter)
 			if Action.IsInitialized and self.IsEnabled then 
 				local name, _, _, _, duration, expirationTime, _, _, _, spellId = UnitAura(unit, index, filter)
+
+				if type(name) == "table" then 	
+					duration = name.duration
+					expirationTime = name.expirationTime
+					spellId = name.spellId
+					name = name.name
+				end  						
+				
 				local enabled = expirationTime and expirationTime ~= 0
 				if enabled then
 					CooldownFrame_Set(debuffFrame.cooldown, expirationTime - duration, duration, true)
@@ -8663,6 +8724,16 @@ function Action.AuraIsBlackListed(unitID)
 		local _, Dur, Name, count, duration, expirationTime, canStealOrPurge, id
 		for i = 1, huge do 
 			Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
+			
+			if type(Name) == "table" then 	
+				count = Name.charges
+				duration = Name.duration
+				expirationTime = Name.expirationTime
+				canStealOrPurge = Name.isStealable
+				id = Name.spellId
+				Name = Name.name
+			end  					
+		
 			if Name then
 				if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 
 					Dur = expirationTime == 0 and huge or expirationTime - TMW.time
@@ -8685,6 +8756,16 @@ function Action.AuraIsValid(unitID, Toggle, Category)
 			local _, Dur, Name, count, duration, expirationTime, canStealOrPurge, id
 			for i = 1, huge do			
 				Name, _, count, _, duration, expirationTime, _, canStealOrPurge, _, id = UnitAura(unitID, i, Filter)
+				
+				if type(Name) == "table" then 	
+					count = Name.charges
+					duration = Name.duration
+					expirationTime = Name.expirationTime
+					canStealOrPurge = Name.isStealable
+					id = Name.spellId
+					Name = Name.name
+				end  				
+				
 				if Name then					
 					if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 					
 						Dur = expirationTime == 0 and huge or expirationTime - TMW.time
