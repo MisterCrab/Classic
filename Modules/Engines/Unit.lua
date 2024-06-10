@@ -404,6 +404,8 @@ local AuraList = {
 		6615, 				-- Free Action 				(Free Action Potion)
 		1044, 				-- Blessing of Freedom		(Paladin)
 		24364,				-- Living Free Action		(Potion)
+		9774,				-- Immune Root
+		425294,				-- Dispersion				(Priest)
 	},
     TotalImun = {
 		710, 				-- Banish 					(Warlock)
@@ -510,12 +512,14 @@ local AuraList = {
 		12042, 				-- Arcane Power 			(Mage)
 		26297,				-- Berserking				(Troll)
 		20572,				-- Blood Fury				(Orc)
+		20007,				-- Holy Strength
     },
     DamageBuffs_Melee = {        
 		12328,				-- Death Wish 				(Warrior)	
 		1719,				-- Recklessness				(Warrior)
         13750,				-- Adrenaline Rush			(Rogue)
 		13877,				-- Blade Flurry				(Rogue)		
+		20007,				-- Holy Strength
     },
     BurstHaste = {
         19372, 				-- Ancient Hysteria 		(Unknown)
