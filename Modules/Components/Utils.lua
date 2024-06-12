@@ -922,6 +922,11 @@ local function UpdateCVAR()
 		end		
 	end 
 	
+	-- Description fix
+	if toNum[GetCVar("breakUpLargeNumbers") or 1] ~= 0 then 
+		SetCVar("breakUpLargeNumbers", 0)
+	end
+	
     -- WM removal
     if GetCVar("screenshotQuality") ~= "10" then 
 		SetCVar("screenshotQuality", 10)  
