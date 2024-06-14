@@ -2978,7 +2978,7 @@ A.Unit = PseudoClass({
 	CanInterract							= Cache:Pass(function(self, range, orBooleanInRange) 
 		-- @return boolean  
 		local unitID 						= self.UnitID
-		local min_range 					= self(unitID):GetRange()
+		local min_range 					= self(unitID):GetRange() -- Retail _, min_range | Other min_range 
 		
 		return min_range and min_range > 0 and ((range and min_range <= range) or orBooleanInRange)	
 	end, "UnitID"),
