@@ -34,6 +34,7 @@ Lib\LibThreatClassic2\lib.xml
 Lib\LibClassicCasterino.lua
 Lib\LibSpellLock.lua
 Lib\LibAuraTypes.lua
+Lib\LibClassicDurations\LibClassicDurations.xml
 Lib\GetTotemInfo.lua
 
 # First constans!

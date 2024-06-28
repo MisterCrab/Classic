@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "15.06.2024"
+local DateTime 														= "29.06.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -22,12 +22,6 @@ local strformat 													= string.format
 local strjoin	 													= string.join
 local strupper														= string.upper
 
-local TMW 															= _G.TMW
-TMW.UnitAura														= TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
-local Env 															= TMW.CNDT.Env
-local strlowerCache  												= TMW.strlowerCache
-local safecall														= TMW.safecall
-
 local LibStub														= _G.LibStub
 local StdUi 														= LibStub("StdUi"):NewInstance()
 local LibDBIcon	 													= LibStub("LibDBIcon-1.0")
@@ -36,12 +30,22 @@ local LSM 															= LibStub("LibSharedMedia-3.0")
 local isClassic														= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC	 
 StdUi.isClassic 													= isClassic	  
 local owner															= isClassic and "PlayerClass" or "PlayerSpec" 
+-- Classic: UnitAura override through LibClassicDurations
+local LibClassicDurations											= LibStub("LibClassicDurations")
+	  LibClassicDurations.enableEnemyBuffTracking 					= true
+	  LibClassicDurations:Register(_G.ACTION_CONST_ADDON_NAME)
+	  
+local TMW 															= _G.TMW
+TMW.UnitAura														= LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
+local Env 															= TMW.CNDT.Env
+local strlowerCache  												= TMW.strlowerCache
+local safecall														= TMW.safecall	  
 
 local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
 	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
-local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 													 UnitPower,    UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 					UnitAura, 	 													 						UnitPower,    UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local  HasWandEquipped 												= 
