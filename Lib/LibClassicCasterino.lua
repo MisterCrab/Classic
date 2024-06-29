@@ -37,8 +37,8 @@ local CastingInfo = CastingInfo
 local ChannelInfo = ChannelInfo
 local GetUnitSpeed = GetUnitSpeed
 local UnitIsUnit = UnitIsUnit
-local LibClassicDurations = _G.LibStub("LibClassicDurations")
-local UnitAura = LibClassicDurations.UnitAuraWrapper or _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local LibClassicDurations = _G.LibStub("LibClassicDurations", true)
+local UnitAura = (LibClassicDurations and LibClassicDurations.UnitAuraWrapper) or _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 
 local COMBATLOG_OBJECT_REACTION_FRIENDLY = COMBATLOG_OBJECT_REACTION_FRIENDLY
 local COMBATLOG_OBJECT_TYPE_PLAYER_OR_PET = COMBATLOG_OBJECT_TYPE_PLAYER + COMBATLOG_OBJECT_TYPE_PET

@@ -29,12 +29,12 @@ Lib\LibDBIcon-1.0.lua
 Lib\StdUI\StdUi.xml
 
 # Classic Libs 
-Lib\LibHealComm-4.0\LibHealComm-4.0.xml
-Lib\LibThreatClassic2\lib.xml
 Lib\LibClassicCasterino.lua
 Lib\LibSpellLock.lua
 Lib\LibAuraTypes.lua
 Lib\LibClassicDurations\LibClassicDurations.xml
+Lib\LibHealComm-4.0\LibHealComm-4.0.xml
+Lib\LibThreatClassic2\lib.xml
 Lib\GetTotemInfo.lua
 
 # First constans!
