@@ -22,8 +22,7 @@ local activeSpellLocks = lib.activeSpellLocks
 local data = interrupts
 local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitGUID = UnitGUID
-local LibClassicDurations = _G.LibStub("LibClassicDurations", true)
-local UnitAura = (LibClassicDurations and LibClassicDurations.UnitAuraWrapper) or _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local GetTime = GetTime
 local C_Timer_After = C_Timer.After
 

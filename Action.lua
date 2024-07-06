@@ -30,13 +30,8 @@ local LSM 															= LibStub("LibSharedMedia-3.0")
 local isClassic														= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC	 
 StdUi.isClassic 													= isClassic	  
 local owner															= isClassic and "PlayerClass" or "PlayerSpec" 
--- Classic: UnitAura override through LibClassicDurations
-local LibClassicDurations											= LibStub("LibClassicDurations")
-	  LibClassicDurations.enableEnemyBuffTracking 					= true
-	  LibClassicDurations:Register(_G.ACTION_CONST_ADDON_NAME)
 	  
 local TMW 															= _G.TMW
-TMW.UnitAura														= LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
 local Env 															= TMW.CNDT.Env
 local strlowerCache  												= TMW.strlowerCache
 local safecall														= TMW.safecall	  
@@ -44,8 +39,8 @@ local safecall														= TMW.safecall
 local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
 	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
-local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 					UnitAura, 	 													 						UnitPower,    UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID,    UnitPower,    UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
 	  
 -- AutoShoot 
 local  HasWandEquipped 												= 
@@ -92,6 +87,33 @@ Action.StdUi 														= StdUi
 Action.BuildToC														= select(4, _G.GetBuildInfo())
 Action.PlayerRace 													= select(2, _G.UnitRace("player"))
 Action.PlayerClassName, Action.PlayerClass, Action.PlayerClassID  	= UnitClass("player")
+
+-- Classic: UnitAura override through LibClassicDurations
+local LibClassicDurations											= LibStub("LibClassicDurations")
+local UnitAura 														= _G.UnitAura or TMW.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+if isClassic then
+	local f = CreateFrame("Frame", nil, UIParent)
+	f:SetScript("OnEvent", function(self, event, ...)
+		return self[event](self, event, ...)
+	end)
+
+	LibClassicDurations = LibStub("LibClassicDurations")
+	LibClassicDurations:Register(_G.ACTION_CONST_ADDON_NAME)
+	UnitAura = LibClassicDurations.UnitAuraWithBuffs
+	LibClassicDurations.RegisterCallback("YourAddon", "UNIT_BUFF", function(event, unit)
+		f:UNIT_AURA(event, unit)
+	end)
+
+	function f:UNIT_AURA(event, unit)
+		for i=1,100 do
+			local name, _, _, _, duration, expirationTime, _, _, _, spellId = UnitAura(unit, i, "HELPFUL")
+			if not name then break end
+		end
+	end
+	
+	Action.UnitAura	= UnitAura
+	TMW.UnitAura = UnitAura or TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
+end
 
 -- Remap
 local 	MacroLibrary, 

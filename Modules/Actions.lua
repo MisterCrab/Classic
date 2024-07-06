@@ -133,8 +133,7 @@ local GetSpellBookItemName			= _G.GetSpellBookItemName
 local FindSpellBookSlotBySpellID 	= _G.FindSpellBookSlotBySpellID
 
 -- Unit 	  
-local LibClassicDurations 			= LibStub("LibClassicDurations")
-local UnitAura						= LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local UnitAura						= A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local 	 UnitIsUnit, 	UnitGUID	= 
 	  _G.UnitIsUnit, _G.UnitGUID 
 

@@ -168,8 +168,7 @@ local IsEquippedItem = _G.IsEquippedItem
 local UnitLevel = _G.UnitLevel
 local GetNumTalents = _G.GetNumTalents or function() return 51 end -- for when testing in retail
 local UnitGUID = _G.UnitGUID
-local LibClassicDurations = _G.LibStub("LibClassicDurations", true)
-local UnitAura = (LibClassicDurations and LibClassicDurations.UnitAuraWrapper) or _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local GetWeaponEnchantInfo = _G.GetWeaponEnchantInfo
 
 local prototype = {}

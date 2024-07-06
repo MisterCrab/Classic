@@ -21,7 +21,6 @@ local ThreatLib  							= LibStub("LibThreatClassic2")
 local HealComm 								= LibStub("LibHealComm-4.0", true) -- Note: Leave it with true in case if will need to disable lib, seems lib causing unexpected lua errors in PvP 
 local LibRangeCheck  						= LibStub("LibRangeCheck-3.0")
 local LibBossIDs							= LibStub("LibBossIDs-1.0").BossIDs
-local LibClassicDurations					= LibStub("LibClassicDurations")
 local LibClassicCasterino 					= LibStub("LibClassicCasterino")
 -- To activate it
 LibClassicCasterino.callbacks.OnUsed() 
@@ -67,7 +66,7 @@ local UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
 	  UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
 	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
-local UnitAura 								= LibClassicDurations.UnitAuraWrapper or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local UnitAura 								= A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 	  
 --local UnitThreatSituation					= _G.UnitThreatSituation or function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
 local UnitDetailedThreatSituation			= _G.UnitDetailedThreatSituation or function(unit, mob) return ThreatLib:UnitDetailedThreatSituation(unit, mob) end 
@@ -3455,7 +3454,7 @@ A.Unit = PseudoClass({
 		-- current remain, total applied duration	
 		-- Nill-able: caster, byID
 		local unitID 						= self.UnitID	
-		local filter -- default "HELPFUL"
+		local filter						= "HELPFUL"
 		if caster then 
 			filter = "HELPFUL PLAYER"
 		end 
@@ -3485,7 +3484,7 @@ A.Unit = PseudoClass({
 		-- Returns sorted by highest: current remain, total applied duration	
 		-- Nill-able: caster, byID
 		local unitID 						= self.UnitID	
-		local filter -- default "HELPFUL"
+		local filter 						= "HELPFUL"
 		if caster then 
 			filter = "HELPFUL PLAYER"
 		end 
@@ -3521,7 +3520,7 @@ A.Unit = PseudoClass({
 		-- @return number 
 		-- Nill-able: caster, byID
 		local unitID 						= self.UnitID	
-		local filter -- default "HELPFUL"
+		local filter 						= "HELPFUL"
 		if caster then 
 			filter = "HELPFUL PLAYER"
 		end 
