@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "06.07.2024"
+local DateTime 														= "10.07.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -10783,7 +10783,7 @@ function Action.ToggleMainUI()
 			}				
 			
 			Color.Title:SetAllPoints()			
-			Color.Title:SetJustifyH("MIDDLE")
+			Color.Title:SetJustifyH("CENTER")
 			Color.Title:SetFontSize(14)
 
 			Color.UseColor = StdUi:Checkbox(anchor, L["TAB"][tabName]["COLORUSE"], 250)
@@ -11079,7 +11079,7 @@ function Action.ToggleMainUI()
 			
 			local Misc = StdUi:Header(PauseChecksPanel, L["TAB"][tabName]["MISC"])
 			Misc:SetAllPoints()			
-			Misc:SetJustifyH("MIDDLE")
+			Misc:SetJustifyH("CENTER")
 			Misc:SetFontSize(14)
 			
 			local DisableRotationDisplay = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEROTATIONDISPLAY"])
@@ -11173,7 +11173,7 @@ function Action.ToggleMainUI()
 
 			local Tools = StdUi:Header(PauseChecksPanel, L["TAB"][tabName]["TOOLS"])
 			Tools:SetAllPoints()			
-			Tools:SetJustifyH("MIDDLE")
+			Tools:SetJustifyH("CENTER")
 			Tools:SetFontSize(14)			
 			
 			local LetMeCast = StdUi:Checkbox(anchor, "LetMeCast")
@@ -11448,7 +11448,7 @@ function Action.ToggleMainUI()
 					if config.E == "Header" then 
 						obj = StdUi:Header(anchor, config.L.ANY or config.L[cL])
 						obj:SetAllPoints()			
-						obj:SetJustifyH("MIDDLE")						
+						obj:SetJustifyH("CENTER")						
 						obj:SetFontSize(config.S or 14)	
 					end 
 					
@@ -14286,7 +14286,7 @@ function Action.ToggleMainUI()
 					TMW:Fire("TMW_ACTION_HEALING_ENGINE_UI_PROFILE", "Changed", "")
 				end								
 				slider.FontStringTitle = StdUi:Subtitle(PanelOptions, "")
-				slider.FontStringTitle:SetJustifyH("MIDDLE")
+				slider.FontStringTitle:SetJustifyH("CENTER")
 				slider:MakeTextUpdate(specDB[db])				
 				StdUi:GlueAbove(slider.FontStringTitle, slider)
 				if tooltipText then 
@@ -14769,7 +14769,7 @@ function Action.ToggleMainUI()
 					gname = "",
 					textTT = L["TAB"]["ROWCREATEMACRO"],
                     width = 25,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexIcon",
                     format = "icon",
                     events = {
@@ -14848,7 +14848,7 @@ function Action.ToggleMainUI()
                     name = L["TAB"][tabName]["USEDISPEL"],
 					gname = L["TAB"][tabName]["USEDISPEL"]:gsub("\n", ""),
                     width = 50,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexDispel",
 					db = "useDispel",
                     format = "string",
@@ -14874,7 +14874,7 @@ function Action.ToggleMainUI()
                     name = L["TAB"][tabName]["USESHIELDS"],
 					gname = L["TAB"][tabName]["USESHIELDS"]:gsub("\n", ""),
                     width = 50,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexShields",
 					db = "useShields",
                     format = "string",
@@ -14900,7 +14900,7 @@ function Action.ToggleMainUI()
                     name = L["TAB"][tabName]["USEHOTS"],
 					gname = L["TAB"][tabName]["USEHOTS"]:gsub("\n", ""),
                     width = 50,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexHoTs",
 					db = "useHoTs",
                     format = "string",
@@ -14926,7 +14926,7 @@ function Action.ToggleMainUI()
                     name = L["TAB"][tabName]["USEUTILS"],
 					gname = L["TAB"][tabName]["USEUTILS"]:gsub("\n", ""),
                     width = 50,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexUtils",
 					db = "useUtils",
                     format = "string",
@@ -14952,7 +14952,7 @@ function Action.ToggleMainUI()
                     name = "LUA",
 					gname = "LUA",
                     width = 35,
-                    align = "MIDDLE",
+                    align = "CENTER",
                     index = "IndexLUA",
 					db = "LUA",
                     format = "string",
@@ -15316,7 +15316,7 @@ function Action.ToggleMainUI()
 			-- UI: PanelPriority - Multipliers (title)
 			Multipliers = StdUi:Header(PanelPriority, L["TAB"][tabName]["MULTIPLIERS"])
 			Multipliers:SetAllPoints()			
-			Multipliers:SetJustifyH("MIDDLE")
+			Multipliers:SetJustifyH("CENTER")
 			Multipliers:SetFontSize(15)	
 			-- UI: PanelPriority - MultiplierIncomingDamageLimit
 			MultiplierIncomingDamageLimit 	= CreateSliderMultiplier("MultiplierIncomingDamageLimit")			
@@ -15330,7 +15330,7 @@ function Action.ToggleMainUI()
 			-- UI: PanelPriority - Offsets (title)
 			Offsets = StdUi:Header(PanelPriority, L["TAB"][tabName]["OFFSETS"])
 			Offsets:SetAllPoints()			
-			Offsets:SetJustifyH("MIDDLE")
+			Offsets:SetJustifyH("CENTER")
 			Offsets:SetFontSize(15)
 			
 			-- UI: PanelPriority - OffsetMode 
@@ -15485,7 +15485,7 @@ function Action.ToggleMainUI()
 			-- UI: PanelManaManagement - OR 
 			OR = StdUi:Header(PanelManaManagement, L["TAB"][tabName]["OR"])
 			OR:SetAllPoints()			
-			OR:SetJustifyH("MIDDLE")
+			OR:SetJustifyH("CENTER")
 			OR:SetFontSize(14)
 			
 			-- UI: PanelManaManagement - ManaManagementStopAtTTD
@@ -15557,7 +15557,7 @@ function Action.ToggleMainUI()
 				end 
 			end 			
 			HelpWindow.HelpText = StdUi:Label(HelpWindow, "")	
-			HelpWindow.HelpText:SetJustifyH("MIDDLE")
+			HelpWindow.HelpText:SetJustifyH("CENTER")
 			HelpWindow.HelpText:SetFontSize(13)
 			StdUi:GlueAcross(HelpWindow.HelpText, HelpWindow, 10, -30, -10, 30)
 			HelpWindow.ButtonOK = StdUi:Button(HelpWindow, HelpWindow:GetWidth() - 30, 35, L["TAB"][tabName]["HELPOK"])		
@@ -15813,6 +15813,10 @@ function Action.GetCurrentSpecializationID()
 	local specID
 	for i = 1, #specIDs do
 		local localizedName, _, points = GetTalentTabInfo(i)
+		if type(points) == "string" then 
+			_, localizedName, _, _, points = GetTalentTabInfo(i)
+		end 
+		
 		specs[specIDs[i]][4] = localizedName
 		if points > biggest then
 			biggest = points
