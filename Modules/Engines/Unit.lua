@@ -381,8 +381,8 @@ local AuraList = {
         8122, 				-- Psychic Scream			(Priest)      
 		9484, 				-- Shackle Undead 			(Priest)			
         -- Rooted CC
-        339, 				-- Entangling Roots			(Druid)
-        122, 				-- Frost Nova				(Mage)
+        --339, 				-- Entangling Roots			(Druid)
+        --122, 				-- Frost Nova				(Mage)
     },
     -- Imun Specific Buffs 
     FearImun = {
