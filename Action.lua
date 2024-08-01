@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "25.07.2024"
+local DateTime 														= "01.08.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -4465,9 +4465,11 @@ local Factory = {
 				[1064] = "Chain Heal",
 				[331] = "Healing Wave",
 				[8004] = "Lesser Healing Wave",
-				-- Paladin
-				[19750] = "Flash of Light",
-				[635] = "Holy Light",
+				-- Paladin				
+				[19750] = "Flash of Light",			
+				[635] = "Holy Light",		
+				[19943] = "Flash of Light", -- first ids are wrong?
+				[25292] = "Holy Light",						
 			},			
 		}, 43, 70, math_random(87, 95), true),
 		PvP = StdUi:tGenerateMinMax({

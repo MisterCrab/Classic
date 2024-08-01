@@ -416,6 +416,7 @@ local AuraList = {
         19263, 				-- Deterrence    			(Hunter)
         20711, 				-- Spirit of Redemption		(Priest)
 		17624,				-- Petrification			(Flask of Petrification)
+		6724,				-- Light of Elune
     },
     DamagePhysImun = {		
 		1022, 				-- Blessing of Protection	(Paladin)
@@ -423,8 +424,11 @@ local AuraList = {
 		3169,				-- Invulnerability			(Limited Invulnerability Potion)
 		3387,				-- Limited Invulnerability Potion
 		--16621,			-- Self Invulnerability (Invulnerable Mail weapon) -- FIX ME: seems only for swing attacks
+		6724,				-- Light of Elune
 	},
-    DamageMagicImun = {}, 
+    DamageMagicImun = {
+		6724,				-- Light of Elune
+	}, 
     CCTotalImun = {},     
     CCMagicImun = {
 		8178,				-- Grounding Totem Effect	(Shaman)

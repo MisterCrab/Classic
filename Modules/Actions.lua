@@ -1090,8 +1090,16 @@ function A:AbsentImun(unitID, imunBuffs)
 			end ]]
 		end 
 		
-		if isEnemy and imunBuffs and A.IsInPvP and Unit(unitID):IsPlayer() and Unit(unitID):HasBuffs(imunBuffs) > MinDur then 
-			return false 
+		if isEnemy and imunBuffs and A.IsInPvP and Unit(unitID):IsPlayer() then 
+			if Unit(unitID):HasBuffs(imunBuffs) > MinDur then 
+				return false 
+			end 
+			
+			-- Classic: Failsafe Phylactery
+			local FailsafePhylactery = Unit(unitID):HasBuffs(370391)
+			if FailsafePhylactery > 0 and Unit(unitID):TimeToDie() <= FailsafePhylactery then 
+				return false 
+			end 
 		end 
 
 		return true
