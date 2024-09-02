@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "23.08.2024"
+local DateTime 														= "02.09.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -33,6 +33,7 @@ local owner															= isClassic and "PlayerClass" or "PlayerSpec"
 	  
 local TMW 															= _G.TMW
 local Env 															= TMW.CNDT.Env
+local GetGCD														= TMW.GetGCD
 local strlowerCache  												= TMW.strlowerCache
 local safecall														= TMW.safecall	  
 
@@ -16209,8 +16210,9 @@ local function OnInitialize()
 		local function OnUpdate()
 			while true do
 				UpdateGlobals()
-				Locked = TMW.Locked	-- custom 
-				Time = TMW.time 	-- custom
+				TMW.GCD  = TMW.GCD or GetGCD() 	-- Update GCD: 02/09/2024 is no longer in TMW 
+				Locked = TMW.Locked				-- custom 
+				Time = TMW.time 				-- custom
 
 				if updateInProgress then
 					-- If the previous update cycle didn't finish (updateInProgress is still true)
