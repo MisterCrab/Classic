@@ -1,3 +1,13 @@
+[Warrior v15]
+Added support for gameplay as FuryTank through checkbox "PvE: Use 2 one-handed weapons as Tank role" (by default is disabled)
+
+[Warrior v14]
+Execute 							- Will not be pre-shown in pvp mode for next gcd timing or rage pooling
+Hamstring 							- Will be skipped on additional slow-immuned buffs
+Overpower 							- Will be used at highest spell priority on Evasion and Deterrence
+Intercept 							- Will not be used for 2 sec after Charge
+Disarm 								- Will be used on Holy Strength
+
 [Warrior v13]
 Upgraded code for synchronization with new interrupt system 
 Fixed CancelBuff miss typo  
