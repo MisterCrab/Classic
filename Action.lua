@@ -38,8 +38,8 @@ local strlowerCache  												= TMW.strlowerCache
 local safecall														= TMW.safecall	  
 TMW.GCD 															= TMW.GCD or GetGCD() -- Fixes nil able compare error because UpdateGlobals launches with delay
 
-local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   GetCVar,	   SetCVar,	   GetBindingFromClick,    GetSpellInfo = 
-	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
+local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate, 	 GetMouseFocus,	   					  GetCVar,	  SetCVar,	  GetBindingFromClick,    GetSpellInfo = 
+	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetMouseFocus or _G.GetMouseFoci, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetSpellInfo
 	  
 local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID,    UnitPower,    UnitIsOwnerOrControllerOfUnit = 
 	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
