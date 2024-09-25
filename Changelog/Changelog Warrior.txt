@@ -1,3 +1,6 @@
+[Warrior v16]
+Fixed ENV error
+
 [Warrior v15]
 Added support for gameplay as FuryTank through checkbox "PvE: Use 2 one-handed weapons as Tank role" (by default is disabled)
 
