@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "01.11.2024"
+local DateTime 														= "03.11.2024"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -15049,7 +15049,7 @@ function Action.ToggleMainUI()
 					
 					if useAutoHide then 
 						-- If not exists 
-						if not unitSkip and ((unitID ~= "focus" and not unitToGUID[unitID]) or (unitID == "focus" and not Action.Unit(unitID):IsExists())) then 
+						if not unitSkip and not unitToGUID[unitID] and (unitID ~= "focus" or not Action.Unit(unitID):IsExists()) then 
 							unitSkip 		= true 
 						end 
 						
@@ -15058,8 +15058,8 @@ function Action.ToggleMainUI()
 							unitSkip 		= true 
 						end 
 						
-						-- If player/party/raid is 'focus'
-						if not unitSkip and focusGUID and ((unitID ~= "focus" and focusGUID == unitToGUID[unitID]) or (unitID == "focus" and focusGUID == playerGUID)) then 
+						-- If player/pet/party/raid is 'focus'
+						if not unitSkip and focusGUID and unitID == "focus" and guidToUnit[focusGUID] then 
 							unitSkip 		= true 
 						end 
 						
