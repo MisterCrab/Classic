@@ -373,13 +373,18 @@ local AuraList = {
 		19386, 				-- Wyvern Sting   			(Hunter)	
 		19503, 				-- Scatter Shot        		(Hunter)
         6770, 				-- Sap 						(Rogue)
+        11297, 				-- Sap 						(Rogue)
 		2094, 				-- Blind					(Rogue) 
 		1776, 				-- Gouge					(Rogue)
         5782, 				-- Fear						(Warlock)        
+        6215, 				-- Fear						(Warlock)        
         6358, 				-- Seduction (pet)			(Warlock)                
         5484, 				-- Howl of Terror			(Warlock)
         8122, 				-- Psychic Scream			(Priest)      
 		9484, 				-- Shackle Undead 			(Priest)			
+		22641, 				-- Reckless Charge			(Item)			
+		700, 				-- Sleep					(Mage)			
+		1090, 				-- Sleep					(Mage)			
         -- Rooted CC
         --339, 				-- Entangling Roots			(Druid)
         --122, 				-- Frost Nova				(Mage)
@@ -425,9 +430,11 @@ local AuraList = {
 		3387,				-- Limited Invulnerability Potion
 		--16621,			-- Self Invulnerability (Invulnerable Mail weapon) -- FIX ME: seems only for swing attacks
 		6724,				-- Light of Elune
+		370391,				-- Failsafe Phylactery
 	},
     DamageMagicImun = {
 		6724,				-- Light of Elune
+		370391,				-- Failsafe Phylactery
 	}, 
     CCTotalImun = {},     
     CCMagicImun = {
@@ -3199,9 +3206,9 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break
 			elseif auraTable[spellID] then 
-				return auraTable[spellID], spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return auraTable[spellID], (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			elseif auraTable[spellName] then 
-				return auraTable[spellName], spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return auraTable[spellName], (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			end 
 		end 
 		
@@ -3238,7 +3245,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break
 			elseif spellName == auraName then 
-				return spellID, spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return spellID, (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			end 
 		end 
 		
@@ -3298,7 +3305,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break 			
 			elseif AssociativeTables[spell][byID and spellID or spellName] then 
-				local current_dur = spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time
+				local current_dur = (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time -- Classic only, don't touch
 				if current_dur > remain_dur then 
 					c = c + 1
 					remain_dur = current_dur
@@ -3371,7 +3378,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break 			
 			elseif AssociativeTables[spell][byID and spellID or spellName] then 
-				duration = spellExpirationTime == 0 and 1 or ((spellExpirationTime - TMW.time) / spellDuration)
+				duration = (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and 1 or ((spellExpirationTime - TMW.time) / spellDuration) -- Classic only, don't touch
 				if duration <= 0.3 then 
 					return true 
 				end 
@@ -3411,9 +3418,9 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break 
 			elseif auraTable[spellID] then 
-				return auraTable[spellID], spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return auraTable[spellID], (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			elseif auraTable[spellName] then 
-				return auraTable[spellName], spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return auraTable[spellName], (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			end 
 		end 
 		
@@ -3447,7 +3454,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break
 			elseif spellName == auraName then 
-				return spellID, spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration, spellCount
+				return spellID, (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration, spellCount -- Classic only, don't touch
 			end 
 		end 
 		
@@ -3477,7 +3484,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break  
 			elseif AssociativeTables[spell][byID and spellID or spellName] then 
-				return spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time, spellDuration
+				return (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time, spellDuration -- Classic only, don't touch
 			end 
 		end 
 		
@@ -3508,7 +3515,7 @@ A.Unit = PseudoClass({
 			if not spellName then 
 				break 			
 			elseif AssociativeTables[spell][byID and spellID or spellName] then 
-				local current_dur = spellExpirationTime == 0 and huge or spellExpirationTime - TMW.time
+				local current_dur = (spellExpirationTime == 0 or max(spellExpirationTime - TMW.time, 0) <= 0) and huge or spellExpirationTime - TMW.time -- Classic only, don't touch
 				if current_dur > remain_dur then 
 					remain_dur, total_dur = current_dur, spellDuration
 					if remain_dur == huge then 
