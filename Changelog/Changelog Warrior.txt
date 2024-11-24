@@ -1,3 +1,7 @@
+[Warrior v17]
+Fixed LightofElune wrong ID
+Fixed Overpower miss typo preventing it using on Deterrence and Evasion
+
 [Warrior v16]
 Fixed ENV error
 
