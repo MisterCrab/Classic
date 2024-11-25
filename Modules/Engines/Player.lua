@@ -572,7 +572,7 @@ function Player:CancelBuff(buffName)
 		CancelSpellByName(buffName)	
 		--[[
 		for i = 1, huge do			
-			local Name = UnitAura("player", i, "HELPFUL PLAYER")
+			local Name = UnitAura("player", i, "HELPFUL")
 			
 			if type(Name) == "table" then 
 				Name = Name.name
@@ -580,7 +580,7 @@ function Player:CancelBuff(buffName)
 			
 			if Name then	
 				if Name == buffName then 
-					CancelUnitBuff("player", i, "HELPFUL PLAYER")								
+					CancelUnitBuff("player", i, "HELPFUL")								
 				end 
 			else 
 				break 
