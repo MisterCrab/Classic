@@ -419,7 +419,6 @@ local AuraList = {
         642, 				-- Divine Shield			(Paladin)		
         1020, 				-- Divine Shield			(Paladin)		
         11958, 				-- Ice Block				(Mage)
-        19263, 				-- Deterrence    			(Hunter)
         20711, 				-- Spirit of Redemption		(Priest)
 		17624,				-- Petrification			(Flask of Petrification)
 		6724,				-- Light of Elune
@@ -502,7 +501,7 @@ local AuraList = {
 		--498, 					-- Divine Protection		(Paladin)
         --642, 					-- Divine Shield			(Paladin)
         --11958, 				-- Ice Block				(Mage)
-        --19263, 				-- Deterrence    			(Hunter)
+        19263, 				-- Deterrence    			(Hunter)
         --20711, 				-- Spirit of Redemption		(Priest)		
     },  
 	SmallDeffBuffs = {
