@@ -436,7 +436,7 @@ function A.Rotation(icon)
 		if not Player:IsStealthed() then 
 			-- Healthstone 
 			local Healthstone = GetToggle(1, "HealthStone") 
-			if Healthstone >= 0 then 
+			if Healthstone >= 0 and (BuildToC < 110000 or A.ZoneID ~= 12841 or Unit(player):HasDeBuffs(320102) == 0) then -- Retail: Theater of Pain zone excluding "Blood and Glory" debuff 
 				local HealthStoneObject = DetermineUsableObject(player, true, nil, true, nil, A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1)
 				if HealthStoneObject then 			
 					if Healthstone >= 100 then -- AUTO 
