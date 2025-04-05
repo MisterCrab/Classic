@@ -15972,6 +15972,7 @@ TMW:RegisterSelfDestructingCallback("TMW_DB_INITIALIZED", function()
 	-- "TMW_DB_INITIALIZED" callback fires after "PLAYER_LOGIN" but with same time so basically it's "PLAYER_LOGIN" with properly order
 	Action:RegisterEvent("CHARACTER_POINTS_CHANGED", 	"PLAYER_SPECIALIZATION_CHANGED")
 	Action:RegisterEvent("CONFIRM_TALENT_WIPE", 		"PLAYER_SPECIALIZATION_CHANGED")
+	Action:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_SPECIALIZATION_CHANGED")
 	Action:PLAYER_SPECIALIZATION_CHANGED("PLAYER_LOGIN")
 	dbUpdate()
 	return true -- Signal RegisterSelfDestructingCallback to unregister
