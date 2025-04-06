@@ -8,14 +8,14 @@ if not HealComm then
 	return 
 end 
 
-local _G, pairs, math			= _G, pairs, math
+local _G, ipairs, pairs, math	= _G, ipairs, pairs, math
 local bit						= _G.bit 
 local wipe						= _G.wipe
 local hooksecurefunc			= _G.hooksecurefunc
 
 local band 						= bit.band 
-local math_floor				= math.floor
-local math_min					= math.min 
+local floor						= math.floor
+local min						= math.min 
 
 local TMW 						= _G.TMW
 local A 						= _G.Action 
@@ -74,6 +74,70 @@ local function filterData(spells, filterGUID, bitFlag, time, ignoreGUID)
 								end
 
 								healAmount = healAmount + (amount * stack) * math_min(ticks, ticksLeft)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return healAmount
+end
+local function filterData(spells, filterGUID, bitFlag, time, ignoreGUID)
+	local healAmount = 0
+	local currentTime = TMW.time
+
+	if spells then
+		local 	guid,
+				amount, stack, endTime,
+				ticksLeft, ticksPassed,
+				secondsLeft, bandSeconds, ticks, nextTickIn, fractionalBand
+				
+		for _, pending in pairs(spells) do
+			if( pending.bitType and band(pending.bitType, bitFlag) > 0 ) then
+				for i = 1, #(pending), 5 do
+					guid = pending[i]
+					if( guid == filterGUID or ignoreGUID ) then
+						amount = pending[i + 1]
+						stack = pending[i + 2]
+						endTime = pending[i + 3]
+						endTime = endTime > 0 and endTime or pending.endTime
+
+						if( ( pending.bitType == DIRECT_HEALS or pending.bitType == BOMB_HEALS ) and ( not time or endTime <= time ) ) then
+							healAmount = healAmount + amount * stack
+						elseif( ( pending.bitType == CHANNEL_HEALS or pending.bitType == HOT_HEALS ) and endTime > currentTime ) then
+							ticksLeft = pending[i + 4]
+							if( not time or time >= endTime ) then
+								if( not pending.hasVariableTicks ) then
+									healAmount = healAmount + (amount * stack) * ticksLeft
+								else
+									ticksPassed = pending.totalTicks - ticksLeft
+									for numTick, heal in pairs(amount) do
+										if numTick > ticksPassed then
+											healAmount = healAmount + (heal * stack)
+										end
+									end
+								end
+							else
+								secondsLeft = endTime - currentTime
+								bandSeconds = time - currentTime
+								ticks = floor(min(bandSeconds, secondsLeft) / pending.tickInterval)
+								nextTickIn = secondsLeft % pending.tickInterval
+								fractionalBand = bandSeconds % pending.tickInterval
+								if( nextTickIn > 0 and nextTickIn < fractionalBand ) then
+									ticks = ticks + 1
+								end
+								if( not pending.hasVariableTicks ) then
+									healAmount = healAmount + (amount * stack) * min(ticks, ticksLeft)
+								else
+									ticksPassed = pending.totalTicks - ticksLeft
+									for numTick, heal in ipairs(amount) do
+										if numTick > ticksPassed then
+											healAmount = healAmount + (heal * stack)
+										end
+									end
+								end
 							end
 						end
 					end
