@@ -201,6 +201,7 @@ A.HSMinor2							= Create({ Type = "Item", 				ID = 19004, 									QueueForbidd
 A.HSMinor3							= Create({ Type = "Item", 				ID = 19005, 									QueueForbidden = true, Desc = "[6] HealthStone" 															})
 A.DarkRune							= Create({ Type = "Item", 				ID = 20520, Texture = 134417,																				  Desc = "[3,4,6] Runes" 						})
 A.DemonicRune						= Create({ Type = "Item", 				ID = 12662, Texture = 134417,																				  Desc = "[3,4,6] Runes" 						})
+A.WhipperRootTuber					= Create({ Type = "Item", 				ID = 11951,																				  					  Desc = "[3,4,6] Extra HS"						})
 A.LimitedInvulnerabilityPotion		= Create({ Type = "Potion", 			ID = 3387																																					})
 A.LivingActionPotion				= Create({ Type = "Potion", 			ID = 20008																																					})
 A.RestorativePotion					= Create({ Type = "Potion", 			ID = 9030																																					})
@@ -440,18 +441,18 @@ function A.Rotation(icon)
 			return true
 		end 
 		
-		if not Player:IsStealthed() then 
-			-- Healthstone 
+		-- Healthstone | WhipperRootTuber
+		if not Player:IsStealthed() then  
 			local Healthstone = GetToggle(1, "HealthStone") 
 			if Healthstone >= 0 and (BuildToC < 110000 or A.ZoneID ~= 1684 or Unit(player):HasDeBuffs(320102) == 0) then -- Retail: Theater of Pain zone excluding "Blood and Glory" debuff 
-				local HealthStoneObject = DetermineUsableObject(player, true, nil, true, nil, A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1)
-				if HealthStoneObject then 			
+				local HealingItem = DetermineUsableObject(player, true, nil, true, nil, A.HSGreater3, A.HSGreater2, A.HSGreater1, A.HS3, A.HS2, A.HS1, A.HSLesser3, A.HSLesser2, A.HSLesser1, A.HSMajor3, A.HSMajor2, A.HSMajor1, A.HSMinor3, A.HSMinor2, A.HSMinor1, A.WhipperRootTuber)
+				if HealingItem then 			
 					if Healthstone >= 100 then -- AUTO 
 						if Unit(player):TimeToDie() <= 9 and Unit(player):HealthPercent() <= 40 then 
-							return HealthStoneObject:Show(icon)	
+							return HealingItem:Show(icon)	
 						end 
 					elseif Unit(player):HealthPercent() <= Healthstone then 
-						return HealthStoneObject:Show(icon)								 
+						return HealingItem:Show(icon)								 
 					end 
 				end 
 			end 		
