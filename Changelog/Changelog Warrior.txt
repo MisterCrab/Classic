@@ -1,3 +1,12 @@
+[Warrior v19]
+HeroicStrike						- Updated tooltip description for Trick
+DemoralizingShout					- When fighting alongside other DPS Demoralizing Shout will be used regularly
+OilofImmolation						- Added in rotation with slider in PvE section of the Warrior tab
+AutoTarget							- Updated for range API changes, added switch condition if nearest unit is in combat
+
+[Warrior v18]
+Rend 								- On level rotation will be skipped on Undead and Mechanical creatures
+
 [Warrior v17]
 Fixed LightofElune wrong ID
 Fixed Overpower miss typo preventing it using on Deterrence and Evasion
