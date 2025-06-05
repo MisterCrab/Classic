@@ -92,6 +92,8 @@ _G.ACTION_CONST_SPELL_FAILED_LINE_OF_SIGHT 							= _G.SPELL_FAILED_LINE_OF_SIGH
 _G.ACTION_CONST_PVP_TARGET_ARENA1									= dir .. [[Spell_Warlock_DemonicPortal_Green]]
 _G.ACTION_CONST_PVP_TARGET_ARENA2									= dir .. [[Spell_Nature_MoonGlow]]
 _G.ACTION_CONST_PVP_TARGET_ARENA3 									= dir .. [[PALADIN_HOLY]]
+_G.ACTION_CONST_PVP_TARGET_ARENA4 									= 133875 		-- inv_misc_enggizmos_17
+_G.ACTION_CONST_PVP_TARGET_ARENA5 									= 133876 		-- inv_misc_enggizmos_18
 
 -- Specialization ID
 _G.ACTION_CONST_WARRIOR_ARMS 										= 71			
