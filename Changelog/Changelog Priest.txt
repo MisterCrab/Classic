@@ -1,3 +1,8 @@
+[Priest v18]
+Removed HE_AnyRole toggle check
+Optimized code for MetaEngine release
+Optimized code for 5-Unit system release
+
 [Priest v17]
 PowerWordShield 					- Now respect HP slider from HolyNova & PoWS section on normal rotation phase except casters with mana resource
 PowerWordShield 					- Now respect HP slider from HolyNova & PoWS section on SelfPoWs checkbox except when we need shield self buff if we got attacked by enemies to stop mini interrupts caused by attacker's damage
