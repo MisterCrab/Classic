@@ -1,3 +1,19 @@
+[Warrior v20]
+OilofImmolation						- Fixed wrong Type
+Overpower							- Added isSpecial flag skipping unwanted rage checks in PvP on Evasion and Deterrence if Overpower-PWR-Below is set to Auto
+PiercingHowl						- Will be used after Overpower prior Rend in PvP
+ShieldBlock							- Will be used when any hunter targets us and we're not in melee + required enabled toggles: PvP-SwapEquip, PvP-DefensiveStance
+SunderArmor							- Added extra logic to refresh applied debuff
+Trick								- Added queue up Cleave on AoE and normal rotation code will replace Heroic Strike (if its queued) by Cleave if 2+ targets with other conditions
+Whirlwind							- Replaced range check from 8 yards by spell Hamstring (~5 yards) to avoid misses
+BattleShout							- Will not be instantly rebuffed
+SunderArmor							- Added checkbox to prioritize debuff stacking in PvE
+Intercept 							- Will ignore stun immuned buffs on Free Action Potion
+Rotation will stop if player is channeling
+Leveling Rotation fixed lua error when mouseover unit frames
+Optimized code for MetaEngine release
+Optimized code for 5-Unit system release
+
 [Warrior v19]
 HeroicStrike						- Updated tooltip description for Trick
 DemoralizingShout					- When fighting alongside other DPS Demoralizing Shout will be used regularly
