@@ -1,3 +1,8 @@
+[Rogue v16]
+OilofImmolation									- Fixed wrong Type
+Optimized code for MetaEngine release
+Optimized code for 5-Unit system release
+
 [Rogue v15]
 SwordSpecialization								- Updated tooltip description for Trick
 OilofImmolation									- Added in rotation with slider in PvE section of the Warrior tab
