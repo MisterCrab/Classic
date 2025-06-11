@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "10.06.2025"
+local DateTime 														= "11.06.2025"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -38,8 +38,10 @@ local strlowerCache  												= TMW.strlowerCache
 local safecall														= TMW.safecall	  
 TMW.GCD 															= TMW.GCD or GetGCD() -- Fixes nil able compare error because UpdateGlobals launches with delay
 
-local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate,  	 GetCVar,	 SetCVar,	 GetBindingFromClick,	 GetBindingText,    GetSpellInfo = 
-	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetCVar, _G.SetCVar, _G.GetBindingFromClick, _G.GetBindingText, _G.GetSpellInfo
+local C_Spell														= _G.C_Spell
+local C_CVar														= _G.C_CVar
+local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate,  	 GetCVar,	 				   SetCVar,	 					 GetBindingFromClick,	 GetBindingText,    GetSpellInfo = 
+	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetCVar or C_CVar.GetCVar, _G.SetCVar or C_CVar.SetCVar, _G.GetBindingFromClick, _G.GetBindingText, _G.GetSpellInfo or C_Spell.GetSpellInfo
 	  
 local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID,    UnitPower,    UnitIsOwnerOrControllerOfUnit = 
 	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
