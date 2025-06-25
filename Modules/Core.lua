@@ -288,7 +288,7 @@ function A.CanUseManaRune(icon)
 					if Unit(player):PowerPercent() <= 20 then 
 						return Rune:Show(icon)	
 					end 
-				elseif Unit(player):PowerPercent() <= Rune then 
+				elseif Unit(player):PowerPercent() <= Runes then 
 					return Rune:Show(icon)								 
 				end 
 			end 
