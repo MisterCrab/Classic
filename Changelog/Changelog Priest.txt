@@ -1,3 +1,6 @@
+[Priest v19]
+Mind Flay 							- Added all ranks
+
 [Priest v18]
 Removed HE_AnyRole toggle check
 Optimized code for MetaEngine release
