@@ -1,3 +1,6 @@
+[Rogue v17]
+Fixed ApplyPoisons for MetaEngine
+
 [Rogue v16]
 OilofImmolation									- Fixed wrong Type
 Optimized code for MetaEngine release
