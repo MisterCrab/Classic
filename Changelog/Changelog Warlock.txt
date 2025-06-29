@@ -1,3 +1,6 @@
+[Warlock v9]
+Fixed endless summon on AUTO mode
+
 [Warlock v8]
 Optimized code for MetaEngine release
 Optimized code for 5-Unit system release
