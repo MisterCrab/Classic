@@ -1,3 +1,6 @@
+[Warrior v21]
+Fixed lua error "Unit.lua:3730: Unit.lua Action.Unit():.. was used with 'nil' unitID"
+
 [Warrior v20]
 OilofImmolation						- Fixed wrong Type
 Overpower							- Added isSpecial flag skipping unwanted rage checks in PvP on Evasion and Deterrence if Overpower-PWR-Below is set to Auto
