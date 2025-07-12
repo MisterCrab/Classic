@@ -105,7 +105,8 @@ local itemCategory 			= {
 	[19950] = "BOTH",
 	[18820] = "BOTH",
 }
-	  	  	  
+
+local InCombatLockdown		= _G.InCombatLockdown	  	  	  
 local GetNetStats 			= _G.GetNetStats  	
 local GameLocale 			= _G.GetLocale()
 local C_CVar				= _G.C_CVar
@@ -563,6 +564,7 @@ end
 -------------------------------------------------------------------------------
 local DataSpellRanks = {}
 local DataIsSpellUnknown = {}
+local timeSinceLastUpdate = TMW.time
 function A.UpdateSpellBook(isProfileLoad)
 	local ShowAllSpellRanks = GetCVar("ShowAllSpellRanks") or "1"
 	SetCVar("ShowAllSpellRanks", "1")
@@ -678,8 +680,11 @@ function A.UpdateSpellBook(isProfileLoad)
 		--TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") -- no need here since :Show method will be triggered 
 	end 
 	
+	if TMW.time > timeSinceLastUpdate + 1 and not InCombatLockdown() then
+		TMW:Fire("TMW_ACTION_METAENGINE_RECONFIGURE")
+	end
+	
 	SetCVar("ShowAllSpellRanks", ShowAllSpellRanks)
-	TMW:Fire("TMW_ACTION_METAENGINE_RECONFIGURE")
 end 
 
 -- "LEARNED_SPELL_IN_TAB" > "TRAINER_UPDATE" > "SKILL_LINES_CHANGED"
@@ -689,9 +694,11 @@ Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpell
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "TRAINER_UPDATE", 				A.UpdateSpellBook) 
 TMW:RegisterCallback("TMW_ACTION_TALENT_MAP_UPDATED", function()
 	A.UpdateSpellBook()
+	timeSinceLastUpdate = TMW.time
 end)
-TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", function()
+TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", function()	
 	A.UpdateSpellBook()
+	timeSinceLastUpdate = TMW.time
 end)
 
 function A:IsBlockedBySpellBook()
