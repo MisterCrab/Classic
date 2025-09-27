@@ -30,9 +30,6 @@ local GetAddOnInfo 				= C_AddOns and C_AddOns.GetAddOnInfo or _G.GetAddOnInfo
 
 local CreateFrame 				= _G.CreateFrame
 local UnitGUID 					= _G.UnitGUID
-
-local 	 GetNumTalentTabs, 	  GetNumTalents, 	GetTalentInfo =
-	  _G.GetNumTalentTabs, _G.GetNumTalents, _G.GetTalentInfo
 	  
 local CACHE_DEFAULT_TIMER		= CONST.CACHE_DEFAULT_TIMER	  
 
@@ -392,28 +389,6 @@ hooksecurefunc(A, "GetLocalization", function()
 	-- Reviews and disables parts caused error C stack overflow 
 	Cache.data()
 end)
-
--------------------------------------------------------------------------------
--- TalentMap  
--------------------------------------------------------------------------------
-A.TalentMap = {}
-local function TalentMap()
-	wipe(A.TalentMap)
-	for tab = 1, GetNumTalentTabs() do
-		for talent = 1, GetNumTalents(tab) do
-			local name, _, _, _, rank = GetTalentInfo(tab, talent)
-			if name then
-				A.TalentMap[name] = rank or 0
-			end
-		end
-	end
-	TMW:Fire("TMW_ACTION_TALENT_MAP_UPDATED")
-end
-
-A.Listener:Add("ACTION_EVENT_TOOLS", "PLAYER_ENTERING_WORLD", 		TalentMap)
---A.Listener:Add("ACTION_EVENT_TOOLS", "LEARNED_SPELL_IN_TAB", 		TalentMap)
---A.Listener:Add("ACTION_EVENT_TOOLS", "CONFIRM_TALENT_WIPE", 		TalentMap)
-A.Listener:Add("ACTION_EVENT_TOOLS", "CHARACTER_POINTS_CHANGED", 	TalentMap)
 
 -------------------------------------------------------------------------------
 -- Timers 

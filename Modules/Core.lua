@@ -130,6 +130,10 @@ local function PauseChecks()
 		return CONST_PAUSECHECKS_DISABLED
 	end 
 	
+	if GetToggle(1, "CheckVehicle") and Unit(player):InVehicle() then
+        return CONST_PAUSECHECKS_DISABLED
+    end		
+	
 	if 	(GetToggle(1, "CheckDeadOrGhost") and Unit(player):IsDead()) or 
 		(
 			GetToggle(1, "CheckDeadOrGhostTarget") and 

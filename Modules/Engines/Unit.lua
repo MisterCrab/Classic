@@ -41,6 +41,7 @@ local MultiUnits							= A.MultiUnits
 local GetToggle								= A.GetToggle
 local MouseHasFrame							= A.MouseHasFrame
 local UnitInLOS								= A.UnitInLOS
+local UnitSpecsMap							= A.UnitSpecsMap
 
 local TeamCache								= A.TeamCache
 local TeamCachethreatData					= TeamCache.threatData
@@ -49,11 +50,21 @@ local TeamCacheFriendlyUNITs				= TeamCacheFriendly.UNITs
 local TeamCacheFriendlyGUIDs				= TeamCacheFriendly.GUIDs
 local TeamCacheFriendlyIndexToPLAYERs		= TeamCacheFriendly.IndexToPLAYERs
 local TeamCacheFriendlyIndexToPETs			= TeamCacheFriendly.IndexToPETs
+local TeamCacheFriendlyHEALER				= TeamCacheFriendly.HEALER
+local TeamCacheFriendlyTANK					= TeamCacheFriendly.TANK
+local TeamCacheFriendlyDAMAGER				= TeamCacheFriendly.DAMAGER
+local TeamCacheFriendlyDAMAGER_MELEE		= TeamCacheFriendly.DAMAGER_MELEE
+--local TeamCacheFriendlyDAMAGER_RANGE		= TeamCacheFriendly.DAMAGER_RANGE
 local TeamCacheEnemy 						= TeamCache.Enemy
 local TeamCacheEnemyUNITs					= TeamCacheEnemy.UNITs
 local TeamCacheEnemyGUIDs					= TeamCacheEnemy.GUIDs
 local TeamCacheEnemyIndexToPLAYERs			= TeamCacheEnemy.IndexToPLAYERs
 local TeamCacheEnemyIndexToPETs				= TeamCacheEnemy.IndexToPETs
+local TeamCacheEnemyHEALER					= TeamCacheEnemy.HEALER
+local TeamCacheEnemyTANK					= TeamCacheEnemy.TANK
+local TeamCacheEnemyDAMAGER					= TeamCacheEnemy.DAMAGER
+local TeamCacheEnemyDAMAGER_MELEE			= TeamCacheEnemy.DAMAGER_MELEE
+--local TeamCacheEnemyDAMAGER_RANGE			= TeamCacheEnemy.DAMAGER_RANGE
 local ActiveUnitPlates						= MultiUnits:GetActiveUnitPlates()
 local ActiveUnitPlatesAny					= MultiUnits:GetActiveUnitPlatesAny()
 	  
@@ -67,10 +78,10 @@ local C_Spell								= _G.C_Spell
 local GetSpellName 							= C_Spell and C_Spell.GetSpellName or _G.GetSpellInfo
 local GetSpellInfo							= C_Spell and C_Spell.GetSpellInfo or _G.GetSpellInfo
 local GetPartyAssignment 					= _G.GetPartyAssignment	  
-local UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff =
-	  UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
-	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitDebuff
+local UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitInVehicle, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitGetTotalHealAbsorbs, UnitDebuff =
+	  UnitIsUnit, UnitPlayerOrPetInRaid, UnitInAnyGroup, UnitPlayerOrPetInParty, UnitInRange, UnitInVehicle, UnitLevel, UnitRace, UnitClass, UnitClassification, UnitExists, UnitIsConnected, UnitIsCharmed, UnitIsGhost, UnitIsDeadOrGhost, UnitIsFeignDeath, UnitIsPlayer, UnitPlayerControlled, UnitCanAttack, UnitIsEnemy, UnitAttackSpeed,
+	  UnitPowerType, UnitPowerMax, UnitPower, UnitName, UnitCanCooperate, UnitCreatureType, UnitCreatureFamily, UnitHealth, UnitHealthMax, UnitGUID, UnitHasIncomingResurrection, UnitIsVisible, UnitGetTotalHealAbsorbs, UnitDebuff
 local UnitAura 								= A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 	  
 --local UnitThreatSituation					= _G.UnitThreatSituation or function(unit, mob) return ThreatLib:UnitThreatSituation(unit, mob) end 
@@ -785,30 +796,272 @@ local Info = {
 	CacheStaying				= setmetatable({}, { __mode = "kv" }),
 	CacheInterrupt 				= setmetatable({}, { __mode = "kv" }),
 	SpecIs 						= {
-        ["MELEE"] 				= {103, 255, 70, 259, 260, 261, 263, 71, 72, 66, 73},
-        ["RANGE"] 				= {102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
-        ["HEALER"] 				= {105, 65, 256, 257, 264},
-        ["TANK"] 				= {103, 66, 73},
-        ["DAMAGER"] 			= {255, 70, 259, 260, 261, 263, 71, 72, 102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267},
+        ["MELEE"] 				= {251, 252, 577, 103, BuildToC >= 70003 and 255 or nil, 269, 70, 259, 260, 261, 263, 71, 72, 250, 581, 104, 268, 66, 73},
+        ["RANGE"] 				= {102, 253, 254, BuildToC < 70003 and 255 or nil, 62, 63, 64, 258, 262, 265, 266, 267},
+        ["HEALER"] 				= {105, 270, 65, 256, 257, 264, 1468, 1473},
+        ["TANK"] 				= {250, 581, 104, 268, 66, 73},
+        ["DAMAGER"] 			= {251, 252, 577, 103, 255, 269, 70, 259, 260, 261, 263, 71, 72, 102, 253, 254, 62, 63, 64, 258, 262, 265, 266, 267, 1467},
+    },
+	ClassSpecBuffs				= {
+		["WARRIOR"] 			= {
+			[CONST.WARRIOR_ARMS] = {
+				56638, 								-- Taste for Blood
+				64976, 								-- Juggernaut
+			}, 
+			[CONST.WARRIOR_FURY] = 29801, 			-- Rampage
+			[CONST.WARRIOR_PROTECTION] = 50227, 	-- Sword and Board
+		},
+		["PALADIN"]	= {
+			[CONST.PALADIN_RETRIBUTION] = 20375,	-- Seal of Command
+			[CONST.PALADIN_HOLY] = 31836,			-- Light's Grace
+			[CONST.PALADIN_PROTECTION] = 25781,		-- Righteous Fury
+		},
+		["HUNTER"] = {
+			[CONST.HUNTER_BEASTMASTERY] = 20895,	-- Spirit Bond
+			[CONST.HUNTER_MARKSMANSHIP] = 19506,	-- Trueshot Aura
+		},
+		["ROGUE"] = {
+			[CONST.ROGUE_SUBTLETY] = {
+				36554, 								-- Shadowstep
+				31223,								-- Master of Subtlety
+			},
+			[CONST.ROGUE_OUTLAW] = 51690,			-- Killing Spree
+		},
+		["PRIEST"] = {
+			[CONST.PRIEST_HOLY] = 47788,			-- Guardian Spirit
+			[CONST.PRIEST_DISCIPLINE] = 52800,		-- Borrowed Time
+			[CONST.PRIEST_SHADOW] = {
+				15473, 								-- Shadowform
+				15286,								-- Vampiric Embrace
+			},
+		},
+		["SHAMAN"] = {
+			[CONST.SHAMAN_ELEMENTAL] = {
+				57663,								-- Totem of Wrath
+				51470,								-- Elemental Oath
+			},
+			[CONST.SHAMAN_ENCHANCEMENT] = 30809,	-- Unleashed Rage
+			[CONST.SHAMAN_RESTORATION] = 49284,		-- Earth Shield
+		},
+		["MAGE"] = {
+			[CONST.MAGE_FROST] = 43039,				-- Ice Barrier
+			[CONST.MAGE_FIRE] = 11129,				-- Combustion
+			[CONST.MAGE_ARCANE] = 31583,			-- Arcane Empowerment
+		},
+		["WARLOCK"] = {
+			[CONST.WARLOCK_DESTRUCTION] = 30302,	-- Nether Protection
+		},
+		["DRUID"] = {
+			[CONST.DRUID_BALANCE] = 24907,			-- Moonkin Aura
+			[CONST.DRUID_FERAL] = 24932,			-- Leader of the Pack
+			[CONST.DRUID_RESTORATION] = 34123,		-- Tree of Life
+		},
+		["DEATHKNIGHT"] = {
+			[CONST.DEATHKNIGHT_UNHOLY] = 49222,		-- Bone Shield
+			[CONST.DEATHKNIGHT_FROST] = 55610,		-- Icy Talons
+			[CONST.DEATHKNIGHT_BLOOD] = {
+				49016,								-- Hysteria
+				53138,								-- Abomination's Might
+			},
+		},
+	},
+	ClassSpecSpells 			= {
+		["WARRIOR"]				= {
+			[CONST.WARRIOR_ARMS] = {
+				47486,								-- Mortal Strike
+				46924,								-- Bladestorm
+				56638, 								-- Taste for Blood
+				64976, 								-- Juggernaut
+			},
+			[CONST.WARRIOR_FURY] = {
+				23881,								-- Bloodthirst
+				29801, 								-- Rampage
+			},
+			[CONST.WARRIOR_PROTECTION] = {
+				47498,								-- Devastate
+				50227, 								-- Sword and Board
+			},
+		},
+		["PALADIN"]	= {
+			[CONST.PALADIN_RETRIBUTION] = {
+				35395,								-- Crusader Strike
+				53385,								-- Divine Storm
+				20066,								-- Repentance
+				20375,								-- Seal of Command
+			}, 
+			[CONST.PALADIN_HOLY] = {
+				48825,								-- Holy Shock
+				31836,								-- Light's Grace
+			},
+			[CONST.PALADIN_PROTECTION] = 48827,		-- Avenger's Shield
+		},
+		["HUNTER"] = {
+			[CONST.HUNTER_BEASTMASTERY] = {
+				19577,								-- Intimidation
+				20895,								-- Spirit Bond
+			},
+			[CONST.HUNTER_MARKSMANSHIP] = {
+				34490,								-- Silencing Shot
+				53209,								-- Chimera Shot
+				19506,								-- Trueshot Aura
+			},
+			[CONST.HUNTER_SURVIVAL] = {
+				60053,								-- Explosive Shot
+			},
+		},
+		["ROGUE"] = {
+			[CONST.ROGUE_ASSASSINATION] = 48666,	-- Mutilate
+			[CONST.ROGUE_OUTLAW] = {
+				51690, 								-- Killing Spree
+				13877,								-- Blade Flurry
+				13750,								-- Adrenaline Rush
+			},
+			[CONST.ROGUE_SUBTLETY] = {
+				48660,								-- Hemorrhage
+				36554, 								-- Shadowstep
+				31223,								-- Master of Subtlety
+			},
+		},
+		["PRIEST"] = {
+			[CONST.PRIEST_HOLY] = {
+				34861,								-- Circle of Healing
+				47788,								-- Guardian Spirit
+			},
+			[CONST.PRIEST_DISCIPLINE] = {
+				33206,								-- Pain Suppression
+				10060,								-- Power Infusion
+				53007,								-- Penance
+				52800,								-- Borrowed Time
+			},
+			[CONST.PRIEST_SHADOW] = {
+				15473, 								-- Shadowform
+				15286,								-- Vampiric Embrace
+				15487,								-- Silence
+				48160,								-- Vampiric Touch
+			},
+		},
+		["SHAMAN"] = {
+			[CONST.SHAMAN_ELEMENTAL] = {
+				57663,								-- Totem of Wrath
+				51470,								-- Elemental Oath
+				59159,								-- Thunderstorm
+				16166,								-- Elemental Mastery
+			},
+			[CONST.SHAMAN_ENCHANCEMENT] = {
+				30809,								-- Unleashed Rage
+				51533,								-- Feral Spirit
+				30823,								-- Shamanistic Rage
+				17364,								-- Stormstrike
+			},
+			[CONST.SHAMAN_RESTORATION] = {
+				49284,								-- Earth Shield
+				61301,								-- Riptide
+				51886,								-- Cleanse Spirit
+			},
+		},
+		["MAGE"] = {
+			[CONST.MAGE_FROST] = {
+				43039,								-- Ice Barrier
+				44572,								-- Deep Freeze
+			},
+			[CONST.MAGE_FIRE] = {
+				11129,								-- Combustion
+				42945,								-- Blast Wave
+				42950,								-- Dragon's Breath
+				55360,								-- Living Bomb
+			},
+			[CONST.MAGE_ARCANE] = {
+				31583,								-- Arcane Empowerment
+				44781,								-- Arcane Barrage
+			},
+		},
+		["WARLOCK"] = {
+			[CONST.WARLOCK_AFFLICTION] = {
+				59164,								-- Haunt
+				47843,								-- Unstable Affliction
+			},
+			[CONST.WARLOCK_DEMONOLOGY] = 59672,		-- Metamorphosis
+			[CONST.WARLOCK_DESTRUCTION] = {
+				30302,								-- Nether Protection
+				59172,								-- Chaos Bolt
+				47847,								-- Shadowfury
+			},
+		},
+		["DRUID"] = {
+			[CONST.DRUID_BALANCE] = {
+				24907,								-- Moonkin Aura
+				53201,								-- Starfall
+				61384,								-- Typhoon
+			},
+			[CONST.DRUID_FERAL] = {
+				24932,								-- Leader of the Pack
+				48566,								-- Mangle (Cat)
+				48564,								-- Mangle (Bear)
+			},
+			[CONST.DRUID_RESTORATION] = {
+				34123,								-- Tree of Life
+				18562,								-- Swiftmend
+			},
+		},
+		["DEATHKNIGHT"] = {
+			[CONST.DEATHKNIGHT_UNHOLY] = {
+				49222,								-- Bone Shield
+				55271,								-- Scourge Strike
+			},
+			[CONST.DEATHKNIGHT_FROST] = {
+				55610,								-- Icy Talons
+				55268,								-- Frost Strike
+				51411,								-- Howling Blast
+				49203,								-- Hungering Cold
+			},
+			[CONST.DEATHKNIGHT_BLOOD] = {
+				49016,								-- Hysteria
+				53138,								-- Abomination's Might
+				55262,								-- Heart Strike
+			},
+		},
+	},
+	ClassIsMelee = {
+        ["WARRIOR"] 			= true,
+        ["PALADIN"] 			= true,
+        ["HUNTER"] 				= false,
+        ["ROGUE"] 				= true,
+        ["PRIEST"] 				= false,
+        ["DEATHKNIGHT"] 		= true,
+        ["SHAMAN"] 				= false,
+        ["MAGE"] 				= false,
+        ["WARLOCK"] 			= false,
+        ["MONK"] 				= true,
+        ["DRUID"] 				= false,
+        ["DEMONHUNTER"] 		= true,
     },
 	ClassCanBeHealer			= {
 		["PALADIN"] 			= true,
 		["PRIEST"]				= true,
 		["SHAMAN"] 				= true,
-		["DRUID"] 				= true,	
+		["DRUID"] 				= true,
+		["MONK"]				= true,
+		["EVOKER"]				= true,
 	},
 	ClassCanBeTank				= {
         ["WARRIOR"] 			= 71,						-- Defensive Stance
         ["PALADIN"] 			= 25781, 					-- Righteous Fury
         ["DRUID"] 				= {5487, 9634},				-- Bear Form, Dire Bear Form
-		["SHAMAN"]				= BuildToC <= 20000, 		-- T3 tank in Classic/TBC possible 
+		["MONK"]				= true,
+		["SHAMAN"]				= BuildToC < 30000, 		-- T3 tank in Classic/TBC possible 
+		["DEMONHUNTER"]			= true,
+		["DEATHKNIGHT"]			= 48263,					-- Blood Presence		
 	},
 	ClassCanBeMelee				= {
         ["WARRIOR"] 			= true,
         ["PALADIN"] 			= true,
+		["HUNTER"]				= BuildToC >= 70003,
         ["ROGUE"] 				= true,
         ["SHAMAN"] 				= true,
-        ["DRUID"] 				= true,		
+        ["DRUID"] 				= true,
+		["MONK"]				= true,
+		["DEMONHUNTER"]			= true,
+		["DEATHKNIGHT"]			= true,
 	},
 	AllCC 						= {"Silenced", "Stuned", "Sleep", "Fear", "Disoriented", "Incapacitated"},
 	CreatureType				= setmetatable(
@@ -1902,6 +2155,9 @@ local InfoCacheStaying						= Info.CacheStaying
 local InfoCacheInterrupt					= Info.CacheInterrupt
 
 local InfoSpecIs 							= Info.SpecIs
+local InfoClassSpecBuffs					= Info.ClassSpecBuffs
+local InfoClassSpecSpells					= Info.ClassSpecSpells
+local InfoClassIsMelee 						= Info.ClassIsMelee
 local InfoClassCanBeHealer 					= Info.ClassCanBeHealer
 local InfoClassCanBeTank 					= Info.ClassCanBeTank
 local InfoClassCanBeMelee 					= Info.ClassCanBeMelee
@@ -1943,32 +2199,52 @@ A.Unit = PseudoClass({
 		
 		return select(2, UnitClass(unitID)) or str_none
 	end, "UnitID"),
-	Role 									= Cache:Pass(function(self, hasRole)  
-		-- @return boolean or string (depended on hasRole argument, TANK, HEALER, DAMAGER, NONE) 
-		-- Nill-able: hasRole
+	Role 									= Cache:Pass(function(self, hasRole) 
+		-- @param hasRole 	- nil or string one of follows: "TANK", "HEALER", "DAMAGER", "NONE"
+		-- @return boolean	- if 'hasRole' passed as string
+		-- @return string	- otherwise returns role of unitID: "TANK", "HEALER", "DAMAGER", "NONE"
 		local unitID 						= self.UnitID
+		local role							= UnitGroupRolesAssigned(unitID)
+		
+		if not role or role == "NONE" then
+			if A.ZoneID == 480 then
+				-- Proving Grounds
+				local npcID = self(unitID):InfoGUID()
+				if npcID == 72218 then
+					-- Oto the Protector
+					role = "TANK"
+				elseif npcID == 71828 then
+					-- Sikari the Mistweaver
+					role = "HEALER"
+				else
+					role = "DAMAGER"
+				end
+			elseif hasRole then 
+				if hasRole == "HEALER" then 
+					return self(unitID):IsHealer()
+				elseif hasRole == "TANK" then 
+					return self(unitID):IsTank()
+				elseif hasRole == "DAMAGER" then 
+					return self(unitID):IsDamager()
+				elseif hasRole == "NONE" then 
+					return true
+				else 
+					return false
+				end 
+			else 
+				if self(unitID):IsHealer() then 
+					return "HEALER"
+				elseif self(unitID):IsTank() then 
+					return "TANK"
+				elseif self(unitID):IsDamager() then 
+					return "DAMAGER"
+				else 
+					return "NONE"
+				end 
+			end
+		end
 
-		if hasRole then 
-			if hasRole == "HEALER" then 
-				return self(unitID):IsHealer()
-			elseif hasRole == "TANK" then 
-				return self(unitID):IsTank()
-			elseif hasRole == "DAMAGER" then 
-				return self(unitID):IsDamager()
-			else 
-				return false
-			end 
-		else 
-			if self(unitID):IsHealer() then 
-				return "HEALER"
-			elseif self(unitID):IsTank() then 
-				return "TANK"
-			elseif self(unitID):IsDamager() then 
-				return "DAMAGER"
-			else 
-				return "NONE"
-			end 
-		end 				
+		return (hasRole and hasRole == role) or (not hasRole and role)
 	end, "UnitID"),
 	Classification							= Cache:Pass(function(self)  
 		-- @return string or empty string  
@@ -2078,6 +2354,11 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return UnitIsUnit(unitID, "player") or UnitInRange(unitID)
 	end, "UnitID"),
+	InVehicle								= Cache:Pass(function(self)
+		-- @return boolean
+		local unitID 						= self.UnitID
+		return UnitInVehicle(unitID)
+	end, "UnitID"),
 	InCC 									= Cache:Wrap(function(self, index)
 		-- @return number (time in seconds of remain crownd control)
 		-- Nill-able: index
@@ -2097,125 +2378,163 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return unitID and (UnitCanAttack("player", unitID) or UnitIsEnemy("player", unitID)) and (not isPlayer or UnitIsPlayer(unitID))
 	end, "UnitGUID"),	
-	IsHealer 								= Cache:Wrap(function(self, skipUnitIsUnit, class)  
+	IsHealer 								= Cache:Pass(function(self, class)  
 		-- @return boolean
-		-- Nill-able: skipUnitIsUnit, class
+		-- Nill-able: class
 		local unitID 						= self.UnitID
-		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
-			return self("player"):HasSpec(InfoSpecIs.HEALER) 
-		end 
-		
-		if InfoClassCanBeHealer[class or self(unitID):Class()] then 		
+		if InfoClassCanBeHealer[class or self(unitID):Class()] then
+			if self(unitID):IsEnemy() then
+				if TeamCacheEnemyHEALER[unitID] or self(unitID):HasSpec(InfoSpecIs.HEALER) then
+					return true
+				elseif BuildToC >= 50500 then
+					return false
+				end
+			else
+				if TeamCacheFriendlyHEALER[unitID] then
+					return true
+				end
+				
+				local role = UnitGroupRolesAssigned(unitID)
+				if role == "HEALER" or (UnitIsUnit(unitID, "player") and self(unitID):HasSpec(InfoSpecIs.HEALER)) then
+					return true
+				elseif role and role ~= "NONE" then
+					return false
+				end
+			end
+			
 											-- bypass it in PvP 
 			local taken_dmg 				= (self(unitID):IsEnemy() and self(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID)
 			local done_dmg					= CombatTracker:GetDPS(unitID)
 			local done_hps					= CombatTracker:GetHPS(unitID)
 			return done_hps > taken_dmg and done_hps > done_dmg  
 		end 
-	end, "UnitGUID"),
+	end, "UnitID"),
 	IsHealerClass							= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
 		return InfoClassCanBeHealer[self(unitID):Class()]
 	end, "UnitID"),	
-	IsTank 									= Cache:Wrap(function(self, skipUnitIsUnit, class)    
+	IsTank 									= Cache:Pass(function(self, class)    
 		-- @return boolean 
-		-- Nill-able: skipUnitIsUnit, class
+		-- Nill-able: class
 		local unitID 						= self.UnitID
-		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
-			return self("player"):HasSpec(InfoSpecIs.TANK) 
-		end 
-		
 		local unitID_class 					= class or self(unitID):Class()
 		local tankBuffsOrCanBeTank			= InfoClassCanBeTank[unitID_class]
 		if tankBuffsOrCanBeTank then 
-			if unitID:find("raid") and GetPartyAssignment("maintank", unitID) then 
-				return true 
-			end 
-			
-			local combatTime = CombatTracker:CombatTime("player")
-			if unitID_class == "PALADIN" then 
-				local _, offhand = UnitAttackSpeed(unitID)
-				return offhand == nil and self(unitID):HasBuffs(tankBuffsOrCanBeTank) > 0 and (combatTime > 0 or A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD, nil, true)) -- byPassDistance
-			elseif unitID_class == "DRUID" then 
-				return UnitPowerType(unitID) == 1 and self(unitID):HasBuffs(tankBuffsOrCanBeTank) > 0
-			elseif unitID_class == "WARRIOR" then 								
-				if combatTime == 0 then 
-					-- 1h+shield
-					local _, offhand = UnitAttackSpeed(unitID)
-					return offhand == nil and A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD) -- don't byPassDistance
-				elseif self(unitID):HasBuffs(tankBuffsOrCanBeTank) == 0 and (A.IsInPvP or self:ThreatSituation() < 3) then
+			if self(unitID):IsEnemy() then
+				if TeamCacheEnemyTANK[unitID] or self(unitID):HasSpec(InfoSpecIs.TANK) then
+					return true
+				elseif BuildToC >= 50500 then
 					return false
-					-- ↓↓↓ if warrior in Defensive Stance or has threat he can be tank, then we will use generic approach below to recognize it ↓↓↓
 				end
-			end
+			else
+				if TeamCacheFriendlyTANK[unitID] then
+					return true
+				end
+				
+				local role = UnitGroupRolesAssigned(unitID)
+				if role == "TANK" or (unitID:find("raid") and GetPartyAssignment("maintank", unitID)) or (UnitIsUnit(unitID, "player") and self(unitID):HasSpec(InfoSpecIs.TANK)) then
+					return true
+				elseif role and role ~= "NONE" then
+					return false
+				end
 			
-			if not A.IsInPvP then 
-				local unitIDtarget = strjoin("", unitID, "target")
-				if UnitIsUnit(unitID, strjoin("", unitIDtarget, "target")) and self(unitIDtarget):IsBoss() then 
-					return true 
+				if unitID_class == "PALADIN" then 
+					local _, offhand = UnitAttackSpeed(unitID)
+					return offhand == nil and self(unitID):HasBuffs(tankBuffsOrCanBeTank) > 0 and (CombatTracker:CombatTime("player") > 0 or (A_GetUnitItem and A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD, nil, true))) -- byPassDistance
+				elseif unitID_class == "DRUID" then 
+					return UnitPowerType(unitID) == 1 and self(unitID):HasBuffs(tankBuffsOrCanBeTank) > 0
+				elseif unitID_class == "WARRIOR" then 								
+					if CombatTracker:CombatTime("player") == 0 then 
+						-- 1h+shield
+						local _, offhand = UnitAttackSpeed(unitID)
+						return offhand == nil and (A_GetUnitItem and A_GetUnitItem(unitID, CONST.INVSLOT_OFFHAND, LE_ITEM_CLASS_ARMOR, LE_ITEM_ARMOR_SHIELD)) -- don't byPassDistance
+					elseif self(unitID):HasBuffs(tankBuffsOrCanBeTank) == 0 and (A.IsInPvP or self:ThreatSituation() < 3) then
+						return false
+						-- ↓↓↓ if warrior in Defensive Stance or has threat he can be tank, then we will use generic approach below to recognize it ↓↓↓
+					end
 				end
-			end
+				
+				if not A.IsInPvP then 
+					local unitIDtarget = strjoin("", unitID, "target")
+					if UnitIsUnit(unitID, strjoin("", unitIDtarget, "target")) and self(unitIDtarget):IsBoss() then 
+						return true 
+					end
+				end			
+			end		
 			
 			local taken_dmg 				= CombatTracker:GetDMG(unitID)
 			local done_dmg					= CombatTracker:GetDPS(unitID)
 			local done_hps					= CombatTracker:GetHPS(unitID)
 			return taken_dmg > done_dmg and taken_dmg > done_hps
 		end 
-	end, "UnitGUID"),	
+	end, "UnitID"),	
 	IsTankClass								= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
-		return InfoClassCanBeTank[self(unitID):Class()]
+		return InfoClassCanBeTank[self(unitID):Class()] and true -- don't touch true otherwise it may return table or number because of tank buffs
 	end, "UnitID"),	
-	IsDamager								= Cache:Wrap(function(self, skipUnitIsUnit)    
+	IsDamager								= Cache:Pass(function(self)    
 		-- @return boolean 
-		-- Nill-able: skipUnitIsUnit
 		local unitID 						= self.UnitID
-		if not skipUnitIsUnit and UnitIsUnit(unitID, "player") then 
-			return self("player"):HasSpec(InfoSpecIs.DAMAGER) 
-		end 
-
-		if unitID:match("raid%d+") and GetPartyAssignment("mainassist", unitID) then 
-			return true 
-		end 
+	    if self(unitID):IsEnemy() then
+			if TeamCacheEnemyDAMAGER[unitID] or self(unitID):HasSpec(InfoSpecIs.DAMAGER) then
+				return true
+			elseif BuildToC >= 50500 then
+				return false
+			end
+		else
+			if TeamCacheFriendlyDAMAGER[unitID] then
+				return true
+			end
+			
+			local role = UnitGroupRolesAssigned(unitID)
+			if role == "DAMAGER" or (unitID:find("raid") and GetPartyAssignment("mainassist", unitID)) or (UnitIsUnit(unitID, "player") and self(unitID):HasSpec(InfoSpecIs.DAMAGER)) then
+				return true
+			elseif role and role ~= "NONE" then
+				return false
+			end
+		end
+		
 											-- bypass it in PvP 
 		local taken_dmg 					= (self(unitID):IsEnemy() and self(unitID):IsPlayer() and 0) or CombatTracker:GetDMG(unitID) 
 		local done_dmg						= CombatTracker:GetDPS(unitID)
 		local done_hps						= CombatTracker:GetHPS(unitID)
 		return done_dmg > taken_dmg and done_dmg > done_hps 
-	end, "UnitGUID"),	
-	IsMelee 								= Cache:Wrap(function(self) 
+	end, "UnitID"),	
+	IsMelee 								= Cache:Pass(function(self, class) 
 		-- @return boolean 
 		local unitID 						= self.UnitID
-		if UnitIsUnit(unitID, "player") then 
-			return self("player"):HasSpec(InfoSpecIs.MELEE) 
+		local class 						= class or self(unitID):Class()
+		if InfoClassCanBeMelee[class] then
+			if self(unitID):IsEnemy() then
+				return TeamCacheEnemyDAMAGER_MELEE[unitID] or self(unitID):HasSpec(InfoSpecIs.MELEE)			
+			elseif UnitIsUnit(unitID, "player") then
+				return self(unitID):HasSpec(InfoSpecIs.MELEE)
+			elseif TeamCacheFriendlyDAMAGER_MELEE[unitID] then
+				return true
+			elseif class == "HUNTER" then
+				return
+				(
+					self(unitID):GetSpellCounter(186270) > 0 or -- Raptor Strike
+					self(unitID):GetSpellCounter(259387) > 0 or -- Mongoose Bite
+					self(unitID):GetSpellCounter(190925) > 0 or -- Harpoon
+					self(unitID):GetSpellCounter(259495) > 0    -- Firebomb
+				)
+			elseif class == "SHAMAN" then
+				local _, offhand = UnitAttackSpeed(unitID)
+				return offhand ~= nil
+			elseif class == "MONK" then
+				local _, power = UnitPowerType(unitID)
+				return power == "STAGGER" or power == "CHI" or self(unitID):Role() ~= "HEALER"
+			elseif class == "DRUID" then
+				local _, power = UnitPowerType(unitID)
+				return power == "ENERGY" or power == "FURY" or self(unitID):Role() == "TANK"
+			else 				
+				return true -- Warrior, Rogue, DH, DK
+			end
 		end 
-		
-		local class = self(unitID):Class()
-		if InfoClassCanBeMelee[class] then 
-			if self(unitID):IsTank(true, class) then 
-				return true 
-			end 
-			
-			if self(unitID):IsDamager(true) then 
-				if unitClass == "SHAMAN" then 
-					local _, offhand = UnitAttackSpeed(unitID)
-					return offhand ~= nil                    
-				elseif unitClass == "DRUID" then 
-					local _, power = UnitPowerType(unitID)
-					return power == "ENERGY" or power == "FURY"
-				else 
-					return true 
-				end 
-			else 
-				if class == "DRUID" then 
-					local _, power = UnitPowerType(unitID)
-					return power == "ENERGY" or power == "FURY"					
-				end 
-			end 
-		end 
-	end, "UnitGUID"),
+	end, "UnitID"),
 	IsMeleeClass							= Cache:Pass(function(self)  
 		-- @return boolean
 		local unitID 						= self.UnitID
@@ -2726,23 +3045,26 @@ A.Unit = PseudoClass({
 		local unitID 						= self.UnitID
 		return select(2, self(unitID):GetCurrentSpeed())
 	end, "UnitGUID"),
-	GetTotalHealAbsorbs						= Cache:Pass(function(self) 
-		-- @return number 
-		-- Note: 
+	GetTotalHealAbsorbs						= Cache:Pass(function(self)
+		-- @return number
+		-- Note:
 		-- Returns the total amount of healing the unit can absorb without gaining health
 		-- Abilities like Necrotic Strike cause affected units to absorb healing without gaining health
 		local unitID 						= self.UnitID
-		return 0 -- TODO: Classic, currently is blank
+		if BuildToC < 50500 then
+			return 0
+		end
+		return UnitGetTotalHealAbsorbs(unitID) or 0
 	end, "UnitID"),
-	GetTotalHealAbsorbsPercent				= Cache:Pass(function(self) 
-		-- @return number 
+	GetTotalHealAbsorbsPercent				= Cache:Pass(function(self)
+		-- @return number
 		local unitID 						= self.UnitID
 		local maxHP							= self(unitID):HealthMax()
-		if maxHP == 0 then 
+		if maxHP == 0 then
 			return 0
-		else 
+		else
 			return self(unitID):GetTotalHealAbsorbs() * 100 / maxHP
-		end 
+		end
 	end, "UnitID"),
 	-- Combat: Diminishing
 	GetDR 									= Cache:Pass(function(self, drCat) 
@@ -3038,21 +3360,92 @@ A.Unit = PseudoClass({
 	end, "UnitID"),		
 	HasSpec									= Cache:Pass(function(self, specID)	
 		-- @return boolean 
-		-- Only PLAYER!
-		local unitID 						= "player"
-		if not UnitIsUnit(unitID, "player") then 
-			error("Can't use Action.Unit(" .. (unitID or "unitID") .. "):HasSpec(" .. (specID or "") .. ") since field 'unitID' must be equal to 'player'")
-			return 
-		end 
+		local unitID 						= self.UnitID
 		
-		if type(specID) == "table" then        
-			for i = 1, #specID do
-				if specID[i] == A.PlayerSpec then 
-					return true 
+		if UnitIsUnit(unitID, "player") then
+			local playerSpecID = A.PlayerSpec
+			if type(specID) == "table" then
+				for i = 1, #specID do if specID[i] == playerSpecID then return true end end
+			else
+				return specID == playerSpecID
+			end
+		else
+			local name, server = UnitName(unitID)
+			if not name then
+				return		
+			elseif server then
+				name = strjoin("-", name, server)
+			end
+			
+			if UnitSpecsMap[name] then
+				if type(specID) == "table" then
+					for i = 1, #specID do if specID[i] == UnitSpecsMap[name] then return true end end
+				else
+					return specID == UnitSpecsMap[name]
+				end
+			else
+				local unitClass = self(unitID):Class()
+				
+				-- Search by auras 
+				local unitClassBuffs = InfoClassSpecBuffs[unitClass]
+				if unitClassBuffs then 
+					local unitSpecBuffs
+					if type(specID) == "table" then
+						for i = 1, #specID do
+							unitSpecBuffs = unitClassBuffs[specID[i]]
+							if unitSpecBuffs and self(unitID):HasBuffs(unitSpecBuffs) > 0 then 
+								return true 
+							end 
+						end  
+					else
+						unitSpecBuffs = unitClassBuffs[specID]
+						if unitSpecBuffs and self(unitID):HasBuffs(unitSpecBuffs) > 0 then 
+							return true 
+						end 
+					end 
 				end 
-			end       
-		else 
-			return specID == A.PlayerSpec      
+				
+				-- Search by used spells 
+				-- Note: Used in PvP for any players. Doesn't work in PvE mode.
+				local unitClassSpells = InfoClassSpecSpells[unitClass]
+				if unitClassSpells then 
+					local unitSpecSpells
+					if type(specID) == "table" then
+						for i = 1, #specID do
+							unitSpecSpells = unitClassSpells[specID[i]]
+							
+							if unitSpecSpells then 
+								if type(unitSpecSpells) == "table" then 
+									for _, spellID in ipairs(unitSpecSpells) do 
+										if self(unitID):GetSpellCounter(spellID) > 0 then 
+											return true 
+										end 
+									end 
+								else 
+									if self(unitID):GetSpellCounter(unitSpecSpells) > 0 then 
+										return true 
+									end 
+								end 
+							end 
+						end  
+					else
+						unitSpecSpells = unitClassSpells[specID]
+						if unitSpecSpells then 
+							if type(unitSpecSpells) == "table" then 
+								for _, spellID in ipairs(unitSpecSpells) do 
+									if self(unitID):GetSpellCounter(spellID) > 0 then 
+										return true 
+									end 
+								end 
+							else 
+								if self(unitID):GetSpellCounter(unitSpecSpells) > 0 then 
+									return true 
+								end 
+							end 
+						end 
+					end 
+				end 				
+			end
 		end
 	end, "UnitID"),
 	HasFlags 								= Cache:Wrap(function(self) 
