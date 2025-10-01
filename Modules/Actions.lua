@@ -106,7 +106,6 @@ local itemCategory 			= {
 	[18820] = "BOTH",
 }
 
-local InCombatLockdown		= _G.InCombatLockdown	  	  	  
 local GetNetStats 			= _G.GetNetStats  	
 local GameLocale 			= _G.GetLocale()
 local C_CVar				= _G.C_CVar
@@ -579,10 +578,23 @@ end
 -------------------------------------------------------------------------------
 -- Spell Rank 
 -------------------------------------------------------------------------------
-local DataSpellRanks = {}
-local DataIsSpellUnknown = {}
-local timeSinceLastUpdate = TMW.time
-function A.UpdateSpellBook(isProfileLoad)
+local function AreTablesEqual(t1, t2)
+	for k, v in pairs(t1) do if t2[k] ~= v then return false end end	
+	for k, v in pairs(t2) do if t1[k] ~= v then return false end end	
+	return true
+end
+
+local function MirrorTables(t1, t2)
+	wipe(t2)
+	for k, v in pairs(t1) do
+		t2[k] = v
+	end
+end
+
+local DataSpellRanks, DataSpellRanksMirror = {}, {}
+local DataIsSpellUnknown, DataIsSpellUnknownMirror = {}, {}
+local timeSinceLastUpdate = TMW.time or 0
+function A.UpdateSpellBook(IsLoadingProfileOrPetUPDOWN)
 	local ShowAllSpellRanks = GetCVar("ShowAllSpellRanks") or "1"
 	SetCVar("ShowAllSpellRanks", "1")
 	
@@ -692,11 +704,16 @@ function A.UpdateSpellBook(isProfileLoad)
 		end 
 	end 
 	
-	if isProfileLoad ~= true then 
+	-- This part of code avoids reconfigure load on Meta Engine
+	-- Because TRAINER_UPDATE called the callback even when there were no actual changes
+	if not AreTablesEqual(DataSpellRanks, DataSpellRanksMirror) or not AreTablesEqual(DataIsSpellUnknown, DataIsSpellUnknownMirror) then
+		MirrorTables(DataSpellRanks, DataSpellRanksMirror)
+		MirrorTables(DataIsSpellUnknown, DataIsSpellUnknownMirror)
+		
 		TMW:Fire("TMW_ACTION_SPELL_BOOK_CHANGED")	  		-- for [3] tab refresh 
-		--TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") 		-- no need here since :Show method will be triggered 
+	  --TMW:Fire("TMW_ACTION_RANK_DISPLAY_CHANGED") 		-- no need here since :Show method will be triggered 
 	
-		if TMW.time > timeSinceLastUpdate + 1 and not InCombatLockdown() then
+		if IsLoadingProfileOrPetUPDOWN ~= true and TMW.time > timeSinceLastUpdate + 1 then
 			TMW:Fire("TMW_ACTION_METAENGINE_RECONFIGURE")	-- only fired on new or updated spells
 			timeSinceLastUpdate = TMW.time
 		end
@@ -711,9 +728,8 @@ end
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "LEARNED_SPELL_IN_TAB", 		A.UpdateSpellBook)
 Listener:Add("ACTION_EVENT_SPELL_RANKS", "TRAINER_UPDATE", 				A.UpdateSpellBook) 
 TMW:RegisterCallback("TMW_ACTION_TALENT_MAP_UPDATED", 					A.UpdateSpellBook)
-TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", function()	
-	A.UpdateSpellBook(true)
-end)
+TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_UP", function()	A.UpdateSpellBook(true) end)
+TMW:RegisterCallback("TMW_ACTION_PET_LIBRARY_MAIN_PET_DOWN", function()	A.UpdateSpellBook(true) end)
 
 function A:IsBlockedBySpellBook()
 	-- @return boolean 
