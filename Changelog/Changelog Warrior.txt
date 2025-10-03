@@ -1,3 +1,9 @@
+[Warrior v22]
+PiercingHowl								- Will not be used on solo target unless Hamstring can't be used
+PiercingHowl and Hamstring 					- Now they are checking Slowed debuffs instead of their own
+DemoralizingShout							- Will be used against Warrior and Paladin (Retribution, Protection) with higher priority
+WarStomp, ConcussionBlow, IntimidatingShout - Added as AntiFake Interrupt
+
 [Warrior v21]
 Fixed lua error "Unit.lua:3730: Unit.lua Action.Unit():.. was used with 'nil' unitID"
 
