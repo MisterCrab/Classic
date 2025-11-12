@@ -203,7 +203,7 @@ local 	 CreateFrame, 	 GetCVar, 	 				   SetCVar =
 local GetPhysicalScreenSize = _G.GetPhysicalScreenSize
 	  
 local GetSpellTexture, 	  GetSpellInfo,    CombatLogGetCurrentEventInfo =	
-  TMW.GetSpellTexture, _G.GetSpellInfo, _G.CombatLogGetCurrentEventInfo	  
+  TMW.GetSpellTexture, _G.GetSpellInfo, _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo	  
 
 local 	 UnitGUID, 	  UnitIsUnit =
 	  _G.UnitGUID, _G.UnitIsUnit

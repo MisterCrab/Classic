@@ -1,3 +1,5 @@
+local CombatLogGetCurrentEventInfo = _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
+
 --[================[
 LibSpellLocks-1.0
 Author: d87
@@ -5,7 +7,7 @@ Description: Provides information about spell lock status after successful inter
 --]================]
 
 
-local MAJOR, MINOR = "LibSpellLocks", 7.1
+local MAJOR, MINOR = "LibSpellLocks", 7777.1111 -- 7.1
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -20,7 +22,6 @@ local callbacks = lib.callbacks
 local interrupts = lib.interrupts
 local activeSpellLocks = lib.activeSpellLocks
 local data = interrupts
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitGUID = UnitGUID
 local UnitAura = _G.TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
 local GetTime = GetTime

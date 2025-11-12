@@ -1,3 +1,15 @@
+local CombatLogGetCurrentEventInfo 			= _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
+local COMBATLOG_OBJECT_CONTROL_PLAYER 		= _G.COMBATLOG_OBJECT_CONTROL_PLAYER or _G.Enum.CombatLogObject.ControlPlayer
+local COMBATLOG_OBJECT_TYPE_PLAYER 			= _G.COMBATLOG_OBJECT_TYPE_PLAYER or _G.Enum.CombatLogObject.TypePlayer
+local COMBATLOG_OBJECT_REACTION_FRIENDLY 	= _G.COMBATLOG_OBJECT_REACTION_FRIENDLY or _G.Enum.CombatLogObject.ReactionFriendly
+local COMBATLOG_OBJECT_AFFILIATION_MINE 	= _G.COMBATLOG_OBJECT_AFFILIATION_MINE or _G.Enum.CombatLogObject.AffiliationMine
+local SpellBookSpellBankPet 				= _G.Enum.SpellBookSpellBank.Pet
+local SpellBookSpellBankPlayer 				= _G.Enum.SpellBookSpellBank.Player
+local IsSpellKnown 							= _G.C_SpellBook.IsSpellKnown
+local IsPlayerSpell 						= _G.IsPlayerSpell or function(spellID)
+	return IsSpellKnown(spellID, SpellBookSpellBankPlayer)
+end
+
 --[================[
 LibClassicDurations
 Author: d87
@@ -19,7 +31,7 @@ Usage example 1:
 --]================]
 if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then return end
 
-local MAJOR, MINOR = "LibClassicDurations", 71
+local MAJOR, MINOR = "LibClassicDurations", 7111111111 -- 71
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -68,7 +80,6 @@ local PURGE_THRESHOLD = 1800
 local UNKNOWN_AURA_DURATION = 3600 -- 60m
 local BUFF_CACHE_EXPIRATION_TIME = 40
 
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitGUID = UnitGUID
 local UnitAura = UnitAura
 local GetSpellInfo = GetSpellInfo

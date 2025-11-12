@@ -1,6 +1,9 @@
+local CombatLogGetCurrentEventInfo 			= _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
+local COMBATLOG_OBJECT_AFFILIATION_MINE 	= _G.COMBATLOG_OBJECT_AFFILIATION_MINE or _G.Enum.CombatLogObject.AffiliationMine
+
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then return end
 local major = "LibHealComm-4.0"
-local minor = 117
+local minor = 11777777777777 -- 117
 assert(LibStub, format("%s requires LibStub.", major))
 
 local HealComm = LibStub:NewLibrary(major, minor)
@@ -73,7 +76,6 @@ local UnitLevel = UnitLevel
 local UnitName = UnitName
 local UnitPlayerControlled = UnitPlayerControlled
 local CheckInteractDistance = CheckInteractDistance
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 local UnitHasVehicleUI = UnitHasVehicleUI or function() end
 local GetGlyphSocketInfo = GetGlyphSocketInfo or function() end
 local GetNumGlyphSockets = GetNumGlyphSockets or function() return 0 end

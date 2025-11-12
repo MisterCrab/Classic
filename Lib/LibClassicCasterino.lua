@@ -1,3 +1,8 @@
+local CombatLogGetCurrentEventInfo = _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
+local COMBATLOG_OBJECT_REACTION_FRIENDLY = _G.COMBATLOG_OBJECT_REACTION_FRIENDLY or _G.Enum.CombatLogObject.ReactionFriendly
+local COMBATLOG_OBJECT_TYPE_PLAYER = _G.COMBATLOG_OBJECT_TYPE_PLAYER or _G.Enum.CombatLogObject.ControlPlayer
+local COMBATLOG_OBJECT_TYPE_PET = _G.COMBATLOG_OBJECT_TYPE_PET or _G.Enum.CombatLogObject.TypePet
+
 --[================[
 LibClassicCasterino
 Author: d87
@@ -9,7 +14,7 @@ local isClassic = apiLevel <= 2
 local isVanilla = apiLevel == 1
 local isBC = apiLevel == 2
 
-local MAJOR, MINOR = "LibClassicCasterino", 555 -- 37
+local MAJOR, MINOR = "LibClassicCasterino", 377777777777 -- 37
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 

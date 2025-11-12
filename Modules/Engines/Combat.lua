@@ -56,7 +56,7 @@ local 	 UnitIsUnit, 	UnitGUID, 	 UnitHealth, 	UnitHealthMax, 	  UnitAffectingCom
 	  _G.UnitIsUnit, _G.UnitGUID, _G.UnitHealth, _G.UnitHealthMax, _G.UnitAffectingCombat, _G.UnitDebuff	  
 	  
 local 	 InCombatLockdown, 	  CombatLogGetCurrentEventInfo = 
-	  _G.InCombatLockdown, _G.CombatLogGetCurrentEventInfo 
+	  _G.InCombatLockdown, _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
 
 local GetSpellTexture							= TMW.GetSpellTexture
 local GetSpellInfo								= _G.GetSpellInfo

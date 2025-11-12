@@ -72,7 +72,7 @@ local ALL_HEALS								= HealComm and HealComm.ALL_HEALS
 local CACHE_DEFAULT_TIMER_UNIT				= CONST.CACHE_DEFAULT_TIMER_UNIT
 
 local GameLocale 							= A.FormatGameLocale(_G.GetLocale())	  
-local CombatLogGetCurrentEventInfo			= _G.CombatLogGetCurrentEventInfo	  
+local CombatLogGetCurrentEventInfo			= _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
 local GetUnitSpeed							= _G.GetUnitSpeed
 local C_Spell								= _G.C_Spell
 local GetSpellName 							= C_Spell and C_Spell.GetSpellName or _G.GetSpellInfo
