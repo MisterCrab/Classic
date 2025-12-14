@@ -28,7 +28,7 @@ local A_GetSpellInfo, A_Player, A_Unit, A_CombatTracker, A_GetCurrentGCD, A_GetG
 
 Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "ADDON_LOADED", function(addonName)
 	if addonName == CONST.ADDON_NAME then 
-		A_GetSpellInfo							= A.GetSpellInfo
+		A_GetSpellInfo							= function(...) return A.GetSpellInfo(...) or "" end -- TODO
 		A_Player								= A.Player
 		A_Unit									= A.Unit
 		A_CombatTracker							= A.CombatTracker
@@ -59,7 +59,7 @@ local 	 InCombatLockdown, 	  CombatLogGetCurrentEventInfo =
 	  _G.InCombatLockdown, _G.CombatLogGetCurrentEventInfo or _G.C_CombatLog.GetCurrentEventInfo
 
 local GetSpellTexture							= TMW.GetSpellTexture
-local GetSpellInfo								= _G.GetSpellInfo
+local GetSpellInfo								= function(...) return _G.GetSpellInfo(...) or "" end -- TODO
 
 local  CreateFrame,    UIParent					= 
 	_G.CreateFrame, _G.UIParent	 
@@ -895,7 +895,7 @@ end
 --[[ This Logs the DR (Diminishing Returns) for enemy unit PvE dr or player ]]
 CombatTracker.logDR								= function(timestamp, EVENT, DestGUID, destFlags, spellID)
 	if isEnemy(destFlags) then 
-		local drCat = DRData:GetCategoryBySpellID(spellID) 
+		local drCat = DRData:GetCategoryBySpellID(spellID)
 		if drCat and (DRData:IsPvECategory(drCat) or isPlayer(destFlags)) then
 			local CombatTrackerDataGUID = CombatTrackerData[DestGUID]
 			if not CombatTrackerDataGUID.DR then 
@@ -1232,7 +1232,7 @@ local LossOfControl								= {
 		-- Frostbite
 		[GetSpellInfo(12494)]					= "ROOT",
 		-- Improved Hamstring
-		[GetSpellInfo(23694)]					= "ROOT",
+		[BuildToC < 50000 and GetSpellInfo(23694) or ""] = "ROOT",
 		-- Trap
 		[GetSpellInfo(8312)]					= "ROOT",
 		-- Mobility Malfunction
@@ -1268,7 +1268,7 @@ local LossOfControl								= {
 		-- Encasing Webs
 		[GetSpellInfo(4962)]					= "ROOT",
 		-- Counterattack
-		[GetSpellInfo(19306)]					= "ROOT",
+		[BuildToC < 50000 and GetSpellInfo(19306) or ""] = "ROOT",
 		
 		-- [[ SNARE ]]
 		-- Wing Clip
@@ -1370,13 +1370,13 @@ local LossOfControl								= {
 		-- Charge Stun
 		[GetSpellInfo(7922)]					= "STUN",
 		-- Intercept Stun
-		[GetSpellInfo(20253)]					= "STUN",
+		[BuildToC < 50000 and GetSpellInfo(20253) or ""] = "STUN",
 		-- Mace Stun Effect
 		[GetSpellInfo(5530)]					= "STUN",
 		-- Revenge Stun
 		[GetSpellInfo(12798)]					= "STUN",
 		-- Concussion Blow 
-		[GetSpellInfo(12809)]					= "STUN",
+		[BuildToC < 50000 and GetSpellInfo(12809) or ""] = "STUN",
 		-- Stun
 		[GetSpellInfo(56)]						= "STUN",
 		-- Tidal Charm 
@@ -1496,7 +1496,7 @@ local LossOfControl								= {
 		
 		-- [[ DISARM ]]
 		-- Riposte
-		[GetSpellInfo(14251)]					= "DISARM",
+		[BuildToC < 50000 and GetSpellInfo(14251) or ""]					= "DISARM",
 		-- Disarm
 		[GetSpellInfo(676)]						= "DISARM",		
 		-- Dropped Weapon
@@ -1556,7 +1556,7 @@ local LossOfControl								= {
 		-- Silence 
 		[GetSpellInfo(15487)]					= "SILENCE",
 		-- Kick - Silenced
-		[GetSpellInfo(18425)]					= "SILENCE",
+		[BuildToC < 50000 and GetSpellInfo(18425) or ""] = "SILENCE",
 		-- Shield Bash - Silenced
 		[GetSpellInfo(18498)]					= "SILENCE",
 		-- Spell Lock (Felhunter)
@@ -1612,7 +1612,7 @@ local LossOfControl								= {
 		-- Polymorph: Sheep
 		[GetSpellInfo(851)]						= "POLYMORPH",
 		-- Polymorph: Cow
-		[GetSpellInfo(28270)]					= "POLYMORPH",
+		[BuildToC < 20000 and GetSpellInfo(28270) or ""] = "POLYMORPH",
 		-- Polymorph: Turtle
 		[GetSpellInfo(28271)]					= "POLYMORPH",
 		-- Polymorph: Pig
@@ -1822,7 +1822,7 @@ local COMBAT_LOG_EVENT_UNFILTERED 				= function(...)
 	
 	-- Diminishing (DR-Tracker)
 	if CombatTrackerOnEventDR[EVENT] and (auraType == "DEBUFF" or a18 == "DEBUFF") then 
-		CombatTrackerOnEventDR[EVENT](timestamp, EVENT, DestGUID, destFlags, spellName)
+		CombatTrackerOnEventDR[EVENT](timestamp, EVENT, DestGUID, destFlags, spellID)
 	end 
 	
 	-- Loss of Control (Classic only)
@@ -1906,7 +1906,7 @@ Listener:Add("ACTION_EVENT_COMBAT_TRACKER", "PLAYER_REGEN_ENABLED", 				function
 	if A.Zone ~= "pvp" and not A.IsInDuel and not A_Player:IsStealthed() then 
 		wipe(UnitTrackerData)
 		wipe(CombatTrackerData)		
-	end  
+	end 
 	
 	local GUID = GetGUID("player")
 	CombatTracker:AddToData(GUID, TMW.time)
@@ -2459,15 +2459,19 @@ A.UnitCooldown 									= {
 		local inPvP 	 = inPvPArg 
 		local isFriendly = isFriendlyArg
 		
-		UnitTracker.isRegistered[spellName] = { isFriendly = isFriendly, inPvP = inPvP, Timer = timer, blackListCLEU = CLEUbl } 	
+		if spellName then
+			UnitTracker.isRegistered[spellName] = { isFriendly = isFriendly, inPvP = inPvP, Timer = timer, blackListCLEU = CLEUbl } 	
+		end
 	end,
 	UnRegister							= function(self, spellName)	
 		if type(spellName) == "number" then 
 			spellName = A_GetSpellInfo and A_GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		UnitTracker.isRegistered[spellName] = nil 
-		wipe(UnitTrackerData)
+		if spellName then
+			UnitTracker.isRegistered[spellName] = nil 
+			wipe(UnitTrackerData)
+		end
 	end,		
 	GetCooldown							= function(self, unit, spellName)		
 		-- @return number, number (remain cooldown time in seconds, start time stamp when spell was used and counter launched)
@@ -2475,29 +2479,31 @@ A.UnitCooldown 									= {
 			spellName = A_GetSpellInfo and A_GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "any" or unit == "enemy" or unit == "friendly" then 
-			for _, v in pairs(UnitTrackerData) do 
-				if v[spellName] and v[spellName].expire and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
-					return math_max(v[spellName].expire - TMW.time, 0), v[spellName].start
+		if spellName then
+			if unit == "any" or unit == "enemy" or unit == "friendly" then 
+				for _, v in pairs(UnitTrackerData) do 
+					if v[spellName] and v[spellName].expire and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
+						return math_max(v[spellName].expire - TMW.time, 0), v[spellName].start
+					end 
 				end 
-			end 
-		elseif unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
-				local unitID = unit .. i
-				local GUID = GetGUID(unitID)
-				if not GUID then 
-					if unit == "party" or i >= GetGroupMaxSize(unit) then  
-						break 
-					end   
-				elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
+			elseif unit == "arena" or unit == "raid" or unit == "party" then 
+				for i = 1, (unit == "party" and 4 or 40) do 
+					local unitID = unit .. i
+					local GUID = GetGUID(unitID)
+					if not GUID then 
+						if unit == "party" or i >= GetGroupMaxSize(unit) then  
+							break 
+						end   
+					elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
+						return math_max(UnitTrackerData[GUID][spellName].expire - TMW.time, 0), UnitTrackerData[GUID][spellName].start
+					end 				
+				end 
+			else 
+				local GUID = GetGUID(unit)
+				if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
 					return math_max(UnitTrackerData[GUID][spellName].expire - TMW.time, 0), UnitTrackerData[GUID][spellName].start
-				end 				
-			end 
-		else 
-			local GUID = GetGUID(unit)
-			if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
-				return math_max(UnitTrackerData[GUID][spellName].expire - TMW.time, 0), UnitTrackerData[GUID][spellName].start
-			end 	
+				end 	
+			end
 		end
 		return 0, 0
 	end,
@@ -2507,29 +2513,31 @@ A.UnitCooldown 									= {
 			spellName = A_GetSpellInfo and A_GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "any" or unit == "enemy" or unit == "friendly" then 
-			for _, v in pairs(UnitTrackerData) do 
-				if v[spellName] and v[spellName].expire and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
-					return math_max(v[spellName].expire - v[spellName].start, 0)
-				end 
-			end 
-		elseif unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
-				local unitID = unit .. i
-				local GUID = GetGUID(unitID)
-				if not GUID then 
-					if unit == "party" or i >= GetGroupMaxSize(unit) then   
-						break 
+		if spellName then
+			if unit == "any" or unit == "enemy" or unit == "friendly" then 
+				for _, v in pairs(UnitTrackerData) do 
+					if v[spellName] and v[spellName].expire and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
+						return math_max(v[spellName].expire - v[spellName].start, 0)
 					end 
-				elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
+				end 
+			elseif unit == "arena" or unit == "raid" or unit == "party" then 
+				for i = 1, (unit == "party" and 4 or 40) do 
+					local unitID = unit .. i
+					local GUID = GetGUID(unitID)
+					if not GUID then 
+						if unit == "party" or i >= GetGroupMaxSize(unit) then   
+							break 
+						end 
+					elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
+						return math_max(UnitTrackerData[GUID][spellName].expire - UnitTrackerData[GUID][spellName].start, 0)
+					end 				
+				end 
+			else 
+				local GUID = GetGUID(unit)
+				if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
 					return math_max(UnitTrackerData[GUID][spellName].expire - UnitTrackerData[GUID][spellName].start, 0)
-				end 				
-			end 
-		else 
-			local GUID = GetGUID(unit)
-			if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire then 
-				return math_max(UnitTrackerData[GUID][spellName].expire - UnitTrackerData[GUID][spellName].start, 0)
-			end 
+				end 
+			end
 		end
 		return 0		
 	end,
@@ -2539,49 +2547,51 @@ A.UnitCooldown 									= {
 			spellName = A_GetSpellInfo and A_GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "any" or unit == "enemy" or unit == "friendly" then 
-			for GUID, v in pairs(UnitTrackerData) do 
-				if v[spellName] and v[spellName].expire and v[spellName].expire - TMW.time >= 0 and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
-					if unit == "any" or unit == "enemy" then 
-						if A.Zone ~= "pvp" then 							
-							if ActiveNameplates then 
-								for unitID in pairs(ActiveNameplates) do 
-									if GUID == UnitGUID(unitID) then -- Not GetGUID(unitID) because it will never be Base members
-										return unitID
+		if spellName then
+			if unit == "any" or unit == "enemy" or unit == "friendly" then 
+				for GUID, v in pairs(UnitTrackerData) do 
+					if v[spellName] and v[spellName].expire and v[spellName].expire - TMW.time >= 0 and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
+						if unit == "any" or unit == "enemy" then 
+							if A.Zone ~= "pvp" then 							
+								if ActiveNameplates then 
+									for unitID in pairs(ActiveNameplates) do 
+										if GUID == UnitGUID(unitID) then -- Not GetGUID(unitID) because it will never be Base members
+											return unitID
+										end 
+									end 
+								end 
+							else
+								for i = 1, TeamCacheEnemy.MaxSize do 
+									if TeamCacheEnemyIndexToPLAYERs[i] and GUID == TeamCacheEnemyUNITs[TeamCacheEnemyIndexToPLAYERs[i]] then 
+										return TeamCacheEnemyIndexToPLAYERs[i]
 									end 
 								end 
 							end 
-						else
-							for i = 1, TeamCacheEnemy.MaxSize do 
-								if TeamCacheEnemyIndexToPLAYERs[i] and GUID == TeamCacheEnemyUNITs[TeamCacheEnemyIndexToPLAYERs[i]] then 
-									return TeamCacheEnemyIndexToPLAYERs[i]
-								end 
-							end 
 						end 
-					end 
-					
-					if (unit == "any" or unit == "friendly") and TeamCacheFriendly.Type then 
-						for i = 1, TeamCacheFriendly.MaxSize do 
-							if TeamCacheFriendlyIndexToPLAYERs[i] and GUID == TeamCacheFriendlyUNITs[TeamCacheFriendlyIndexToPLAYERs[i]] then 
-								return TeamCacheFriendlyIndexToPLAYERs[i]
+						
+						if (unit == "any" or unit == "friendly") and TeamCacheFriendly.Type then 
+							for i = 1, TeamCacheFriendly.MaxSize do 
+								if TeamCacheFriendlyIndexToPLAYERs[i] and GUID == TeamCacheFriendlyUNITs[TeamCacheFriendlyIndexToPLAYERs[i]] then 
+									return TeamCacheFriendlyIndexToPLAYERs[i]
+								end 
 							end 
 						end 
 					end 
 				end 
+			elseif unit == "arena" or unit == "raid" or unit == "party" then 
+				for i = 1, (unit == "party" and 4 or 40) do 
+					local unitID = unit .. i
+					local GUID = GetGUID(unitID)
+					if not GUID then 
+						if unit == "party" or i >= GetGroupMaxSize(unit) then   
+							break 
+						end  
+					elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire and UnitTrackerData[GUID][spellName].expire - TMW.time >= 0 then 
+						return unitID
+					end
+				end 
 			end 
-		elseif unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
-				local unitID = unit .. i
-				local GUID = GetGUID(unitID)
-				if not GUID then 
-					if unit == "party" or i >= GetGroupMaxSize(unit) then   
-						break 
-					end  
-				elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].expire and UnitTrackerData[GUID][spellName].expire - TMW.time >= 0 then 
-					return unitID
-				end
-			end 
-		end 
+		end
 	end,
 	--[[ Mage Shrimmer/Blink Tracker (only enemy) ]]
 	GetBlinkOrShrimmer					= function(self, unit)
@@ -2674,49 +2684,54 @@ A.UnitCooldown 									= {
 			spellName = A_GetSpellInfo and A_GetSpellInfo(spellName) or GetSpellInfo(spellName)
 		end 
 		
-		if unit == "any" or unit == "enemy" or unit == "friendly" then 
-			for _, v in pairs(UnitTrackerData) do 
-				if v[spellName] and v[spellName].isFlying and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
-					if TMW.time - v[spellName].start > UnitTrackerMaxResetFlyingTimer then 
-						v[spellName].isFlying = false 
+		if spellName then
+			if unit == "any" or unit == "enemy" or unit == "friendly" then 
+				for _, v in pairs(UnitTrackerData) do 
+					if v[spellName] and v[spellName].isFlying and (unit == "any" or (unit == "enemy" and v[spellName].enemy) or (unit == "friendly" and not v[spellName].enemy)) then 
+						if TMW.time - v[spellName].start > UnitTrackerMaxResetFlyingTimer then 
+							v[spellName].isFlying = false 
+						end 
+						return v[spellName].isFlying
 					end 
-					return v[spellName].isFlying
+				end 
+			elseif unit == "arena" or unit == "raid" or unit == "party" then 
+				for i = 1, (unit == "party" and 4 or 40) do 
+					local unitID = unit .. i
+					local GUID = GetGUID(unitID)
+					if not GUID then 
+						if unit == "party" or i >= GetGroupMaxSize(unit) then   
+							break 
+						end   
+					elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].isFlying then 
+						if TMW.time - UnitTrackerData[GUID][spellName].start > UnitTrackerMaxResetFlyingTimer then 
+							UnitTrackerData[GUID][spellName].isFlying = false 
+						end 
+						return UnitTrackerData[GUID][spellName].isFlying
+					end 				
+				end 
+			else 
+				local GUID = GetGUID(unit)
+				if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] then 
+					if UnitTrackerData[GUID][spellName].isFlying then 
+						if TMW.time - UnitTrackerData[GUID][spellName].start > UnitTrackerMaxResetFlyingTimer then 
+							UnitTrackerData[GUID][spellName].isFlying = false 
+						end 
+						return UnitTrackerData[GUID][spellName].isFlying
+					--elseif TMW.time - UnitTrackerData[GUID][spellName].start < 0.2 then 
+						-- CLEU reser earlier than UNIT_SPELLCAST_SUCCEEDED and UNIT_SPELLCAST_SUCCEEDED fires after CLEU one more time 
+						--return true 
+					end 
 				end 
 			end 
-		elseif unit == "arena" or unit == "raid" or unit == "party" then 
-			for i = 1, (unit == "party" and 4 or 40) do 
-				local unitID = unit .. i
-				local GUID = GetGUID(unitID)
-				if not GUID then 
-					if unit == "party" or i >= GetGroupMaxSize(unit) then   
-						break 
-					end   
-				elseif UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] and UnitTrackerData[GUID][spellName].isFlying then 
-					if TMW.time - UnitTrackerData[GUID][spellName].start > UnitTrackerMaxResetFlyingTimer then 
-						UnitTrackerData[GUID][spellName].isFlying = false 
-					end 
-					return UnitTrackerData[GUID][spellName].isFlying
-				end 				
-			end 
-		else 
-			local GUID = GetGUID(unit)
-			if GUID and UnitTrackerData[GUID] and UnitTrackerData[GUID][spellName] then 
-				if UnitTrackerData[GUID][spellName].isFlying then 
-					if TMW.time - UnitTrackerData[GUID][spellName].start > UnitTrackerMaxResetFlyingTimer then 
-						UnitTrackerData[GUID][spellName].isFlying = false 
-					end 
-					return UnitTrackerData[GUID][spellName].isFlying
-				--elseif TMW.time - UnitTrackerData[GUID][spellName].start < 0.2 then 
-					-- CLEU reser earlier than UNIT_SPELLCAST_SUCCEEDED and UNIT_SPELLCAST_SUCCEEDED fires after CLEU one more time 
-					--return true 
-				end 
-			end 
-		end 
+		end
 	end,
 }
  
 -- Tracks Freezing Trap 
-A.UnitCooldown:Register(CONST.SPELLID_FREEZING_TRAP, 15)
+A.UnitCooldown:Register(CONST.SPELLID_FREEZING_TRAP, 30)
+A.UnitCooldown:Register(CONST.SPELLID_FREEZING_TRAP2, 30)
+-- Tracks Counter Shot (it's fly able spell and can be avoided by stopcasting)
+A.UnitCooldown:Register("arena", CONST.SPELLID_COUNTER_SHOT,  24, false, true, nil, true)
 
 -------------------------------------------------------------------------------
 -- API: LossOfControl

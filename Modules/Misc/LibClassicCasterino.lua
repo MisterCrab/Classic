@@ -9,7 +9,9 @@
 
 local _G, next, pairs			= _G, next, pairs
 
-local LibClassicCasterino 		= _G.LibStub("LibClassicCasterino")
+local LibClassicCasterino 		= _G.LibStub("LibClassicCasterino", true)
+if not LibClassicCasterino then return end
+
 local f 						= LibClassicCasterino.frame
 local callbacks 				= LibClassicCasterino.callbacks
 local casters 					= LibClassicCasterino.casters

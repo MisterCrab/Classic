@@ -3,10 +3,7 @@
 -- These tweakes supposed to fix some of them 
 -------------------------------------------------------------------------------------
 local HealComm = LibStub("LibHealComm-4.0", true)
-
-if not HealComm then 
-	return 
-end 
+if not HealComm then return end 
 
 local _G, ipairs, pairs, math	= _G, ipairs, pairs, math
 local bit						= _G.bit 
@@ -42,48 +39,6 @@ local function GetGUID(unitID)
 	return (unitID and TeamCacheFriendlyUNITs[unitID]) or UnitGUID(unitID)
 end 
 
-local function filterData(spells, filterGUID, bitFlag, time, ignoreGUID)
-	local healAmount = 0
-	local currentTime = TMW.time
-
-	if spells then
-		for _, pending in pairs(spells) do
-			if( pending.bitType and band(pending.bitType, bitFlag) > 0 ) then
-				for i = 1, #(pending), 5 do
-					local guid = pending[i]
-					if( guid == filterGUID or ignoreGUID ) then
-						local amount = pending[i + 1]
-						local stack = pending[i + 2]
-						local endTime = pending[i + 3]
-						endTime = endTime > 0 and endTime or pending.endTime
-
-						if( ( pending.bitType == DIRECT_HEALS or pending.bitType == BOMB_HEALS ) and ( not time or endTime <= time ) ) then
-							healAmount = healAmount + amount * stack
-						elseif( ( pending.bitType == CHANNEL_HEALS or pending.bitType == HOT_HEALS ) and endTime > currentTime ) then
-							local ticksLeft = pending[i + 4]
-							if( not time or time >= endTime ) then
-								healAmount = healAmount + (amount * stack) * ticksLeft
-							else
-								local secondsLeft = endTime - currentTime
-								local bandSeconds = time - currentTime
-								local ticks = math_floor(math_min(bandSeconds, secondsLeft) / pending.tickInterval)
-								local nextTickIn = secondsLeft % pending.tickInterval
-								local fractionalBand = bandSeconds % pending.tickInterval
-								if( nextTickIn > 0 and nextTickIn < fractionalBand ) then
-									ticks = ticks + 1
-								end
-
-								healAmount = healAmount + (amount * stack) * math_min(ticks, ticksLeft)
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-
-	return healAmount
-end
 local function filterData(spells, filterGUID, bitFlag, time, ignoreGUID)
 	local healAmount = 0
 	local currentTime = TMW.time

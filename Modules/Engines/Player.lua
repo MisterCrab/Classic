@@ -52,11 +52,18 @@ local C_Item					= _G.C_Item
 local InCombatLockdown			= _G.InCombatLockdown  
 local issecure					= _G.issecure
 
-local 	 UnitLevel,    UnitPower, 	 UnitPowerMax, 	  UnitStagger, 	  UnitAttackSpeed, 	  UnitRangedDamage,    UnitDamage, 	  UnitGUID,   UnitAura =
-	  _G.UnitLevel, _G.UnitPower, _G.UnitPowerMax, _G.UnitStagger, _G.UnitAttackSpeed, _G.UnitRangedDamage, _G.UnitDamage, _G.UnitGUID, A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local 	 UnitLevel,    UnitPower, 	 UnitPowerMax, 	  UnitStagger, 	  UnitAttackSpeed, 	  UnitRangedDamage,    UnitDamage, 	  UnitGUID,     UnitAura =
+	  _G.UnitLevel, _G.UnitPower, _G.UnitPowerMax, _G.UnitStagger, _G.UnitAttackSpeed, _G.UnitRangedDamage, _G.UnitDamage, _G.UnitGUID,  _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+-- Classic - TBC
+if BuildToC < 30000 then
+	UnitAura = A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+end
 
-local 	 GetPowerRegen,    GetShapeshiftForm, 	 GetCritChance,    GetHaste, 	GetComboPoints =
-	  _G.GetPowerRegen, _G.GetShapeshiftForm, _G.GetCritChance, _G.GetHaste, _G.GetComboPoints
+local	 GetPowerRegen,    GetRuneCooldown,	   GetRuneType,    GetShapeshiftForm, 	 GetCritChance,    GetHaste, 	GetMasteryEffect, 	 GetVersatilityBonus, 	 GetCombatRatingBonus, 	  GetComboPoints =
+	  _G.GetPowerRegen, _G.GetRuneCooldown, _G.GetRuneType, _G.GetShapeshiftForm, _G.GetCritChance, _G.GetHaste, _G.GetMasteryEffect, _G.GetVersatilityBonus, _G.GetCombatRatingBonus, _G.GetComboPoints 
+	  
+local 	GetTotemInfo, 	 GetTotemTimeLeft =
+	 _G.GetTotemInfo, _G.GetTotemTimeLeft	  
 	  
 local 	 IsEquippedItem, 	IsStealthed, 	IsMounted, 	  IsFalling, 	IsSwimming,    IsSubmerged = 	  
 	  _G.IsEquippedItem, _G.IsStealthed, _G.IsMounted, _G.IsFalling, _G.IsSwimming, _G.IsSubmerged
@@ -73,17 +80,6 @@ local 	 GetContainerNumSlots, 	  									  GetContainerItemID, 	 								   Get
 local C_SpecializationInfo 		= _G.C_SpecializationInfo
 local  																		   GetActiveTalentGroup,	GetGlyphSocketInfo,	   GetNumGlyphSockets = 
 		C_SpecializationInfo and C_SpecializationInfo.GetActiveSpecGroup or _G.GetActiveTalentGroup, _G.GetGlyphSocketInfo, _G.GetNumGlyphSockets
-	
--- Classic GetTotemInfo
-local gameVersion				= toNum[select(2, _G.GetBuildInfo())]
-local GetTotemInfo, GetTotemTimeLeft
-if gameVersion <= 11303 then 
-	GetTotemInfo 				= LibStub("LibTotemInfo-1.0").GetTotemInfo	  
-	GetTotemTimeLeft			= LibStub("LibTotemInfo-1.0").GetTotemTimeLeft	  
-else 
-	GetTotemInfo				= _G.GetTotemInfo
-	GetTotemTimeLeft			= _G.GetTotemTimeLeft
-end 
 	  	  	  
 -------------------------------------------------------------------------------
 -- Remap
@@ -733,21 +729,14 @@ function Player:HasGlyph(spell)
 	return DataGlyphs[spell]
 end 
 
--- Classic: Totems 
+-- totems 
 function Player:GetTotemInfo(i)
-	-- @return: haveTotem, totemName, startTime, duration, icon, spellid, rank = GetTotemInfo(1 through 4)
-	-- <https://wow.gamepedia.com/API_GetTotemInfo>
-	-- Added return value by the lib (not in Blizzard old interface):
-	--     spellid - int, the totem's spell id.
-	--     rank    - int (1 to 8) or nil, the rank of the totem spell.
-	--               nil indicates that there is no rank for this totem.
-	-- These return values are valid until 1.13.4 game version, after it uses default API
+	-- @return: haveTotem, totemName, startTime, duration, icon
 	return GetTotemInfo(i)
 end 
 
 function Player:GetTotemTimeLeft(i)
-	-- @return: number (timeLeft = GetTotemTimeLeft(1 through 4))
-	-- Example: <https://github.com/SwimmingTiger/LibTotemInfo/issues/2>
+	-- @return: number
 	return GetTotemTimeLeft(i)
 end 
 
@@ -1535,6 +1524,34 @@ function Player:ComboPointsDeficit(unitID)
 	return self:ComboPointsMax(unitID) - self:ComboPoints(unitID)
 end
 
+---------------------------------
+--- 5 | Runic Power Functions ---
+---------------------------------
+-- runicpower.max
+function Player:RunicPowerMax()
+	return UnitPowerMax(self.UnitID, RunicPowerPowerType)
+end
+
+-- runicpower
+function Player:RunicPower()
+	return UnitPower(self.UnitID, RunicPowerPowerType)
+end
+
+-- runicpower.pct
+function Player:RunicPowerPercentage()
+	return (self:RunicPower() / self:RunicPowerMax()) * 100
+end
+
+-- runicpower.deficit
+function Player:RunicPowerDeficit()
+	return self:RunicPowerMax() - self:RunicPower()
+end
+
+-- "runicpower.deficit.pct"
+function Player:RunicPowerDeficitPercentage()
+	return (self:RunicPowerDeficit() / self:RunicPowerMax()) * 100
+end
+
 ---------------------------
 --- 6 | Runes Functions ---
 ---------------------------
@@ -1895,6 +1912,8 @@ Player.PredictedResourceMap = {
 	[4] = function() return Player:ComboPoints() end,
 	-- Runes
 	[5] = function() return Player:Runes() end,
+	-- Runic Power
+	[6] = function() return Player:RunicPower() end,
 	-- Soul Shards
 	[7] = function() return Player:SoulShardsP() end,
 	-- Astral Power

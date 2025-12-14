@@ -22,6 +22,7 @@ local DetermineUsableObject							= A.DetermineUsableObject
 local Re 											= A.Re
 local BossMods										= A.BossMods
 local IsUnitEnemy									= A.IsUnitEnemy
+local UnitCooldown									= A.UnitCooldown
 local Unit											= A.Unit 
 local Player										= A.Player 
 local LoC 											= A.LossOfControl
@@ -38,8 +39,10 @@ local CONST_PAUSECHECKS_IS_EAT_OR_DRINK 			= CONST.PAUSECHECKS_IS_EAT_OR_DRINK
 local CONST_AUTOTARGET 								= CONST.AUTOTARGET
 local CONST_AUTOSHOOT 								= CONST.AUTOSHOOT
 local CONST_AUTOATTACK 								= CONST.AUTOATTACK
+local CONST_STOPCAST 								= CONST.STOPCAST
 local CONST_LEFT 									= CONST.LEFT
 local CONST_RIGHT									= CONST.RIGHT
+local CONST_SPELLID_COUNTER_SHOT					= CONST.SPELLID_COUNTER_SHOT
 
 local Pet											= _G.LibStub("PetLibrary")
 local UnitBuff										= _G.UnitBuff
@@ -65,7 +68,9 @@ local ClassPortaits 								= {
 	["SHAMAN"]	 									= CONST.PORTRAIT_SHAMAN, 		-- Custom because it making conflict with Bloodlust
 	["MAGE"] 										= CONST.PORTRAIT_MAGE,
 	["WARLOCK"] 									= CONST.PORTRAIT_WARLOCK,
+	["MONK"]                                        = CONST.PORTRAIT_MONK,
 	["DRUID"] 										= CONST.PORTRAIT_DRUID,
+	["DEATHKNIGHT"] 								= CONST.PORTRAIT_DEATHKNIGHT,
 }
 
 local GetKeyByRace 									= {
@@ -90,7 +95,7 @@ local targettarget									= "targettarget"
 -- Conditions
 -------------------------------------------------------------------------------
 local FoodAndDrink 									= {	
-	[GetSpellName(587)] 							= true, -- Conjure Food 
+	[GetSpellName(587) or ""]						= true, -- Conjure Food 
 	[GetSpellName(18233)] 							= true,	-- Food
 	[GetSpellName(1131) or ""] 						= true,	-- Food
 	[GetSpellName(22734)] 							= true, -- Drink
@@ -107,7 +112,8 @@ local FoodAndDrink 									= {
 	[GetSpellName(26263)] 							= true,	-- Dim Sum (doesn't triggers Food and Drink)
 	[GetSpellName(26030)] 							= true,	-- Windblossom Berries (doesn't triggers Food and Drink)
 	[GetSpellName(25691)] 							= true, -- Brain Food (unknown what does it exactly trigger)
-	[GetSpellName(30020)] 							= true,	-- First Aid
+	[GetSpellName(746) or ""] 						= true,	-- First Aid
+	[GetSpellName(30020) or ""]						= true,	-- First Aid
 }
 local FoodAndDrinkBlacklist 						= {
 	[GetSpellName(396092) or ""]					= true, -- Well Fed
@@ -132,8 +138,8 @@ local function PauseChecks()
 	
 	if GetToggle(1, "CheckVehicle") and Unit(player):InVehicle() then
         return CONST_PAUSECHECKS_DISABLED
-    end		
-	
+    end	
+		
 	if 	(GetToggle(1, "CheckDeadOrGhost") and Unit(player):IsDead()) or 
 		(
 			GetToggle(1, "CheckDeadOrGhostTarget") and 
@@ -180,6 +186,8 @@ local Temp = {
 }
 local TempLivingActionPotionIsMissed = Temp.LivingActionPotionIsMissed
 
+local TotalAndKickImun		= {"TotalImun", "KickImun"}
+
 -------------------------------------------------------------------------------
 -- API
 -------------------------------------------------------------------------------
@@ -188,6 +196,11 @@ A.Trinket1 							= Create({ Type = "TrinketBySlot", 		ID = CONST.INVSLOT_TRINKE
 A.Trinket2 							= Create({ Type = "TrinketBySlot", 		ID = CONST.INVSLOT_TRINKET2, 					BlockForbidden = true, Desc = "Lower Trinket (/use 14)" 													})
 A.Shoot								= Create({ Type = "Spell", 				ID = 5019, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Wand" 								})
 A.AutoShot							= Create({ Type = "Spell", 				ID = 75, 										QueueForbidden = true, BlockForbidden = true, Hidden = true,  Desc = "Hunter's shoot" 						})
+if BuildToC >= 30000 then
+	A.HSFel1							= Create({ Type = "Item", 				ID = 36894, 									QueueForbidden = true, Desc = "[6] HealthStone" 														})
+	A.HSFel2							= Create({ Type = "Item", 				ID = 36893, 									QueueForbidden = true, Desc = "[6] HealthStone" 														})
+	A.HSFel3							= Create({ Type = "Item", 				ID = 36894, 									QueueForbidden = true, Desc = "[6] HealthStone" 														})
+end
 A.HSGreater1						= Create({ Type = "Item", 				ID = 5510, 										QueueForbidden = true, Desc = "[6] HealthStone" 															})
 A.HSGreater2						= Create({ Type = "Item", 				ID = 19010, 									QueueForbidden = true, Desc = "[6] HealthStone" 															})
 A.HSGreater3						= Create({ Type = "Item", 				ID = 19011, 									QueueForbidden = true, Desc = "[6] HealthStone" 															})
@@ -303,7 +316,7 @@ end
 function A.CanUseHealingPotion(icon)
 	-- @return boolean or nil
 	local Healthstone = GetToggle(1, "HealthStone")  
-	if Healthstone >= 0 then 
+	if Healthstone >= 0 and (BuildToC < 110000 or A.ZoneID ~= 1684 or Unit(player):HasDeBuffs(320102) == 0) then -- Retail: Theater of Pain zone excluding "Blood and Glory" debuff 
 		local healthPotion = DetermineUsableObject(player, true, nil, nil, nil, A.MajorHealingPotion, A.SuperiorHealingPotion, A.GreaterHealingPotion, A.HealingPotion, A.LesserHealingPotion, A.MinorHealingPotion)
 		if healthPotion then 
 			if Healthstone >= 100 then -- AUTO 
@@ -443,6 +456,20 @@ function A.Rotation(icon)
 			return APL.Shadowmeld:Show(icon)
 		end 
 		
+		-- Stopcasting
+		if GetToggle(1, "StopCast") then 
+			local _, castLeft, _, _, castName, notInterruptable = Unit(player):CastTime() 
+			if castName then 
+				-- Catch Counter Shot 
+				if A.IsInPvP and not notInterruptable and UnitCooldown:GetCooldown("arena", CONST_SPELLID_COUNTER_SHOT) > UnitCooldown:GetMaxDuration("arena", CONST_SPELLID_COUNTER_SHOT) - 1 and UnitCooldown:IsSpellInFly("arena", CONST_SPELLID_COUNTER_SHOT) then 
+					local Caster = UnitCooldown:GetUnitID("arena", CONST_SPELLID_COUNTER_SHOT)
+					if Caster and Unit(Caster):GetRange() <= 40 and Unit(player):HasBuffs(TotalAndKickImun) == 0 then 
+						return A:Show(icon, CONST_STOPCAST)
+					end 
+				end 
+			end 
+		end 		
+		
 		-- Cursor 
 		if A.GameTooltipClick and not IsMouseButtonDown("LeftButton") and not IsMouseButtonDown("RightButton") then 			
 			if A.GameTooltipClick == "LEFT" then 
@@ -452,9 +479,15 @@ function A.Rotation(icon)
 			end 
 		end 
 		
-		-- ReTarget 
-		if A.Zone == "pvp" and (A:GetTimeSinceJoinInstance() >= 30 or Unit(player):CombatTime() > 0) and Re:CanTarget(icon) then  
-			return true
+		-- ReTarget ReFocus 
+		if (A.Zone == "arena" or A.Zone == "pvp") and (A:GetTimeSinceJoinInstance() >= 30 or Unit(player):CombatTime() > 0) then 
+			if Re:CanTarget(icon) then 
+				return true
+			end 
+			
+			if Re:CanFocus(icon) then 
+				return true
+			end
 		end 
 		
 		-- Healthstone | WhipperRootTuber
@@ -528,7 +561,7 @@ function A.Rotation(icon)
 		end 
 	end 
 	
-	-- [3] Single / [4] AoE / [6-10] Passive: @player-party1-3, @raid1-3, @arena1-3 + Active: other AntiFakes
+	-- [3] Single / [4] AoE / [6-10] Passive: @player-party1-4, @raid1-5, @arena1-5 + Active: other AntiFakes
 	if metaobj(icon) then 
 		if meta == 3 then SetMetaAlpha(meta, 1) end
 		return true 

@@ -11,7 +11,7 @@ local math_floor				= math.floor
 local math_max					= math.max
 local strbyte					= _G.strbyte
 local strchar					= _G.strchar
-local message					= _G.message
+local message					= _G.message or _G.SetBasicMessageDialogText
 local wipe						= _G.wipe
 local hooksecurefunc			= _G.hooksecurefunc
 
@@ -21,8 +21,9 @@ local CONST 					= A.Const
 local ActionTimers 				= A.Data.T
 local GetToggle					= A.GetToggle
 local GetMouseFocus				= A.GetMouseFocus
+local BuildToC 					= A.BuildToC
 	  
-local Timer						= _G.C_Timer 
+local Timer						= _G.C_Timer
 local C_AddOns					= _G.C_AddOns
 local GetNumAddOns	 			= C_AddOns and C_AddOns.GetNumAddOns or _G.GetNumAddOns
 local IsAddOnLoaded 			= C_AddOns and C_AddOns.IsAddOnLoaded or _G.IsAddOnLoaded
@@ -32,11 +33,6 @@ local CreateFrame 				= _G.CreateFrame
 local UnitGUID 					= _G.UnitGUID
 	  
 local CACHE_DEFAULT_TIMER		= CONST.CACHE_DEFAULT_TIMER	  
-
-if type(message) ~= "function" then 
-	_G.message 	= print 
-	message		= print 
-end 
 
 -------------------------------------------------------------------------------
 -- Listener

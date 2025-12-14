@@ -7,7 +7,7 @@ Description: Provides information about spell lock status after successful inter
 --]================]
 
 
-local MAJOR, MINOR = "LibSpellLocks", 7777.1111 -- 7.1
+local MAJOR, MINOR = "LibSpellLocks", 7.1 -- 7 is actual release, this is hotfixed version
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -81,23 +81,6 @@ if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 
     -- Trial of Crusader Champions
     -- Interrupt(65973, "Earth Shock", 3)
-elseif WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC then --temp fix until original lib is updated
-    ----------------------------
-    -- CATA CLASSIC
-    ----------------------------
-    Interrupt(19647, "Spell Lock", 3) 
-    Interrupt(57994, "Wind Shear", 2)
-    Interrupt(80964, "Skull Bash(Bear Form)", 4)
-    Interrupt(80965, "Skull Bash(Cat Form)", 4)
-    Interrupt(78675, "Solar Beam", 10)
-    Interrupt(34490, "Silencing Shot", 3)
-    Interrupt(2139, "Counterspell", 7)
-    Interrupt(15487, "Silence", 5)
-    Interrupt(1766, "Kick", 5)
-    Interrupt(6552, "Pummel", 4)
-    Interrupt(96231, "Rebuke", 4)
-    Interrupt(47528, "Mind Freeze", 4)
-    Interrupt(91802, "Shambling Rush", 2) 
 
 elseif WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC then 
     ----------------------------
@@ -142,6 +125,25 @@ elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
     --SoD
     Interrupt(425609, "Rebuke", 2)
     Interrupt(410176, "Skull Bash", 2)
+	
+else --temp fix until original lib is updated
+    ----------------------------
+    -- CATA & MOP CLASSIC
+    ----------------------------
+    Interrupt(19647, "Spell Lock", 3) 
+    Interrupt(57994, "Wind Shear", 2)
+    Interrupt(80964, "Skull Bash(Bear Form)", 4)
+    Interrupt(80965, "Skull Bash(Cat Form)", 4)
+    Interrupt(78675, "Solar Beam", 10)
+    Interrupt(34490, "Silencing Shot", 3)
+    Interrupt(2139, "Counterspell", 7)
+    Interrupt(15487, "Silence", 5)
+    Interrupt(1766, "Kick", 5)
+    Interrupt(6552, "Pummel", 4)
+    Interrupt(96231, "Rebuke", 4)
+    Interrupt(47528, "Mind Freeze", 4)
+    Interrupt(91802, "Shambling Rush", 2) 	
+	
 end
 
 

@@ -252,7 +252,7 @@ function frame:SetColor(unitID)
 		self.unit = unit
 		self.mode = isFocusHealing
 		TMW:Fire("TMW_ACTION_METAENGINE_UPDATE", "HealingEngine", isFocusHealing and "focus" or "target", unit)
-	end 	
+	end 
 end; frame:SetColor()
 
 local function sort_high(x, y)			-- TODO: Remove (old profiles)
@@ -842,6 +842,7 @@ local function SetHealingTarget()
 end
 
 local function SetColorTarget()
+	-- If we have no one to heal or we have already selected unit that need to heal
 	isFocusHealing = (BuildToC >= 20000 and not SelectStopOptions[1] and not SelectStopOptions[2] and not SelectStopOptions[3] and not SelectStopOptions[4] and not SelectStopOptions[5] and not SelectStopOptions[6])
 	-- If we have no one to heal or we have already selected unit that need to heal	
 	if 	healingTarget == none or healingTargetGUID == none or 
@@ -849,7 +850,7 @@ local function SetColorTarget()
 		(not isFocusHealing and healingTargetGUID == UnitGUID(target)) or 
 		-- /focus mode
 		(isFocusHealing and healingTargetGUID == UnitGUID(focus))
-	then			
+	then
 		return frame:SetColor(none)
 	end	
 	

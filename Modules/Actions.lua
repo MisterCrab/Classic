@@ -121,7 +121,7 @@ local Spell					= _G.Spell
 local C_SpellBook			= _G.C_SpellBook
 
 local                                         IsUsableSpell,                                          IsHelpfulSpell,                                          IsHarmfulSpell,                                             IsAttackSpell,                                          IsCurrentSpell,             IsSpellKnown =
-	  C_Spell and C_Spell.IsSpellUsable or _G.IsUsableSpell, C_Spell and C_Spell.IsSpellHelpful or _G.IsHelpfulSpell, C_Spell and C_Spell.IsSpellHarmful or _G.IsHarmfulSpell, C_Spell and C_Spell.IsAutoAttackSpell or _G.IsAttackSpell, C_Spell and C_Spell.IsCurrentSpell or _G.IsCurrentSpell, C_SpellBook.IsSpellKnown	  
+	  C_Spell and C_Spell.IsSpellUsable or _G.IsUsableSpell, C_Spell and C_Spell.IsSpellHelpful or _G.IsHelpfulSpell, C_Spell and C_Spell.IsSpellHarmful or _G.IsHarmfulSpell, C_Spell and C_Spell.IsAutoAttackSpell or _G.IsAttackSpell, C_Spell and C_Spell.IsCurrentSpell or _G.IsCurrentSpell, C_SpellBook.IsSpellKnown	
 
 local IsPlayerSpell 				= _G.IsPlayerSpell or function(spellID)
 	return IsSpellKnown(spellID, SpellBookSpellBankPlayer)
@@ -146,7 +146,12 @@ local GetSpellBookItemName			= _G.GetSpellBookItemName or C_SpellBook.GetSpellBo
 local FindSpellBookSlotBySpellID 	= _G.FindSpellBookSlotBySpellID
 
 -- Unit 	  
-local UnitAura						= A.UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+local UnitAura						= _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
+-- Classic: UnitAura override through LibClassicDurations. Only for buffs on other units because debuffs are available since 1.15.
+if BuildToC < 20000 then
+	UnitAura						= A.UnitAura or TMW.UnitAura or UnitAura
+end
+
 local 	 UnitIsUnit, 	UnitGUID	= 
 	  _G.UnitIsUnit, _G.UnitGUID 
 
@@ -794,24 +799,6 @@ A.IsSpellLearned = A.IsTalentLearned
 -- Racial (template)
 -------------------------------------------------------------------------------	 
 local Racial = {
-	GetRaceBySpellName 										= {
-		-- Perception 
-		[Spell:CreateFromSpellID(20600):GetSpellName()] 	= "Human",
-		-- Shadowmeld
-		[Spell:CreateFromSpellID(20580):GetSpellName()] 	= "NightElf",
-		-- EscapeArtist
-		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
-		-- Stoneform
-		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
-		-- WilloftheForsaken
-		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
-		-- Berserking
-		[Spell:CreateFromSpellID(20554):GetSpellName()] 	= "Troll",
-		-- WarStomp
-		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
-		-- BloodFury
-		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
-	},
 	Temp													= {
 		TotalAndMagic 										= {"TotalImun", "DamageMagicImun"},
 		TotalAndPhysAndCC									= {"TotalImun", "DamagePhysImun", "CCTotalImun"},
@@ -904,6 +891,84 @@ local Racial = {
 		return true 		
 	end, 
 }
+if BuildToC >= 40000 then
+	-- CATA+ (valid for MOP)
+	Racial.GetRaceBySpellName = {
+		-- Perception 
+		[Spell:CreateFromSpellID(59752):GetSpellName()] 	= "Human",
+		-- Shadowmeld
+		[Spell:CreateFromSpellID(58984):GetSpellName()] 	= "NightElf",
+		-- EscapeArtist
+		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
+		-- Stoneform
+		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
+		-- WilloftheForsaken
+		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
+		-- Berserking
+		[Spell:CreateFromSpellID(26297):GetSpellName()] 	= "Troll",
+		-- WarStomp
+		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
+		-- BloodFury
+		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
+	}
+elseif BuildToC >= 30000 then
+	Racial.GetRaceBySpellName = {
+		-- Perception 
+		[Spell:CreateFromSpellID(20600):GetSpellName()] 	= "Human",
+		-- Shadowmeld
+		[Spell:CreateFromSpellID(58984):GetSpellName()] 	= "NightElf",
+		-- EscapeArtist
+		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
+		-- Stoneform
+		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
+		-- WilloftheForsaken
+		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
+		-- Berserking
+		[Spell:CreateFromSpellID(26297):GetSpellName()] 	= "Troll",
+		-- WarStomp
+		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
+		-- BloodFury
+		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
+	}
+elseif BuildToC >= 20000 then
+	Racial.GetRaceBySpellName = {
+		-- Perception 
+		[Spell:CreateFromSpellID(20600):GetSpellName()] 	= "Human",
+		-- Shadowmeld
+		[Spell:CreateFromSpellID(20580):GetSpellName()] 	= "NightElf",
+		-- EscapeArtist
+		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
+		-- Stoneform
+		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
+		-- WilloftheForsaken
+		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
+		-- Berserking
+		[Spell:CreateFromSpellID(20554):GetSpellName()] 	= "Troll",
+		-- WarStomp
+		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
+		-- BloodFury
+		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
+	}
+else
+	Racial.GetRaceBySpellName = {
+		-- Perception 
+		[Spell:CreateFromSpellID(20600):GetSpellName()] 	= "Human",
+		-- Shadowmeld
+		[Spell:CreateFromSpellID(20580):GetSpellName()] 	= "NightElf",
+		-- EscapeArtist
+		[Spell:CreateFromSpellID(20589):GetSpellName()] 	= "Gnome",
+		-- Stoneform
+		[Spell:CreateFromSpellID(20594):GetSpellName()] 	= "Dwarf",
+		-- WilloftheForsaken
+		[Spell:CreateFromSpellID(7744):GetSpellName()] 		= "Scourge", 				-- (this is confirmed) Undead 
+		-- Berserking
+		[Spell:CreateFromSpellID(20554):GetSpellName()] 	= "Troll",
+		-- WarStomp
+		[Spell:CreateFromSpellID(20549):GetSpellName()] 	= "Tauren",
+		-- BloodFury
+		[Spell:CreateFromSpellID(20572):GetSpellName()] 	= "Orc",
+	}
+end
 
 function A:IsRacialReady(unitID, skipRange, skipLua, skipShouldStop)
 	-- @return boolean 
@@ -953,6 +1018,13 @@ end
 
 function A:GetItemCooldown()
 	-- @return number
+	
+	-- Potion Sickness
+	-- Unable to consume potions until you rest out of combat for a short duration.
+	if self.Type == "Potion" and Unit("player"):HasBuffs(53787) > 0 then 
+		return huge
+	end 
+	
 	local start, duration, enable = self.Item:GetCooldown()
 	return (enable == 1 or enable == true) and duration and ((duration == 0 or A_OnGCD(duration)) and 0 or duration - (TMW.time - start)) or huge
 end 
@@ -1140,7 +1212,7 @@ function A:AbsentImun(unitID, imunBuffs)
 			--[[
 			local debuffName, expirationTime, remainTime, _
 			for i = 1, huge do			
-				debuffName, _, _, _, _,  = UnitAura(unitID, i, "HARMFUL")
+				debuffName, _, _, _, _, expirationTime = UnitAura(unitID, i, "HARMFUL")
 				
 				if type(debuffName) == "table" then 
 					expirationTime = debuffName.expirationTime
@@ -1164,10 +1236,12 @@ function A:AbsentImun(unitID, imunBuffs)
 			end 
 			
 			-- Classic: Failsafe Phylactery
-			local FailsafePhylactery = Unit(unitID):HasBuffs(370391)
-			if FailsafePhylactery > 0 and Unit(unitID):TimeToDie() <= FailsafePhylactery then 
-				return false 
-			end 
+			if BuildToC < 20000 then
+				local FailsafePhylactery = Unit(unitID):HasBuffs(370391)
+				if FailsafePhylactery > 0 and Unit(unitID):TimeToDie() <= FailsafePhylactery then 
+					return false 
+				end 
+			end
 		end 
 
 		return true
@@ -1292,7 +1366,7 @@ function A.DetermineHealObject(unitID, skipRange, skipLua, skipShouldStop, skipU
 	local unitGUID = UnitGUID(unitID)
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
-		if object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) and object:PredictHeal(unitID, object:GetSpellCastTimeCache() ~= 0 and A.GetSpellCastTimeCache(A.LastPlayerCastName) ~= 0 and CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) < 0.5 and 2 or nil, unitGUID) then -- Only Classic has a bit delay like 'flying' spells before heal up some amount after cast			
+		if object and object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) and object:PredictHeal(unitID, object:GetSpellCastTimeCache() ~= 0 and A.GetSpellCastTimeCache(A.LastPlayerCastName) ~= 0 and CombatTracker:GetSpellLastCast("player", A.LastPlayerCastName) < 0.5 and 2 or nil, unitGUID) then -- Only Classic has a bit delay like 'flying' spells before heal up some amount after cast			
 			return object
 		end 
 	end 
@@ -1302,7 +1376,7 @@ function A.DetermineUsableObject(unitID, skipRange, skipLua, skipShouldStop, ski
 	-- @return object or nil 
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
-		if object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) then 
+		if object and object:IsReady(unitID, skipRange, skipLua, skipShouldStop, skipUsable) then 
 			return object
 		end 
 	end 
@@ -1312,7 +1386,7 @@ function A.DetermineIsCurrentObject(...)
 	-- @return object or nil 
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)
-		if object:IsCurrent() then 
+		if object and object:IsCurrent() then 
 			return object
 		end 
 	end 
@@ -1323,7 +1397,7 @@ function A.DetermineCountGCDs(...)
 	local count = 0
 	for i = 1, select("#", ...) do 
 		local object = select(i, ...)		
-		if (not object.isStance or A.PlayerClass ~= "WARRIOR") and object:IsRequiredGCD() and not object:IsBlocked() and not object:IsBlockedBySpellBook() and (not object.isTalent or object:IsTalentLearned()) and object:GetCooldown() <= A_GetPing() + CACHE_DEFAULT_TIMER + A_GetCurrentGCD() then 
+		if object and (not object.isStance or A.PlayerClass ~= "WARRIOR") and object:IsRequiredGCD() and not object:IsBlocked() and not object:IsBlockedBySpellBook() and (not object.isTalent or object:IsTalentLearned()) and object:GetCooldown() <= A_GetPing() + CACHE_DEFAULT_TIMER + A_GetCurrentGCD() then 
 			count = count + 1
 		end 
 	end 	
@@ -1567,8 +1641,8 @@ TMW:RegisterCallback("TMW_ACTION_IS_INITIALIZED", function()
 					err = (err or "Script found duplicate .TableKeyIdentify:\n") .. key .. " = " .. TableKeys[action:GetTableKeyIdentify()] .. ". Output: " .. action.TableKeyIdentify .. "\n"
 				else 
 					TableKeys[action:GetTableKeyIdentify()] = key 
-				end
-				
+				end 
+
 				if action.Macro and #action.Macro > 255 then
 					err = (err or "") .. key .. " macro exceeds 255 bytes (" .. #action.Macro .. " current bytes)\n"
 				end
@@ -1617,6 +1691,7 @@ function A.Create(args)
 		All settings below are processed during initialization. Actions are skipped if they have Hidden = true or if MetaEngine is not available.
 		Each created action can be used in one of the following ways:
 			1) Action:ExecuteScript() method:
+					This method doesn't have mechanism for re-calling within same single iteration. Alternatively, for re-calling you can use it via TMW:Fire("TMW_ACTION_METAENGINE_UPDATE", "Script", A.ScriptObj) instead of A.ScriptObj:ExecuteScript()
 				@required
 					Type = "Script"
 					Script (@string) wraps script in restricted env, can be used in-combat. Built-in variables:
@@ -1676,12 +1751,12 @@ function A.Create(args)
 			MetaEngine has own taint paths, attempting to penetrate it will not only disable MetaEngine, but also may uninstall it.
 			MetaEngine by default works inside of A[1]-A[10] functions and HealingEngine, although through callback it can be used anywhere as long as actions are created.
 			
-			Calling same action will not be performed twice until it will be rotated. Repeatedly call ExecuteScript is not possible within same iteration.
+			Calling same action will not be performed twice until it will be rotated unless Type is Script. Repeatedly call ExecuteScript is not possible within same iteration.
 			The main purpose of using Script is to update toggles and perform other buttons to inherit its attributes and pass them to the active meta-button but that will work as long as nothing else override it, for example:
 				Refs = { ["ToT"] = _G.ToT }
 				Script = 'local ToTMacro = self:GetFrameRef("ToT"):GetAttributes("macrotext"); this3:SetAttribute("macrotext", ToTMacro); this3:SetAttribute("macroactive", ToTMacro)'
 			That's it, you just connected the usual API to the MetaEngine for the 3rd active meta-button. "macroactive" is used to maintain the macrotext of ToTMacro in "macrotext" of meta-button when chained.
-			Alternatively, you can just set Macro to click your button:
+			Alternatively, you can just set Macro to click your button if it's not set up as macro:
 				Macro = "/click ".._G.ToT:GetName()
 			
 			All General and HealingEngine actions are pre-allocated:
@@ -1842,7 +1917,13 @@ function A.Create(args)
 				A.Unit1Spell.Macro = nil
 				A.Unit1Spell.Click = nil
 				just do nothing, as mentioned before, such keys will be auto generated, although they cannot automatically determine when action should be used as /cast [@player] or [@cursor] or /castsequence, therefore, they need to be defined manually
-				
+			Moreover, due to specifics of macro implementation, default macro will never behave same as macro used in this engine. This is because macro used in this engine only performs one action per event, typically the first successful line from top to bottom in macro that is available for performing action.
+			Good example of this behavior can be illustrated by following example:
+				/stopcasting
+				/cast Battle Shout
+			The first line, where /stopcasting is used, will only be used without triggering other lines when you're channeling or casting. Otherwise, if you don't channel or cast, the second line will be executed to cast Battle Shout, since the first line can no longer perform its action.
+			So, the first click will trigger /stopcasting when you're channeling or casting, and the second click will trigger /cast Battle Shout because you're longer channeling and casting.
+			
 
 		Functions
 			function Action.MetaEngine:GetErrorCodes()
@@ -1919,7 +2000,7 @@ function A.Create(args)
 		if type(arg.useMinRank) == "table" then 
 			tsort(arg.useMinRank)
 		end 
-		
+
 		-- ActionObj
 		action = setmetatable(arg, { __index = A }) 
 		
@@ -2045,7 +2126,7 @@ function A.Create(args)
 		arg.Item = TMW.Classes.ItemBySlot:New(arg.ID)
 		if arg.Item:GetID() then 	
 			ItemIDs[#ItemIDs + 1] = arg.Item:GetID()
-		end 		
+		end 
 		
 		-- ActionObj
 		arg.SlotID = arg.ID -- fix for MacroAPI in Action:SetDefaultMacro() function
@@ -2143,7 +2224,7 @@ function A.Create(args)
 		-- MetaEngine
 		action:SetDefaultAction()
 		
-		return action
+		return action	
 	end 
 	
 	-- Type "Script" (MetaEngine)

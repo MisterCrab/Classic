@@ -1,5 +1,5 @@
 --- 
-local DateTime 														= "12.11.2025"
+local DateTime 														= "14.12.2025"
 ---
 local pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string = 
 	  pcall, ipairs, pairs, type, assert, error, setfenv, getmetatable, setmetatable, loadstring, next, unpack, select, _G, coroutine, table, math, string
@@ -22,30 +22,30 @@ local strformat 													= string.format
 local strjoin	 													= string.join
 local strupper														= string.upper
 
+local TMW 															= _G.TMW
+local Env 															= TMW.CNDT.Env
+local GetGCD														= TMW.GetGCD
+local strlowerCache  												= TMW.strlowerCache
+local safecall														= TMW.safecall
+TMW.GCD 															= TMW.GCD or GetGCD() -- Fixes nil able compare error because UpdateGlobals launches with delay
+
 local LibStub														= _G.LibStub
 local StdUi 														= LibStub("StdUi"):NewInstance()
 local LibDBIcon	 													= LibStub("LibDBIcon-1.0")
 local LSM 															= LibStub("LibSharedMedia-3.0")
 	  LSM:Register(LSM.MediaType.STATUSBAR, "Flat", [[Interface\Addons\]] .. _G.ACTION_CONST_ADDON_NAME .. [[\Media\Flat]])
-local isClassic														= _G.WOW_PROJECT_ID == _G.WOW_PROJECT_CLASSIC	 
+local isClassic														= _G.WOW_PROJECT_ID ~= _G.WOW_PROJECT_MAINLINE
 StdUi.isClassic 													= isClassic	  
 local owner															= isClassic and "PlayerClass" or "PlayerSpec" 
-	  
-local TMW 															= _G.TMW
-local Env 															= TMW.CNDT.Env
-local GetGCD														= TMW.GetGCD
-local strlowerCache  												= TMW.strlowerCache
-local safecall														= TMW.safecall	  
-TMW.GCD 															= TMW.GCD or GetGCD() -- Fixes nil able compare error because UpdateGlobals launches with delay
 
 local C_Spell														= _G.C_Spell
 local C_CVar														= _G.C_CVar
-local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate,  	 GetCVar,	 				   SetCVar,	 					 GetBindingFromClick,	 GetBindingText,    GetSpellInfo = 
-	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetCVar or C_CVar.GetCVar, _G.SetCVar or C_CVar.SetCVar, _G.GetBindingFromClick, _G.GetBindingText, _G.GetSpellInfo or C_Spell.GetSpellInfo
+local 	 GetRealmName, 	  GetExpansionLevel, 	GetFramerate,  	 GetCVar,	 				   SetCVar,	 					 GetBindingFromClick,	  GetBindingText,    GetSpellInfo = 
+	  _G.GetRealmName, _G.GetExpansionLevel, _G.GetFramerate, _G.GetCVar or C_CVar.GetCVar, _G.SetCVar or C_CVar.SetCVar, _G.GetBindingFromClick,  _G.GetBindingText, _G.GetSpellInfo or C_Spell.GetSpellInfo
 	  
-local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID,    UnitPower,    UnitIsOwnerOrControllerOfUnit = 
-	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
-	  
+local 	 UnitName, 	  UnitClass,    UnitExists,    UnitIsUnit,    UnitGUID, 	UnitAura, 	 									  UnitPower,    UnitIsOwnerOrControllerOfUnit = 
+	  _G.UnitName, _G.UnitClass, _G.UnitExists, _G.UnitIsUnit, _G.UnitGUID,  _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex, _G.UnitPower, _G.UnitIsOwnerOrControllerOfUnit	  
+
 -- AutoShoot 
 local  HasWandEquipped 												= 
 	_G.HasWandEquipped	  
@@ -114,19 +114,19 @@ function Action.GetMouseFocus()
     end
 end 
 
--- Classic: UnitAura override through LibClassicDurations
-local LibClassicDurations											= LibStub("LibClassicDurations")
-local UnitAura 														= _G.UnitAura or TMW.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex
-if isClassic then
+-- Classic: UnitAura override through LibClassicDurations. Only for buffs on other units because debuffs are available since 1.15.
+local LibClassicDurations											= LibStub("LibClassicDurations", true)
+if LibClassicDurations then	
 	local f = CreateFrame("Frame", nil, UIParent)
 	f:SetScript("OnEvent", function(self, event, ...)
 		return self[event](self, event, ...)
 	end)
 
 	LibClassicDurations = LibStub("LibClassicDurations")
+	LibClassicDurations.enableEnemyBuffTracking = true
 	LibClassicDurations:Register(_G.ACTION_CONST_ADDON_NAME)
 	UnitAura = LibClassicDurations.UnitAuraWithBuffs
-	LibClassicDurations.RegisterCallback("YourAddon", "UNIT_BUFF", function(event, unit)
+	LibClassicDurations.RegisterCallback(_G.ACTION_CONST_ADDON_NAME, "UNIT_BUFF", function(event, unit)
 		f:UNIT_AURA(event, unit)
 	end)
 
@@ -138,7 +138,7 @@ if isClassic then
 	end
 	
 	Action.UnitAura	= UnitAura
-	TMW.UnitAura = UnitAura or TMW.UnitAura or _G.UnitAura -- Fix for legacy profiles 
+	TMW.UnitAura = UnitAura or TMW.UnitAura or _G.UnitAura or _G.C_UnitAuras.GetAuraDataByIndex -- Fix for legacy profiles 
 end
 
 -- Remap
@@ -167,6 +167,7 @@ do
 	end 
 	
 	GameLocale = Action.FormatGameLocale(GameLocale)
+	Action.FormatedGameLocale = GameLocale
 end 
 
 -------------------------------------------------------------------------------
@@ -198,7 +199,7 @@ local Localization = {
 		CLOSE = "Close",
 		APPLY = "Apply",
 		UPGRADEDFROM = "upgraded from ",
-		UPGRADEDTO = " to ",	
+		UPGRADEDTO = " to ",
 		PROFILESESSION = {
 			BUTTON = "Profile Session\nLeft click opens user panel\nRight click opens development panel",
 			BNETSAVED = "Your user key has been successfully cached for an offline profile session!",
@@ -293,6 +294,7 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Increases frames per second by increasing the dynamic dependency\nframes of the refresh cycle (call) of the rotation cycle\n\nYou can also manually set the interval following a simple rule:\nThe larger slider then more FPS, but worse rotation update\nToo high value can cause unpredictable behavior!\n\nRightClick: Create macro",					
 				PVPSECTION = "PvP Section",
+				REFOCUS = "Return previous saved @focus\n(arena1-5 units only)\nIt recommended against invisibility classes\n\nRightClick: Create macro",
 				RETARGET = "Return previous saved @target\n(arena1-5 units only)\nIt recommended against hunters with 'Feign Death' and any unforeseen target drops\n\nRightClick: Create macro",
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
@@ -349,7 +351,7 @@ local Localization = {
 				EATORDRINK = "Is Eating or Drinking",
 				MISC = "Misc:",		
 				DISABLEREGULARFRAMES = "Hide regular frames",
-				DISABLEREGULARFRAMESTOOLTIP = "Works only on Meta Engine\nHides group of frames at the left upper corner",				
+				DISABLEREGULARFRAMESTOOLTIP = "Works only on Meta Engine\nHides group of frames at the left upper corner",
 				DISABLEROTATIONDISPLAY = "Hide display rotation",
 				DISABLEROTATIONDISPLAYTOOLTIP = "Hides the group, which is usually at the\ncenter bottom of the screen",
 				DISABLEBLACKBACKGROUND = "Hide black background", 
@@ -880,6 +882,7 @@ local Localization = {
 				FPSSEC = " (сек)",
 				FPSTOOLTIP = "AUTO: Повышение кадров в секунду за счет увеличения в динамической зависимости\nкадров интервала обновления (вызова) цикла ротации\n\nВы также можете вручную задать интервал следуя простому правилу:\nЧем больше ползунок, тем больше кадров, но хуже обновление ротации\nСлишком высокое значение может вызвать непредсказуемое поведение!\n\nПравая кнопка мышки: Создать макрос",					
 				PVPSECTION = "Секция PvP",
+				REFOCUS = "Возвращать предыдущий сохраненный @focus (arena1-5 юниты только)\nРекомендуется против классов с невидимостью\n\nПравая кнопка мышки: Создать макрос",
 				RETARGET = "Возвращать предыдущий сохраненный @target (arena1-5 юниты только)\nРекомендуется против Охотников с 'Притвориться мертвым'\nи(или) при любых непредвиденных сбросов цели\n\nПравая кнопка мышки: Создать макрос",
 				TRINKETS = "Аксессуары",
 				TRINKET = "Аксессуар",
@@ -1124,11 +1127,11 @@ local Localization = {
 			[7] = {
 				HEADBUTTON = "Сообщения",
 				HEADTITLE = "Система Сообщений",
-				USETITLE = "[Каждый спек]",
+				USETITLE = "",
 				MSG = "MSG Система",				
 				MSGTOOLTIP = "Включено: работает\nНЕ включено: не работает\n\nПравая кнопка мыши: Создать макрос",
 				CHANNELS = "Каналы",
-				CHANNEL = "Канал ",				
+				CHANNEL = "Канал ",		
 				DISABLERETOGGLE = "Блокировать снятие очереди",
 				DISABLERETOGGLETOOLTIP = "Предотвращает повторным сообщением удаление из системы очереди\nИными словами позволяет спамить макрос без риска быть снятым\n\nПравая кнопка мыши: Создать макрос",
 				MACRO = "Макрос для вашей группы:",
@@ -1469,6 +1472,7 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Erhöht die Frames pro Sekunde durch Erhöhen der dynamischen Abhängigkeit.\nFrames des Aktualisierungszyklus (Aufruf) des Rotationszyklus\n\nSie können das Intervall auch nach einer einfachen Regel manuell einstellen:\nDer größere Schieberegler als mehr FPS, aber schlechtere Rotation Update\nZu hoher Wert kann zu unvorhersehbarem Verhalten führen!\n\nRechtsklick: Makro erstellen",					
 				PVPSECTION = "PvP Einstellungen",
+				REFOCUS = "Vorheriges gespeichertes @focus zurückgeben\n(nur Arena1-5-Einheiten)\nEs wird für Unsichtbarkeitsklassen empfohlen\n\nRechtsklick: Makro erstellen",
 				RETARGET = "Vorheriges gespeichertes @Ziel zurückgeben\n(nur Arena1-5-Einheiten)\nEs wird gegen Jäger mit 'Totstellen' und unvorhergesehenen Zielabwürfen empfohlen\n\nRechtsklick: Makro erstellen",
 				TRINKETS = "Schmuckstücke",
 				TRINKET = "Schmuck",
@@ -1716,7 +1720,7 @@ local Localization = {
 				MSG = "MSG System",
 				MSGTOOLTIP = "Aktiviert: Funktioniert \nDeaktiviert: Funktioniert nicht\n\nRightClick: Create macro",
 				CHANNELS = "Kanäle",
-				CHANNEL = "Kanal ",				
+				CHANNEL = "Kanal ",	
 				DISABLERETOGGLE = "Warteschlange entfernen",
 				DISABLERETOGGLETOOLTIP = "Verhindert durch wiederholtes Löschen von Nachrichten aus dem Warteschlangensystem\nE.g. Mögliches Spam-Makro, ohne entfernt zu werden\n\nRechtsklick: Makro erstellen",
 				MACRO = "Macro für deine Gruppe:",
@@ -2058,6 +2062,7 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO:  Augmente les images par seconde en augmentant la dépendance dynamique\nimage du cycle de rafraichisement (call) du cycle de rotation\n\nVous pouvez régler manuellement l'intervalle en suivant cette règle simple:\nPlus le slider est grand plus vous avez de FPS, mais pire sera la mise à jour de la rotation\nUne valeur trop élevée peut entraîner un comportement imprévisible!\n\nClique droit : Créer la macro",
 				PVPSECTION = "Section PvP",
+				REFOCUS = "Remet le @focus sauvé précédemment\n(Uniquement pour les cibles arena1-5)\nCela est recommandé pour les cible qui ont un sort d'invicibilité\n\nClique droit : Créer la macro",
 				RETARGET = "Remet le @target sauvé précédemment\n(Uniquement pour les cibles arena1-5)\nCela est recommander contre les chasseurs avec 'Feindre la mort' et les perte de cible imprévu\n\nClique droit : Créer la macro",
 				TRINKETS = "Bijoux",
 				TRINKET = "Bijou",
@@ -2306,7 +2311,7 @@ local Localization = {
 				MSG = "Système MSG ",
 				MSGTOOLTIP = "Coché: fonctionne\nDécoché: ne fonctionne pas\n\nClique droit : Créer la macro",
 				CHANNELS = "Chaînes",
-				CHANNEL = "Chaîne ",					
+				CHANNEL = "Chaîne ",	
 				DISABLERETOGGLE = "Block queue remove",
 				DISABLERETOGGLETOOLTIP = "Préviens la répétition de retrait de message de la file d'attente\nE.g. Possible de spam la macro sans que le message soit retirer\n\nClique droit : Créer la macro",
 				MACRO = "Macro pour votre groupe:",
@@ -2596,7 +2601,7 @@ local Localization = {
 			SAVEACTIONS = "Salva settaggi Actions",
 			SAVEINTERRUPT = "Salva liste Interruzioni",
 			SAVEDISPEL = "Salva liste Auree",
-			SAVEMOUSE = "Salva liste cursori",			
+			SAVEMOUSE = "Salva liste cursori",
 			SAVEMSG = "Salva liste MSG",
 			SAVEHE = "Salva liste Sistema di guarigione",
 			SAVEHOTKEYS = "Salva impostazioni tasti rapidi",
@@ -2645,7 +2650,8 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Aumenta i frames per second incrementando la dipendenza dinamica\ndei frames del ciclo di refresh (call) della rotazione\n\nPuoi settare manualmente l'intervallo seguendo questa semplice regola:\nPiú é altop lo slider piú é l'FPS, ma peggiore sará l'update della rotazione\nValori troppo alti possono portare a risultati imprevedibili!\n\nTastodestro: Crea macro",					
 				PVPSECTION = "Sezione PvP",
-				RETARGET = "Identifica il bersaglio precedente @target\n(solo arena unitá 1-3)\nraccomandato contro cacciatori con capacitá 'Morte Fasulla' e altre abilitá che deselezionano il bersaglio\n\nTastodestro: Crea macro",
+				REFOCUS = "Identifica il focus precedente @focus\n(solo arena unitá 1-5)\nraccomandato contro le classi con capacitá di invisibilitá\n\nTastodestro: Crea macro",
+				RETARGET = "Identifica il bersaglio precedente @target\n(solo arena unitá 1-5)\nraccomandato contro cacciatori con capacitá 'Morte Fasulla' e altre abilitá che deselezionano il bersaglio\n\nTastodestro: Crea macro",
 				TRINKETS = "Ninnolo",
 				TRINKET = "Ninnoli",
 				BURST = "Modalitá raffica",
@@ -2894,7 +2900,7 @@ local Localization = {
 				MSG = "MSG Sistema",
 				MSGTOOLTIP = "Selezionato: attivo\nNon selezionato: non attivo\n\nTastodestro: Crea macro",
 				CHANNELS = "Canali",
-				CHANNEL = "Canale ",							
+				CHANNEL = "Canale ",	
 				DISABLERETOGGLE = "Blocca Coda Rimuovi",
 				DISABLERETOGGLETOOLTIP = "Previeni l'eliminazione di un incantesimo dalla coda con un messaggio ripetuto\nEsempio, consente di inviare una macro spam senza rischiare eliminazioni non volute\n\nTastodestro: Crea macro",
 				MACRO = "Macro per il tuo gruppo:",
@@ -3235,6 +3241,7 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Incrementa los frames por segundo aumentando la dependencia dinámica\nframes del ciclo de recarga (llamada) del ciclo de rotación\n\nTambién puedes establecer manualmente el intervalo siguiendo una regla simple:\nCuanto mayor sea el desplazamiento, mayor las FPS, pero peor actualización de rotación\nUn valor demasiado alto puede causar un comportamiento impredecible!\n\nClickDerecho: Crear macro",					
 				PVPSECTION = "Sección PvP",
+				REFOCUS = "Devuelve el guardado anterior @focus\n(arena1-5 unidades solamente)\nEs recomendable contra clases con invisibilidad\n\nClickDerecho: Crear macro",
 				RETARGET = "Devuelve el guardado anterior @target\n(arena1-5 unidades solamente)\nEs recomendable contra cazadores con 'Feign Death' and cualquier objetivo imprevisto cae\n\nClickDerecho: Crear macro",
 				TRINKETS = "Trinkets",
 				TRINKET = "Trinket",
@@ -3483,7 +3490,7 @@ local Localization = {
 				MSG = "Sistema de MSG",
 				MSGTOOLTIP = "Marcado: funcionando\nDesmarcado: sin funcionar\n\nClickDerecho: Crear macro",
 				CHANNELS = "Canales",
-				CHANNEL = "Canal ",					
+				CHANNEL = "Canal ",	
 				DISABLERETOGGLE = "Bloquear borrar cola",
 				DISABLERETOGGLETOOLTIP = "Prevenir la repetición de mensajes borrados de la cola del sistema\nE.j. Posible spam de macro sin ser removida\n\nClickDerecho: Crear macro",
 				MACRO = "Macro para tu grupo:",
@@ -3822,6 +3829,7 @@ local Localization = {
 				FPSSEC = " (sec)",
 				FPSTOOLTIP = "AUTO: Aumenta os quadros por segundo por meio de aumento na depêndencia dinâmica \nquadros do ciclo de atualização (call) do ciclo de rotação\n\nVocê pode setar o intervalo manualmente seguindo uma simples regra:\nQuanto maior o slider maior o FPS, mas pior será a atualização da rotação\nValores muito altos podem causar comportamento imprevisível!\n\nRightClick: Criar macro",					
 				PVPSECTION = "Seção PVP",
+				REFOCUS = "Retorna @focus anterior\n(arena1-5 units only)\nRecomendado contra classes com invisibilidade\n\nRightClick: Criar macro",
 				RETARGET = "Retorna @target anterior\n(arena1-5 units only)\nRecomendado contra caçadores usando 'Fingir de Morto' e outras perdas de alvo não previstas\n\nRightClick: Criar macro",
 				TRINKETS = "Berloques",
 				TRINKET = "Berloque",
@@ -4070,7 +4078,7 @@ local Localization = {
 				MSG = "Sistema de MSG",
 				MSGTOOLTIP = "Marcado: funcionando\nDesmarcado: não funcionando\n\nRightClick: Criar macro",
 				CHANNELS = "Canais",
-				CHANNEL = "Canal ",						
+				CHANNEL = "Canal ",			
 				DISABLERETOGGLE = "Bloquear remover fila",
 				DISABLERETOGGLETOOLTIP = "Prevenido devido remoções repetidas de mensagens do sistema de filas\nEx.: Possível macro de spam não sendo removido\n\nRightClick: Criar macro",
 				MACRO = "Macro para seu grupo:",
@@ -4088,7 +4096,7 @@ local Localization = {
 				INPUT = "Digite uma frase para mensagem do sistema",
 				INPUTTITLE = "Frase",
 				INPUTERROR = "Você não forneceu uma frase!",
-				INPUTTOOLTIP = "A frase será ativada em qualquer palavra no chat de grupo (/party) que está de acordo com a condição\nNão é case-sensitive\nContém padrões, isso significa que a frase escrita por alguém com a combinação das palavras raid, party, arena, ou player\nadapta a action para o dado slot\nVocê não precisa setar os padrões aqui, elas são usadas como adição ao macro\nSe o padrão não for encontrado, então os slots para rotações single e AoE serão utilizados",				
+				INPUTTOOLTIP = "A frase será ativada em qualquer palavra no chat de grupo (/party) que está de acordo com a condição\nNão é case-sensitive\nContém padrões, isso significa que a frase escrita por alguém com a combinação das palavras raid, party, arena, player\nadapta a action para o dado slot\nVocê não precisa setar os padrões aqui, elas são usadas como adição ao macro\nSe o padrão não for encontrado, então os slots para rotações single e AoE serão utilizados",				
 			},
 			[8] = { 
 				HEADBUTTON = "Sistema de Cura",
@@ -4645,11 +4653,11 @@ local Factory = {
 			},
 		},	
 		cameraDistanceMaxZoomFactor = true,
-		LetMeCast = true,
+		LetMeCast = Action.BuildToC < 50500,
 		LetMeDrag = true,
-		TargetCastBar = true,
-		TargetRealHealth = true,
-		TargetPercentHealth = true,		
+		TargetCastBar = Action.BuildToC < 50500,
+		TargetRealHealth = Action.BuildToC < 50500,
+		TargetPercentHealth = Action.BuildToC < 50500,		
 		AuraDuration = true,
 		AuraCCPortrait = true,
 		LossOfControlPlayerFrame = true,
@@ -4705,6 +4713,7 @@ local Factory = {
 		Role = "AUTO",
 		HealthStone = 20,  
 		ReTarget = true, 			
+		ReFocus = Action.BuildToC >= 20000 and true or false, 			
 	}, 
 	[3] = {			
 		AutoHidden = true,	
@@ -4740,71 +4749,6 @@ local Factory = {
 				ISINTERRUPT = true,
 			},	
 		}, 17, 37, 55),
-		Heal = StdUi:tGenerateMinMax({
-			[GameLocale] = {	
-				ISINTERRUPT = true,
-				-- Priest
-				[2050] = "Lesser Heal",
-				[2060] = "Greater Heal",
-				[6064] = "Heal",
-				[596] = "Prayer of Healing",
-				-- Druid
-				[740] = "Tranquility",
-				[8936] = "Regrowth",
-				[25297] = "Healing Touch",
-				-- Shaman
-				[1064] = "Chain Heal",
-				[331] = "Healing Wave",
-				[8004] = "Lesser Healing Wave",
-				-- Paladin				
-				[19750] = "Flash of Light",			
-				[635] = "Holy Light",		
-				[19943] = "Flash of Light", -- first ids are wrong?
-				[25292] = "Holy Light",						
-			},			
-		}, 43, 70, math_random(87, 95), true),
-		PvP = StdUi:tGenerateMinMax({
-			[GameLocale] = {
-				ISINTERRUPT = true,
-				-- Shaman 
-				[2645] = "Ghost Wolf",
-				-- Mage 
-				[118] = "Pollymorph",
-				[28270] = "Polymorph: Cow",
-				-- Priest 
-				[605] = "Mind Control",
-				[9484] = "Shackle Undead",
-				[8129] = "Mana Burn",
-				-- Hunter 
-				[982] = "Revive pet",
-				[1513] = "Scare Beast",
-				-- Warlock 				
-				[20757] = "Create Soulstone (Major)",
-				[693] = "Create Soulstone (Minor)",
-				[11730] = "Create Healthstone (Major)",
-				[11729] = "Create Healthstone (Greater)",
-				[5699] = "Create Healthstone",
-				[1122] = "Inferno",
-				[5782] = "Fear",
-				[5484] = "Howl of Terror",
-				[20755] = "Create Soulstone",	
-				[710] = "Banish",
-				-- Druid 
-				[20484] = "Rebirth",
-				[339] = "Entangling Roots",
-				[2637] = "Hibernate",
-				-- Rogue 
-				[8681] = "Instant Poison",
-				[3420] = "Crippling Poison",
-				[13220] = "Wound Poison",
-				[5763] = "Mind-numbing Poison",
-				[2823] = "Deadly Poison",
-				-- Paladin 
-				[2878] = "Turn Undead",		
-				-- Hunter 
-				[19386] = "Wyvern Sting",
-			}, 
-		}, 34, 58, 37),
 		-- Checkbox 
 		UseMain 		= true,
 		UseMouse 		= true, 			
@@ -4982,545 +4926,2894 @@ local Factory = {
 local GlobalFactory = {	
 	InterfaceLanguage = "Auto",	
 	minimap = {},
-	[5] = {		
-		PvE = {
-			BlackList = {},			
-			PurgeFriendly = {
-				-- Mind Control (it's buff)
-				[605] = { canStealOrPurge = true },
-				-- Seduction
-				--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
-				--return PlayerClass ~= "MAGE" ]] },
-				-- Dominate Mind
-				[15859] = {},		-- FIX ME: Is a buff?
-				-- Cause Insanity
-				[12888] = {},		-- FIX ME: Is a buff?
-			},
-			PurgeHigh = {		
-				-- Molten Core: Deaden Magic
-				[19714] = {},
-			},
-			PurgeLow = {
-			},
-			Poison = {    
-				-- Onyxia: Brood Affliction: Green
-				[23169] = {},
-				-- Aspect of Venoxis
-				[24688] = { dur = 1.5 },
-				-- Atal'ai Poison
-				[18949] = { dur = 1.5 },
-				-- Baneful Poison
-				[15475] = {},
-				-- Barbed Sting
-				[14534] = {},
-				-- Bloodpetal Poison
-				[14110] = {},
-				-- Bottle of Poison
-				[22335] = {},
-				-- Brood Affliction: Green
-				[23169] = {},
-				-- Copy of Poison Bolt Volley
-				[29169] = { enabled = false }, 
-				-- Corrosive Poison 
-				[13526] = {},
-				-- Corrosive Venom Spit
-				[20629] = { dur = 1.5 },
-				-- Creeper Venom
-				[14532] = {},
-				-- Deadly Leech Poison
-				[3388] = {},
-				-- Deadly Poison
-				[13582] = {},
-				-- Enervate
-				[22661] = {},
-				-- Entropic Sting
-				[23260] = {},
-				-- Festering Bites
-				[16460] = {},
-				-- Larva Goo
-				[21069] = {},
-				-- Lethal Toxin
-				[8256] = {},
-				-- Maggot Goo
-				[17197] = {},
-				-- Abomination Spit
-				[25262] = {},
-				-- Minor Scorpion Venom Effect
-				[5105] = {},
-				-- Poisonous Spit
-				[4286] = {},
-				-- Slow Poison
-				[3332] = {},
-				-- Slime Bolt
-				[28311] = {},
-				-- Seeping Willow
-				[17196] = {},
-				-- Paralyzing Poison
-				[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
-			},
-			Disease = {
-				-- Rabies
-				[3150] = {},
-				-- Fevered Fatigue
-				[8139] = {},
-				-- Silithid Pox
-				[8137] = {},
-				-- Wandering Plague
-				[3439] = {},
-				-- Spirit Decay
-				[8016] = {},
-				-- Tetanus
-				[8014] = {},
-				-- Contagion of Rot
-				[7102] = {},
-				-- Volatile Infection
-				[3584] = {},
-				-- Mirkfallon Fungus
-				[8138] = {},
-				-- Infected Wound
-				[3427] = {},
-				-- Noxious Catalyst
-				[5413] = {},
-				-- Corrupted Agility
-				[6817] = {},
-				-- Irradiated
-				[9775] = {},
-				-- Infected Spine
-				[12245] = {},
-				-- Corrupted Stamina
-				[6819] = {},
-				-- Decayed Strength
-				[6951] = {},
-				-- Decayed Agility
-				[7901] = {},
-				-- Infected Bite
-				[16128] = {},
-				-- Plague Cloud
-				[3256] = {},
-				-- Plague Mind
-				[3429] = {},
-				-- Magenta Cap Sickness
-				[10136] = {},
-				-- Gift of Arthas
-				[11374] = {},
-				-- Festering Rash
-				[15848] = {},
-				-- Dark Plague
-				[18270] = {},
-				-- Fevered Plague
-				[8600] = {},
-				-- Rabid Maw
-				[4316] = {},
-				-- Brood Affliction: Red
-				[23155] = {},
-				-- Blight
-				[9796] = {},
-				-- Slime Dysentery
-				[16461] = {},
-				-- Creeping Mold
-				[18289] = {},
-				-- Weakening Disease
-				[18633] = {},
-				-- Putrid Breath
-				[21062] = {},
-				-- Dredge Sickness
-				[14535] = {},
-				-- Putrid Bite
-				[30113] = {},
-				-- Putrid Enzyme
-				[14539] = {},			
-				-- Black Rot
-				[16448] = {},
-				-- Cadaver Worms
-				[16143] = {},
-				-- Ghoul Plague
-				[16458] = {},
-				-- Putrid Stench
-				[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
-			}, 
-			Curse = {	
-				-- Molten Core: Lucifron's Curse
-				[19703] = {},
-				-- Molten Core: Gehennas' Curse 
-				-- Note: Tank should be prioritized 
-				[19716] = {},
-				-- Shazzrah's Curse
-				-- Note: Tank should be prioritized 
-				[19713] = {},
-				-- Shadowfang Keep: Veil of Shadow
-				[7068] = { dur = 1.5 },
-				-- Curse of Thorns
-				[6909] = {},
-				-- Wracking Pains
-				[13619] = {},
-				-- Curse of Stalvan
-				[13524] = {},
-				-- Curse of Blood
-				[16098] = {},
-				-- Curse of the Plague Rat
-				[17738] = {},
-				-- Discombobulate
-				[4060] = {},
-				-- Hex of Jammal'an
-				[12480] = {},
-				-- Shrink
-				[24054] = {},
-				-- Curse of the Firebrand
-				[16071] = {},
-				-- Enfeeble
-				[11963] = {},
-				-- Piercing Shadow
-				[16429] = {},
-				-- Rage of Thule
-				[3387] = {},
-				-- Mark of Kazzak
-				[21056] = {},
-				-- Curse of the Dreadmaul
-				[11960] = {},
-				-- Banshee Curse
-				[17105] = {},
-				-- Corrupted Fear
-				[21330] = {},
-				-- Curse of Impotence
-				[22371] = {},
-				-- Delusions of Jin'do
-				[24306] = {},
-				-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
-				[16336] = {},
-				-- Tainted Mind
-				[16567] = {},
-				-- Ancient Hysteria
-				[19372] = {},
-				-- Breath of Sargeras
-				[28342] = {},
-				-- Curse of the Elemental Lord
-				[26977] = {},
-				-- Curse of Mending
-				[15730] = {},
-				-- Curse of the Darkmaster
-				[18702] = {},
-				-- Arugal's Curse
-				[7621] = {},
-			},
-			Magic = {	
-				-- Molten Core: Ignite Mana
-				[19659] = {},
-				-- Molten Core: Impending Doom
-				[19702] = { dur = 1.5 },
-				-- Molten Core: Panic
-				[19408] = {},			
-				-- Molten Core: Magma Splash
-				[13880] = { dur = 1.5 },
-				-- Molten Core: Ancient Despair
-				[19369] = { dur = 1.5 },
-				-- Molten Core: Soul Burn
-				[19393] = { dur = 1.5 },
-				-- Onyxia: Greater Polymorph
-				[22274] = {},
-				-- Onyxia: Wild Polymorph
-				[23603] = {},
-				-- Scarlet Monastery Dungeon: Terrify
-				[7399] = {},
-				-- Dominate Mind
-				[20740] = {},
-				-- Immolate
-				[12742] = { dur = 2 },
-				-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
-				[23952] = { dur = 2 },
-				-- Misc: Reckless Charge
-				[13327] = { dur = 1 },
-				-- Misc: Hex 
-				[17172] = {},
-				-- Polymorph Backfire (Azshara)
-				[28406] = {},	
-				-- Polymorph: Chicken
-				[228] = {},
-				-- Chains of Ice
-				[113] = { dur = 12 },
-				-- Grasping Vines
-				[8142] = { dur = 4 },
-				-- Naralex's Nightmare
-				[7967] = {},
-				-- Thundercrack
-				[8150] = { dur = 1 },
-				-- Screams of the Past
-				[7074] = { dur = 1 },
-				-- Smoke Bomb
-				[7964] = { dur = 1 },
-				-- Ice Blast
-				[11264] = { dur = 6 },
-				-- Pacify
-				[10730] = {},
-				-- Sonic Burst
-				[8281] = { dur = 0.5 },
-				-- Enveloping Winds
-				[6728] = { dur = 1 },
-				-- Petrify
-				[11020] = { dur = 1 },
-				-- Freeze Solid
-				[11836] = { dur = 1 },
-				-- Deep Slumber
-				[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
-				-- Crystallize
-				[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
-				-- Enchanting Lullaby
-				[16798] = { dur = 1 },
-				-- Burning Winds
-				[17293] = { dur = 1 },
-				-- Banshee Shriek
-				[16838] = { dur = 1 },
-			}, 
-			Enrage = {
-			},
-			Frenzy = {
-				-- Frenzy 
-				[19451] = { dur = 1.5 },
-			},
-			BlessingofProtection = {
-				[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
-				[21869] = { dur = 6 },   -- Repulsive Gaze
-				[5134] = { dur = 8 },	 -- Flash Bomb
-			},
-			BlessingofFreedom = {
-				[8312] = { dur = 2 },
-				[8346] = { dur = 2 },
-				[13099] = { dur = 2 },
-				[19636] = { dur = 2 },
-				[23414] = { dur = 2 },
-				[6533] = { dur = 2 },
-				[11820] = { dur = 2 },
-				[8377] = { dur = 2 },
-				[113] = { dur = 2 },
-				[8142] = { dur = 2 },
-				[7295] = { dur = 2 },
-				[11264] = { dur = 2 },
-				[12252] = { dur = 2 },
-				[745] = { dur = 2 },
-				[15474] = { dur = 2 },
-				[14030] = { dur = 2 },
-				[19306] = { dur = 2 },
-				[4962] = { dur = 2 },
-			},
-			BlessingofSacrifice = {
-			},
-			Vanish = {
-			},
-		},
-		PvP = {
-			BlackList = {},
-			PurgeFriendly = {
-				-- Mind Control (it's buff)
-				[605] = { canStealOrPurge = true },
-				-- Seduction
-				--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
-				--return PlayerClass ~= "MAGE" ]] },
-			},
-			PurgeHigh = {
-				-- Paladin: Blessing of Protection
-				[1022] = { dur = 1 },
-				-- Paladin: Divine Favor 
-				[20216] = { dur = 0 },
-				-- Priest: Power Infusion
-				[10060] = { dur = 4 },
-				-- Mage: Combustion
-				[11129] = { dur = 4 },
-				-- Mage: Arcane Power
-				[12042] = { dur = 4 },
-				-- Priest (Human): Feedback
-				[13896] = { dur = 1.5 },
-				-- Druid | Shaman: Nature's Swiftness
-				[16188] = { dur = 1.5 },
-				-- Shaman: Elemental Mastery
-				[16166] = { dur = 1.5 },
-				-- Warlock: Major Spellstone
-				[17730] = { dur = 2 },
-				-- Warlock: Greater Spellstone
-				[17729] = { dur = 2 },
-				-- Warlock: Spellstone
-				[128] = { dur = 2 },
-				-- Warlock: Fel Domination
-				[18708] = { dur = 0 },
-				-- Warlock: Amplify Curse
-				[18288] = { dur = 10 },
-			},
-			PurgeLow = {
-				-- Paladin: Blessing of Freedom  
-				[1044] = { dur = 1.5 },
-				-- Druid: Rejuvenation
-				[774] = { dur = 0, onlyBear = true },
-				-- Druid: Regrow
-				[8936] = { dur = 0, onlyBear = true },
-				-- Druid: Mark of the Wild
-				[1126] = { dur = 0, onlyBear = true },
-			},
-			Poison = {
-				-- Hunter: Wyvern Sting
-				[19386] = { dur = 0 },
-				-- Hunter: Serpent Sting
-				[1978] = { dur = 3 },
-				-- Hunter: Viper Sting
-				[3034] = { dur = 2 },
-				-- Hunter: Scorpid Sting
-				[3043] = { dur = 1.5 },
-				-- Rogue: Slow Poison
-				[3332] = {},
-				-- Rogue: Blind
-				[2094] = { dur = 2.5 },
-			},
-			Disease = {
-			},
-			Curse = {
-				-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
-				[8277] = {}, 			
-				-- Hex of Weakness			(Priest - Troll)
-				[9035] = {},
-				-- Warlock: Curse of Tongues
-				[1714] = { dur = 3 },
-				-- Warlock: Curse of Weakness
-				[702] = { dur = 3 },
-				-- Warlock: Curse of Doom
-				[603] = {},
-				-- Warlock: Curse of Shadow
-				[17862] = {},
-				-- Warlock: Curse of the Elements
-				[1490] = {},
-				-- Corrupted Fear (set bonus)
-				[21330] = {},
-			},
-			Magic = {			
-				-- Paladin: Repentance
-				[20066] = { dur = 1.5 },
-				-- Paladin: Hammer of Justice
-				[853] = { dur = 0 },
-				-- Hunter: Freezing Trap
-				[1499] = { dur = 1 },
-				-- Hunter: Entrapment
-				[19185] = { dur = 1.5 },
-				-- Hunter: Hunter's Mark
-				[14325] = {},
-				-- Hunter: Trap 
-				[8312] = { dur = 1 },
-				-- Rogue: Kick - Silenced
-				[18425] = { dur = 1 },
-				-- Priest: Mind Control 
-				[605] = { dur = 0 },
-				-- Priest: Psychic Scream
-				[8122] = { dur = 1.5 },
-				-- Priest: Shackle Undead 
-				[9484] = { dur = 1 },
-				-- Priest: Silence
-				[15487] = { dur = 1 },
-				-- Priest: Blackout
-				[15269] = { dur = 1 },
-				-- Mage: Polymorph 
-				[118] = { dur = 1.5 },
-				-- Mage: Polymorph: Sheep 
-				[851] = { dur = 1.5 },
-				-- Mage: Polymorph: Cow 
-				[28270] = { dur = 1.5 },
-				-- Mage: Polymorph: Turtle 
-				[28271] = { dur = 1.5 },
-				-- Mage: Polymorph: Pig 
-				[28272] = { dur = 1.5 },
-				-- Mage: Frost Nova  
-				[122] = { dur = 1 },
-				-- Warlock: Banish 
-				[710] = {},				
-				-- Warlock: Fear 
-				[5782] = { dur = 1.5 },
-				-- Warlock: Seduction
-				[6358] = { dur = 1.5 },	
-				-- Warlock: Howl of Terror
-				[5484] = { dur = 1.5 },
-				-- Warlock: Death Coil
-				[6789] = { dur = 1 },
-				-- Warlock: Spell Lock (Felhunter)
-				[24259] = { dur = 1 },
-				-- Druid: Hibernate 
-				[2637] = { dur = 1.5 },
-				-- Druid: Faerie Fire (Feral)
-				[17390] = { dur = 0 },					
-				-- Mage: Ice Nova 
-				[22519] = { dur = 1 },
-				-- Druid: Entangling Roots
-				[339] = { dur = 1 },					
-				-- Trinket: Tidal Charm
-				[835] = { dur = 1 },
-				-- Iron Grenade
-				[4068] = {},
-				-- Sleep (Green Whelp Armor chest)
-				[9159] = {},
-				-- Arcane Bomb
-				[19821] = {},
-				-- Silence (Silent Fang sword)
-				[18278] = {},
-				-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
-				[20683] = {},
-				-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
-				[17286] = {},
-				-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
-				[17820] = {},
-				-- Glimpse of Madness (Dark Edge of Insanity axe)
-				[26108] = { dur = 1 },
-			},
-			Enrage = {
-				-- Berserker Rage
-				[18499] = { dur = 1 },
-				-- Enrage
-				[12880] = { dur = 1 },
-			},
-			Frenzy = {
-			},
-			BlessingofProtection = {
-				-- Disarm 
-				[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
-				[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
-				[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
-				-- Stunned 
-				--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
-				[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
-				[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
-				[5530] = { dur = 2.6 },				-- Mace Stun Effect			(Warrior)
-				[12798] = { dur = 2.6 },			-- Revenge Stun				(Warrior)
-				[5211] = { dur = 1.6 },				-- Bash						(Druid)
-				[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
-				[19410] = { dur = 2.8 },			-- Improved Concussive Shot	(Hunter)
-				[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
-				[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
-				--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
-				[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
-				[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
-				[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
-				-- Disoriented
-				[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
-				-- Feared 
-				[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
-			},
-			BlessingofFreedom = {
-				[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
-				[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
-				[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
-				[12494] = { dur = 2 },				-- Frostbite				(Mage)	
-				[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
-				[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
-				[19229] = { dur = 2 },				-- Improved Wing Clip 		(Hunter)
-				[19185] = { dur = 2 },				-- Entrapment				(Hunter)
-				[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
-				[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
-			},
-			BlessingofSacrifice = {
-				[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
-				[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
-				[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
-			},
-			Vanish = {
-				[22519] = {}, 						-- Ice Nova 				(Mage)
-				[122] = {}, 						-- Frost Nova 				(Mage)
-				[339] = {}, 						-- Entangling Roots 		(Druid)
-			},
-		},
-	},
 }; StdUi.GlobalFactory = GlobalFactory
+
+-- pActionDB & gActionDB ExpansionBase
+-- TODO: this is ugly but will allow to skip maintance of different spellIDs
+do
+	if Action.BuildToC >= 50000 then
+		-- MOP
+		Factory[4].Heal = StdUi:tGenerateMinMax({
+			[GameLocale] = {	
+				ISINTERRUPT = true,
+				-- Priest
+				[2050] = "Lesser Heal",
+				[2060] = "Greater Heal",
+				[596] = "Prayer of Healing",
+				-- Druid
+				[740] = "Tranquility",
+				[8936] = "Regrowth",
+				-- Shaman
+				[1064] = "Chain Heal",
+				[331] = "Healing Wave",
+				[8004] = "Lesser Healing Wave",
+				-- Paladin
+				[19750] = "Flash of Light",
+				[635] = "Holy Light",
+			},			
+		}, 43, 70, math_random(87, 95), true)
+		
+		Factory[4].PvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+				-- Shaman 
+				[2645] = "Ghost Wolf",
+				-- Mage 
+				[118] = "Pollymorph",
+				-- Priest 
+				[605] = "Mind Control",
+				[9484] = "Shackle Undead",
+				[8129] = "Mana Burn",
+				-- Hunter 
+				[982] = "Revive pet",
+				[1513] = "Scare Beast",
+				-- Warlock 				
+				[1122] = "Inferno",
+				[5782] = "Fear",
+				[5484] = "Howl of Terror",
+				[710] = "Banish",
+				-- Druid 
+				[20484] = "Rebirth",
+				[339] = "Entangling Roots",
+				[2637] = "Hibernate",
+				-- Rogue 
+				[2823] = "Deadly Poison",
+				-- Paladin 	
+				-- Hunter 
+				[19386] = "Wyvern Sting",
+			}, 
+		}, 34, 58, 37)		
+	
+		GlobalFactory[5] = {
+			PvE = {
+				BlackList = {},			
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+					-- Dominate Mind
+					[15859] = {},		-- FIX ME: Is a buff?
+					-- Cause Insanity
+					[12888] = {},		-- FIX ME: Is a buff?
+				},
+				PurgeHigh = {		
+					-- Molten Core: Deaden Magic
+					[19714] = {},
+				},
+				PurgeLow = {
+				},
+				Poison = {    
+					-- Onyxia: Brood Affliction: Green
+					[23169] = {},
+					-- Aspect of Venoxis
+					[24688] = { dur = 1.5 },
+					-- Atal'ai Poison
+					[18949] = { dur = 1.5 },
+					-- Baneful Poison
+					[15475] = {},
+					-- Barbed Sting
+					[14534] = {},
+					-- Bloodpetal Poison
+					[14110] = {},
+					-- Bottle of Poison
+					[22335] = {},
+					-- Brood Affliction: Green
+					[23169] = {},
+					-- Corrosive Poison 
+					[13526] = {},
+					-- Corrosive Venom Spit
+					[20629] = { dur = 1.5 },
+					-- Creeper Venom
+					[14532] = {},
+					-- Deadly Leech Poison
+					[3388] = {},
+					-- Deadly Poison
+					[13582] = {},
+					-- Enervate
+					[22661] = {},
+					-- Entropic Sting
+					[23260] = {},
+					-- Festering Bites
+					[16460] = {},
+					-- Larva Goo
+					[21069] = {},
+					-- Lethal Toxin
+					[8256] = {},
+					-- Maggot Goo
+					[17197] = {},
+					-- Abomination Spit
+					[25262] = {},
+					-- Minor Scorpion Venom Effect
+					[5105] = {},
+					-- Poisonous Spit
+					[4286] = {},
+					-- Slow Poison
+					[3332] = {},
+					-- Slime Bolt
+					[28311] = {},
+					-- Seeping Willow
+					[17196] = {},
+					-- Paralyzing Poison
+					[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				},
+				Disease = {
+					-- Rabies
+					[3150] = {},
+					-- Fevered Fatigue
+					[8139] = {},
+					-- Silithid Pox
+					[8137] = {},
+					-- Wandering Plague
+					[3439] = {},
+					-- Spirit Decay
+					[8016] = {},
+					-- Tetanus
+					[8014] = {},
+					-- Contagion of Rot
+					[7102] = {},
+					-- Volatile Infection
+					[3584] = {},
+					-- Mirkfallon Fungus
+					[8138] = {},
+					-- Infected Wound
+					[3427] = {},
+					-- Noxious Catalyst
+					[5413] = {},
+					-- Corrupted Agility
+					[6817] = {},
+					-- Irradiated
+					[9775] = {},
+					-- Infected Spine
+					[12245] = {},
+					-- Corrupted Stamina
+					[6819] = {},
+					-- Decayed Strength
+					[6951] = {},
+					-- Decayed Agility
+					[7901] = {},
+					-- Infected Bite
+					[16128] = {},
+					-- Plague Cloud
+					[3256] = {},
+					-- Plague Mind
+					[3429] = {},
+					-- Magenta Cap Sickness
+					[10136] = {},
+					-- Gift of Arthas
+					[11374] = {},
+					-- Festering Rash
+					[15848] = {},
+					-- Dark Plague
+					[18270] = {},
+					-- Fevered Plague
+					[8600] = {},
+					-- Rabid Maw
+					[4316] = {},
+					-- Brood Affliction: Red
+					[23155] = {},
+					-- Blight
+					[9796] = {},
+					-- Slime Dysentery
+					[16461] = {},
+					-- Creeping Mold
+					[18289] = {},
+					-- Weakening Disease
+					[18633] = {},
+					-- Putrid Breath
+					[21062] = {},
+					-- Dredge Sickness
+					[14535] = {},
+					-- Putrid Bite
+					[30113] = {},
+					-- Putrid Enzyme
+					[14539] = {},			
+					-- Black Rot
+					[16448] = {},
+					-- Cadaver Worms
+					[16143] = {},
+					-- Ghoul Plague
+					[16458] = {},
+					-- Putrid Stench
+					[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				}, 
+				Curse = {	
+					-- Molten Core: Lucifron's Curse
+					[19703] = {},
+					-- Molten Core: Gehennas' Curse 
+					-- Note: Tank should be prioritized 
+					[19716] = {},
+					-- Shazzrah's Curse
+					-- Note: Tank should be prioritized 
+					[19713] = {},
+					-- Shadowfang Keep: Veil of Shadow
+					[7068] = { dur = 1.5 },
+					-- Curse of Thorns
+					[6909] = {},
+					-- Wracking Pains
+					[13619] = {},
+					-- Curse of Stalvan
+					[13524] = {},
+					-- Curse of Blood
+					[16098] = {},
+					-- Curse of the Plague Rat
+					[17738] = {},
+					-- Discombobulate
+					[4060] = {},
+					-- Hex of Jammal'an
+					[12480] = {},
+					-- Shrink
+					[24054] = {},
+					-- Curse of the Firebrand
+					[16071] = {},
+					-- Enfeeble
+					[11963] = {},
+					-- Piercing Shadow
+					[16429] = {},
+					-- Rage of Thule
+					[3387] = {},
+					-- Mark of Kazzak
+					[21056] = {},
+					-- Curse of the Dreadmaul
+					[11960] = {},
+					-- Banshee Curse
+					[17105] = {},
+					-- Corrupted Fear
+					[21330] = {},
+					-- Curse of Impotence
+					[22371] = {},
+					-- Delusions of Jin'do
+					[24306] = {},
+					-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+					[16336] = {},
+					-- Tainted Mind
+					[16567] = {},
+					-- Ancient Hysteria
+					[19372] = {},
+					-- Breath of Sargeras
+					[28342] = {},
+					-- Curse of the Elemental Lord
+					[26977] = {},
+					-- Curse of Mending
+					[15730] = {},
+					-- Curse of the Darkmaster
+					[18702] = {},
+					-- Arugal's Curse
+					[7621] = {},
+				},
+				Magic = {	
+					-- Molten Core: Ignite Mana
+					[19659] = {},
+					-- Molten Core: Impending Doom
+					[19702] = { dur = 1.5 },
+					-- Molten Core: Panic
+					[19408] = {},			
+					-- Molten Core: Magma Splash
+					[13880] = { dur = 1.5 },
+					-- Molten Core: Ancient Despair
+					[19369] = { dur = 1.5 },
+					-- Molten Core: Soul Burn
+					[19393] = { dur = 1.5 },
+					-- Onyxia: Greater Polymorph
+					[22274] = {},
+					-- Onyxia: Wild Polymorph
+					[23603] = {},
+					-- Scarlet Monastery Dungeon: Terrify
+					[7399] = {},
+					-- Dominate Mind
+					[20740] = {},
+					-- Immolate
+					[12742] = { dur = 2 },
+					-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+					[23952] = { dur = 2 },
+					-- Misc: Reckless Charge
+					[13327] = { dur = 1 },
+					-- Misc: Hex 
+					[17172] = {},
+					-- Polymorph Backfire (Azshara)
+					[28406] = {},	
+					-- Polymorph: Chicken
+					[228] = {},
+					-- Chains of Ice
+					[113] = { dur = 12 },
+					-- Grasping Vines
+					[8142] = { dur = 4 },
+					-- Naralex's Nightmare
+					[7967] = {},
+					-- Thundercrack
+					[8150] = { dur = 1 },
+					-- Screams of the Past
+					[7074] = { dur = 1 },
+					-- Smoke Bomb
+					[7964] = { dur = 1 },
+					-- Ice Blast
+					[11264] = { dur = 6 },
+					-- Pacify
+					[10730] = {},
+					-- Sonic Burst
+					[8281] = { dur = 0.5 },
+					-- Enveloping Winds
+					[6728] = { dur = 1 },
+					-- Petrify
+					[11020] = { dur = 1 },
+					-- Freeze Solid
+					[11836] = { dur = 1 },
+					-- Deep Slumber
+					[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Crystallize
+					[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Enchanting Lullaby
+					[16798] = { dur = 1 },
+					-- Burning Winds
+					[17293] = { dur = 1 },
+					-- Banshee Shriek
+					[16838] = { dur = 1 },
+				}, 
+				Enrage = {
+				},
+				Frenzy = {
+					-- Frenzy 
+					[19451] = { dur = 1.5 },
+				},
+				BlessingofProtection = {
+					[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+					[21869] = { dur = 6 },   -- Repulsive Gaze
+					[5134] = { dur = 8 },	 -- Flash Bomb
+				},
+				BlessingofFreedom = {
+					[8312] = { dur = 2 },
+					[8346] = { dur = 2 },
+					[13099] = { dur = 2 },
+					[19636] = { dur = 2 },
+					[23414] = { dur = 2 },
+					[6533] = { dur = 2 },
+					[11820] = { dur = 2 },
+					[8377] = { dur = 2 },
+					[113] = { dur = 2 },
+					[8142] = { dur = 2 },
+					[7295] = { dur = 2 },
+					[11264] = { dur = 2 },
+					[12252] = { dur = 2 },
+					[745] = { dur = 2 },
+					[15474] = { dur = 2 },
+					[14030] = { dur = 2 },
+					[4962] = { dur = 2 },
+				},
+				BlessingofSacrifice = {
+				},
+				Vanish = {
+				},
+			},
+			PvP = {
+				BlackList = {},
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+				},
+				PurgeHigh = {
+					-- Paladin: Blessing of Protection
+					[1022] = { dur = 1 },
+					-- Paladin: Divine Favor 
+					[31842] = { dur = 0 }, -- New Cata ID, KROKS
+					-- Priest: Power Infusion
+					[10060] = { dur = 4 },
+					-- Mage: Combustion
+					[11129] = { dur = 4 },
+					-- Mage: Arcane Power
+					[12042] = { dur = 4 },
+					-- Druid | Shaman: Nature's Swiftness
+					[16188] = { dur = 1.5 },
+					-- Shaman: Elemental Mastery
+					[16166] = { dur = 1.5 },
+				},
+				PurgeLow = {
+					-- Paladin: Blessing of Freedom  
+					[1044] = { dur = 1.5 },
+					-- Druid: Rejuvenation
+					[774] = { dur = 0, onlyBear = true },
+					-- Druid: Regrow
+					[8936] = { dur = 0, onlyBear = true },
+					-- Druid: Mark of the Wild
+					[1126] = { dur = 0, onlyBear = true },
+				},
+				Poison = {
+					-- Hunter: Wyvern Sting
+					[19386] = { dur = 0 },
+					-- Hunter: Serpent Sting
+					[1978] = { dur = 3 },
+					-- Rogue: Slow Poison
+					[3332] = {},
+					-- Rogue: Blind
+					[2094] = { dur = 2.5 },
+				},
+				Disease = {
+				},
+				Curse = {
+					-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
+					[8277] = {},
+					-- Warlock: Curse of Doom
+					[603] = {},
+					-- Warlock: Curse of the Elements
+					[1490] = {},
+					-- Corrupted Fear (set bonus)
+					[21330] = {},
+				},
+				Magic = {			
+					-- Paladin: Repentance
+					[20066] = { dur = 1.5 },
+					-- Paladin: Hammer of Justice
+					[853] = { dur = 0 },
+					-- Hunter: Freezing Trap
+					[1499] = { dur = 1 },
+					-- Hunter: Entrapment
+					[19185] = { dur = 1.5 },
+					-- Hunter: Trap 
+					[8312] = { dur = 1 },
+					-- Hunter: Hunter's Mark
+					[1130] = {}, -- New Cata spell ID, KROKS
+					-- Priest: Mind Control 
+					[605] = { dur = 0 },
+					-- Priest: Psychic Scream
+					[8122] = { dur = 1.5 },
+					-- Priest: Shackle Undead 
+					[9484] = { dur = 1 },
+					-- Priest: Silence
+					[15487] = { dur = 1 },
+					-- Mage: Polymorph 
+					[118] = { dur = 1.5 },
+					-- Mage: Polymorph: Sheep 
+					[851] = { dur = 1.5 },
+					-- Mage: Polymorph: Turtle 
+					[28271] = { dur = 1.5 },
+					-- Mage: Polymorph: Pig 
+					[28272] = { dur = 1.5 },
+					-- Mage: Frost Nova  
+					[122] = { dur = 1 },
+					-- Warlock: Banish 
+					[710] = {},				
+					-- Warlock: Fear 
+					[5782] = { dur = 1.5 },
+					-- Warlock: Seduction
+					[6358] = { dur = 1.5 },	
+					-- Warlock: Howl of Terror
+					[5484] = { dur = 1.5 },
+					-- Warlock: Death Coil
+					[6789] = { dur = 1 },
+					-- Warlock: Spell Lock (Felhunter)
+					[24259] = { dur = 1 },
+					-- Druid: Hibernate 
+					[2637] = { dur = 1.5 },				
+					-- Mage: Ice Nova 
+					[22519] = { dur = 1 },
+					-- Druid: Entangling Roots
+					[339] = { dur = 1 },					
+					-- Trinket: Tidal Charm
+					[835] = { dur = 1 },
+					-- Iron Grenade
+					[4068] = {},
+					-- Sleep (Green Whelp Armor chest)
+					[9159] = {},
+					-- Arcane Bomb
+					[19821] = {},
+					-- Silence (Silent Fang sword)
+					[18278] = {},
+					-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+					[20683] = {},
+					-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+					[17286] = {},
+					-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+					[17820] = {},
+					-- Glimpse of Madness (Dark Edge of Insanity axe)
+					[26108] = { dur = 1 },
+				},
+				Enrage = {
+					-- Berserker Rage
+					[18499] = { dur = 1 },
+					-- Enrage
+					[12880] = { dur = 1 },
+				},
+				Frenzy = {
+				},
+				BlessingofProtection = {
+					-- Disarm 
+					[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+					[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+					-- Stunned 
+					--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+					[5211] = { dur = 1.6 },				-- Bash						(Druid)
+					[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+					--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+					[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?	
+					[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+					-- Disoriented
+					[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
+					-- Feared 
+					[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+				},
+				BlessingofFreedom = {
+					[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+					[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+					[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+					[45334] = { dur = 2 },				-- Feral Charge Effect		(Druid)	New Cata spell ID, KROKS
+					[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+					[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
+					[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+				},
+				BlessingofSacrifice = {
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+				},
+				Vanish = {
+					[22519] = {}, 						-- Ice Nova 				(Mage)
+					[122] = {}, 						-- Frost Nova 				(Mage)
+					[339] = {}, 						-- Entangling Roots 		(Druid)
+				},
+			},
+		}
+	elseif Action.BuildToC >= 40000 then
+		-- CATA
+		Factory[4].Heal = StdUi:tGenerateMinMax({
+			[GameLocale] = {	
+				ISINTERRUPT = true,
+				-- Priest
+				[2050] = "Lesser Heal",
+				[2060] = "Greater Heal",
+				[596] = "Prayer of Healing",
+				-- Druid
+				[740] = "Tranquility",
+				[8936] = "Regrowth",
+				-- Shaman
+				[1064] = "Chain Heal",
+				[331] = "Healing Wave",
+				[8004] = "Lesser Healing Wave",
+				-- Paladin
+				[19750] = "Flash of Light",
+				[635] = "Holy Light",
+			},			
+		}, 43, 70, math_random(87, 95), true)
+		
+		Factory[4].PvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+				-- Shaman 
+				[2645] = "Ghost Wolf",
+				-- Mage 
+				[118] = "Pollymorph",
+				-- Priest 
+				[605] = "Mind Control",
+				[9484] = "Shackle Undead",
+				[8129] = "Mana Burn",
+				-- Hunter 
+				[982] = "Revive pet",
+				[1513] = "Scare Beast",
+				-- Warlock 				
+				[1122] = "Inferno",
+				[5782] = "Fear",
+				[5484] = "Howl of Terror",
+				[710] = "Banish",
+				-- Druid 
+				[20484] = "Rebirth",
+				[339] = "Entangling Roots",
+				[2637] = "Hibernate",
+				-- Rogue 
+				[2823] = "Deadly Poison",
+				-- Paladin 	
+				-- Hunter 
+				[19386] = "Wyvern Sting",
+			}, 
+		}, 34, 58, 37)
+		
+		GlobalFactory[5] = {		
+			PvE = {
+				BlackList = {},			
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+					-- Dominate Mind
+					[15859] = {},		-- FIX ME: Is a buff?
+					-- Cause Insanity
+					[12888] = {},		-- FIX ME: Is a buff?
+				},
+				PurgeHigh = {		
+					-- Molten Core: Deaden Magic
+					[19714] = {},
+				},
+				PurgeLow = {
+				},
+				Poison = {    
+					-- Onyxia: Brood Affliction: Green
+					[23169] = {},
+					-- Aspect of Venoxis
+					[24688] = { dur = 1.5 },
+					-- Atal'ai Poison
+					[18949] = { dur = 1.5 },
+					-- Baneful Poison
+					[15475] = {},
+					-- Barbed Sting
+					[14534] = {},
+					-- Bloodpetal Poison
+					[14110] = {},
+					-- Bottle of Poison
+					[22335] = {},
+					-- Brood Affliction: Green
+					[23169] = {},
+					-- Corrosive Poison 
+					[13526] = {},
+					-- Corrosive Venom Spit
+					[20629] = { dur = 1.5 },
+					-- Creeper Venom
+					[14532] = {},
+					-- Deadly Leech Poison
+					[3388] = {},
+					-- Deadly Poison
+					[13582] = {},
+					-- Enervate
+					[22661] = {},
+					-- Entropic Sting
+					[23260] = {},
+					-- Festering Bites
+					[16460] = {},
+					-- Larva Goo
+					[21069] = {},
+					-- Lethal Toxin
+					[8256] = {},
+					-- Maggot Goo
+					[17197] = {},
+					-- Abomination Spit
+					[25262] = {},
+					-- Minor Scorpion Venom Effect
+					[5105] = {},
+					-- Poisonous Spit
+					[4286] = {},
+					-- Slow Poison
+					[3332] = {},
+					-- Slime Bolt
+					[28311] = {},
+					-- Seeping Willow
+					[17196] = {},
+					-- Paralyzing Poison
+					[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				},
+				Disease = {
+					-- Rabies
+					[3150] = {},
+					-- Fevered Fatigue
+					[8139] = {},
+					-- Silithid Pox
+					[8137] = {},
+					-- Wandering Plague
+					[3439] = {},
+					-- Spirit Decay
+					[8016] = {},
+					-- Tetanus
+					[8014] = {},
+					-- Contagion of Rot
+					[7102] = {},
+					-- Volatile Infection
+					[3584] = {},
+					-- Mirkfallon Fungus
+					[8138] = {},
+					-- Infected Wound
+					[3427] = {},
+					-- Noxious Catalyst
+					[5413] = {},
+					-- Corrupted Agility
+					[6817] = {},
+					-- Irradiated
+					[9775] = {},
+					-- Infected Spine
+					[12245] = {},
+					-- Corrupted Stamina
+					[6819] = {},
+					-- Decayed Strength
+					[6951] = {},
+					-- Decayed Agility
+					[7901] = {},
+					-- Infected Bite
+					[16128] = {},
+					-- Plague Cloud
+					[3256] = {},
+					-- Plague Mind
+					[3429] = {},
+					-- Magenta Cap Sickness
+					[10136] = {},
+					-- Gift of Arthas
+					[11374] = {},
+					-- Festering Rash
+					[15848] = {},
+					-- Dark Plague
+					[18270] = {},
+					-- Fevered Plague
+					[8600] = {},
+					-- Rabid Maw
+					[4316] = {},
+					-- Brood Affliction: Red
+					[23155] = {},
+					-- Blight
+					[9796] = {},
+					-- Slime Dysentery
+					[16461] = {},
+					-- Creeping Mold
+					[18289] = {},
+					-- Weakening Disease
+					[18633] = {},
+					-- Putrid Breath
+					[21062] = {},
+					-- Dredge Sickness
+					[14535] = {},
+					-- Putrid Bite
+					[30113] = {},
+					-- Putrid Enzyme
+					[14539] = {},			
+					-- Black Rot
+					[16448] = {},
+					-- Cadaver Worms
+					[16143] = {},
+					-- Ghoul Plague
+					[16458] = {},
+					-- Putrid Stench
+					[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				}, 
+				Curse = {	
+					-- Molten Core: Lucifron's Curse
+					[19703] = {},
+					-- Molten Core: Gehennas' Curse 
+					-- Note: Tank should be prioritized 
+					[19716] = {},
+					-- Shazzrah's Curse
+					-- Note: Tank should be prioritized 
+					[19713] = {},
+					-- Shadowfang Keep: Veil of Shadow
+					[7068] = { dur = 1.5 },
+					-- Curse of Thorns
+					[6909] = {},
+					-- Wracking Pains
+					[13619] = {},
+					-- Curse of Stalvan
+					[13524] = {},
+					-- Curse of Blood
+					[16098] = {},
+					-- Curse of the Plague Rat
+					[17738] = {},
+					-- Discombobulate
+					[4060] = {},
+					-- Hex of Jammal'an
+					[12480] = {},
+					-- Shrink
+					[24054] = {},
+					-- Curse of the Firebrand
+					[16071] = {},
+					-- Enfeeble
+					[11963] = {},
+					-- Piercing Shadow
+					[16429] = {},
+					-- Rage of Thule
+					[3387] = {},
+					-- Mark of Kazzak
+					[21056] = {},
+					-- Curse of the Dreadmaul
+					[11960] = {},
+					-- Banshee Curse
+					[17105] = {},
+					-- Corrupted Fear
+					[21330] = {},
+					-- Curse of Impotence
+					[22371] = {},
+					-- Delusions of Jin'do
+					[24306] = {},
+					-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+					[16336] = {},
+					-- Tainted Mind
+					[16567] = {},
+					-- Ancient Hysteria
+					[19372] = {},
+					-- Breath of Sargeras
+					[28342] = {},
+					-- Curse of the Elemental Lord
+					[26977] = {},
+					-- Curse of Mending
+					[15730] = {},
+					-- Curse of the Darkmaster
+					[18702] = {},
+					-- Arugal's Curse
+					[7621] = {},
+				},
+				Magic = {	
+					-- Molten Core: Ignite Mana
+					[19659] = {},
+					-- Molten Core: Impending Doom
+					[19702] = { dur = 1.5 },
+					-- Molten Core: Panic
+					[19408] = {},			
+					-- Molten Core: Magma Splash
+					[13880] = { dur = 1.5 },
+					-- Molten Core: Ancient Despair
+					[19369] = { dur = 1.5 },
+					-- Molten Core: Soul Burn
+					[19393] = { dur = 1.5 },
+					-- Onyxia: Greater Polymorph
+					[22274] = {},
+					-- Onyxia: Wild Polymorph
+					[23603] = {},
+					-- Scarlet Monastery Dungeon: Terrify
+					[7399] = {},
+					-- Dominate Mind
+					[20740] = {},
+					-- Immolate
+					[12742] = { dur = 2 },
+					-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+					[23952] = { dur = 2 },
+					-- Misc: Reckless Charge
+					[13327] = { dur = 1 },
+					-- Misc: Hex 
+					[17172] = {},
+					-- Polymorph Backfire (Azshara)
+					[28406] = {},	
+					-- Polymorph: Chicken
+					[228] = {},
+					-- Chains of Ice
+					[113] = { dur = 12 },
+					-- Grasping Vines
+					[8142] = { dur = 4 },
+					-- Naralex's Nightmare
+					[7967] = {},
+					-- Thundercrack
+					[8150] = { dur = 1 },
+					-- Screams of the Past
+					[7074] = { dur = 1 },
+					-- Smoke Bomb
+					[7964] = { dur = 1 },
+					-- Ice Blast
+					[11264] = { dur = 6 },
+					-- Pacify
+					[10730] = {},
+					-- Sonic Burst
+					[8281] = { dur = 0.5 },
+					-- Enveloping Winds
+					[6728] = { dur = 1 },
+					-- Petrify
+					[11020] = { dur = 1 },
+					-- Freeze Solid
+					[11836] = { dur = 1 },
+					-- Deep Slumber
+					[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Crystallize
+					[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Enchanting Lullaby
+					[16798] = { dur = 1 },
+					-- Burning Winds
+					[17293] = { dur = 1 },
+					-- Banshee Shriek
+					[16838] = { dur = 1 },
+				}, 
+				Enrage = {
+				},
+				Frenzy = {
+					-- Frenzy 
+					[19451] = { dur = 1.5 },
+				},
+				BlessingofProtection = {
+					[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+					[21869] = { dur = 6 },   -- Repulsive Gaze
+					[5134] = { dur = 8 },	 -- Flash Bomb
+				},
+				BlessingofFreedom = {
+					[8312] = { dur = 2 },
+					[8346] = { dur = 2 },
+					[13099] = { dur = 2 },
+					[19636] = { dur = 2 },
+					[23414] = { dur = 2 },
+					[6533] = { dur = 2 },
+					[11820] = { dur = 2 },
+					[8377] = { dur = 2 },
+					[113] = { dur = 2 },
+					[8142] = { dur = 2 },
+					[7295] = { dur = 2 },
+					[11264] = { dur = 2 },
+					[12252] = { dur = 2 },
+					[745] = { dur = 2 },
+					[15474] = { dur = 2 },
+					[14030] = { dur = 2 },
+					[19306] = { dur = 2 },
+					[4962] = { dur = 2 },
+				},
+				BlessingofSacrifice = {
+				},
+				Vanish = {
+				},
+			},
+			PvP = {
+				BlackList = {},
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+				},
+				PurgeHigh = {
+					-- Paladin: Blessing of Protection
+					[1022] = { dur = 1 },
+					-- Paladin: Divine Favor 
+					[31842] = { dur = 0 }, -- New Cata ID, KROKS
+					-- Priest: Power Infusion
+					[10060] = { dur = 4 },
+					-- Mage: Combustion
+					[11129] = { dur = 4 },
+					-- Mage: Arcane Power
+					[12042] = { dur = 4 },
+					-- Druid | Shaman: Nature's Swiftness
+					[16188] = { dur = 1.5 },
+					-- Shaman: Elemental Mastery
+					[16166] = { dur = 1.5 },
+					-- Warlock: Fel Domination
+					[18708] = { dur = 0 },
+					-- Warlock: Amplify Curse
+					[18288] = { dur = 10 },
+				},
+				PurgeLow = {
+					-- Paladin: Blessing of Freedom  
+					[1044] = { dur = 1.5 },
+					-- Druid: Rejuvenation
+					[774] = { dur = 0, onlyBear = true },
+					-- Druid: Regrow
+					[8936] = { dur = 0, onlyBear = true },
+					-- Druid: Mark of the Wild
+					[1126] = { dur = 0, onlyBear = true },
+				},
+				Poison = {
+					-- Hunter: Wyvern Sting
+					[19386] = { dur = 0 },
+					-- Hunter: Serpent Sting
+					[1978] = { dur = 3 },
+					-- Rogue: Slow Poison
+					[3332] = {},
+					-- Rogue: Blind
+					[2094] = { dur = 2.5 },
+				},
+				Disease = {
+				},
+				Curse = {
+					-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
+					[8277] = {}, 			
+					-- Warlock: Curse of Tongues
+					[1714] = { dur = 3 },
+					-- Warlock: Curse of Weakness
+					[702] = { dur = 3 },
+					-- Warlock: Curse of Doom
+					[603] = {},
+					-- Warlock: Curse of the Elements
+					[1490] = {},
+					-- Corrupted Fear (set bonus)
+					[21330] = {},
+				},
+				Magic = {			
+					-- Paladin: Repentance
+					[20066] = { dur = 1.5 },
+					-- Paladin: Hammer of Justice
+					[853] = { dur = 0 },
+					-- Hunter: Freezing Trap
+					[1499] = { dur = 1 },
+					-- Hunter: Entrapment
+					[19185] = { dur = 1.5 },
+					-- Hunter: Trap 
+					[8312] = { dur = 1 },
+					-- Hunter: Hunter's Mark
+					[1130] = {}, -- New Cata spell ID, KROKS
+					-- Rogue: Kick - Silenced
+					[18425] = { dur = 1 },
+					-- Priest: Mind Control 
+					[605] = { dur = 0 },
+					-- Priest: Psychic Scream
+					[8122] = { dur = 1.5 },
+					-- Priest: Shackle Undead 
+					[9484] = { dur = 1 },
+					-- Priest: Silence
+					[15487] = { dur = 1 },
+					-- Mage: Polymorph 
+					[118] = { dur = 1.5 },
+					-- Mage: Polymorph: Sheep 
+					[851] = { dur = 1.5 },
+					-- Mage: Polymorph: Turtle 
+					[28271] = { dur = 1.5 },
+					-- Mage: Polymorph: Pig 
+					[28272] = { dur = 1.5 },
+					-- Mage: Frost Nova  
+					[122] = { dur = 1 },
+					-- Warlock: Banish 
+					[710] = {},				
+					-- Warlock: Fear 
+					[5782] = { dur = 1.5 },
+					-- Warlock: Seduction
+					[6358] = { dur = 1.5 },	
+					-- Warlock: Howl of Terror
+					[5484] = { dur = 1.5 },
+					-- Warlock: Death Coil
+					[6789] = { dur = 1 },
+					-- Warlock: Spell Lock (Felhunter)
+					[24259] = { dur = 1 },
+					-- Druid: Hibernate 
+					[2637] = { dur = 1.5 },				
+					-- Mage: Ice Nova 
+					[22519] = { dur = 1 },
+					-- Druid: Entangling Roots
+					[339] = { dur = 1 },					
+					-- Trinket: Tidal Charm
+					[835] = { dur = 1 },
+					-- Iron Grenade
+					[4068] = {},
+					-- Sleep (Green Whelp Armor chest)
+					[9159] = {},
+					-- Arcane Bomb
+					[19821] = {},
+					-- Silence (Silent Fang sword)
+					[18278] = {},
+					-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+					[20683] = {},
+					-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+					[17286] = {},
+					-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+					[17820] = {},
+					-- Glimpse of Madness (Dark Edge of Insanity axe)
+					[26108] = { dur = 1 },
+				},
+				Enrage = {
+					-- Berserker Rage
+					[18499] = { dur = 1 },
+					-- Enrage
+					[12880] = { dur = 1 },
+				},
+				Frenzy = {
+				},
+				BlessingofProtection = {
+					-- Disarm 
+					[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+					[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
+					[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+					-- Stunned 
+					--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+					[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
+					[5211] = { dur = 1.6 },				-- Bash						(Druid)
+					[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+					--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+					[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?	
+					[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+					-- Disoriented
+					[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
+					-- Feared 
+					[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+				},
+				BlessingofFreedom = {
+					[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
+					[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+					[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+					[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+					[45334] = { dur = 2 },				-- Feral Charge Effect		(Druid)	New Cata spell ID, KROKS
+					[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+					[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
+					[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+				},
+				BlessingofSacrifice = {
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+				},
+				Vanish = {
+					[22519] = {}, 						-- Ice Nova 				(Mage)
+					[122] = {}, 						-- Frost Nova 				(Mage)
+					[339] = {}, 						-- Entangling Roots 		(Druid)
+				},
+			},
+		}
+	elseif Action.BuildToC >= 30000 then
+		-- WOTLK
+		Factory[4].Heal = StdUi:tGenerateMinMax({
+			[GameLocale] = {	
+				ISINTERRUPT = true,
+				-- Priest
+				[2050] = "Lesser Heal",
+				[2060] = "Greater Heal",
+				[596] = "Prayer of Healing",
+				-- Druid
+				[740] = "Tranquility",
+				[8936] = "Regrowth",
+				-- Shaman
+				[1064] = "Chain Heal",
+				[331] = "Healing Wave",
+				[8004] = "Lesser Healing Wave",
+				-- Paladin
+				[19750] = "Flash of Light",
+				[635] = "Holy Light",
+			},			
+		}, 43, 70, math_random(87, 95), true)
+		
+		Factory[4].PvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+				-- Shaman 
+				[2645] = "Ghost Wolf",
+				-- Mage 
+				[118] = "Pollymorph",
+				-- Priest 
+				[605] = "Mind Control",
+				[9484] = "Shackle Undead",
+				[8129] = "Mana Burn",
+				-- Hunter 
+				[982] = "Revive pet",
+				[1513] = "Scare Beast",
+				-- Warlock 				
+				[1122] = "Inferno",
+				[5782] = "Fear",
+				[5484] = "Howl of Terror",
+				[710] = "Banish",
+				-- Druid 
+				[20484] = "Rebirth",
+				[339] = "Entangling Roots",
+				[2637] = "Hibernate",
+				-- Rogue 
+				[2823] = "Deadly Poison",
+				-- Paladin 	
+				-- Hunter 
+				[19386] = "Wyvern Sting",
+			}, 
+		}, 34, 58, 37)
+		
+		GlobalFactory[5] = {		
+			PvE = {
+				BlackList = {},			
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+					-- Dominate Mind
+					[15859] = {},		-- FIX ME: Is a buff?
+					-- Cause Insanity
+					[12888] = {},		-- FIX ME: Is a buff?
+				},
+				PurgeHigh = {		
+					-- Molten Core: Deaden Magic
+					[19714] = {},
+				},
+				PurgeLow = {
+				},
+				Poison = {    
+					-- Onyxia: Brood Affliction: Green
+					[23169] = {},
+					-- Aspect of Venoxis
+					[24688] = { dur = 1.5 },
+					-- Atal'ai Poison
+					[18949] = { dur = 1.5 },
+					-- Baneful Poison
+					[15475] = {},
+					-- Barbed Sting
+					[14534] = {},
+					-- Bloodpetal Poison
+					[14110] = {},
+					-- Bottle of Poison
+					[22335] = {},
+					-- Brood Affliction: Green
+					[23169] = {},
+					-- Corrosive Poison 
+					[13526] = {},
+					-- Corrosive Venom Spit
+					[20629] = { dur = 1.5 },
+					-- Creeper Venom
+					[14532] = {},
+					-- Deadly Leech Poison
+					[3388] = {},
+					-- Deadly Poison
+					[13582] = {},
+					-- Enervate
+					[22661] = {},
+					-- Entropic Sting
+					[23260] = {},
+					-- Festering Bites
+					[16460] = {},
+					-- Larva Goo
+					[21069] = {},
+					-- Lethal Toxin
+					[8256] = {},
+					-- Maggot Goo
+					[17197] = {},
+					-- Abomination Spit
+					[25262] = {},
+					-- Minor Scorpion Venom Effect
+					[5105] = {},
+					-- Poisonous Spit
+					[4286] = {},
+					-- Slow Poison
+					[3332] = {},
+					-- Slime Bolt
+					[28311] = {},
+					-- Seeping Willow
+					[17196] = {},
+					-- Paralyzing Poison
+					[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				},
+				Disease = {
+					-- Rabies
+					[3150] = {},
+					-- Fevered Fatigue
+					[8139] = {},
+					-- Silithid Pox
+					[8137] = {},
+					-- Wandering Plague
+					[3439] = {},
+					-- Spirit Decay
+					[8016] = {},
+					-- Tetanus
+					[8014] = {},
+					-- Contagion of Rot
+					[7102] = {},
+					-- Volatile Infection
+					[3584] = {},
+					-- Mirkfallon Fungus
+					[8138] = {},
+					-- Infected Wound
+					[3427] = {},
+					-- Noxious Catalyst
+					[5413] = {},
+					-- Corrupted Agility
+					[6817] = {},
+					-- Irradiated
+					[9775] = {},
+					-- Infected Spine
+					[12245] = {},
+					-- Corrupted Stamina
+					[6819] = {},
+					-- Decayed Strength
+					[6951] = {},
+					-- Decayed Agility
+					[7901] = {},
+					-- Infected Bite
+					[16128] = {},
+					-- Plague Cloud
+					[3256] = {},
+					-- Plague Mind
+					[3429] = {},
+					-- Magenta Cap Sickness
+					[10136] = {},
+					-- Gift of Arthas
+					[11374] = {},
+					-- Festering Rash
+					[15848] = {},
+					-- Dark Plague
+					[18270] = {},
+					-- Fevered Plague
+					[8600] = {},
+					-- Rabid Maw
+					[4316] = {},
+					-- Brood Affliction: Red
+					[23155] = {},
+					-- Blight
+					[9796] = {},
+					-- Slime Dysentery
+					[16461] = {},
+					-- Creeping Mold
+					[18289] = {},
+					-- Weakening Disease
+					[18633] = {},
+					-- Putrid Breath
+					[21062] = {},
+					-- Dredge Sickness
+					[14535] = {},
+					-- Putrid Bite
+					[30113] = {},
+					-- Putrid Enzyme
+					[14539] = {},			
+					-- Black Rot
+					[16448] = {},
+					-- Cadaver Worms
+					[16143] = {},
+					-- Ghoul Plague
+					[16458] = {},
+					-- Putrid Stench
+					[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				}, 
+				Curse = {	
+					-- Molten Core: Lucifron's Curse
+					[19703] = {},
+					-- Molten Core: Gehennas' Curse 
+					-- Note: Tank should be prioritized 
+					[19716] = {},
+					-- Shazzrah's Curse
+					-- Note: Tank should be prioritized 
+					[19713] = {},
+					-- Shadowfang Keep: Veil of Shadow
+					[7068] = { dur = 1.5 },
+					-- Curse of Thorns
+					[6909] = {},
+					-- Wracking Pains
+					[13619] = {},
+					-- Curse of Stalvan
+					[13524] = {},
+					-- Curse of Blood
+					[16098] = {},
+					-- Curse of the Plague Rat
+					[17738] = {},
+					-- Discombobulate
+					[4060] = {},
+					-- Hex of Jammal'an
+					[12480] = {},
+					-- Shrink
+					[24054] = {},
+					-- Curse of the Firebrand
+					[16071] = {},
+					-- Enfeeble
+					[11963] = {},
+					-- Piercing Shadow
+					[16429] = {},
+					-- Rage of Thule
+					[3387] = {},
+					-- Mark of Kazzak
+					[21056] = {},
+					-- Curse of the Dreadmaul
+					[11960] = {},
+					-- Banshee Curse
+					[17105] = {},
+					-- Corrupted Fear
+					[21330] = {},
+					-- Curse of Impotence
+					[22371] = {},
+					-- Delusions of Jin'do
+					[24306] = {},
+					-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+					[16336] = {},
+					-- Tainted Mind
+					[16567] = {},
+					-- Ancient Hysteria
+					[19372] = {},
+					-- Breath of Sargeras
+					[28342] = {},
+					-- Curse of the Elemental Lord
+					[26977] = {},
+					-- Curse of Mending
+					[15730] = {},
+					-- Curse of the Darkmaster
+					[18702] = {},
+					-- Arugal's Curse
+					[7621] = {},
+				},
+				Magic = {	
+					-- Molten Core: Ignite Mana
+					[19659] = {},
+					-- Molten Core: Impending Doom
+					[19702] = { dur = 1.5 },
+					-- Molten Core: Panic
+					[19408] = {},			
+					-- Molten Core: Magma Splash
+					[13880] = { dur = 1.5 },
+					-- Molten Core: Ancient Despair
+					[19369] = { dur = 1.5 },
+					-- Molten Core: Soul Burn
+					[19393] = { dur = 1.5 },
+					-- Onyxia: Greater Polymorph
+					[22274] = {},
+					-- Onyxia: Wild Polymorph
+					[23603] = {},
+					-- Scarlet Monastery Dungeon: Terrify
+					[7399] = {},
+					-- Dominate Mind
+					[20740] = {},
+					-- Immolate
+					[12742] = { dur = 2 },
+					-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+					[23952] = { dur = 2 },
+					-- Misc: Reckless Charge
+					[13327] = { dur = 1 },
+					-- Misc: Hex 
+					[17172] = {},
+					-- Polymorph Backfire (Azshara)
+					[28406] = {},	
+					-- Polymorph: Chicken
+					[228] = {},
+					-- Chains of Ice
+					[113] = { dur = 12 },
+					-- Grasping Vines
+					[8142] = { dur = 4 },
+					-- Naralex's Nightmare
+					[7967] = {},
+					-- Thundercrack
+					[8150] = { dur = 1 },
+					-- Screams of the Past
+					[7074] = { dur = 1 },
+					-- Smoke Bomb
+					[7964] = { dur = 1 },
+					-- Ice Blast
+					[11264] = { dur = 6 },
+					-- Pacify
+					[10730] = {},
+					-- Sonic Burst
+					[8281] = { dur = 0.5 },
+					-- Enveloping Winds
+					[6728] = { dur = 1 },
+					-- Petrify
+					[11020] = { dur = 1 },
+					-- Freeze Solid
+					[11836] = { dur = 1 },
+					-- Deep Slumber
+					[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Crystallize
+					[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Enchanting Lullaby
+					[16798] = { dur = 1 },
+					-- Burning Winds
+					[17293] = { dur = 1 },
+					-- Banshee Shriek
+					[16838] = { dur = 1 },
+				}, 
+				Enrage = {
+				},
+				Frenzy = {
+					-- Frenzy 
+					[19451] = { dur = 1.5 },
+				},
+				BlessingofProtection = {
+					[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+					[21869] = { dur = 6 },   -- Repulsive Gaze
+					[5134] = { dur = 8 },	 -- Flash Bomb
+				},
+				BlessingofFreedom = {
+					[8312] = { dur = 2 },
+					[8346] = { dur = 2 },
+					[13099] = { dur = 2 },
+					[19636] = { dur = 2 },
+					[23414] = { dur = 2 },
+					[6533] = { dur = 2 },
+					[11820] = { dur = 2 },
+					[8377] = { dur = 2 },
+					[113] = { dur = 2 },
+					[8142] = { dur = 2 },
+					[7295] = { dur = 2 },
+					[11264] = { dur = 2 },
+					[12252] = { dur = 2 },
+					[745] = { dur = 2 },
+					[15474] = { dur = 2 },
+					[14030] = { dur = 2 },
+					[19306] = { dur = 2 },
+					[4962] = { dur = 2 },
+				},
+				BlessingofSacrifice = {
+				},
+				Vanish = {
+				},
+			},
+			PvP = {
+				BlackList = {},
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+				},
+				PurgeHigh = {
+					-- Paladin: Blessing of Protection
+					[1022] = { dur = 1 },
+					-- Paladin: Divine Favor 
+					[20216] = { dur = 0 },
+					-- Priest: Power Infusion
+					[10060] = { dur = 4 },
+					-- Mage: Combustion
+					[11129] = { dur = 4 },
+					-- Mage: Arcane Power
+					[12042] = { dur = 4 },
+					-- Druid | Shaman: Nature's Swiftness
+					[16188] = { dur = 1.5 },
+					-- Shaman: Elemental Mastery
+					[16166] = { dur = 1.5 },
+					-- Warlock: Fel Domination
+					[18708] = { dur = 0 },
+					-- Warlock: Amplify Curse
+					[18288] = { dur = 10 },
+				},
+				PurgeLow = {
+					-- Paladin: Blessing of Freedom  
+					[1044] = { dur = 1.5 },
+					-- Druid: Rejuvenation
+					[774] = { dur = 0, onlyBear = true },
+					-- Druid: Regrow
+					[8936] = { dur = 0, onlyBear = true },
+					-- Druid: Mark of the Wild
+					[1126] = { dur = 0, onlyBear = true },
+				},
+				Poison = {
+					-- Hunter: Wyvern Sting
+					[19386] = { dur = 0 },
+					-- Hunter: Serpent Sting
+					[1978] = { dur = 3 },
+					-- Hunter: Viper Sting
+					[3034] = { dur = 2 },
+					-- Hunter: Scorpid Sting
+					[3043] = { dur = 1.5 },
+					-- Rogue: Slow Poison
+					[3332] = {},
+					-- Rogue: Blind
+					[2094] = { dur = 2.5 },
+				},
+				Disease = {
+				},
+				Curse = {
+					-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
+					[8277] = {}, 			
+					-- Warlock: Curse of Tongues
+					[1714] = { dur = 3 },
+					-- Warlock: Curse of Weakness
+					[702] = { dur = 3 },
+					-- Warlock: Curse of Doom
+					[603] = {},
+					-- Warlock: Curse of the Elements
+					[1490] = {},
+					-- Corrupted Fear (set bonus)
+					[21330] = {},
+				},
+				Magic = {			
+					-- Paladin: Repentance
+					[20066] = { dur = 1.5 },
+					-- Paladin: Hammer of Justice
+					[853] = { dur = 0 },
+					-- Hunter: Freezing Trap
+					[1499] = { dur = 1 },
+					-- Hunter: Entrapment
+					[19185] = { dur = 1.5 },
+					-- Hunter: Hunter's Mark
+					[14325] = {},
+					-- Hunter: Trap 
+					[8312] = { dur = 1 },
+					-- Rogue: Kick - Silenced
+					[18425] = { dur = 1 },
+					-- Priest: Mind Control 
+					[605] = { dur = 0 },
+					-- Priest: Psychic Scream
+					[8122] = { dur = 1.5 },
+					-- Priest: Shackle Undead 
+					[9484] = { dur = 1 },
+					-- Priest: Silence
+					[15487] = { dur = 1 },
+					-- Mage: Polymorph 
+					[118] = { dur = 1.5 },
+					-- Mage: Polymorph: Sheep 
+					[851] = { dur = 1.5 },
+					-- Mage: Polymorph: Turtle 
+					[28271] = { dur = 1.5 },
+					-- Mage: Polymorph: Pig 
+					[28272] = { dur = 1.5 },
+					-- Mage: Frost Nova  
+					[122] = { dur = 1 },
+					-- Warlock: Banish 
+					[710] = {},				
+					-- Warlock: Fear 
+					[5782] = { dur = 1.5 },
+					-- Warlock: Seduction
+					[6358] = { dur = 1.5 },	
+					-- Warlock: Howl of Terror
+					[5484] = { dur = 1.5 },
+					-- Warlock: Death Coil
+					[6789] = { dur = 1 },
+					-- Warlock: Spell Lock (Felhunter)
+					[24259] = { dur = 1 },
+					-- Druid: Hibernate 
+					[2637] = { dur = 1.5 },				
+					-- Mage: Ice Nova 
+					[22519] = { dur = 1 },
+					-- Druid: Entangling Roots
+					[339] = { dur = 1 },					
+					-- Trinket: Tidal Charm
+					[835] = { dur = 1 },
+					-- Iron Grenade
+					[4068] = {},
+					-- Sleep (Green Whelp Armor chest)
+					[9159] = {},
+					-- Arcane Bomb
+					[19821] = {},
+					-- Silence (Silent Fang sword)
+					[18278] = {},
+					-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+					[20683] = {},
+					-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+					[17286] = {},
+					-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+					[17820] = {},
+					-- Glimpse of Madness (Dark Edge of Insanity axe)
+					[26108] = { dur = 1 },
+				},
+				Enrage = {
+					-- Berserker Rage
+					[18499] = { dur = 1 },
+					-- Enrage
+					[12880] = { dur = 1 },
+				},
+				Frenzy = {
+				},
+				BlessingofProtection = {
+					-- Disarm 
+					[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+					[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
+					[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+					-- Stunned 
+					--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+					[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
+					[5530] = { dur = 2.6 },				-- Mace Stun Effect			(Warrior)
+					[12798] = { dur = 2.6 },			-- Revenge Stun				(Warrior)
+					[5211] = { dur = 1.6 },				-- Bash						(Druid)
+					[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+					--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+					[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
+					[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
+					[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+					-- Disoriented
+					[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
+					-- Feared 
+					[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+				},
+				BlessingofFreedom = {
+					[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
+					[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+					[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+					[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+					[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
+					[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+					[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
+					[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+				},
+				BlessingofSacrifice = {
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+				},
+				Vanish = {
+					[22519] = {}, 						-- Ice Nova 				(Mage)
+					[122] = {}, 						-- Frost Nova 				(Mage)
+					[339] = {}, 						-- Entangling Roots 		(Druid)
+				},
+			},
+		}
+	elseif Action.BuildToC >= 20000 then
+		-- TBC
+		Factory[4].Heal = StdUi:tGenerateMinMax({
+			[GameLocale] = {	
+				ISINTERRUPT = true,
+				-- Priest
+				[2050] = "Lesser Heal",
+				[2060] = "Greater Heal",
+				[6064] = "Heal",
+				[596] = "Prayer of Healing",
+				-- Druid
+				[740] = "Tranquility",
+				[8936] = "Regrowth",
+				[25297] = "Healing Touch",
+				-- Shaman
+				[1064] = "Chain Heal",
+				[331] = "Healing Wave",
+				[8004] = "Lesser Healing Wave",
+				-- Paladin
+				[19750] = "Flash of Light",
+				[635] = "Holy Light",
+			},			
+		}, 43, 70, math_random(87, 95), true)
+		
+		Factory[4].PvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+				-- Shaman 
+				[2645] = "Ghost Wolf",
+				-- Mage 
+				[118] = "Pollymorph",
+				-- Priest 
+				[605] = "Mind Control",
+				[9484] = "Shackle Undead",
+				[8129] = "Mana Burn",
+				-- Hunter 
+				[982] = "Revive pet",
+				[1513] = "Scare Beast",
+				-- Warlock 				
+				[20757] = "Create Soulstone (Major)",
+				[693] = "Create Soulstone (Minor)",
+				[11730] = "Create Healthstone (Major)",
+				[11729] = "Create Healthstone (Greater)",
+				[5699] = "Create Healthstone",
+				[1122] = "Inferno",
+				[5782] = "Fear",
+				[5484] = "Howl of Terror",
+				[20755] = "Create Soulstone",	
+				[710] = "Banish",
+				-- Druid 
+				[20484] = "Rebirth",
+				[339] = "Entangling Roots",
+				[2637] = "Hibernate",
+				-- Rogue 
+				[8681] = "Instant Poison",
+				[3420] = "Crippling Poison",
+				[13220] = "Wound Poison",
+				[5763] = "Mind-numbing Poison",
+				[2823] = "Deadly Poison",
+				-- Paladin 
+				[2878] = "Turn Undead",		
+				-- Hunter 
+				[19386] = "Wyvern Sting",
+			}, 
+		}, 34, 58, 37)
+	
+		GlobalFactory[5] = {		
+			PvE = {
+				BlackList = {},			
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+					-- Dominate Mind
+					[15859] = {},		-- FIX ME: Is a buff?
+					-- Cause Insanity
+					[12888] = {},		-- FIX ME: Is a buff?
+				},
+				PurgeHigh = {		
+					-- Molten Core: Deaden Magic
+					[19714] = {},
+				},
+				PurgeLow = {
+				},
+				Poison = {    
+					-- Onyxia: Brood Affliction: Green
+					[23169] = {},
+					-- Aspect of Venoxis
+					[24688] = { dur = 1.5 },
+					-- Atal'ai Poison
+					[18949] = { dur = 1.5 },
+					-- Baneful Poison
+					[15475] = {},
+					-- Barbed Sting
+					[14534] = {},
+					-- Bloodpetal Poison
+					[14110] = {},
+					-- Bottle of Poison
+					[22335] = {},
+					-- Brood Affliction: Green
+					[23169] = {},
+					-- Corrosive Poison 
+					[13526] = {},
+					-- Corrosive Venom Spit
+					[20629] = { dur = 1.5 },
+					-- Creeper Venom
+					[14532] = {},
+					-- Deadly Leech Poison
+					[3388] = {},
+					-- Deadly Poison
+					[13582] = {},
+					-- Enervate
+					[22661] = {},
+					-- Entropic Sting
+					[23260] = {},
+					-- Festering Bites
+					[16460] = {},
+					-- Larva Goo
+					[21069] = {},
+					-- Lethal Toxin
+					[8256] = {},
+					-- Maggot Goo
+					[17197] = {},
+					-- Abomination Spit
+					[25262] = {},
+					-- Minor Scorpion Venom Effect
+					[5105] = {},
+					-- Poisonous Spit
+					[4286] = {},
+					-- Slow Poison
+					[3332] = {},
+					-- Slime Bolt
+					[28311] = {},
+					-- Seeping Willow
+					[17196] = {},
+					-- Paralyzing Poison
+					[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				},
+				Disease = {
+					-- Rabies
+					[3150] = {},
+					-- Fevered Fatigue
+					[8139] = {},
+					-- Silithid Pox
+					[8137] = {},
+					-- Wandering Plague
+					[3439] = {},
+					-- Spirit Decay
+					[8016] = {},
+					-- Tetanus
+					[8014] = {},
+					-- Contagion of Rot
+					[7102] = {},
+					-- Volatile Infection
+					[3584] = {},
+					-- Mirkfallon Fungus
+					[8138] = {},
+					-- Infected Wound
+					[3427] = {},
+					-- Noxious Catalyst
+					[5413] = {},
+					-- Corrupted Agility
+					[6817] = {},
+					-- Irradiated
+					[9775] = {},
+					-- Infected Spine
+					[12245] = {},
+					-- Corrupted Stamina
+					[6819] = {},
+					-- Decayed Strength
+					[6951] = {},
+					-- Decayed Agility
+					[7901] = {},
+					-- Infected Bite
+					[16128] = {},
+					-- Plague Cloud
+					[3256] = {},
+					-- Plague Mind
+					[3429] = {},
+					-- Magenta Cap Sickness
+					[10136] = {},
+					-- Gift of Arthas
+					[11374] = {},
+					-- Festering Rash
+					[15848] = {},
+					-- Dark Plague
+					[18270] = {},
+					-- Fevered Plague
+					[8600] = {},
+					-- Rabid Maw
+					[4316] = {},
+					-- Brood Affliction: Red
+					[23155] = {},
+					-- Blight
+					[9796] = {},
+					-- Slime Dysentery
+					[16461] = {},
+					-- Creeping Mold
+					[18289] = {},
+					-- Weakening Disease
+					[18633] = {},
+					-- Putrid Breath
+					[21062] = {},
+					-- Dredge Sickness
+					[14535] = {},
+					-- Putrid Bite
+					[30113] = {},
+					-- Putrid Enzyme
+					[14539] = {},			
+					-- Black Rot
+					[16448] = {},
+					-- Cadaver Worms
+					[16143] = {},
+					-- Ghoul Plague
+					[16458] = {},
+					-- Putrid Stench
+					[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				}, 
+				Curse = {	
+					-- Molten Core: Lucifron's Curse
+					[19703] = {},
+					-- Molten Core: Gehennas' Curse 
+					-- Note: Tank should be prioritized 
+					[19716] = {},
+					-- Shazzrah's Curse
+					-- Note: Tank should be prioritized 
+					[19713] = {},
+					-- Shadowfang Keep: Veil of Shadow
+					[7068] = { dur = 1.5 },
+					-- Curse of Thorns
+					[6909] = {},
+					-- Wracking Pains
+					[13619] = {},
+					-- Curse of Stalvan
+					[13524] = {},
+					-- Curse of Blood
+					[16098] = {},
+					-- Curse of the Plague Rat
+					[17738] = {},
+					-- Discombobulate
+					[4060] = {},
+					-- Hex of Jammal'an
+					[12480] = {},
+					-- Shrink
+					[24054] = {},
+					-- Curse of the Firebrand
+					[16071] = {},
+					-- Enfeeble
+					[11963] = {},
+					-- Piercing Shadow
+					[16429] = {},
+					-- Rage of Thule
+					[3387] = {},
+					-- Mark of Kazzak
+					[21056] = {},
+					-- Curse of the Dreadmaul
+					[11960] = {},
+					-- Banshee Curse
+					[17105] = {},
+					-- Corrupted Fear
+					[21330] = {},
+					-- Curse of Impotence
+					[22371] = {},
+					-- Delusions of Jin'do
+					[24306] = {},
+					-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+					[16336] = {},
+					-- Tainted Mind
+					[16567] = {},
+					-- Ancient Hysteria
+					[19372] = {},
+					-- Breath of Sargeras
+					[28342] = {},
+					-- Curse of the Elemental Lord
+					[26977] = {},
+					-- Curse of Mending
+					[15730] = {},
+					-- Curse of the Darkmaster
+					[18702] = {},
+					-- Arugal's Curse
+					[7621] = {},
+				},
+				Magic = {	
+					-- Molten Core: Ignite Mana
+					[19659] = {},
+					-- Molten Core: Impending Doom
+					[19702] = { dur = 1.5 },
+					-- Molten Core: Panic
+					[19408] = {},			
+					-- Molten Core: Magma Splash
+					[13880] = { dur = 1.5 },
+					-- Molten Core: Ancient Despair
+					[19369] = { dur = 1.5 },
+					-- Molten Core: Soul Burn
+					[19393] = { dur = 1.5 },
+					-- Onyxia: Greater Polymorph
+					[22274] = {},
+					-- Onyxia: Wild Polymorph
+					[23603] = {},
+					-- Scarlet Monastery Dungeon: Terrify
+					[7399] = {},
+					-- Dominate Mind
+					[20740] = {},
+					-- Immolate
+					[12742] = { dur = 2 },
+					-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+					[23952] = { dur = 2 },
+					-- Misc: Reckless Charge
+					[13327] = { dur = 1 },
+					-- Misc: Hex 
+					[17172] = {},
+					-- Polymorph Backfire (Azshara)
+					[28406] = {},	
+					-- Polymorph: Chicken
+					[228] = {},
+					-- Chains of Ice
+					[113] = { dur = 12 },
+					-- Grasping Vines
+					[8142] = { dur = 4 },
+					-- Naralex's Nightmare
+					[7967] = {},
+					-- Thundercrack
+					[8150] = { dur = 1 },
+					-- Screams of the Past
+					[7074] = { dur = 1 },
+					-- Smoke Bomb
+					[7964] = { dur = 1 },
+					-- Ice Blast
+					[11264] = { dur = 6 },
+					-- Pacify
+					[10730] = {},
+					-- Sonic Burst
+					[8281] = { dur = 0.5 },
+					-- Enveloping Winds
+					[6728] = { dur = 1 },
+					-- Petrify
+					[11020] = { dur = 1 },
+					-- Freeze Solid
+					[11836] = { dur = 1 },
+					-- Deep Slumber
+					[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Crystallize
+					[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Enchanting Lullaby
+					[16798] = { dur = 1 },
+					-- Burning Winds
+					[17293] = { dur = 1 },
+					-- Banshee Shriek
+					[16838] = { dur = 1 },
+				}, 
+				Enrage = {
+				},
+				Frenzy = {
+					-- Frenzy 
+					[19451] = { dur = 1.5 },
+				},
+				BlessingofProtection = {
+					[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+					[21869] = { dur = 6 },   -- Repulsive Gaze
+					[5134] = { dur = 8 },	 -- Flash Bomb
+				},
+				BlessingofFreedom = {
+					[8312] = { dur = 2 },
+					[8346] = { dur = 2 },
+					[13099] = { dur = 2 },
+					[19636] = { dur = 2 },
+					[23414] = { dur = 2 },
+					[6533] = { dur = 2 },
+					[11820] = { dur = 2 },
+					[8377] = { dur = 2 },
+					[113] = { dur = 2 },
+					[8142] = { dur = 2 },
+					[7295] = { dur = 2 },
+					[11264] = { dur = 2 },
+					[12252] = { dur = 2 },
+					[745] = { dur = 2 },
+					[15474] = { dur = 2 },
+					[14030] = { dur = 2 },
+					[19306] = { dur = 2 },
+					[4962] = { dur = 2 },
+				},
+				BlessingofSacrifice = {
+				},
+				Vanish = {
+				},
+			},
+			PvP = {
+				BlackList = {},
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+				},
+				PurgeHigh = {
+					-- Paladin: Blessing of Protection
+					[1022] = { dur = 1 },
+					-- Paladin: Divine Favor 
+					[20216] = { dur = 0 },
+					-- Priest: Power Infusion
+					[10060] = { dur = 4 },
+					-- Mage: Combustion
+					[11129] = { dur = 4 },
+					-- Mage: Arcane Power
+					[12042] = { dur = 4 },
+					-- Priest (Human): Feedback
+					[13896] = { dur = 1.5 },
+					-- Druid | Shaman: Nature's Swiftness
+					[16188] = { dur = 1.5 },
+					-- Shaman: Elemental Mastery
+					[16166] = { dur = 1.5 },
+					-- Warlock: Major Spellstone
+					[17730] = { dur = 2 },
+					-- Warlock: Greater Spellstone
+					[17729] = { dur = 2 },
+					-- Warlock: Spellstone
+					[128] = { dur = 2 },
+					-- Warlock: Fel Domination
+					[18708] = { dur = 0 },
+					-- Warlock: Amplify Curse
+					[18288] = { dur = 10 },
+				},
+				PurgeLow = {
+					-- Paladin: Blessing of Freedom  
+					[1044] = { dur = 1.5 },
+					-- Druid: Rejuvenation
+					[774] = { dur = 0, onlyBear = true },
+					-- Druid: Regrow
+					[8936] = { dur = 0, onlyBear = true },
+					-- Druid: Mark of the Wild
+					[1126] = { dur = 0, onlyBear = true },
+				},
+				Poison = {
+					-- Hunter: Wyvern Sting
+					[19386] = { dur = 0 },
+					-- Hunter: Serpent Sting
+					[1978] = { dur = 3 },
+					-- Hunter: Viper Sting
+					[3034] = { dur = 2 },
+					-- Hunter: Scorpid Sting
+					[3043] = { dur = 1.5 },
+					-- Rogue: Slow Poison
+					[3332] = {},
+					-- Rogue: Blind
+					[2094] = { dur = 2.5 },
+				},
+				Disease = {
+				},
+				Curse = {
+					-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
+					[8277] = {}, 			
+					-- Hex of Weakness			(Priest - Troll)
+					[9035] = {},
+					-- Warlock: Curse of Tongues
+					[1714] = { dur = 3 },
+					-- Warlock: Curse of Weakness
+					[702] = { dur = 3 },
+					-- Warlock: Curse of Doom
+					[603] = {},
+					-- Warlock: Curse of Shadow
+					[17862] = {},
+					-- Warlock: Curse of the Elements
+					[1490] = {},
+					-- Corrupted Fear (set bonus)
+					[21330] = {},
+				},
+				Magic = {			
+					-- Paladin: Repentance
+					[20066] = { dur = 1.5 },
+					-- Paladin: Hammer of Justice
+					[853] = { dur = 0 },
+					-- Hunter: Freezing Trap
+					[1499] = { dur = 1 },
+					-- Hunter: Entrapment
+					[19185] = { dur = 1.5 },
+					-- Hunter: Hunter's Mark
+					[14325] = {},
+					-- Hunter: Trap 
+					[8312] = { dur = 1 },
+					-- Rogue: Kick - Silenced
+					[18425] = { dur = 1 },
+					-- Priest: Mind Control 
+					[605] = { dur = 0 },
+					-- Priest: Psychic Scream
+					[8122] = { dur = 1.5 },
+					-- Priest: Shackle Undead 
+					[9484] = { dur = 1 },
+					-- Priest: Silence
+					[15487] = { dur = 1 },
+					-- Priest: Blackout
+					[15269] = { dur = 1 },
+					-- Mage: Polymorph 
+					[118] = { dur = 1.5 },
+					-- Mage: Polymorph: Sheep 
+					[851] = { dur = 1.5 },
+					-- Mage: Polymorph: Turtle 
+					[28271] = { dur = 1.5 },
+					-- Mage: Polymorph: Pig 
+					[28272] = { dur = 1.5 },
+					-- Mage: Frost Nova  
+					[122] = { dur = 1 },
+					-- Warlock: Banish 
+					[710] = {},				
+					-- Warlock: Fear 
+					[5782] = { dur = 1.5 },
+					-- Warlock: Seduction
+					[6358] = { dur = 1.5 },	
+					-- Warlock: Howl of Terror
+					[5484] = { dur = 1.5 },
+					-- Warlock: Death Coil
+					[6789] = { dur = 1 },
+					-- Warlock: Spell Lock (Felhunter)
+					[24259] = { dur = 1 },
+					-- Druid: Hibernate 
+					[2637] = { dur = 1.5 },
+					-- Druid: Faerie Fire (Feral)
+					[17390] = { dur = 0 },					
+					-- Mage: Ice Nova 
+					[22519] = { dur = 1 },
+					-- Druid: Entangling Roots
+					[339] = { dur = 1 },					
+					-- Trinket: Tidal Charm
+					[835] = { dur = 1 },
+					-- Iron Grenade
+					[4068] = {},
+					-- Sleep (Green Whelp Armor chest)
+					[9159] = {},
+					-- Arcane Bomb
+					[19821] = {},
+					-- Silence (Silent Fang sword)
+					[18278] = {},
+					-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+					[20683] = {},
+					-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+					[17286] = {},
+					-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+					[17820] = {},
+					-- Glimpse of Madness (Dark Edge of Insanity axe)
+					[26108] = { dur = 1 },
+				},
+				Enrage = {
+					-- Berserker Rage
+					[18499] = { dur = 1 },
+					-- Enrage
+					[12880] = { dur = 1 },
+				},
+				Frenzy = {
+				},
+				BlessingofProtection = {
+					-- Disarm 
+					[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+					[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
+					[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+					-- Stunned 
+					--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+					[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
+					[5530] = { dur = 2.6 },				-- Mace Stun Effect			(Warrior)
+					[12798] = { dur = 2.6 },			-- Revenge Stun				(Warrior)
+					[5211] = { dur = 1.6 },				-- Bash						(Druid)
+					[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+					[19410] = { dur = 2.8 },			-- Improved Concussive Shot	(Hunter)
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+					--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+					[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
+					[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
+					[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+					-- Disoriented
+					[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
+					-- Feared 
+					[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+				},
+				BlessingofFreedom = {
+					[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
+					[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+					[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+					[12494] = { dur = 2 },				-- Frostbite				(Mage)	
+					[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+					[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
+					[19229] = { dur = 2 },				-- Improved Wing Clip 		(Hunter)
+					[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+					[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
+					[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+				},
+				BlessingofSacrifice = {
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+				},
+				Vanish = {
+					[22519] = {}, 						-- Ice Nova 				(Mage)
+					[122] = {}, 						-- Frost Nova 				(Mage)
+					[339] = {}, 						-- Entangling Roots 		(Druid)
+				},
+			},
+		}
+	else
+		-- Classic
+		Factory[4].Heal = StdUi:tGenerateMinMax({
+			[GameLocale] = {	
+				ISINTERRUPT = true,
+				-- Priest
+				[2050] = "Lesser Heal",
+				[2060] = "Greater Heal",
+				[6064] = "Heal",
+				[596] = "Prayer of Healing",
+				-- Druid
+				[740] = "Tranquility",
+				[8936] = "Regrowth",
+				[25297] = "Healing Touch",
+				-- Shaman
+				[1064] = "Chain Heal",
+				[331] = "Healing Wave",
+				[8004] = "Lesser Healing Wave",
+				-- Paladin				
+				[19750] = "Flash of Light",			
+				[635] = "Holy Light",		
+				[19943] = "Flash of Light", -- first ids are wrong?
+				[25292] = "Holy Light",						
+			},			
+		}, 43, 70, math_random(87, 95), true)
+		
+		Factory[4].PvP = StdUi:tGenerateMinMax({
+			[GameLocale] = {
+				ISINTERRUPT = true,
+				-- Shaman 
+				[2645] = "Ghost Wolf",
+				-- Mage 
+				[118] = "Pollymorph",
+				[28270] = "Polymorph: Cow",
+				-- Priest 
+				[605] = "Mind Control",
+				[9484] = "Shackle Undead",
+				[8129] = "Mana Burn",
+				-- Hunter 
+				[982] = "Revive pet",
+				[1513] = "Scare Beast",
+				-- Warlock 				
+				[20757] = "Create Soulstone (Major)",
+				[693] = "Create Soulstone (Minor)",
+				[11730] = "Create Healthstone (Major)",
+				[11729] = "Create Healthstone (Greater)",
+				[5699] = "Create Healthstone",
+				[1122] = "Inferno",
+				[5782] = "Fear",
+				[5484] = "Howl of Terror",
+				[20755] = "Create Soulstone",	
+				[710] = "Banish",
+				-- Druid 
+				[20484] = "Rebirth",
+				[339] = "Entangling Roots",
+				[2637] = "Hibernate",
+				-- Rogue 
+				[8681] = "Instant Poison",
+				[3420] = "Crippling Poison",
+				[13220] = "Wound Poison",
+				[5763] = "Mind-numbing Poison",
+				[2823] = "Deadly Poison",
+				-- Paladin 
+				[2878] = "Turn Undead",		
+				-- Hunter 
+				[19386] = "Wyvern Sting",
+			}, 
+		}, 34, 58, 37)
+	
+		GlobalFactory[5] = {		
+			PvE = {
+				BlackList = {},			
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+					-- Dominate Mind
+					[15859] = {},		-- FIX ME: Is a buff?
+					-- Cause Insanity
+					[12888] = {},		-- FIX ME: Is a buff?
+				},
+				PurgeHigh = {		
+					-- Molten Core: Deaden Magic
+					[19714] = {},
+				},
+				PurgeLow = {
+				},
+				Poison = {    
+					-- Onyxia: Brood Affliction: Green
+					[23169] = {},
+					-- Aspect of Venoxis
+					[24688] = { dur = 1.5 },
+					-- Atal'ai Poison
+					[18949] = { dur = 1.5 },
+					-- Baneful Poison
+					[15475] = {},
+					-- Barbed Sting
+					[14534] = {},
+					-- Bloodpetal Poison
+					[14110] = {},
+					-- Bottle of Poison
+					[22335] = {},
+					-- Brood Affliction: Green
+					[23169] = {},
+					-- Copy of Poison Bolt Volley
+					[29169] = { enabled = false }, 
+					-- Corrosive Poison 
+					[13526] = {},
+					-- Corrosive Venom Spit
+					[20629] = { dur = 1.5 },
+					-- Creeper Venom
+					[14532] = {},
+					-- Deadly Leech Poison
+					[3388] = {},
+					-- Deadly Poison
+					[13582] = {},
+					-- Enervate
+					[22661] = {},
+					-- Entropic Sting
+					[23260] = {},
+					-- Festering Bites
+					[16460] = {},
+					-- Larva Goo
+					[21069] = {},
+					-- Lethal Toxin
+					[8256] = {},
+					-- Maggot Goo
+					[17197] = {},
+					-- Abomination Spit
+					[25262] = {},
+					-- Minor Scorpion Venom Effect
+					[5105] = {},
+					-- Poisonous Spit
+					[4286] = {},
+					-- Slow Poison
+					[3332] = {},
+					-- Slime Bolt
+					[28311] = {},
+					-- Seeping Willow
+					[17196] = {},
+					-- Paralyzing Poison
+					[3609] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				},
+				Disease = {
+					-- Rabies
+					[3150] = {},
+					-- Fevered Fatigue
+					[8139] = {},
+					-- Silithid Pox
+					[8137] = {},
+					-- Wandering Plague
+					[3439] = {},
+					-- Spirit Decay
+					[8016] = {},
+					-- Tetanus
+					[8014] = {},
+					-- Contagion of Rot
+					[7102] = {},
+					-- Volatile Infection
+					[3584] = {},
+					-- Mirkfallon Fungus
+					[8138] = {},
+					-- Infected Wound
+					[3427] = {},
+					-- Noxious Catalyst
+					[5413] = {},
+					-- Corrupted Agility
+					[6817] = {},
+					-- Irradiated
+					[9775] = {},
+					-- Infected Spine
+					[12245] = {},
+					-- Corrupted Stamina
+					[6819] = {},
+					-- Decayed Strength
+					[6951] = {},
+					-- Decayed Agility
+					[7901] = {},
+					-- Infected Bite
+					[16128] = {},
+					-- Plague Cloud
+					[3256] = {},
+					-- Plague Mind
+					[3429] = {},
+					-- Magenta Cap Sickness
+					[10136] = {},
+					-- Gift of Arthas
+					[11374] = {},
+					-- Festering Rash
+					[15848] = {},
+					-- Dark Plague
+					[18270] = {},
+					-- Fevered Plague
+					[8600] = {},
+					-- Rabid Maw
+					[4316] = {},
+					-- Brood Affliction: Red
+					[23155] = {},
+					-- Blight
+					[9796] = {},
+					-- Slime Dysentery
+					[16461] = {},
+					-- Creeping Mold
+					[18289] = {},
+					-- Weakening Disease
+					[18633] = {},
+					-- Putrid Breath
+					[21062] = {},
+					-- Dredge Sickness
+					[14535] = {},
+					-- Putrid Bite
+					[30113] = {},
+					-- Putrid Enzyme
+					[14539] = {},			
+					-- Black Rot
+					[16448] = {},
+					-- Cadaver Worms
+					[16143] = {},
+					-- Ghoul Plague
+					[16458] = {},
+					-- Putrid Stench
+					[12946] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+				}, 
+				Curse = {	
+					-- Molten Core: Lucifron's Curse
+					[19703] = {},
+					-- Molten Core: Gehennas' Curse 
+					-- Note: Tank should be prioritized 
+					[19716] = {},
+					-- Shazzrah's Curse
+					-- Note: Tank should be prioritized 
+					[19713] = {},
+					-- Shadowfang Keep: Veil of Shadow
+					[7068] = { dur = 1.5 },
+					-- Curse of Thorns
+					[6909] = {},
+					-- Wracking Pains
+					[13619] = {},
+					-- Curse of Stalvan
+					[13524] = {},
+					-- Curse of Blood
+					[16098] = {},
+					-- Curse of the Plague Rat
+					[17738] = {},
+					-- Discombobulate
+					[4060] = {},
+					-- Hex of Jammal'an
+					[12480] = {},
+					-- Shrink
+					[24054] = {},
+					-- Curse of the Firebrand
+					[16071] = {},
+					-- Enfeeble
+					[11963] = {},
+					-- Piercing Shadow
+					[16429] = {},
+					-- Rage of Thule
+					[3387] = {},
+					-- Mark of Kazzak
+					[21056] = {},
+					-- Curse of the Dreadmaul
+					[11960] = {},
+					-- Banshee Curse
+					[17105] = {},
+					-- Corrupted Fear
+					[21330] = {},
+					-- Curse of Impotence
+					[22371] = {},
+					-- Delusions of Jin'do
+					[24306] = {},
+					-- Haunting Phantoms				-- FIX ME: Does it need here ? (Naxxramas)
+					[16336] = {},
+					-- Tainted Mind
+					[16567] = {},
+					-- Ancient Hysteria
+					[19372] = {},
+					-- Breath of Sargeras
+					[28342] = {},
+					-- Curse of the Elemental Lord
+					[26977] = {},
+					-- Curse of Mending
+					[15730] = {},
+					-- Curse of the Darkmaster
+					[18702] = {},
+					-- Arugal's Curse
+					[7621] = {},
+				},
+				Magic = {	
+					-- Molten Core: Ignite Mana
+					[19659] = {},
+					-- Molten Core: Impending Doom
+					[19702] = { dur = 1.5 },
+					-- Molten Core: Panic
+					[19408] = {},			
+					-- Molten Core: Magma Splash
+					[13880] = { dur = 1.5 },
+					-- Molten Core: Ancient Despair
+					[19369] = { dur = 1.5 },
+					-- Molten Core: Soul Burn
+					[19393] = { dur = 1.5 },
+					-- Onyxia: Greater Polymorph
+					[22274] = {},
+					-- Onyxia: Wild Polymorph
+					[23603] = {},
+					-- Scarlet Monastery Dungeon: Terrify
+					[7399] = {},
+					-- Dominate Mind
+					[20740] = {},
+					-- Immolate
+					[12742] = { dur = 2 },
+					-- Shadow Word: Pain 				-- FIX ME: Does it needs in PvE (?)
+					[23952] = { dur = 2 },
+					-- Misc: Reckless Charge
+					[13327] = { dur = 1 },
+					-- Misc: Hex 
+					[17172] = {},
+					-- Polymorph Backfire (Azshara)
+					[28406] = {},	
+					-- Polymorph: Chicken
+					[228] = {},
+					-- Chains of Ice
+					[113] = { dur = 12 },
+					-- Grasping Vines
+					[8142] = { dur = 4 },
+					-- Naralex's Nightmare
+					[7967] = {},
+					-- Thundercrack
+					[8150] = { dur = 1 },
+					-- Screams of the Past
+					[7074] = { dur = 1 },
+					-- Smoke Bomb
+					[7964] = { dur = 1 },
+					-- Ice Blast
+					[11264] = { dur = 6 },
+					-- Pacify
+					[10730] = {},
+					-- Sonic Burst
+					[8281] = { dur = 0.5 },
+					-- Enveloping Winds
+					[6728] = { dur = 1 },
+					-- Petrify
+					[11020] = { dur = 1 },
+					-- Freeze Solid
+					[11836] = { dur = 1 },
+					-- Deep Slumber
+					[12890] = { LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Crystallize
+					[16104] = { dur = 1, LUA = [[ return not UnitIsUnit(thisunit, "player") ]] },
+					-- Enchanting Lullaby
+					[16798] = { dur = 1 },
+					-- Burning Winds
+					[17293] = { dur = 1 },
+					-- Banshee Shriek
+					[16838] = { dur = 1 },
+				}, 
+				Enrage = {
+				},
+				Frenzy = {
+					-- Frenzy 
+					[19451] = { dur = 1.5 },
+				},
+				BlessingofProtection = {
+					[18431] = { dur = 2.6 }, -- Bellowing Roar (Onyxia fear)
+					[21869] = { dur = 6 },   -- Repulsive Gaze
+					[5134] = { dur = 8 },	 -- Flash Bomb
+				},
+				BlessingofFreedom = {
+					[8312] = { dur = 2 },
+					[8346] = { dur = 2 },
+					[13099] = { dur = 2 },
+					[19636] = { dur = 2 },
+					[23414] = { dur = 2 },
+					[6533] = { dur = 2 },
+					[11820] = { dur = 2 },
+					[8377] = { dur = 2 },
+					[113] = { dur = 2 },
+					[8142] = { dur = 2 },
+					[7295] = { dur = 2 },
+					[11264] = { dur = 2 },
+					[12252] = { dur = 2 },
+					[745] = { dur = 2 },
+					[15474] = { dur = 2 },
+					[14030] = { dur = 2 },
+					[19306] = { dur = 2 },
+					[4962] = { dur = 2 },
+				},
+				BlessingofSacrifice = {
+				},
+				Vanish = {
+				},
+			},
+			PvP = {
+				BlackList = {},
+				PurgeFriendly = {
+					-- Mind Control (it's buff)
+					[605] = { canStealOrPurge = true },
+					-- Seduction
+					--[270920] = { canStealOrPurge = true, LUAVER = 2, LUA = [[ -- Don't purge if we're Mage
+					--return PlayerClass ~= "MAGE" ]] },
+				},
+				PurgeHigh = {
+					-- Paladin: Blessing of Protection
+					[1022] = { dur = 1 },
+					-- Paladin: Divine Favor 
+					[20216] = { dur = 0 },
+					-- Priest: Power Infusion
+					[10060] = { dur = 4 },
+					-- Mage: Combustion
+					[11129] = { dur = 4 },
+					-- Mage: Arcane Power
+					[12042] = { dur = 4 },
+					-- Priest (Human): Feedback
+					[13896] = { dur = 1.5 },
+					-- Druid | Shaman: Nature's Swiftness
+					[16188] = { dur = 1.5 },
+					-- Shaman: Elemental Mastery
+					[16166] = { dur = 1.5 },
+					-- Warlock: Major Spellstone
+					[17730] = { dur = 2 },
+					-- Warlock: Greater Spellstone
+					[17729] = { dur = 2 },
+					-- Warlock: Spellstone
+					[128] = { dur = 2 },
+					-- Warlock: Fel Domination
+					[18708] = { dur = 0 },
+					-- Warlock: Amplify Curse
+					[18288] = { dur = 10 },
+				},
+				PurgeLow = {
+					-- Paladin: Blessing of Freedom  
+					[1044] = { dur = 1.5 },
+					-- Druid: Rejuvenation
+					[774] = { dur = 0, onlyBear = true },
+					-- Druid: Regrow
+					[8936] = { dur = 0, onlyBear = true },
+					-- Druid: Mark of the Wild
+					[1126] = { dur = 0, onlyBear = true },
+				},
+				Poison = {
+					-- Hunter: Wyvern Sting
+					[19386] = { dur = 0 },
+					-- Hunter: Serpent Sting
+					[1978] = { dur = 3 },
+					-- Hunter: Viper Sting
+					[3034] = { dur = 2 },
+					-- Hunter: Scorpid Sting
+					[3043] = { dur = 1.5 },
+					-- Rogue: Slow Poison
+					[3332] = {},
+					-- Rogue: Blind
+					[2094] = { dur = 2.5 },
+				},
+				Disease = {
+				},
+				Curse = {
+					-- Voodoo Hex   			(Shaman) 				-- I AM NOT SURE
+					[8277] = {}, 			
+					-- Hex of Weakness			(Priest - Troll)
+					[9035] = {},
+					-- Warlock: Curse of Tongues
+					[1714] = { dur = 3 },
+					-- Warlock: Curse of Weakness
+					[702] = { dur = 3 },
+					-- Warlock: Curse of Doom
+					[603] = {},
+					-- Warlock: Curse of Shadow
+					[17862] = {},
+					-- Warlock: Curse of the Elements
+					[1490] = {},
+					-- Corrupted Fear (set bonus)
+					[21330] = {},
+				},
+				Magic = {			
+					-- Paladin: Repentance
+					[20066] = { dur = 1.5 },
+					-- Paladin: Hammer of Justice
+					[853] = { dur = 0 },
+					-- Hunter: Freezing Trap
+					[1499] = { dur = 1 },
+					-- Hunter: Entrapment
+					[19185] = { dur = 1.5 },
+					-- Hunter: Hunter's Mark
+					[14325] = {},
+					-- Hunter: Trap 
+					[8312] = { dur = 1 },
+					-- Rogue: Kick - Silenced
+					[18425] = { dur = 1 },
+					-- Priest: Mind Control 
+					[605] = { dur = 0 },
+					-- Priest: Psychic Scream
+					[8122] = { dur = 1.5 },
+					-- Priest: Shackle Undead 
+					[9484] = { dur = 1 },
+					-- Priest: Silence
+					[15487] = { dur = 1 },
+					-- Priest: Blackout
+					[15269] = { dur = 1 },
+					-- Mage: Polymorph 
+					[118] = { dur = 1.5 },
+					-- Mage: Polymorph: Sheep 
+					[851] = { dur = 1.5 },
+					-- Mage: Polymorph: Cow 
+					[28270] = { dur = 1.5 },
+					-- Mage: Polymorph: Turtle 
+					[28271] = { dur = 1.5 },
+					-- Mage: Polymorph: Pig 
+					[28272] = { dur = 1.5 },
+					-- Mage: Frost Nova  
+					[122] = { dur = 1 },
+					-- Warlock: Banish 
+					[710] = {},				
+					-- Warlock: Fear 
+					[5782] = { dur = 1.5 },
+					-- Warlock: Seduction
+					[6358] = { dur = 1.5 },	
+					-- Warlock: Howl of Terror
+					[5484] = { dur = 1.5 },
+					-- Warlock: Death Coil
+					[6789] = { dur = 1 },
+					-- Warlock: Spell Lock (Felhunter)
+					[24259] = { dur = 1 },
+					-- Druid: Hibernate 
+					[2637] = { dur = 1.5 },
+					-- Druid: Faerie Fire (Feral)
+					[17390] = { dur = 0 },					
+					-- Mage: Ice Nova 
+					[22519] = { dur = 1 },
+					-- Druid: Entangling Roots
+					[339] = { dur = 1 },					
+					-- Trinket: Tidal Charm
+					[835] = { dur = 1 },
+					-- Iron Grenade
+					[4068] = {},
+					-- Sleep (Green Whelp Armor chest)
+					[9159] = {},
+					-- Arcane Bomb
+					[19821] = {},
+					-- Silence (Silent Fang sword)
+					[18278] = {},
+					-- Highlord's Justice (Alliance Stormwind Boss - Highlord Bolvar Fordragon)
+					[20683] = {},
+					-- Crusader's Hammer (Horde Stratholme - Boss Grand Crusader Dathrohan)
+					[17286] = {},
+					-- Veil of Shadow (Horde Orgrimmar - Boss Vol'jin)
+					[17820] = {},
+					-- Glimpse of Madness (Dark Edge of Insanity axe)
+					[26108] = { dur = 1 },
+				},
+				Enrage = {
+					-- Berserker Rage
+					[18499] = { dur = 1 },
+					-- Enrage
+					[12880] = { dur = 1 },
+				},
+				Frenzy = {
+				},
+				BlessingofProtection = {
+					-- Disarm 
+					[676] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] }, 				-- Disarm 					(Warrior)
+					[14251] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Riposte					(Rogue)
+					[23365] = { dur = 5, LUA = [[return Unit(thisunit):IsMelee() and Unit(thisunit):HasBuffs("DamageBuffs_Melee") > 0]] },				-- Dropped Weapon			(Unknown)
+					-- Stunned 
+					--[7922] = { dur = 1.5 }, 				-- Charge Stun				(Warrior)
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+					[20253] = { dur = 2.6 },			-- Intercept Stun 			(Warrior)
+					[5530] = { dur = 2.6 },				-- Mace Stun Effect			(Warrior)
+					[12798] = { dur = 2.6 },			-- Revenge Stun				(Warrior)
+					[5211] = { dur = 1.6 },				-- Bash						(Druid)
+					[9005] = { dur = 1.6 },				-- Pounce					(Druid)		
+					[19410] = { dur = 2.8 },			-- Improved Concussive Shot	(Hunter)
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)		
+					--[20549] = { dur = 1.5 }, 				-- War Stomp 				(Tauren)	
+					[20685] = { dur = 3 },				-- Storm Bolt	 			(Unknown)				-- FIX ME: Is it useable?		
+					[16922] = { dur = 3 },				-- Starfire Stun			(Unknown)		
+					[56] = { dur = 3 },					-- Stun 					(Weapon proc)	
+					-- Disoriented
+					[19503] = { dur = 3 }, 				-- Scatter Shot 			(Hunter)		 				
+					-- Feared 
+					[5246] = { dur = 4.5 }, 			-- Intimidating Shout		(Warrior)
+				},
+				BlessingofFreedom = {
+					[23694] = { dur = 2 },				-- Improved Hamstring		(Warrior)
+					[22519] = { dur = 2 }, 				-- Ice Nova 				(Mage)
+					[122] = { dur = 2 }, 				-- Frost Nova 				(Mage)	
+					[12494] = { dur = 2 },				-- Frostbite				(Mage)	
+					[339] = { dur = 2 }, 				-- Entangling Roots 		(Druid)
+					[19675] = { dur = 2 },				-- Feral Charge Effect		(Druid)
+					[19229] = { dur = 2 },				-- Improved Wing Clip 		(Hunter)
+					[19185] = { dur = 2 },				-- Entrapment				(Hunter)
+					[13809] = { dur = 0 },				-- Frost Trap				(Hunter)
+					[25999] = { dur = 2 },				-- Boar Charge				(Hunter's pet)	
+				},
+				BlessingofSacrifice = {
+					[1833] = { dur = 3 }, 				-- Cheap Shot 				(Rogue)
+					[408] = { dur = 4.5 }, 				-- Kidney Shot 				(Rogue)	
+					[12809] = { dur = 4 },				-- Concussion Blow			(Warrior)
+				},
+				Vanish = {
+					[22519] = {}, 						-- Ice Nova 				(Mage)
+					[122] = {}, 						-- Frost Nova 				(Mage)
+					[339] = {}, 						-- Entangling Roots 		(Druid)
+				},
+			},
+		}
+	end
+end
 
 -- Table controlers 	
 local function tMerge(default, new, special, nonexistremove)
@@ -5732,6 +8025,16 @@ local Upgrade 					= {
 			}, "pActionDB[4]")
 		end,
 		[2]						= function()
+			if Action.BuildToC >= 20000 then
+				tEraseKeys(pActionDB[4].PvP, { 
+					["GameLocale"] = {
+						-- Mage: Polymorph: Cow 
+						[28270] = true,
+					},
+				}, "pActionDB[4].PvP")
+			end
+		end,
+		[3]						= function()
 			-- Defaults to /focus mode healing or /target if Classic is Vanilla
 			local SelectStopOptions = pActionDB[8].SelectStopOptions or pActionDB[8][Action.PlayerSpec].SelectStopOptions 
 			local value = Action.BuildToC < 20000
@@ -5739,7 +8042,7 @@ local Upgrade 					= {
 				SelectStopOptions[i] = value
 			end
 		end,
-		[3]						= function()
+		[4]						= function()
 			-- Fixed miss typo AntiFake CC2, should be mouseover/target instead of focus on A[9], and focus as CC2 Focus on A[10]
 			local MetaEngine = pActionDB[9].MetaEngine or pActionDB[9][Action.PlayerSpec].MetaEngine
 			local Hotkeys = MetaEngine.Hotkeys
@@ -5748,6 +8051,58 @@ local Upgrade 					= {
 		end,
 	},
 	gUpgrades					= {
+		[1]						= function()
+			if Action.BuildToC >= 20000 then
+				tEraseKeys(gActionDB[5].PvP, { 
+					Magic = {
+						-- Mage: Polymorph: Cow 
+						[28270] = true,
+					},
+				}, "gActionDB[5].PvP")
+				tEraseKeys(gActionDB[5].PvE, { 
+					Poison = {
+						-- Copy of Poison Bolt Volley
+						[29169] = true,
+					},
+				}, "gActionDB[5].PvE")
+			end
+		end,
+		[2] 					= function()
+			if Action.BuildToC >= 30000 then
+				tEraseKeys(gActionDB[5].PvP, { 
+					PurgeHigh = {
+						-- Warlock: Major Spellstone
+						[17730] = true,
+						-- Priest (Human): Feedback
+						[13896] = true,
+						-- Warlock: Spellstone
+						[128] = true,
+						-- Warlock: Greater Spellstone
+						[17729] = true, 
+					},
+					Magic = {
+						-- Druid: Faerie Fire (Feral)
+						[17390] = true,
+						-- Priest: Blackout
+						[15269] = true,
+					},
+					BlessingofProtection = {
+							-- Improved Concussive Shot	(Hunter)
+						[19410] = true,
+					},
+					Curse = {
+						-- Warlock: Curse of Shadow
+						[17862] = true, 
+						-- Hex of Weakness(Priest - Troll)
+						[9035] = true,
+					},
+					BlessingofFreedom = {
+						-- Improved Wing Clip (Hunter)
+						[19229] = true,	
+					},
+				}, "gActionDB[5].PvP")
+			end
+		end,
 	},
 	pUpgradesForProfile			= {},
 	SortMethod					= function(a, b)
@@ -5868,7 +8223,7 @@ local function dbUpdate()
 	-- Fixes Resizer_Generic error if user tried to open ui in combat
 	if TMWdbglobal and not TMWdbglobal.AllowCombatConfig then 
 		TMWdbglobal.AllowCombatConfig = true
-	end 	
+	end 
 	
 	-- On hook InitializeDatabase
 	if not Action.CurrentProfile and TMWdb then 
@@ -6987,7 +9342,7 @@ local ColorPicker 						= {
 			-- Refresh already created frames 
 			local objects = self:tFindByOption(self.StdUiObjects[element], option)
 			if objects and next(objects) then 
-				for obj, method in pairs(objects) do 										
+				for obj, method in pairs(objects) do 
 					if type(obj) == "table" then -- exclude texture from stdUi.config (related to updates with BackdropTemplateMixin)
 						obj[method](obj, tStdUiConfig.r, tStdUiConfig.g, tStdUiConfig.b, tStdUiConfig.a)
 						
@@ -6996,7 +9351,7 @@ local ColorPicker 						= {
 						if obj.target then 
 							obj.target.origBackdropBorderColor = nil 
 						end 	
-					end 				
+					end 
 				end 
 			end 
 			
@@ -8091,7 +10446,7 @@ function Action.RacialIsON(self)
 	return A_GetToggle(1, "Racial") and (not self or self:IsExists())
 end 
 
--- [1] ReTarget
+-- [1] ReTarget // ReFocus
 local Re; Re = {
 	Units = { "arena1", "arena2", "arena3", "arena4", "arena5" },
 	-- Textures 
@@ -8102,9 +10457,16 @@ local Re; Re = {
 		["arena4"] = ActionConst.PVP_TARGET_ARENA4,
 		["arena5"] = ActionConst.PVP_TARGET_ARENA5,
 	},
+	focus = {
+		["arena1"] = ActionConst.PVP_FOCUS_ARENA1,
+		["arena2"] = ActionConst.PVP_FOCUS_ARENA2,
+		["arena3"] = ActionConst.PVP_FOCUS_ARENA3,
+		["arena4"] = ActionConst.PVP_FOCUS_ARENA4,
+		["arena5"] = ActionConst.PVP_FOCUS_ARENA5,
+	},	
 	-- OnEvent 
 	PLAYER_TARGET_CHANGED = function()
-		if Action.Zone == "pvp" then 			
+		if (Action.Zone == "arena" or Action.Zone == "pvp") then 			
 			if UnitExists("target") then 
 				Re.LastTargetIsExists = true 
 				for i = 1, #Re.Units do
@@ -8119,25 +10481,56 @@ local Re; Re = {
 			end 
 		end 		
 	end,	
+	PLAYER_FOCUS_CHANGED = function()
+		if (Action.Zone == "arena" or Action.Zone == "pvp") then 
+			if UnitExists("focus") then 
+				Re.LastFocusIsExists = true 
+				for i = 1, #Re.Units do 
+					if UnitIsUnit("focus", Re.Units[i]) then 
+						Re.LastFocusUnitID = Re.Units[i]
+						Re.LastFocusTexture = Re.focus[Re.LastFocusUnitID]
+						break
+					end 
+				end 
+			else
+				Re.LastFocusIsExists = false 
+			end 
+		end 
+	end,
 	-- OnInitialize, OnProfileChanged
-	Reset 			= function(self)		
-		A_Listener:Remove("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED")
-		self.LastTargetIsExists	= nil
-		self.LastTargetUnitID 	= nil 
-		self.LastTargetTexture 	= nil 	
-		
+	Reset 			= function(self)	
+		A_Listener:Remove("ACTION_EVENT_RE", 	 "PLAYER_TARGET_CHANGED")
+		A_Listener:Remove("ACTION_EVENT_RE", 	 "PLAYER_FOCUS_CHANGED")
+		self.LastTargetIsExists	 	= nil
+		self.LastTargetUnitID 	 	= nil 
+		self.LastTargetTexture 	 	= nil 
+		self.LastFocusIsExists 	 	= nil 
+		self.LastFocusUnitID 	 	= nil
+		self.LastFocusTexture 	 	= nil
+
 		Action.Re:ClearTarget()
+		Action.Re:ClearFocus()
 	end,
 	Initialize		= function(self)
 		if A_GetToggle(1, "ReTarget") then 
-			A_Listener:Add("ACTION_EVENT_RE", 		"PLAYER_TARGET_CHANGED", self.PLAYER_TARGET_CHANGED)
+			A_Listener:Add(   "ACTION_EVENT_RE", "PLAYER_TARGET_CHANGED", self.PLAYER_TARGET_CHANGED)
 			self.PLAYER_TARGET_CHANGED()
 		else 
-			A_Listener:Remove("ACTION_EVENT_RE", 	"PLAYER_TARGET_CHANGED")
+			A_Listener:Remove("ACTION_EVENT_RE", "PLAYER_TARGET_CHANGED")
 			self.LastTargetIsExists	= nil
 			self.LastTargetUnitID 	= nil 
 			self.LastTargetTexture 	= nil 			
 		end 
+		
+		if Action.BuildToC >= 20000 and A_GetToggle(1, "ReFocus") then 
+			A_Listener:Add(   "ACTION_EVENT_RE", "PLAYER_FOCUS_CHANGED",  self.PLAYER_FOCUS_CHANGED)
+			self.PLAYER_FOCUS_CHANGED()
+		else 
+			A_Listener:Remove("ACTION_EVENT_RE", "PLAYER_FOCUS_CHANGED")
+			self.LastFocusIsExists 	= nil 
+			self.LastFocusUnitID 	= nil
+			self.LastFocusTexture 	= nil			
+		end 		
 	end,
 }
 
@@ -8169,6 +10562,48 @@ Action.Re = {
 				return self:ClearTarget() 
 			else 
 				return Action:Show(icon, Re.ManualTargetTexture)
+			end 
+		end 
+	end,
+	-- Focus 
+	SetFocus 	= function(self, unitID)
+		-- Creates schedule to set in focus the 'unitID'
+		if Action.BuildToC < 20000 then
+			return 
+		end
+		
+		if not Re.focus[unitID] then 
+			error("Action.Re:SetFocus must have valid for own API the 'unitID' param. Input: " .. (unitID or "nil"))
+			return 
+		end
+		
+		Re.ManualFocusUnitID 	= unitID
+		Re.ManualFocusTexture 	= Re.focus[unitID]
+	end,	
+	ClearFocus 	= function(self)
+		if Action.BuildToC < 20000 then
+			return 
+		end
+		
+		Re.ManualFocusUnitID 	= nil 
+		Re.ManualFocusTexture 	= nil 		
+	end,
+	CanFocus	= function(self, icon)
+		-- @return boolean 
+		-- Note: Only for internal use for Core.lua
+		if Action.BuildToC < 20000 then
+			return false
+		end
+		
+		if not Re.LastFocusIsExists and Re.LastFocusTexture and UnitExists(Re.LastFocusUnitID) then 
+			return Action:Show(icon, Re.LastFocusTexture)
+		end 
+		
+		if Re.ManualFocusTexture and UnitExists(Re.ManualFocusUnitID) then 
+			if UnitIsUnit("focus", Re.ManualFocusUnitID) then 				
+				return self:ClearFocus() 
+			else 
+				return Action:Show(icon, Re.ManualFocusTexture)
 			end 
 		end 
 	end,
@@ -8562,7 +10997,7 @@ local AuraDuration = {
 	largeDebuffList 		= {},
 	LibAuraTypes			= LibStub("LibAuraTypes"),
 	LibSpellLocks			= LibStub("LibSpellLocks"),
-	TurnOnAuras				= function(self)
+	TurnOnAuras				= function(self) 
 		local tFrame = _G["TargetFrame"]
 		if not InCombatLockdown() then 
 			TargetFrame_Update(tFrame)
@@ -8958,14 +11393,14 @@ local AuraDuration = {
 		hooksecurefunc("CompactUnitFrame_UtilSetBuff", function(buffFrame, unit, index, filter)
 			if Action.IsInitialized and self.IsEnabled then 
 				local name, _, _, _, duration, expirationTime, _, _, _, spellId = UnitAura(unit, index, "HELPFUL")
-				
+
 				if type(name) == "table" then 	
 					duration = name.duration
 					expirationTime = name.expirationTime
 					spellId = name.spellId
 					name = name.name
-				end  					
-				
+				end  			
+					
 				local enabled = expirationTime and expirationTime ~= 0
 				if enabled then
 					CooldownFrame_Set(buffFrame.cooldown, expirationTime - duration, duration, true)
@@ -8984,7 +11419,7 @@ local AuraDuration = {
 					expirationTime = name.expirationTime
 					spellId = name.spellId
 					name = name.name
-				end  						
+				end  					
 				
 				local enabled = expirationTime and expirationTime ~= 0
 				if enabled then
@@ -9213,7 +11648,7 @@ local Queue; Queue 				= {
 		partypet3				= 8,
 		partypet4				= 9,		
 		-- no pet as meta 10 to avoid possible conflicts 
-	},	
+	},
 	EmptyArgs					= {},
 	Temp 						= {
 		SilenceON				= { Silence = true },
@@ -9505,8 +11940,8 @@ function Action:SetQueue(args)
 	end
 	if args.NoStaying then
 		ActionDataQ[priority].NoStaying = args.NoStaying 
-	end 	
-
+	end 
+	
 	-- Ryan's fix Action:SetQueue() is missing CP passing to IsQueueReady logic
 	if args.CP then
 		ActionDataQ[priority].CP = args.CP 
@@ -9838,8 +12273,8 @@ function Action.AuraIsBlackListed(unitID)
 				canStealOrPurge = Name.isStealable
 				id = Name.spellId
 				Name = Name.name
-			end  					
-		
+			end  				
+			
 			if Name then
 				if Aura[Name] and Aura[Name].Enabled and (Aura[Name].Role == "ANY" or (Aura[Name].Role == "HEALER" and Action.IamHealer) or (Aura[Name].Role == "DAMAGER" and not Action.IamHealer)) and (not Aura[Name].byID or id == Aura[Name].ID) then 
 					Dur = expirationTime == 0 and huge or expirationTime - TMW.time
@@ -9991,7 +12426,7 @@ local Cursor; Cursor 		= {
 					self.lastMouseName		= nil 
 				end
 			end)					
-			--A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 		self.CURSOR_UPDATE) 				-- GameObjects:Remove				
+			--A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 		self.CURSOR_UPDATE) 				-- GameObjects:Remove	TODO			
 			self.GameTooltip:HookScript("OnUpdate", function(this, elapse)											
 				-- Note: UPDATE_MOUSEOVER_UNIT doesn't fires if you move out cursor from unit, so we will use this to simulate same event 
 				if self.Initialized then 
@@ -10022,7 +12457,7 @@ local Cursor; Cursor 		= {
 		self.Initialized = A_GetToggle(6, "UseLeft") or A_GetToggle(6, "UseRight")
 		if wasHooked then 
 			if self.Initialized then
-				--A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 			self.CURSOR_UPDATE)
+				--A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "CURSOR_UPDATE", 			self.CURSOR_UPDATE) TODO
 				A_Listener:Add("ACTION_EVENT_CURSOR_FEATURE", "UPDATE_MOUSEOVER_UNIT", 	self.UPDATE_MOUSEOVER_UNIT)	
 			else
 				self:Reset()
@@ -10377,6 +12812,9 @@ local OnToggleHandler		= {
 		Role 				= function()
 			Action:PLAYER_SPECIALIZATION_CHANGED()	
 			TMW:Fire("TMW_ACTION_ROLE_CHANGED")
+		end,
+		ReFocus				= function() 
+			Re:Initialize()
 		end,
 		ReTarget			= function() 
 			Re:Initialize()
@@ -11110,7 +13548,7 @@ function Action.ToggleMainUI()
 				childs = {},
 			},
 		}); MainUI.tabFrame = tabFrame
-		StdUi:GlueAcross(tabFrame, MainUI, 10, -60, -10, 10)
+		StdUi:GlueAcross(tabFrame, MainUI, 10, -50, -10, 10)
 		tabFrame.container:SetPoint("TOPLEFT", tabFrame.buttonContainer, "BOTTOMLEFT", 0, 0)
 		tabFrame.container:SetPoint("TOPRIGHT", tabFrame.buttonContainer, "BOTTOMRIGHT", 0, 0)	
 		
@@ -11540,6 +13978,51 @@ function Action.ToggleMainUI()
 			StopCast.Identify = { Type = "Checkbox", Toggle = "StopCast" }
 			StdUi:FrameTooltip(StopCast, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPRIGHT", true)	
 			
+			local function GetProfileRole()
+				local temp = {}
+				temp[#temp + 1] = { text = L["TAB"]["AUTO"], value = "AUTO" }
+				
+				local roles = Action.GetCurrentSpecializationRoles()
+				local isUsed = {}
+				if roles then 
+					for role in pairs(roles) do 
+						if not isUsed[role] then 
+							temp[#temp + 1] = { text = L["TAB"][8][role] or _G[role], value = role }
+							isUsed[role] = true 
+						end 
+					end 
+				end 
+				
+				return temp 				
+			end 
+			local Role = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, GetProfileRole())		          
+			Role:SetValue(specDB.Role)
+			Role.OnValueChanged = function(self, val)				
+				specDB.Role = val 				
+				if val ~= "AUTO" then 
+					ActionDataTG["Role"] = val
+				end 
+				Action:PLAYER_SPECIALIZATION_CHANGED()	
+				TMW:Fire("TMW_ACTION_ROLE_CHANGED")
+			end
+			Role:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+			Role:SetScript("OnClick", function(self, button, down)
+				if button == "LeftButton" then 
+					self:ToggleOptions()
+				elseif button == "RightButton" then 
+					Action.CraftMacro(L["TAB"][5]["ROLE"], [[/run Action.ToggleRole()]])	
+				end
+			end)		
+			Role.Identify = { Type = "Dropdown", Toggle = "Role" }	
+			StdUi:FrameTooltip(Role, L["TAB"][tabName]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
+			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][5]["ROLE"])
+			StdUi:GlueAbove(Role.FontStringTitle, Role)	
+			Role.text:SetJustifyH("CENTER")				
+			TMW:RegisterCallback("TMW_ACTION_ROLE_CHANGED", function() 
+				local textRole = specDB.Role 
+				Role.text:SetText(Role:FindValueText(textRole))
+			end) 			
+			
 			local ReTarget = StdUi:Checkbox(anchor, "ReTarget")			
 			ReTarget:SetChecked(specDB.ReTarget)
 			ReTarget:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -11556,7 +14039,26 @@ function Action.ToggleMainUI()
 			ReTarget.Identify = { Type = "Checkbox", Toggle = "ReTarget" }
 			StdUi:FrameTooltip(ReTarget, L["TAB"][tabName]["RETARGET"], nil, "TOPRIGHT", true)
 			ReTarget.FontStringTitle = StdUi:Subtitle(ReTarget, L["TAB"][tabName]["PVPSECTION"])
-			StdUi:GlueAbove(ReTarget.FontStringTitle, ReTarget)			
+			StdUi:GlueAbove(ReTarget.FontStringTitle, Role.FontStringTitle, 0, ReTarget:GetHeight() + 8)
+			
+			local ReFocus 
+			if Action.BuildToC >= 20000 then
+				ReFocus = StdUi:Checkbox(anchor, "ReFocus")
+				ReFocus:SetChecked(specDB.ReFocus)
+				ReFocus:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+				ReFocus:SetScript("OnClick", function(self, button, down)	
+					if button == "LeftButton" then 
+						specDB.ReFocus = not specDB.ReFocus
+						self:SetChecked(specDB.ReFocus)	
+						Action.Print("ReFocus" .. ": ", specDB.ReFocus)
+						Re:Initialize()					
+					elseif button == "RightButton" then 
+						Action.CraftMacro("ReFocus", [[/run Action.SetToggle({]] .. tabName .. [[, "ReFocus", "]] .. "ReFocus" .. [[: "})]])	
+					end 
+				end)
+				ReFocus.Identify = { Type = "Checkbox", Toggle = "ReFocus" }
+				StdUi:FrameTooltip(ReFocus, L["TAB"][tabName]["REFOCUS"], nil, "TOPRIGHT", true)
+			end
 			
 			local LosSystem = StdUi:Checkbox(anchor, L["TAB"][tabName]["LOSSYSTEM"])
 			LosSystem:SetChecked(specDB.LOSCheck)
@@ -11682,52 +14184,7 @@ function Action.ToggleMainUI()
 			Trinkets.FontStringTitle = StdUi:Subtitle(Trinkets, L["TAB"][tabName]["TRINKETS"])
 			StdUi:FrameTooltip(Trinkets, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "TOPLEFT", true)
 			StdUi:GlueAbove(Trinkets.FontStringTitle, Trinkets)
-			Trinkets.text:SetJustifyH("CENTER")	
-
-			local function GetProfileRole()
-				local temp = {}
-				temp[#temp + 1] = { text = L["TAB"]["AUTO"], value = "AUTO" }
-				
-				local roles = Action.GetCurrentSpecializationRoles()
-				local isUsed = {}
-				if roles then 
-					for role in pairs(roles) do 
-						if not isUsed[role] then 
-							temp[#temp + 1] = { text = L["TAB"][8][role] or _G[role], value = role }
-							isUsed[role] = true 
-						end 
-					end 
-				end 
-				
-				return temp 				
-			end 
-			local Role = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, GetProfileRole())		          
-			Role:SetValue(specDB.Role)
-			Role.OnValueChanged = function(self, val)				
-				specDB.Role = val 				
-				if val ~= "AUTO" then 
-					ActionDataTG["Role"] = val
-				end 
-				Action:PLAYER_SPECIALIZATION_CHANGED()	
-				TMW:Fire("TMW_ACTION_ROLE_CHANGED")
-			end
-			Role:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-			Role:SetScript("OnClick", function(self, button, down)
-				if button == "LeftButton" then 
-					self:ToggleOptions()
-				elseif button == "RightButton" then 
-					Action.CraftMacro(L["TAB"][5]["ROLE"], [[/run Action.ToggleRole()]])	
-				end
-			end)		
-			Role.Identify = { Type = "Dropdown", Toggle = "Role" }	
-			StdUi:FrameTooltip(Role, L["TAB"][tabName]["ROLETOOLTIP"], nil, "TOPRIGHT", true)
-			Role.FontStringTitle = StdUi:Subtitle(Role, L["TAB"][5]["ROLE"])
-			StdUi:GlueAbove(Role.FontStringTitle, Role)	
-			Role.text:SetJustifyH("CENTER")				
-			TMW:RegisterCallback("TMW_ACTION_ROLE_CHANGED", function() 
-				local textRole = specDB.Role 
-				Role.text:SetText(Role:FindValueText(textRole))
-			end) 
+			Trinkets.text:SetJustifyH("CENTER")				
 	
 			local Burst = StdUi:Dropdown(anchor, StdUi:GetWidthByColumn(anchor, 6), themeHeight, {
 				{ text = L["TAB"][tabName]["BURSTEVERYTHING"], 	value = "Everything" 	},
@@ -12274,7 +14731,7 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			DisableRegularFrames.Identify = { Type = "Checkbox", Toggle = "DisableRegularFrames" }
-			StdUi:FrameTooltip(DisableRegularFrames, strjoin("\n\n", L["TAB"][tabName]["DISABLEREGULARFRAMESTOOLTIP"], L["TAB"]["RIGHTCLICKCREATEMACRO"]), nil, "BOTTOMLEFT", true)							
+			StdUi:FrameTooltip(DisableRegularFrames, strjoin("\n\n", L["TAB"][tabName]["DISABLEREGULARFRAMESTOOLTIP"], L["TAB"]["RIGHTCLICKCREATEMACRO"]), nil, "BOTTOMLEFT", true)										
 			
 			local DisableBlackBackground = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEBLACKBACKGROUND"])
 			DisableBlackBackground:SetChecked(tabDB.DisableBlackBackground)			
@@ -12348,8 +14805,8 @@ function Action.ToggleMainUI()
 				end 
 			end)
 			DisableRotationModes.Identify = { Type = "Checkbox", Toggle = "DisableRotationModes" }	
-			StdUi:FrameTooltip(DisableRotationModes, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOMLEFT", true)							
-
+			StdUi:FrameTooltip(DisableRotationModes, L["TAB"]["RIGHTCLICKCREATEMACRO"], nil, "BOTTOMLEFT", true)	
+			
 			local DisableRotationDisplay = StdUi:Checkbox(anchor, L["TAB"][tabName]["DISABLEROTATIONDISPLAY"])
 			DisableRotationDisplay:SetChecked(tabDB.DisableRotationDisplay)
 			DisableRotationDisplay:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -12364,7 +14821,7 @@ function Action.ToggleMainUI()
 			end)
 			DisableRotationDisplay.Identify = { Type = "Checkbox", Toggle = "DisableRotationDisplay" }
 			StdUi:FrameTooltip(DisableRotationDisplay, strjoin("\n\n", L["TAB"][tabName]["DISABLEROTATIONDISPLAYTOOLTIP"], L["TAB"]["RIGHTCLICKCREATEMACRO"]), nil, "BOTTOMRIGHT", true)	
-
+						
 			local HideOnScreenshot = StdUi:Checkbox(anchor, L["TAB"][tabName]["HIDEONSCREENSHOT"])
 			HideOnScreenshot:SetChecked(tabDB.HideOnScreenshot)	
 			HideOnScreenshot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
@@ -13018,7 +15475,7 @@ function Action.ToggleMainUI()
 				["BAG_UPDATE_COOLDOWN"]			= true,
 				["PLAYER_EQUIPMENT_CHANGED"]	= true,
 				["UNIT_INVENTORY_CHANGED"]		= true,
-				["UI_INFO_MESSAGE"]				= not StdUi.isClassic, -- Classic: No war mode 
+				["UI_INFO_MESSAGE"]				= not StdUi.isClassic, -- Classic: No war mode
 				--["PLAYER_LEVEL_UP"]			= true,	-- Retail: Replaced by callback TMW_ACTION_SPELL_BOOK_CHANGED | Classic: Spells are learn able only by teachers
 				--["UNIT_PET"] 					= true, -- Replaced by callbacks TMW_ACTION_PET_LIBRARY_MAIN_PET_UP and TMW_ACTION_PET_LIBRARY_MAIN_PET_DOWN which are represented by TMW_ACTION_SPELL_BOOK_CHANGED				
 			}
@@ -13285,7 +15742,7 @@ function Action.ToggleMainUI()
 					end 
 				end  
 			end)
-			hooksecurefunc(ScrollTable, "ClearSelection", function()		
+			hooksecurefunc(ScrollTable, "ClearSelection", function()	
 				if MacroEditor:IsShown() then 
 					MacroEditor.closeBtn:Click()
 					MacroEditor.Preview.SkipNextTimer = TMW.time + 2
@@ -13317,6 +15774,11 @@ function Action.ToggleMainUI()
 						end 
 					end		
 					ScrollTable:ClearSelection() 
+				end 
+			end)
+			TMW:RegisterCallback("TMW_ACTION_PLAYER_SPECIALIZATION_CHANGED", function(callbackEvent)
+				if ScrollTable:IsVisible() then 
+					ScrollTable:MakeUpdate() -- Update Actions list if learned/unlearned points and if talent tree is changed
 				end 
 			end)
 			
@@ -14146,8 +16608,8 @@ function Action.ToggleMainUI()
 					if type(text) == "number" then 
 						self.val = text					
 						if self.val > 9999999 then 						
-							self.val = ""						
-							self:SetText(self.val)								
+							self.val = ""
+							self:SetText("")							
 							Action.Print(L["DEBUG"] .. L["TAB"][tabName]["INTEGERERROR"]) 
 							return 
 						end 
@@ -14711,7 +17173,7 @@ function Action.ToggleMainUI()
 						self.val = text					
 						if self.val > 9999999 then 						
 							self.val = ""						
-							self:SetText(self.val)							
+							self:SetText(self.val)								
 							Action.Print(L["DEBUG"] .. L["TAB"][4]["INTEGERERROR"]) 
 							return 
 						end 
@@ -15645,7 +18107,7 @@ function Action.ToggleMainUI()
 			-- Fix StdUi 
 			-- Lib has missed scrollframe as widget (need to have function GetChildrenWidgets)
 			StdUi:InitWidget(anchor)		
-			
+
 			UI_Title:Hide()					
 			StdUi:EasyLayout(anchor, { padding = { top = 2, left = 8, right = 8 + 20 } })
 			
@@ -16104,7 +18566,7 @@ function Action.ToggleMainUI()
 			
 			-- UI: PanelOptions - SelectResurrects
 			SelectResurrects = CreateCheckbox(PanelOptions, "SelectResurrects", true) -- yes macro, no callback 
-			if StdUi.isClassic and Action.PlayerClass == "DRUID" then 
+			if Action.BuildToC < 30000 and Action.PlayerClass == "DRUID" then 
 				-- Druid in Classic, TBC hasn't ressurect but in WOTLK has
 				SelectResurrects:Disable()
 				SelectResurrects:SetChecked(false, true) -- only internal 
@@ -17642,7 +20104,7 @@ function Action.ToggleMainUI()
 			if MainUI.RememberTab == tabName then
 				DrawMetaEngine()
 			end	
-		end		
+		end
 		
 		StdUi:EnumerateToggleWidgets(tab.childs[spec], anchor) 
 	end)		
@@ -17667,17 +20129,23 @@ end
 -------------------------------------------------------------------------------
 -- Specializations
 -------------------------------------------------------------------------------
+-- MoP added specialization API functions back but we will continue using legacy API until v2
 local classSpecIds = {
-	DRUID 		= {102,103,105},
-	HUNTER 		= {253,254,255},
-	MAGE 		= {62,63,64},
-	PALADIN 	= {65,66,70},
-	PRIEST 		= {256,257,258},
-	ROGUE 		= {259,260,261},
-	SHAMAN 		= {262,263,264},
-	WARLOCK 	= {265,266,267},
-	WARRIOR 	= {71,72,73},
+	DRUID 				= {102,103,105},
+	HUNTER 				= {253,254,255},
+	MAGE 				= {62,63,64},
+	PALADIN 			= {65,66,70},
+	PRIEST 				= {256,257,258},
+	ROGUE 				= {259,260,261},
+	SHAMAN 				= {262,263,264},
+	WARLOCK 			= {265,266,267},
+	WARRIOR 			= {71,72,73},
+	DEATHKNIGHT 		= {250,251,252},
+	MONK 				= {268,270,269},
 }; ActionData.classSpecIds = classSpecIds
+if Action.BuildToC >= 50000 then
+	tinsert(classSpecIds.DRUID, 3, 104)
+end
 local specs = {
 	-- 4th index is localizedName of the specialization 
 	[253]	= {"Beast Mastery", 461112, "DAMAGER"},
@@ -17706,6 +20174,7 @@ local specs = {
 
 	[102]	= {"Balance", 136096, "DAMAGER"},
 	[103]	= {"Feral", 132115, "DAMAGER"},
+	[104]	= {"Guardian", 132276, "TANK"},
 	[105]	= {"Restoration", 136041, "HEALER"},
 
 	[262]	= {"Elemental", 136048, "DAMAGER"},
@@ -17715,11 +20184,19 @@ local specs = {
 	[259]	= {"Assassination", 236270, "DAMAGER"},
 	[260]	= {"Combat", 236286, "DAMAGER"},
 	[261]	= {"Subtlety", 132320, "DAMAGER"},
+	
+	[250]	= {"Blood", 135770, "TANK"},
+	[251]	= {"Frost", 135773, "DAMAGER"},
+	[252]	= {"Unholy", 135775, "DAMAGER"},
+	
+	[268]	= {"Brewmaster", 608951, "TANK"},
+	[270]	= {"Mistweaver", 608952, "HEALER"},
+	[269]	= {"Windwalker", 608953, "DAMAGER"},
 }; ActionData.specs = specs
 
 function Action.GetNumSpecializations()
 	-- @return number 
-	return 3
+	return GetNumSpecializations and GetNumSpecializations() or 3
 end
 
 function Action.GetCurrentSpecialization()
@@ -17746,10 +20223,16 @@ function Action.GetCurrentSpecializationID()
 		local localizedName, _, points = GetTalentTabInfo(i)
 		if type(points) == "string" then 
 			_, localizedName, _, _, points = GetTalentTabInfo(i)
+			if not points and biggest == 0 and Action.BuildToC >= 50500 then -- MoP+ style with backward compatibility for Classic - Cata
+				local C_SpecializationInfo = _G.C_SpecializationInfo
+				local specIndex = C_SpecializationInfo.GetSpecialization()
+				local specInfo = specIndex and C_SpecializationInfo.GetSpecializationInfo(specIndex)
+				points = specInfo == specIDs[i] and specInfo or nil
+			end
 		end 
 		
 		specs[specIDs[i]][4] = localizedName
-		if points > biggest then
+		if points and points > biggest then -- MoP+ points can be nil if not choicen specialization tree
 			biggest = points
 			specID = specIDs[i]
 		elseif not specID and specs[specIDs[i]][3] == "DAMAGER" then 
@@ -18042,8 +20525,8 @@ local function OnInitialize()
 	----------------------------------	
     A_Print(L["SLASH"]["LIST"])
 	A_Print("|cff00cc66/action|r - "  .. L["SLASH"]["OPENCONFIGMENU"])
-	A_Print("|cff00cc66/action help|r - " .. L["SLASH"]["HELP"])		
-	A_Print("|cff00cc66/action toaster|r - " .. L["SLASH"]["OPENCONFIGMENUTOASTER"])	
+	A_Print("|cff00cc66/action help|r - " .. L["SLASH"]["HELP"])	
+	A_Print("|cff00cc66/action toaster|r - " .. L["SLASH"]["OPENCONFIGMENUTOASTER"])		
 
 	----------------------------------	
 	-- Initialization
@@ -18056,7 +20539,7 @@ local function OnInitialize()
 	-- Initialization ColorPicker 
 	ColorPicker:Initialize()
 	
-	-- Initialization ReTarget 
+	-- Initialization ReTarget ReFocus
 	Re:Initialize()
 	
 	-- Initialization ScreenshotHider
@@ -18390,7 +20873,7 @@ function Action:ADDON_LOADED(event, addonName)
 		if ActionHasRunningDB then 
 			-- Reset Queue
 			Queue:OnEventToReset() 
-			-- ReTarget 
+			-- ReTarget ReFocus
 			Re:Reset()
 			-- ScreenshotHider - Only here!!
 			ScreenshotHider:Reset()
