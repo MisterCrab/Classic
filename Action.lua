@@ -114,6 +114,9 @@ function Action.GetMouseFocus()
     end
 end 
 
+-- Backwards compatibility for events
+local LEARNED_SPELL_EVENT = _G.C_EventUtils and _G.C_EventUtils.IsEventValid("LEARNED_SPELL_IN_TAB") and "LEARNED_SPELL_IN_TAB" or "LEARNED_SPELL_IN_SKILL_LINE"
+
 -- Classic: UnitAura override through LibClassicDurations. Only for buffs on other units because debuffs are available since 1.15.
 local LibClassicDurations											= LibStub("LibClassicDurations", true)
 if LibClassicDurations then	
@@ -11665,7 +11668,7 @@ local Queue; Queue 				= {
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED")
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN")
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED")
-		A_Listener:Remove("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB")
+		A_Listener:Remove("ACTION_EVENT_QUEUE", LEARNED_SPELL_EVENT)
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "SKILL_LINES_CHANGED")
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED")		
 		A_Listener:Remove("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE")
@@ -11951,7 +11954,7 @@ function Action:SetQueue(args)
     A_Listener:Add("ACTION_EVENT_QUEUE", "UNIT_SPELLCAST_SUCCEEDED", 		Queue.UNIT_SPELLCAST_SUCCEEDED									)
 	A_Listener:Add("ACTION_EVENT_QUEUE", "BAG_UPDATE_COOLDOWN", 			Queue.BAG_UPDATE_COOLDOWN										)
 	A_Listener:Add("ACTION_EVENT_QUEUE", "ITEM_UNLOCKED",					Queue.ITEM_UNLOCKED												)
-	A_Listener:Add("ACTION_EVENT_QUEUE", "LEARNED_SPELL_IN_TAB", 			Queue.OnEventToReset											)
+	A_Listener:Add("ACTION_EVENT_QUEUE", LEARNED_SPELL_EVENT,	 			Queue.OnEventToReset											)
 	A_Listener:Add("ACTION_EVENT_QUEUE", "SKILL_LINES_CHANGED", 			Queue.OnEventToReset											)
 	A_Listener:Add("ACTION_EVENT_QUEUE", "CHARACTER_POINTS_CHANGED", 		Queue.OnEventToResetNoCombat									)	
     A_Listener:Add("ACTION_EVENT_QUEUE", "CONFIRM_TALENT_WIPE", 			Queue.OnEventToResetNoCombat									)
